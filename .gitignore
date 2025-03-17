@@ -1,0 +1,25 @@
+integration-tests/gradlew
+integration-tests/gradlew.bat
+integration-tests/gradle/
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+# Ignore intellij
+/.idea
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+**/bin/**
+**/target/**
+.idea/
