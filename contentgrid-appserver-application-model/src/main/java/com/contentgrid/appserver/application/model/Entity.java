@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,19 +17,38 @@ import lombok.Value;
 public class Entity {
 
     @Builder
-    Entity(@NonNull String name, @NonNull String table, @Singular List<Attribute> attributes) {
+    Entity(@NonNull String name, @NonNull String table, @Singular List<Attribute> attributes,
+            @NonNull Attribute primaryKey, @Singular List<SearchFilter> searchFilters) {
         this.name = name;
         this.table = table;
+        this.primaryKey = primaryKey;
 
         attributes.forEach(
-            attribute -> {
-                if (this.attributes.put(attribute.getName(), attribute) != null) {
-                    throw new IllegalArgumentException("Duplicate attribute named %s".formatted(attribute.getName()));
+                attribute -> {
+                    if (this.attributes.put(attribute.getName(), attribute) != null) {
+                        throw new IllegalArgumentException(
+                                "Duplicate attribute named %s".formatted(attribute.getName()));
+                    }
+                    if (this.columnAttributes.put(attribute.getColumn(), attribute) != null) {
+                        throw new IllegalArgumentException(
+                                "Duplicate column named %s".formatted(attribute.getColumn()));
+                    }
                 }
-                if (this.columnAttributes.put(attribute.getColumn(), attribute) != null) {
-                    throw new IllegalArgumentException("Duplicate column named %s".formatted(attribute.getColumn()));
+        );
+
+        searchFilters.forEach(
+                searchFilter -> {
+                    if (this.searchFilters.put(searchFilter.getName(), searchFilter) != null) {
+                        throw new IllegalArgumentException(
+                                "Duplicate search filter named %s".formatted(searchFilter.getName()));
+                    }
+                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter && !attributes.contains(
+                            attributeSearchFilter.getAttribute())) {
+                        throw new IllegalArgumentException(
+                                "AttributeSearchFilter %s is does not have a valid attribute".formatted(
+                                        attributeSearchFilter.getName()));
+                    }
                 }
-            }
         );
     }
 
@@ -37,14 +58,21 @@ public class Entity {
     @NonNull
     String table;
 
+    @NonNull
+    Attribute primaryKey;
+
     @Getter(AccessLevel.NONE)
     Map<String, Attribute> attributes = new HashMap<>();
 
     @Getter(AccessLevel.NONE)
     Map<String, Attribute> columnAttributes = new HashMap<>();
 
+    @Getter(AccessLevel.NONE)
+    Map<String, SearchFilter> searchFilters = new HashMap<>();
+
     /**
      * Returns an unmodifiable list of attributes.
+     *
      * @return an unmodifiable list of attributes
      */
     public List<Attribute> getAttributes() {

@@ -1,7 +1,10 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.constraints.Constraint;
+import java.util.List;
 import lombok.Builder;
 import lombok.NonNull;
+import lombok.Singular;
 import lombok.Value;
 
 @Value
@@ -17,6 +20,9 @@ public class Attribute {
     @NonNull
     Type type;
 
+    @Singular
+    List<Constraint> constraints;
+
     public enum Type {
         LONG,
         DOUBLE,
@@ -24,7 +30,8 @@ public class Attribute {
         TEXT,
         DATETIME,
         CONTENT,
-        AUDIT_METADATA
+        AUDIT_METADATA,
+        UUID
     }
 
 }

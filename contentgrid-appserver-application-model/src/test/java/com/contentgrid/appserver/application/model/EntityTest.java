@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.contentgrid.appserver.application.model.Attribute.Type;
 import org.junit.jupiter.api.Test;
 
 class EntityTest {
@@ -11,6 +12,7 @@ class EntityTest {
         var entity = Entity.builder()
                 .name("Entity")
                 .table("entity")
+                .primaryKey(Attribute.builder().name("id").column("id").type(Type.UUID).build())
                 .attribute(Attribute.builder().name("attribute1").column("column1").type(Attribute.Type.TEXT).build())
                 .attribute(Attribute.builder().name("attribute2").column("column2").type(Attribute.Type.TEXT).build())
                 .build();
