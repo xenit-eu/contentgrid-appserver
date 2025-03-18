@@ -12,6 +12,9 @@ public class Attribute {
     String name;
 
     @NonNull
+    String column;
+
+    @NonNull
     Type type;
 
     public enum Type {

@@ -4,7 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
 
@@ -12,12 +15,15 @@ import lombok.Value;
 public class Application {
 
     @Builder
-    Application(String name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    Application(@NonNull String name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
         this.relations = relations;
         entities.forEach(entity -> {
             if (this.entities.put(entity.getName(), entity) != null) {
                 throw new IllegalArgumentException("Duplicate entity named %s".formatted(entity.getName()));
+            }
+            if (this.tableEntities.put(entity.getTable(), entity) != null) {
+                throw new IllegalArgumentException("Duplicate table named %s".formatted(entity.getTable()));
             }
         });
 
@@ -31,11 +37,33 @@ public class Application {
         });
     }
 
+    @NonNull
     String name;
 
+    @Getter(AccessLevel.NONE)
     Map<String, Entity> entities = new HashMap<>();
 
+    @Getter(AccessLevel.NONE)
+    Map<String, Entity> tableEntities = new HashMap<>();
+
     Set<Relation> relations;
+
+    /**
+     * Returns an unmodifiable set of entities.
+     * @return an unmodifiable set of entities
+     */
+    public Set<Entity> getEntities() {
+        return Set.copyOf(entities.values());
+    }
+
+    /**
+     * Finds an Entity by the table name.
+     * @param table name of the table
+     * @return an Optional containing the Entity if found, or empty if not found
+     */
+    public Optional<Entity> getEntityByTable(String table) {
+        return Optional.ofNullable(tableEntities.get(table));
+    }
 
     /**
      * Finds an Entity by its name.
