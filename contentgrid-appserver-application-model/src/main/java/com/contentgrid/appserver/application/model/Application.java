@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.relations.Relation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

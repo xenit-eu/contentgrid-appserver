@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.Attribute.Type;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import java.util.HashMap;
@@ -18,10 +19,10 @@ public class Entity {
 
     @Builder
     Entity(@NonNull String name, @NonNull String table, @Singular List<Attribute> attributes,
-            @NonNull Attribute primaryKey, @Singular List<SearchFilter> searchFilters) {
+            Attribute primaryKey, @Singular List<SearchFilter> searchFilters) {
         this.name = name;
         this.table = table;
-        this.primaryKey = primaryKey;
+        this.primaryKey = primaryKey == null ? Attribute.builder().name("id").column("id").type(Type.UUID).build() : primaryKey;
 
         attributes.forEach(
                 attribute -> {

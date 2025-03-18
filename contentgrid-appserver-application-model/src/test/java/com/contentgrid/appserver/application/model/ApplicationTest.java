@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.application.model;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.relations.ManyToOne;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import org.junit.jupiter.api.Test;
 
 class ApplicationTest {
@@ -28,9 +30,10 @@ class ApplicationTest {
                 .entity(invoice)
                 .entity(customer)
                 .relation(
-                        Relation.builder()
-                                .source(Relation.RelationEndPoint.builder().name("customer").entity(invoice).cardinality(Relation.Cardinality.ONE).build())
-                                .target(Relation.RelationEndPoint.builder().name("invoices").entity(customer).cardinality(Relation.Cardinality.MANY).build())
+                        ManyToOne.builder()
+                                .source(Relation.RelationEndPoint.builder().name("customer").entity(invoice).build())
+                                .target(Relation.RelationEndPoint.builder().name("invoices").entity(customer).build())
+                                .targetReference("customer_id")
                                 .build()
                 )
                 .build();
