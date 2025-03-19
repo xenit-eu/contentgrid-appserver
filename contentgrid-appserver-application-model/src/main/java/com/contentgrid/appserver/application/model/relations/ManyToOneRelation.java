@@ -7,15 +7,15 @@ import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
-public class OneToMany extends Relation {
+public class ManyToOneRelation extends Relation {
 
     @Builder
-    OneToMany(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String sourceReference) {
+    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String targetReference) {
         super(source, target);
-        this.sourceReference = sourceReference;
+        this.targetReference = targetReference;
     }
 
     @NonNull
-    String sourceReference;
+    String targetReference;
 
 }
