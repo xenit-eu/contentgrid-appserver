@@ -1,5 +1,11 @@
 package com.contentgrid.appserver.application.model.constraints;
 
-public class UniqueConstraint implements Constraint {
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+
+@EqualsAndHashCode
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+public final class UniqueConstraint implements Constraint {
 
 }
