@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.application.model;
 
-import com.contentgrid.appserver.application.model.constraints.Constraint;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

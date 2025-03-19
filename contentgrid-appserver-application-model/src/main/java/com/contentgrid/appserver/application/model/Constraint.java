@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.application.model.constraints;
+package com.contentgrid.appserver.application.model;
 
 import java.util.List;
 import java.util.Set;
@@ -28,7 +28,7 @@ public sealed interface Constraint {
         @NonNull
         List<String> values;
 
-        AllowedValuesConstraint(@NonNull List<String> values) {
+        private AllowedValuesConstraint(@NonNull List<String> values) {
             if (values.isEmpty()) {
                 throw new IllegalArgumentException("Values can not be empty");
             }
@@ -44,13 +44,13 @@ public sealed interface Constraint {
     }
 
     @EqualsAndHashCode
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     final class RequiredConstraint implements Constraint {
 
     }
 
     @EqualsAndHashCode
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     final class UniqueConstraint implements Constraint {
 
     }
