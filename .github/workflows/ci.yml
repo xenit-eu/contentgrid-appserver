@@ -17,7 +17,7 @@ jobs:
           java-version: 21
           cache: gradle
       - name: Build and Test
-        run: ./gradlew build
+        run: ./gradlew check
       - name: Sonar analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
