@@ -24,6 +24,9 @@ public class Entity {
         this.table = table;
         this.primaryKey = primaryKey == null ? Attribute.builder().name("id").column("id").type(Type.UUID).build() : primaryKey;
 
+        this.attributes.put(this.primaryKey.getName(), this.primaryKey);
+        this.columnAttributes.put(this.primaryKey.getColumn(), this.primaryKey);
+
         attributes.forEach(
                 attribute -> {
                     if (this.attributes.put(attribute.getName(), attribute) != null) {
@@ -80,6 +83,14 @@ public class Entity {
         return List.copyOf(attributes.values());
     }
 
+    /**
+     * Returns an unmodifiable list of search filters.
+     * @return an unmodifiable list of search filters
+     */
+    public List<SearchFilter> getSearchFilters() {
+        return List.copyOf(searchFilters.values());
+    }
+
     public Optional<Attribute> getAttributeByColumn(String column) {
         return Optional.ofNullable(columnAttributes.get(column));
     }
@@ -93,6 +104,16 @@ public class Entity {
      */
     public Optional<Attribute> getAttributeByName(String attributeName) {
         return Optional.ofNullable(attributes.get(attributeName));
+    }
+
+    /**
+     * Finds a SearchFilter by its name.
+     *
+     * @param filterName the name of the filter to find
+     * @return an Optional containing the SearchFilter if found, or empty if not found
+     */
+    public Optional<SearchFilter> getFilterByName(String filterName) {
+        return Optional.ofNullable(searchFilters.get(filterName));
     }
 
 }

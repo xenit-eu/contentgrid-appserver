@@ -44,6 +44,15 @@ class RelationTest {
     }
 
     @Test
+    void oneToOne_missingSourceName() {
+        assertThrows(IllegalArgumentException.class, () -> OneToOneRelation.builder()
+                .source(RelationEndPoint.builder().entity(SOURCE).build())
+                .target(RelationEndPoint.builder().entity(TARGET).name("source").build())
+                .targetReference("target")
+                .build());
+    }
+
+    @Test
     void oneToOne_reflexive_duplicateRelationName() {
         assertThrows(IllegalArgumentException.class, () -> OneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name("source").build())
