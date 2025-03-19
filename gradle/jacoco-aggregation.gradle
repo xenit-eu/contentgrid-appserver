@@ -1,0 +1,15 @@
+apply plugin: 'jacoco-report-aggregation'
+
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = project.name
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testCodeCoverageReport', JacocoReport)
+}
+
+rootProject.tasks.sonarqube.dependsOn(tasks.testCodeCoverageReport)

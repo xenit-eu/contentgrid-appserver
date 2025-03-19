@@ -2,6 +2,8 @@ plugins {
     id 'java-library'
 }
 
+apply from: "${rootProject.projectDir}/gradle/jacoco-aggregation.gradle"
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)

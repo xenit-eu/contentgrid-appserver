@@ -14,7 +14,12 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: liberica
-          java-version: 17
+          java-version: 21
           cache: gradle
       - name: Build and Test
         run: ./gradlew build
+      - name: Sonar analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./gradlew sonar --parallel -i
