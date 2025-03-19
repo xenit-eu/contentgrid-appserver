@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.constraints.Constraint;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
@@ -31,7 +33,9 @@ public class Attribute {
         DATETIME,
         CONTENT,
         AUDIT_METADATA,
-        UUID
+        UUID;
+
+        public static final Set<Type> NATIVE_TYPES = EnumSet.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
     }
 
 }

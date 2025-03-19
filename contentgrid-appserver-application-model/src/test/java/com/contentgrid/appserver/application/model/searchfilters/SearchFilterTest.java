@@ -1,0 +1,56 @@
+package com.contentgrid.appserver.application.model.searchfilters;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.contentgrid.appserver.application.model.Attribute;
+import com.contentgrid.appserver.application.model.Attribute.Type;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+class SearchFilterTest {
+
+    static Attribute getAttribute(Type type) {
+        return Attribute.builder().type(type).name("name").column("column").build();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "TEXT", "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
+    })
+    void exactSearchFilter(Type type) {
+        ExactSearchFilter exactSearchFilter = ExactSearchFilter.builder()
+                .name("filter").attribute(getAttribute(type)).build();
+        assertEquals("filter", exactSearchFilter.getName());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "CONTENT", "AUDIT_METADATA"
+    })
+    void exactSearchFilter_invalidType(Type type) {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ExactSearchFilter.builder()
+                    .name("filter").attribute(getAttribute(type)).build();
+        });
+    }
+
+    @Test
+    void prefixSearchFilter() {
+        PrefixSearchFilter prefixSearchFilter = PrefixSearchFilter.builder()
+                .name("filter~prefix").attribute(getAttribute(Type.TEXT)).build();
+        assertEquals("filter~prefix", prefixSearchFilter.getName());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME", "CONTENT", "AUDIT_METADATA"
+    })
+    void prefixSearchFilter_invalidType(Type type) {
+        assertThrows(IllegalArgumentException.class, () -> {
+            PrefixSearchFilter.builder()
+                    .name("filter~prefix").attribute(getAttribute(type)).build();
+        });
+    }
+
+}

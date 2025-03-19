@@ -10,7 +10,7 @@ import lombok.Value;
 @Getter
 public abstract class Relation {
 
-    Relation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
+    protected Relation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
         if (source.getName() == null) {
             throw new IllegalArgumentException("Source endpoint must have a name");
         }
