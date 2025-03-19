@@ -104,70 +104,70 @@ class EntityTest {
     void entity_duplicateAttributeName() {
         // normal attribute
         var duplicate1 = Attribute.builder().name(ATTRIBUTE1.getName()).column("other_column").type(Type.TEXT).build();
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder1 = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
-                .searchFilter(FILTER1)
-                .build());
+                .searchFilter(FILTER1);
+        assertThrows(IllegalArgumentException.class, builder1::build);
 
         // primary key attribute
         var duplicate2 = Attribute.builder().name("id").column("other_column").type(Type.TEXT).build();
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder2 = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
-                .searchFilter(FILTER1)
-                .build());
+                .searchFilter(FILTER1);
+        assertThrows(IllegalArgumentException.class, builder2::build);
     }
 
     @Test
     void entity_duplicateColumnName() {
         // normal column
         var duplicate1 = Attribute.builder().name("other_name").column(ATTRIBUTE1.getColumn()).type(Type.TEXT).build();
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder1 = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
-                .searchFilter(FILTER1)
-                .build());
+                .searchFilter(FILTER1);
+        assertThrows(IllegalArgumentException.class, builder1::build);
 
         // primary key column
         var duplicate2 = Attribute.builder().name("other_name").column("id").type(Type.TEXT).build();
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder2 = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
-                .searchFilter(FILTER1)
-                .build());
+                .searchFilter(FILTER1);
+        assertThrows(IllegalArgumentException.class, builder2::build);
     }
 
     @Test
     void entity_duplicateFilterName() {
         var duplicate = ExactSearchFilter.builder().name(FILTER1.getName()).attribute(ATTRIBUTE2).build();
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
-                .searchFilter(duplicate)
-                .build());
+                .searchFilter(duplicate);
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
     @Test
     void entity_filterOnMissingAttribute() {
-        assertThrows(IllegalArgumentException.class, () -> Entity.builder()
+        var builder = Entity.builder()
                 .name("entity")
                 .table("table")
                 .attribute(ATTRIBUTE1)
                 .searchFilter(FILTER1)
-                .searchFilter(FILTER2) // on missing ATTRIBUTE2
-                .build());
+                .searchFilter(FILTER2); // on missing ATTRIBUTE2
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
 }

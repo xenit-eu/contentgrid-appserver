@@ -19,7 +19,7 @@ class SearchFilterTest {
             "TEXT", "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
     })
     void exactSearchFilter(Type type) {
-        ExactSearchFilter exactSearchFilter = ExactSearchFilter.builder()
+        var exactSearchFilter = ExactSearchFilter.builder()
                 .name("filter").attribute(getAttribute(type)).build();
         assertEquals("filter", exactSearchFilter.getName());
     }
@@ -29,15 +29,13 @@ class SearchFilterTest {
             "CONTENT", "AUDIT_METADATA"
     })
     void exactSearchFilter_invalidType(Type type) {
-        assertThrows(IllegalArgumentException.class, () -> {
-            ExactSearchFilter.builder()
-                    .name("filter").attribute(getAttribute(type)).build();
-        });
+        var builder = ExactSearchFilter.builder().name("filter").attribute(getAttribute(type));
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
     @Test
     void prefixSearchFilter() {
-        PrefixSearchFilter prefixSearchFilter = PrefixSearchFilter.builder()
+        var prefixSearchFilter = PrefixSearchFilter.builder()
                 .name("filter~prefix").attribute(getAttribute(Type.TEXT)).build();
         assertEquals("filter~prefix", prefixSearchFilter.getName());
     }
@@ -47,10 +45,8 @@ class SearchFilterTest {
             "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME", "CONTENT", "AUDIT_METADATA"
     })
     void prefixSearchFilter_invalidType(Type type) {
-        assertThrows(IllegalArgumentException.class, () -> {
-            PrefixSearchFilter.builder()
-                    .name("filter~prefix").attribute(getAttribute(type)).build();
-        });
+        var builder = PrefixSearchFilter.builder().name("filter~prefix").attribute(getAttribute(type));
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
 }

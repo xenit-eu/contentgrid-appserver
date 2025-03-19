@@ -14,10 +14,9 @@ public abstract class Relation {
         if (source.getName() == null) {
             throw new IllegalArgumentException("Source endpoint must have a name");
         }
-        if (source.getEntity().getName().equals(target.getEntity().getName())) {
-            if (Objects.equals(source.getName(), target.getName())) {
-                throw new IllegalArgumentException("Source and target must have a different name when on the same entity");
-            }
+        if (source.getEntity().getName().equals(target.getEntity().getName())
+                && Objects.equals(source.getName(), target.getName())) {
+            throw new IllegalArgumentException("Source and target must have a different name when on the same entity");
         }
         this.source = source;
         this.target = target;

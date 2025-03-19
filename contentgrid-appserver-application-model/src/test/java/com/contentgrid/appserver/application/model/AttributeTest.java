@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Attribute.Type;
-import com.contentgrid.appserver.application.model.constraints.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.constraints.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.constraints.Constraint;
-import com.contentgrid.appserver.application.model.constraints.RequiredConstraint;
-import com.contentgrid.appserver.application.model.constraints.UniqueConstraint;
+import com.contentgrid.appserver.application.model.constraints.Constraint.RequiredConstraint;
+import com.contentgrid.appserver.application.model.constraints.Constraint.UniqueConstraint;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

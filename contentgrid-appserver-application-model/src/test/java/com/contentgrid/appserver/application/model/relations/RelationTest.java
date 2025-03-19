@@ -45,20 +45,20 @@ class RelationTest {
 
     @Test
     void oneToOne_missingSourceName() {
-        assertThrows(IllegalArgumentException.class, () -> OneToOneRelation.builder()
+        var builder = OneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name("source").build())
-                .targetReference("target")
-                .build());
+                .targetReference("target");
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
     @Test
     void oneToOne_reflexive_duplicateRelationName() {
-        assertThrows(IllegalArgumentException.class, () -> OneToOneRelation.builder()
+        var builder = OneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name("source").build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name("source").build())
-                .targetReference("source")
-                .build());
+                .targetReference("source");
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
     @Test
@@ -173,24 +173,24 @@ class RelationTest {
 
     @Test
     void manyToMany_reflexive_duplicateRelationName() {
-        assertThrows(IllegalArgumentException.class, () -> ManyToManyRelation.builder()
+        var builder = ManyToManyRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name("sources").build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name("sources").build())
                 .joinTable("source__sources")
                 .sourceReference("source_src_id")
-                .targetReference("source_tgt_id")
-                .build());
+                .targetReference("source_tgt_id");
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
     @Test
     void manyToMany_reflexive_duplicateColumnReference() {
-        assertThrows(IllegalArgumentException.class, () -> ManyToManyRelation.builder()
+        var builder = ManyToManyRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name("sources").build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name("others").build())
                 .joinTable("source__sources")
                 .sourceReference("source_id")
-                .targetReference("source_id")
-                .build());
+                .targetReference("source_id");
+        assertThrows(IllegalArgumentException.class, builder::build);
     }
 
 }

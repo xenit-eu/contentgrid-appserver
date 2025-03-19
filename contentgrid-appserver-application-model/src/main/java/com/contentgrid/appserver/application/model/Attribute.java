@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.constraints.Constraint;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +35,7 @@ public class Attribute {
         AUDIT_METADATA,
         UUID;
 
-        public static final Set<Type> NATIVE_TYPES = EnumSet.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
+        public static final Set<Type> NATIVE_TYPES = Set.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
     }
 
     public <C extends Constraint> Optional<C> getConstraint(Class<C> constraintClass) {
