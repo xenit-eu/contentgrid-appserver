@@ -216,11 +216,13 @@ class AttributeTest {
                 .build();
 
         assertEquals(4, attribute.getAttributes().size());
+
         var attributeNames = attribute.getAttributes().stream().map(Attribute::getName).toList();
         assertTrue(attributeNames.contains(AttributeName.of("created_by")));
         assertTrue(attributeNames.contains(AttributeName.of("created_date")));
         assertTrue(attributeNames.contains(AttributeName.of("last_modified_by")));
         assertTrue(attributeNames.contains(AttributeName.of("last_modified_date")));
+
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_ns")));

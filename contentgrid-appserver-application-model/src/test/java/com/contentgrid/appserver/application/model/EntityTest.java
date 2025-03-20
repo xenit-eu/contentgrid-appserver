@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.ManagedType;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
@@ -40,9 +41,12 @@ class EntityTest {
                 .build();
 
         // getAttributeByName
-        assertEquals(AttributeName.of("attribute1"), entity.getAttributeByName(AttributeName.of("attribute1")).orElseThrow().getName());
-        assertEquals(List.of(ColumnName.of("column1")), entity.getAttributeByName(AttributeName.of("attribute1")).orElseThrow().getColumns());
-//        assertEquals(SimpleAttribute.Type.TEXT, entity.getAttributeByName(AttributeName.of("attribute1")).orElseThrow().getType());
+        var foundAttribute = entity.getAttributeByName(AttributeName.of("attribute1")).orElseThrow();
+        assertEquals(AttributeName.of("attribute1"), foundAttribute.getName());
+        assertEquals(List.of(ColumnName.of("column1")), foundAttribute.getColumns());
+        assertInstanceOf(SimpleAttribute.class, foundAttribute);
+        assertEquals(Type.TEXT, ((SimpleAttribute) foundAttribute).getType());
+        assertEquals(ManagedType.UNMANAGED, ((SimpleAttribute) foundAttribute).getManagedType());
 
         // getFilterByName
         var filter = entity.getFilterByName(FilterName.of("filter1")).orElseThrow();
