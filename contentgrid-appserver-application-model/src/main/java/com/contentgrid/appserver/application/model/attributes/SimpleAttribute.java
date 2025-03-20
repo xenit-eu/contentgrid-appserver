@@ -39,6 +39,10 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     Type type;
 
+    @NonNull
+    @Builder.Default
+    ManagedType managedType = ManagedType.UNMANAGED;
+
     /**
      * The list of constraints applied to this attribute.
      */
@@ -58,6 +62,20 @@ public class SimpleAttribute implements Attribute {
 
         public static final Set<Type> NATIVE_TYPES = Set.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
     }
+
+    public enum ManagedType {
+        UNMANAGED,
+        CREATOR_ID,
+        CREATOR_NAMESPACE,
+        CREATOR_NAME,
+        CREATED_DATE,
+        MODIFIER_ID,
+        MODIFIER_NAMESPACE,
+        MODIFIER_NAME,
+        MODIFIED_DATE,
+        ETAG
+    }
+
 
     @Override
     public List<ColumnName> getColumns() {
