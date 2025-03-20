@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.Objects;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -30,9 +32,9 @@ public class ManyToManyRelation extends Relation {
      *                                 if sourceReference and targetReference are the same
      */
     @Builder
-    ManyToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String joinTable,
-            @NonNull String sourceReference,
-            @NonNull String targetReference) {
+    ManyToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull TableName joinTable,
+            @NonNull ColumnName sourceReference,
+            @NonNull ColumnName targetReference) {
         super(source, target);
         if (Objects.equals(sourceReference, targetReference)) {
             throw new InvalidRelationException("'%s' is used for sourceReference and targetReference".formatted(sourceReference));
@@ -46,18 +48,18 @@ public class ManyToManyRelation extends Relation {
      * The name of the join table that implements the many-to-many relationship.
      */
     @NonNull
-    String joinTable;
+    TableName joinTable;
 
     /**
      * The column in the join table that references the source entity.
      */
     @NonNull
-    String sourceReference;
+    ColumnName sourceReference;
 
     /**
      * The column in the join table that references the target entity.
      */
     @NonNull
-    String targetReference;
+    ColumnName targetReference;
 
 }

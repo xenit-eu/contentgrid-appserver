@@ -1,5 +1,8 @@
-package com.contentgrid.appserver.application.model;
+package com.contentgrid.appserver.application.model.attributes;
 
+import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -11,24 +14,24 @@ import lombok.Value;
 /**
  * Represents an attribute (field) of an entity.
  * 
- * An Attribute defines a property of an entity, including its name, database column,
+ * An SimpleAttribute defines a property of an entity, including its name, database column,
  * data type, and constraints. Attributes map to columns in a database table.
  */
 @Value
 @Builder
-public class Attribute {
+public class SimpleAttribute implements Attribute {
 
     /**
      * The name of the attribute.
      */
     @NonNull
-    String name;
+    AttributeName name;
 
     /**
      * The name of the database column this attribute maps to.
      */
     @NonNull
-    String column;
+    ColumnName column;
 
     /**
      * The data type of this attribute.
@@ -51,11 +54,14 @@ public class Attribute {
         BOOLEAN,
         TEXT,
         DATETIME,
-        CONTENT,
-        AUDIT_METADATA,
         UUID;
 
         public static final Set<Type> NATIVE_TYPES = Set.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
+    }
+
+    @Override
+    public List<ColumnName> getColumns() {
+        return List.of(column);
     }
 
     /**

@@ -1,7 +1,8 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.Attribute;
-import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -25,7 +26,7 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    PrefixSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
+    PrefixSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
         super(name, attribute);
     }
 

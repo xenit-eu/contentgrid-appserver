@@ -3,7 +3,9 @@ package com.contentgrid.appserver.application.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -12,55 +14,65 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import org.junit.jupiter.api.Test;
 
 class ApplicationTest {
 
     private static final Entity INVOICE = Entity.builder()
-            .name("Invoice")
-            .table("invoice")
-            .attribute(Attribute.builder().name("invoiceNumber").column("invoice_number").type(Type.TEXT).build())
-            .attribute(Attribute.builder().name("amount").column("amount").type(Type.DOUBLE).build())
-            .attribute(Attribute.builder().name("isPaid").column("is_paid").type(Type.BOOLEAN).build())
-            .attribute(Attribute.builder().name("content").column("content").type(Type.CONTENT).build())
+            .name(EntityName.of("Invoice"))
+            .table(TableName.of("invoice"))
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("invoiceNumber")).column(ColumnName.of("invoice_number")).type(Type.TEXT).build())
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("amount")).column(ColumnName.of("amount")).type(Type.DOUBLE).build())
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("isPaid")).column(ColumnName.of("is_paid")).type(Type.BOOLEAN).build())
+            .attribute(ContentAttribute.builder()
+                    .name(AttributeName.of("content"))
+                    .filenameColumn(ColumnName.of("content__filename"))
+                    .mimetypeColumn(ColumnName.of("content__mimetype"))
+                    .lengthColumn(ColumnName.of("content__length"))
+                    .build())
             .build();
 
     private static final Entity CUSTOMER = Entity.builder()
-            .name("Customer")
-            .table("customer")
-            .attribute(Attribute.builder().name("name").column("name").type(Type.TEXT).build())
-            .attribute(Attribute.builder().name("email").column("email").type(Type.TEXT).build())
+            .name(EntityName.of("Customer"))
+            .table(TableName.of("customer"))
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of("name")).type(Type.TEXT).build())
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email")).type(Type.TEXT).build())
             .build();
 
     private static final Relation MANY_TO_ONE = ManyToOneRelation.builder()
-            .source(Relation.RelationEndPoint.builder().name("customer").entity(INVOICE).build())
-            .target(Relation.RelationEndPoint.builder().name("invoices").entity(CUSTOMER).build())
-            .targetReference("customer_id")
+            .source(Relation.RelationEndPoint.builder().name(RelationName.of("customer")).entity(INVOICE).build())
+            .target(Relation.RelationEndPoint.builder().name(RelationName.of("invoices")).entity(CUSTOMER).build())
+            .targetReference(ColumnName.of("customer_id"))
             .build();
 
     @Test
     void invoiceApplicationTest() {
         var application = Application.builder()
-                .name("invoiceApplication")
+                .name(ApplicationName.of("invoiceApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .build();
 
-        assertEquals(CUSTOMER, application.getRelationForEntity(INVOICE, "customer").get().getTarget().getEntity());
-        assertEquals(INVOICE, application.getEntityByName("Invoice").orElseThrow());
-        assertEquals(INVOICE, application.getEntityByTable("invoice").orElseThrow());
-        assertEquals(INVOICE, application.getRelationForEntity("Customer", "invoices").orElseThrow().getSource().getEntity());
+        assertEquals(CUSTOMER, application.getRelationForEntity(INVOICE, RelationName.of("customer")).orElseThrow().getTarget().getEntity());
+        assertEquals(INVOICE, application.getEntityByName(EntityName.of("Invoice")).orElseThrow());
+        assertEquals(INVOICE, application.getRelationForEntity(EntityName.of("Customer"), RelationName.of("invoices")).orElseThrow().getSource().getEntity());
     }
 
     @Test
     void application_duplicateEntityName() {
         var builder = Application.builder()
-                .name("duplicateEntityApplication")
+                .name(ApplicationName.of("duplicateEntityApplication"))
                 .entity(INVOICE)
                 .entity(Entity.builder()
                         .name(INVOICE.getName())
-                        .table("other_table")
+                        .table(TableName.of("other_table"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -68,10 +80,10 @@ class ApplicationTest {
     @Test
     void application_duplicateTableName() {
         var builder = Application.builder()
-                .name("duplicateTableApplication")
+                .name(ApplicationName.of("duplicateTableApplication"))
                 .entity(INVOICE)
                 .entity(Entity.builder()
-                        .name("other_entity")
+                        .name(EntityName.of("other_entity"))
                         .table(INVOICE.getTable())
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
@@ -81,16 +93,16 @@ class ApplicationTest {
     void application_duplicateRelationSource() {
         // relation1.source = relation2.source
         var builder = Application.builder()
-                .name("duplicateRelationApplication")
+                .name(ApplicationName.of("duplicateRelationApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .relation(ManyToManyRelation.builder()
                         .source(MANY_TO_ONE.getSource())
-                        .target(RelationEndPoint.builder().name("name_on_target").entity(CUSTOMER).build())
-                        .joinTable("join_table")
-                        .sourceReference("ref_on_source")
-                        .targetReference("ref_on_target")
+                        .target(RelationEndPoint.builder().name(RelationName.of("name_on_target")).entity(CUSTOMER).build())
+                        .joinTable(TableName.of("join_table"))
+                        .sourceReference(ColumnName.of("ref_on_source"))
+                        .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -99,14 +111,14 @@ class ApplicationTest {
     void application_duplicateRelationTarget() {
         // relation1.target = relation2.target
         var builder = Application.builder()
-                .name("duplicateRelationApplication")
+                .name(ApplicationName.of("duplicateRelationApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .relation(OneToOneRelation.builder()
-                        .source(RelationEndPoint.builder().name("name_on_source").entity(INVOICE).build())
+                        .source(RelationEndPoint.builder().name(RelationName.of("name_on_source")).entity(INVOICE).build())
                         .target(MANY_TO_ONE.getTarget())
-                        .targetReference("ref_on_target")
+                        .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -115,14 +127,14 @@ class ApplicationTest {
     void application_duplicateRelationSourceWithTarget() {
         // relation1.source = relation2.target
         var builder = Application.builder()
-                .name("duplicateRelationApplication")
+                .name(ApplicationName.of("duplicateRelationApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .relation(OneToManyRelation.builder()
-                        .source(RelationEndPoint.builder().name("name_on_source").entity(CUSTOMER).build())
+                        .source(RelationEndPoint.builder().name(RelationName.of("name_on_source")).entity(CUSTOMER).build())
                         .target(MANY_TO_ONE.getSource())
-                        .sourceReference("ref_on_source")
+                        .sourceReference(ColumnName.of("ref_on_source"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -130,19 +142,19 @@ class ApplicationTest {
     @Test
     void application_nonExistingSourceEntity() {
         var builder = Application.builder()
-                .name("nonExistingEntityApplication")
+                .name(ApplicationName.of("nonExistingEntityApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(ManyToOneRelation.builder()
                         .source(RelationEndPoint.builder()
-                                .entity(Entity.builder().name("Non-existing").table("non_existing").build())
-                                .name("name_on_source")
+                                .entity(Entity.builder().name(EntityName.of("Non-existing")).table(TableName.of("non_existing")).build())
+                                .name(RelationName.of("name_on_source"))
                                 .build())
                         .target(RelationEndPoint.builder()
                                 .entity(INVOICE)
-                                .name("name_on_target")
+                                .name(RelationName.of("name_on_target"))
                                 .build())
-                        .targetReference("ref_on_target")
+                        .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(EntityNotFoundException.class, builder::build);
     }
@@ -150,19 +162,19 @@ class ApplicationTest {
     @Test
     void application_nonExistingTargetEntity() {
         var builder = Application.builder()
-                .name("nonExistingEntityApplication")
+                .name(ApplicationName.of("nonExistingEntityApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(ManyToOneRelation.builder()
                         .source(RelationEndPoint.builder()
                                 .entity(INVOICE)
-                                .name("name_on_source")
+                                .name(RelationName.of("name_on_source"))
                                 .build())
                         .target(RelationEndPoint.builder()
-                                .entity(Entity.builder().name("Non-existing").table("non_existing").build())
-                                .name("name_on_target")
+                                .entity(Entity.builder().name(EntityName.of("Non-existing")).table(TableName.of("non_existing")).build())
+                                .name(RelationName.of("name_on_target"))
                                 .build())
-                        .targetReference("ref_on_target")
+                        .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(EntityNotFoundException.class, builder::build);
     }

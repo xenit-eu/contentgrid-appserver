@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.Attribute;
-import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -19,13 +20,13 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * The name of the search filter.
      */
     @NonNull
-    String name;
+    FilterName name;
 
     /**
      * The attribute this search filter operates on.
      */
     @NonNull
-    Attribute attribute;
+    SimpleAttribute attribute;
 
     /**
      * Constructs an AttributeSearchFilter with the specified parameters.
@@ -34,9 +35,9 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * @param attribute the attribute to apply the filter on
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected AttributeSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
+    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
         if (!supports(attribute.getType())) {
-            throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attribute.getType()));
+            throw new InvalidSearchFilterException("SimpleAttribute with type %s is not supported".formatted(attribute.getType()));
         }
         this.name = name;
         this.attribute = attribute;

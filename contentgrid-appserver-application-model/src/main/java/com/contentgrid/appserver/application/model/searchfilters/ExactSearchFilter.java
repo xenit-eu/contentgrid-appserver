@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.Attribute;
-import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -25,7 +27,7 @@ public class ExactSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    ExactSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
+    ExactSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) throws InvalidSearchFilterException {
         super(name, attribute);
     }
 

@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
@@ -52,7 +53,7 @@ public abstract class Relation {
         /**
          * The name of this relation endpoint from the perspective of the entity.
          */
-        String name;
+        RelationName name;
 
         /**
          * The entity at this endpoint of the relation.

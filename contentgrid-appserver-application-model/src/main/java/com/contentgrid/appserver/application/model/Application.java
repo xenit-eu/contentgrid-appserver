@@ -3,7 +3,12 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -35,14 +40,15 @@ public class Application {
      * @throws EntityNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull String name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
         this.relations = relations;
+        var tables = new HashSet<TableName>();
         entities.forEach(entity -> {
             if (this.entities.put(entity.getName(), entity) != null) {
                 throw new DuplicateElementException("Duplicate entity named %s".formatted(entity.getName()));
             }
-            if (this.tableEntities.put(entity.getTable(), entity) != null) {
+            if (!tables.add(entity.getTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(entity.getTable()));
             }
         });
@@ -64,19 +70,13 @@ public class Application {
      * The name of the application.
      */
     @NonNull
-    String name;
+    ApplicationName name;
 
     /**
      * Internal map of entities by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<String, Entity> entities = new HashMap<>();
-
-    /**
-     * Internal map of entities by table name.
-     */
-    @Getter(AccessLevel.NONE)
-    Map<String, Entity> tableEntities = new HashMap<>();
+    Map<EntityName, Entity> entities = new HashMap<>();
 
     /**
      * The set of relations defined in this application.
@@ -92,21 +92,12 @@ public class Application {
     }
 
     /**
-     * Finds an Entity by the table name.
-     * @param table name of the table
-     * @return an Optional containing the Entity if found, or empty if not found
-     */
-    public Optional<Entity> getEntityByTable(String table) {
-        return Optional.ofNullable(tableEntities.get(table));
-    }
-
-    /**
      * Finds an Entity by its name.
      *
      * @param entityName the name of the entity to find
      * @return an Optional containing the Entity if found, or empty if not found
      */
-    public Optional<Entity> getEntityByName(String entityName) {
+    public Optional<Entity> getEntityByName(EntityName entityName) {
         return Optional.ofNullable(entities.get(entityName));
     }
 
@@ -117,7 +108,7 @@ public class Application {
      * @param name the relation name to match
      * @return a list of relations where the entity is either the source or target entity and the name matches
      */
-    public Optional<Relation> getRelationForEntity(Entity entity, String name) {
+    public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
         return relations.stream()
                 .filter(relation ->
                         (relation.getSource().getEntity().equals(entity) && relation.getSource().getName().equals(name))
@@ -134,7 +125,7 @@ public class Application {
      * @param name the relation name to match
      * @return a list of relations where the entity is either the source or target entity and the name matches
      */
-    public Optional<Relation> getRelationForEntity(String entityName, String name) {
+    public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
         return relations.stream()
                 .filter(relation ->
                         (relation.getSource().getEntity().getName().equals(entityName)

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.relations;
 
+import com.contentgrid.appserver.application.model.values.ColumnName;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -24,7 +25,7 @@ public class ManyToOneRelation extends Relation {
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String targetReference) {
+    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName targetReference) {
         super(source, target);
         this.targetReference = targetReference;
     }
@@ -33,6 +34,6 @@ public class ManyToOneRelation extends Relation {
      * The column in the source entity that references the target entity.
      */
     @NonNull
-    String targetReference;
+    ColumnName targetReference;
 
 }

@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
+import com.contentgrid.appserver.application.model.values.FilterName;
+
 /**
  * Represents a search filter that can be applied to entity queries.
  * 
@@ -12,6 +14,6 @@ public interface SearchFilter {
      * 
      * @return the name of the search filter
      */
-    String getName();
+    FilterName getName();
 
 }
