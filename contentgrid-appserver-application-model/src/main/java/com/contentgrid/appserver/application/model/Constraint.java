@@ -68,7 +68,7 @@ public sealed interface Constraint {
             if (Set.copyOf(values).size() < values.size()) {
                 throw new InvalidConstraintException("All values should be unique");
             }
-            this.values = values;
+            this.values = List.copyOf(values);
         }
 
     }
