@@ -17,6 +17,13 @@ import lombok.Value;
 @Value
 public class ExactSearchFilter extends AttributeSearchFilter {
 
+    /**
+     * Constructs an ExactSearchFilter with the specified parameters.
+     *
+     * @param name the name of the search filter
+     * @param attribute the attribute to apply the filter on (must be a native type)
+     * @throws InvalidSearchFilterException if the attribute type is not supported
+     */
     @Builder
     ExactSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
         super(name, attribute);

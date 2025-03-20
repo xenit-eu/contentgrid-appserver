@@ -27,6 +27,13 @@ public abstract class AttributeSearchFilter implements SearchFilter {
     @NonNull
     Attribute attribute;
 
+    /**
+     * Constructs an AttributeSearchFilter with the specified parameters.
+     *
+     * @param name the name of the search filter
+     * @param attribute the attribute to apply the filter on
+     * @throws InvalidSearchFilterException if the attribute type is not supported
+     */
     protected AttributeSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
         if (!supports(attribute.getType())) {
             throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attribute.getType()));

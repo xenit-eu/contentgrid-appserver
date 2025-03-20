@@ -15,6 +15,14 @@ import lombok.Value;
 @Value
 public class OneToOneRelation extends Relation {
 
+    /**
+     * Constructs a OneToOneRelation with the specified parameters.
+     *
+     * @param source the source endpoint of the relation
+     * @param target the target endpoint of the relation
+     * @param targetReference the column in the source entity that references the target entity
+     * @throws InvalidRelationException if source and target have the same name on the same entity
+     */
     @Builder
     OneToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String targetReference) {
         super(source, target);

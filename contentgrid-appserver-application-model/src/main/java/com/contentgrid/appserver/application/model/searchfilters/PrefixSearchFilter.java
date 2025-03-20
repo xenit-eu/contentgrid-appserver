@@ -17,6 +17,13 @@ import lombok.Value;
 @Value
 public class PrefixSearchFilter extends AttributeSearchFilter {
 
+    /**
+     * Constructs a PrefixSearchFilter with the specified parameters.
+     *
+     * @param name the name of the search filter
+     * @param attribute the attribute to apply the filter on (must be of TEXT type)
+     * @throws InvalidSearchFilterException if the attribute type is not supported
+     */
     @Builder
     PrefixSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
         super(name, attribute);

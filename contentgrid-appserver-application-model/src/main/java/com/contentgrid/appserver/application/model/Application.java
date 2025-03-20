@@ -19,10 +19,21 @@ import lombok.Value;
  * 
  * An Application is the top-level entity that contains entities and their relationships.
  * It provides methods to access and manage entities and relations within the application.
+ * 
+ * @see Application.ApplicationBuilder
  */
 @Value
 public class Application {
 
+    /**
+     * Constructs an Application with the specified parameters.
+     *
+     * @param name the application name
+     * @param entities set of entities within this application
+     * @param relations set of relations between entities
+     * @throws DuplicateElementException if duplicate entities are found
+     * @throws EntityNotFoundException if a relation references an entity not in the application
+     */
     @Builder
     Application(@NonNull String name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;

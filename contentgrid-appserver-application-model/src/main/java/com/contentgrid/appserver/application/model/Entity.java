@@ -21,10 +21,23 @@ import lombok.Value;
  * 
  * An Entity is a model that maps to a database table and contains attributes, a primary key,
  * and search filters. It provides methods to access and manage its attributes and search filters.
+ * 
+ * @see Entity.EntityBuilder
  */
 @Value
 public class Entity {
 
+    /**
+     * Constructs an Entity with the specified parameters.
+     *
+     * @param name the entity name
+     * @param table the database table name
+     * @param attributes list of attributes for this entity
+     * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
+     * @param searchFilters list of search filters for this entity
+     * @throws DuplicateElementException if duplicate attributes or search filters are found
+     * @throws InvalidArgumentModelException if a search filter references an invalid attribute
+     */
     @Builder
     Entity(@NonNull String name, @NonNull String table, @Singular List<Attribute> attributes,
             Attribute primaryKey, @Singular List<SearchFilter> searchFilters) {

@@ -5,6 +5,11 @@ package com.contentgrid.appserver.application.model.exceptions;
  */
 public class InvalidRelationException extends ApplicationModelException {
     
+    /**
+     * Constructs an InvalidRelationException with the specified message.
+     *
+     * @param message the detail message
+     */
     public InvalidRelationException(String message) {
         super(message);
     }

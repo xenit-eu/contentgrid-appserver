@@ -5,6 +5,11 @@ package com.contentgrid.appserver.application.model.exceptions;
  */
 public class InvalidConstraintException extends ApplicationModelException {
     
+    /**
+     * Constructs an InvalidConstraintException with the specified message.
+     *
+     * @param message the detail message
+     */
     public InvalidConstraintException(String message) {
         super(message);
     }

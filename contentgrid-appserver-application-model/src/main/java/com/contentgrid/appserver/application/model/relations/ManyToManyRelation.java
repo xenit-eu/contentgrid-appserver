@@ -18,6 +18,17 @@ import lombok.Value;
 @Value
 public class ManyToManyRelation extends Relation {
 
+    /**
+     * Constructs a ManyToManyRelation with the specified parameters.
+     *
+     * @param source the source endpoint of the relation
+     * @param target the target endpoint of the relation
+     * @param joinTable the name of the join table
+     * @param sourceReference the column in the join table referencing the source entity
+     * @param targetReference the column in the join table referencing the target entity
+     * @throws InvalidRelationException if source and target have the same name on the same entity, or
+     *                                 if sourceReference and targetReference are the same
+     */
     @Builder
     ManyToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull String joinTable,
             @NonNull String sourceReference,
