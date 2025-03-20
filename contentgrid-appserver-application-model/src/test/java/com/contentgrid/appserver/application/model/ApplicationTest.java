@@ -30,12 +30,7 @@ class ApplicationTest {
             .attribute(SimpleAttribute.builder().name(AttributeName.of("invoiceNumber")).column(ColumnName.of("invoice_number")).type(Type.TEXT).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("amount")).column(ColumnName.of("amount")).type(Type.DOUBLE).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("isPaid")).column(ColumnName.of("is_paid")).type(Type.BOOLEAN).build())
-            .attribute(ContentAttribute.builder()
-                    .name(AttributeName.of("content"))
-                    .filenameColumn(ColumnName.of("content__filename"))
-                    .mimetypeColumn(ColumnName.of("content__mimetype"))
-                    .lengthColumn(ColumnName.of("content__length"))
-                    .build())
+            .attribute(ContentAttribute.builder().name(AttributeName.of("content")).build())
             .build();
 
     private static final Entity CUSTOMER = Entity.builder()

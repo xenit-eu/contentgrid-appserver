@@ -1,30 +1,59 @@
 package com.contentgrid.appserver.application.model.attributes;
 
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
 
 @Value
-@Builder
 public class ContentAttribute implements Attribute {
 
     @NonNull
     AttributeName name;
 
     @NonNull
-    ColumnName filenameColumn;
+    Attribute id;
 
     @NonNull
-    ColumnName mimetypeColumn;
+    Attribute filename;
 
     @NonNull
-    ColumnName lengthColumn;
+    Attribute mimetype;
+
+    @NonNull
+    Attribute length;
+
+    @Builder
+    ContentAttribute(@NonNull AttributeName name, Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
+        this.name = name;
+        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
+                name.getValue() + "__id")).type(Type.TEXT).build() : id;
+        this.filename = filename == null ? SimpleAttribute.builder().name(AttributeName.of("filename")).column(ColumnName.of(
+                name.getValue() + "__filename")).type(Type.TEXT).build() : filename;
+        this.mimetype  = mimetype == null ? SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(ColumnName.of(
+                name.getValue() + "__mimetype")).type(Type.TEXT).build() : mimetype;
+        this.length  = length == null ? SimpleAttribute.builder().name(AttributeName.of("length")).column(ColumnName.of(
+                name.getValue() + "__length")).type(Type.LONG).build() : length;
+
+        // Check for duplicate attribute names, (duplicate column names are checked on the entity)
+        var attributes = new HashSet<AttributeName>();
+        for (var attribute : List.of(this.id, this.filename, this.mimetype, this.length)) {
+            if (!attributes.add(attribute.getName())) {
+                throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
+            }
+        }
+    }
 
     @Override
     public List<ColumnName> getColumns() {
-        return List.of(filenameColumn, mimetypeColumn, lengthColumn);
+        return Stream.of(id.getColumns(), filename.getColumns(), mimetype.getColumns(), length.getColumns())
+                .flatMap(List::stream)
+                .toList();
     }
 }
