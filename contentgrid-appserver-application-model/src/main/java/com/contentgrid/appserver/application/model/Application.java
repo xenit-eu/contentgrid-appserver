@@ -54,6 +54,9 @@ public class Application {
             if (!this.entities.containsValue(relation.getTarget().getEntity())) {
                 throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTarget().getEntity().getName()));
             }
+            if (this.relations.stream().filter(relation::collides).count() > 1) {
+                throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSource().getEntity().getName(), relation.getSource().getName()));
+            }
         });
     }
 
@@ -112,7 +115,7 @@ public class Application {
      *
      * @param entity the entity to find relations for
      * @param name the relation name to match
-     * @return a list of relations where the entity is either the left or right entity and the name matches
+     * @return a list of relations where the entity is either the source or target entity and the name matches
      */
     public Optional<Relation> getRelationForEntity(Entity entity, String name) {
         return relations.stream()
@@ -124,5 +127,22 @@ public class Application {
                 .findFirst();
     }
 
+    /**
+     * Finds all relations for a given entity name and relation name.
+     *
+     * @param entityName the name of the entity to find relations for
+     * @param name the relation name to match
+     * @return a list of relations where the entity is either the source or target entity and the name matches
+     */
+    public Optional<Relation> getRelationForEntity(String entityName, String name) {
+        return relations.stream()
+                .filter(relation ->
+                        (relation.getSource().getEntity().getName().equals(entityName)
+                                && relation.getSource().getName().equals(name))
+                                ||
+                                (relation.getTarget().getEntity().getName().equals(entityName)
+                                        && relation.getTarget().getName().equals(name)))
+                .findFirst();
+    }
 
 }
