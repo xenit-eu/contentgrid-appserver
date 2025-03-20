@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.relations;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import java.util.Objects;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -16,7 +17,7 @@ public class ManyToManyRelation extends Relation {
             @NonNull String targetReference) {
         super(source, target);
         if (Objects.equals(sourceReference, targetReference)) {
-            throw new IllegalArgumentException("'%s' is used for sourceReference and targetReference".formatted(sourceReference));
+            throw new InvalidRelationException("'%s' is used for sourceReference and targetReference".formatted(sourceReference));
         }
         this.joinTable = joinTable;
         this.sourceReference = sourceReference;

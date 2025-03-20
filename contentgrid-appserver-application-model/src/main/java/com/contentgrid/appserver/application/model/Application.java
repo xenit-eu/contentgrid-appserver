@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,19 +23,19 @@ public class Application {
         this.relations = relations;
         entities.forEach(entity -> {
             if (this.entities.put(entity.getName(), entity) != null) {
-                throw new IllegalArgumentException("Duplicate entity named %s".formatted(entity.getName()));
+                throw new DuplicateElementException("Duplicate entity named %s".formatted(entity.getName()));
             }
             if (this.tableEntities.put(entity.getTable(), entity) != null) {
-                throw new IllegalArgumentException("Duplicate table named %s".formatted(entity.getTable()));
+                throw new DuplicateElementException("Duplicate table named %s".formatted(entity.getTable()));
             }
         });
 
         relations.forEach(relation -> {
             if (!this.entities.containsValue(relation.getSource().getEntity())) {
-                throw new IllegalArgumentException("Source %s is not a valid entity".formatted(relation.getSource().getEntity().getName()));
+                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSource().getEntity().getName()));
             }
             if (!this.entities.containsValue(relation.getTarget().getEntity())) {
-                throw new IllegalArgumentException("Source %s is not a valid entity".formatted(relation.getTarget().getEntity().getName()));
+                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTarget().getEntity().getName()));
             }
         });
     }

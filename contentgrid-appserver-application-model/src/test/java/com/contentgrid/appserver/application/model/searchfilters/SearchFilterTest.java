@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.contentgrid.appserver.application.model.Attribute;
 import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -30,7 +31,7 @@ class SearchFilterTest {
     })
     void exactSearchFilter_invalidType(Type type) {
         var builder = ExactSearchFilter.builder().name("filter").attribute(getAttribute(type));
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidSearchFilterException.class, builder::build);
     }
 
     @Test
@@ -46,7 +47,7 @@ class SearchFilterTest {
     })
     void prefixSearchFilter_invalidType(Type type) {
         var builder = PrefixSearchFilter.builder().name("filter~prefix").attribute(getAttribute(type));
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidSearchFilterException.class, builder::build);
     }
 
 }

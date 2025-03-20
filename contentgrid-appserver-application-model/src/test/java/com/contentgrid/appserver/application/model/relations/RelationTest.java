@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.contentgrid.appserver.application.model.Attribute;
 import com.contentgrid.appserver.application.model.Attribute.Type;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +50,7 @@ class RelationTest {
                 .source(RelationEndPoint.builder().entity(SOURCE).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name("source").build())
                 .targetReference("target");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
@@ -58,7 +59,7 @@ class RelationTest {
                 .source(RelationEndPoint.builder().entity(SOURCE).name("source").build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name("source").build())
                 .targetReference("source");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
@@ -179,7 +180,7 @@ class RelationTest {
                 .joinTable("source__sources")
                 .sourceReference("source_src_id")
                 .targetReference("source_tgt_id");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
@@ -190,7 +191,7 @@ class RelationTest {
                 .joinTable("source__sources")
                 .sourceReference("source_id")
                 .targetReference("source_id");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidRelationException.class, builder::build);
     }
 
 }

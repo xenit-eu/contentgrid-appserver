@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -22,17 +23,17 @@ class ConstraintTest {
 
     @Test
     void allowedValuesConstraint_emptyList() {
-        assertThrows(IllegalArgumentException.class, () -> Constraint.allowedValues(List.of()));
+        assertThrows(InvalidConstraintException.class, () -> Constraint.allowedValues(List.of()));
     }
 
     @Test
     void allowedValuesConstraint_emptyValue() {
-        assertThrows(IllegalArgumentException.class, () -> Constraint.allowedValues(List.of("a", "", "c")));
+        assertThrows(InvalidConstraintException.class, () -> Constraint.allowedValues(List.of("a", "", "c")));
     }
 
     @Test
     void allowedValuesConstraint_duplicateValue() {
-        assertThrows(IllegalArgumentException.class, () -> Constraint.allowedValues(List.of("a", "b", "a")));
+        assertThrows(InvalidConstraintException.class, () -> Constraint.allowedValues(List.of("a", "b", "a")));
     }
 
 }

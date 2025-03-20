@@ -3,6 +3,8 @@ package com.contentgrid.appserver.application.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
@@ -110,7 +112,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
                 .searchFilter(FILTER1);
-        assertThrows(IllegalArgumentException.class, builder1::build);
+        assertThrows(DuplicateElementException.class, builder1::build);
 
         // primary key attribute
         var duplicate2 = Attribute.builder().name("id").column("other_column").type(Type.TEXT).build();
@@ -120,7 +122,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
                 .searchFilter(FILTER1);
-        assertThrows(IllegalArgumentException.class, builder2::build);
+        assertThrows(DuplicateElementException.class, builder2::build);
     }
 
     @Test
@@ -133,7 +135,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
                 .searchFilter(FILTER1);
-        assertThrows(IllegalArgumentException.class, builder1::build);
+        assertThrows(DuplicateElementException.class, builder1::build);
 
         // primary key column
         var duplicate2 = Attribute.builder().name("other_name").column("id").type(Type.TEXT).build();
@@ -143,7 +145,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
                 .searchFilter(FILTER1);
-        assertThrows(IllegalArgumentException.class, builder2::build);
+        assertThrows(DuplicateElementException.class, builder2::build);
     }
 
     @Test
@@ -156,7 +158,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
                 .searchFilter(duplicate);
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -167,7 +169,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2); // on missing ATTRIBUTE2
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
     }
 
 }

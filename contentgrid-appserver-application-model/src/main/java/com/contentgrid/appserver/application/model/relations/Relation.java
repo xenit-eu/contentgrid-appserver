@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,11 +13,11 @@ public abstract class Relation {
 
     protected Relation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
         if (source.getName() == null) {
-            throw new IllegalArgumentException("Source endpoint must have a name");
+            throw new InvalidRelationException("Source endpoint must have a name");
         }
         if (source.getEntity().getName().equals(target.getEntity().getName())
                 && Objects.equals(source.getName(), target.getName())) {
-            throw new IllegalArgumentException("Source and target must have a different name when on the same entity");
+            throw new InvalidRelationException("Source and target must have a different name when on the same entity");
         }
         this.source = source;
         this.target = target;

@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import java.util.HashMap;
@@ -30,11 +32,11 @@ public class Entity {
         attributes.forEach(
                 attribute -> {
                     if (this.attributes.put(attribute.getName(), attribute) != null) {
-                        throw new IllegalArgumentException(
+                        throw new DuplicateElementException(
                                 "Duplicate attribute named %s".formatted(attribute.getName()));
                     }
                     if (this.columnAttributes.put(attribute.getColumn(), attribute) != null) {
-                        throw new IllegalArgumentException(
+                        throw new DuplicateElementException(
                                 "Duplicate column named %s".formatted(attribute.getColumn()));
                     }
                 }
@@ -43,12 +45,12 @@ public class Entity {
         searchFilters.forEach(
                 searchFilter -> {
                     if (this.searchFilters.put(searchFilter.getName(), searchFilter) != null) {
-                        throw new IllegalArgumentException(
+                        throw new DuplicateElementException(
                                 "Duplicate search filter named %s".formatted(searchFilter.getName()));
                     }
                     if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter && !attributes.contains(
                             attributeSearchFilter.getAttribute())) {
-                        throw new IllegalArgumentException(
+                        throw new InvalidArgumentModelException(
                                 "AttributeSearchFilter %s is does not have a valid attribute".formatted(
                                         attributeSearchFilter.getName()));
                     }

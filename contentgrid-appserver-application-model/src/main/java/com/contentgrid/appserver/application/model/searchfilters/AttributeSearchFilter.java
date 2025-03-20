@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.Attribute;
 import com.contentgrid.appserver.application.model.Attribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -16,7 +17,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
 
     protected AttributeSearchFilter(@NonNull String name, @NonNull Attribute attribute) {
         if (!supports(attribute.getType())) {
-            throw new IllegalArgumentException("Attribute with type %s is not supported".formatted(attribute.getType()));
+            throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attribute.getType()));
         }
         this.name = name;
         this.attribute = attribute;

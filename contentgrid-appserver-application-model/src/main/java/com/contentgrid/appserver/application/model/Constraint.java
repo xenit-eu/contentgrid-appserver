@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import java.util.List;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -30,13 +31,13 @@ public sealed interface Constraint {
 
         private AllowedValuesConstraint(@NonNull List<String> values) {
             if (values.isEmpty()) {
-                throw new IllegalArgumentException("Values can not be empty");
+                throw new InvalidConstraintException("Values can not be empty");
             }
             if (values.stream().anyMatch(value -> value == null || value.isEmpty())) {
-                throw new IllegalArgumentException("All values should be non-null and non-empty");
+                throw new InvalidConstraintException("All values should be non-null and non-empty");
             }
             if (Set.copyOf(values).size() < values.size()) {
-                throw new IllegalArgumentException("All values should be unique");
+                throw new InvalidConstraintException("All values should be unique");
             }
             this.values = values;
         }
