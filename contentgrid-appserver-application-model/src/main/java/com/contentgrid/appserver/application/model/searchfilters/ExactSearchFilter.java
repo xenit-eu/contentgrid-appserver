@@ -7,6 +7,12 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 
+/**
+ * A search filter that performs exact matching on attribute values.
+ * 
+ * This filter can be used to find entities where an attribute exactly matches a specified value.
+ * It supports all native attribute types.
+ */
 @EqualsAndHashCode(callSuper = true)
 @Value
 public class ExactSearchFilter extends AttributeSearchFilter {

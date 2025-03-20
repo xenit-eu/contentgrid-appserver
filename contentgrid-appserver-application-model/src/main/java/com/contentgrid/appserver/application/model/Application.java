@@ -14,6 +14,12 @@ import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
 
+/**
+ * Represents an application in the ContentGrid platform.
+ * 
+ * An Application is the top-level entity that contains entities and their relationships.
+ * It provides methods to access and manage entities and relations within the application.
+ */
 @Value
 public class Application {
 
@@ -40,15 +46,27 @@ public class Application {
         });
     }
 
+    /**
+     * The name of the application.
+     */
     @NonNull
     String name;
 
+    /**
+     * Internal map of entities by name.
+     */
     @Getter(AccessLevel.NONE)
     Map<String, Entity> entities = new HashMap<>();
 
+    /**
+     * Internal map of entities by table name.
+     */
     @Getter(AccessLevel.NONE)
     Map<String, Entity> tableEntities = new HashMap<>();
 
+    /**
+     * The set of relations defined in this application.
+     */
     Set<Relation> relations;
 
     /**

@@ -16,6 +16,12 @@ import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
 
+/**
+ * Represents an entity within an application.
+ * 
+ * An Entity is a model that maps to a database table and contains attributes, a primary key,
+ * and search filters. It provides methods to access and manage its attributes and search filters.
+ */
 @Value
 public class Entity {
 
@@ -58,21 +64,39 @@ public class Entity {
         );
     }
 
+    /**
+     * The name of the entity.
+     */
     @NonNull
     String name;
 
+    /**
+     * The name of the database table that this entity maps to.
+     */
     @NonNull
     String table;
 
+    /**
+     * The primary key attribute of this entity.
+     */
     @NonNull
     Attribute primaryKey;
 
+    /**
+     * Internal map of attributes by name.
+     */
     @Getter(AccessLevel.NONE)
     Map<String, Attribute> attributes = new HashMap<>();
 
+    /**
+     * Internal map of attributes by column name.
+     */
     @Getter(AccessLevel.NONE)
     Map<String, Attribute> columnAttributes = new HashMap<>();
 
+    /**
+     * Internal map of search filters by name.
+     */
     @Getter(AccessLevel.NONE)
     Map<String, SearchFilter> searchFilters = new HashMap<>();
 
@@ -93,6 +117,12 @@ public class Entity {
         return List.copyOf(searchFilters.values());
     }
 
+    /**
+     * Finds an Attribute by its column name.
+     *
+     * @param column the database column name of the attribute to find
+     * @return an Optional containing the Attribute if found, or empty if not found
+     */
     public Optional<Attribute> getAttributeByColumn(String column) {
         return Optional.ofNullable(columnAttributes.get(column));
     }

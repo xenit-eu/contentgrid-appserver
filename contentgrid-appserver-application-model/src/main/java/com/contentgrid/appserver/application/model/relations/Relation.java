@@ -8,6 +8,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Value;
 
+/**
+ * Represents a relationship between two entities in the application model.
+ * 
+ * The Relation class is the base class for all types of relationships between entities.
+ * It defines source and target endpoints that specify the related entities and their relation names.
+ */
 @Getter
 public abstract class Relation {
 
@@ -23,19 +29,34 @@ public abstract class Relation {
         this.target = target;
     }
 
+    /**
+     * The source endpoint of the relation.
+     */
     @NonNull
     RelationEndPoint source;
 
+    /**
+     * The target endpoint of the relation.
+     */
     @NonNull
     RelationEndPoint target;
 
 
+    /**
+     * Represents an endpoint of a relation, defining an entity and an optional relation name.
+     */
     @Value
     @Builder
     public static class RelationEndPoint {
 
+        /**
+         * The name of this relation endpoint from the perspective of the entity.
+         */
         String name;
 
+        /**
+         * The entity at this endpoint of the relation.
+         */
         @NonNull
         Entity entity;
     }
