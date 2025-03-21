@@ -40,7 +40,7 @@ public class Entity {
      *
      * @param name the entity name
      * @param table the database table name
-     * @param attributes list of attributes for this entity
+     * @param attributes list of attributes for this entity (excluding primary key attribute)
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
      * @param searchFilters list of search filters for this entity
      * @throws DuplicateElementException if duplicate attributes or search filters are found

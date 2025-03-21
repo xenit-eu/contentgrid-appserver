@@ -102,11 +102,12 @@ public class Application {
     }
 
     /**
-     * Finds all relations for a given Entity and relation name.
+     * Finds a relation for a given Entity and relation name.
      *
-     * @param entity the entity to find relations for
+     * @param entity the entity containing the relation
      * @param name the relation name to match
-     * @return a list of relations where the entity is either the source or target entity and the name matches
+     * @return an Optional containing a relation where the entity is either the source or target entity
+     * and the name matches
      */
     public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
         return relations.stream()
@@ -119,11 +120,12 @@ public class Application {
     }
 
     /**
-     * Finds all relations for a given entity name and relation name.
+     * Finds a relation for a given entity name and relation name.
      *
-     * @param entityName the name of the entity to find relations for
+     * @param entityName the name of the entity containing the relation
      * @param name the relation name to match
-     * @return a list of relations where the entity is either the source or target entity and the name matches
+     * @return an optional containing a relation where the entity is either the source or target entity
+     * and the name matches
      */
     public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
         return relations.stream()
