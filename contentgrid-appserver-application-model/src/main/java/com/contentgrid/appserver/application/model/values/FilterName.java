@@ -8,4 +8,9 @@ public class FilterName {
 
     @NonNull
     String value;
+
+    @Override
+    public String toString() {
+        return getValue();
+    }
 }

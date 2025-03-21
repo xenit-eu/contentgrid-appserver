@@ -8,4 +8,9 @@ public class TableName {
 
     @NonNull
     String value;
+
+    @Override
+    public String toString() {
+        return getValue();
+    }
 }

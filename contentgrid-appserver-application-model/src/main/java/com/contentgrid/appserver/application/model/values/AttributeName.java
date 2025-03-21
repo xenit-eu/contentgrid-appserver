@@ -8,4 +8,9 @@ public class AttributeName {
 
     @NonNull
     String value;
+
+    @Override
+    public String toString() {
+        return getValue();
+    }
 }
