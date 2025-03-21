@@ -135,12 +135,11 @@ public class Entity {
         return List.copyOf(searchFilters.values());
     }
 
-
     /**
-     * Finds an SimpleAttribute by its name.
+     * Finds an Attribute by its name.
      *
      * @param attributeName the name of the attribute to find
-     * @return an Optional containing the SimpleAttribute if found, or empty if not found
+     * @return an Optional containing the Attribute if found, or empty if not found
      */
     public Optional<Attribute> getAttributeByName(AttributeName attributeName) {
         return Optional.ofNullable(attributes.get(attributeName));

@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -218,10 +219,11 @@ class AttributeTest {
         assertEquals(4, attribute.getAttributes().size());
 
         var attributeNames = attribute.getAttributes().stream().map(Attribute::getName).toList();
-        assertTrue(attributeNames.contains(AttributeName.of("created_by")));
-        assertTrue(attributeNames.contains(AttributeName.of("created_date")));
-        assertTrue(attributeNames.contains(AttributeName.of("last_modified_by")));
-        assertTrue(attributeNames.contains(AttributeName.of("last_modified_date")));
+        assertEquals(4, attributeNames.size());
+        assertInstanceOf(CompositeAttribute.class, attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow());
+        assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow());
+        assertInstanceOf(CompositeAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow());
+        assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
 
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));
