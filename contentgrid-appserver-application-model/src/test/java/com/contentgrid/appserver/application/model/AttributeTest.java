@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -95,19 +96,19 @@ class AttributeTest {
     void contentAttribute_defaultFields() {
         var attribute = ContentAttribute.builder().name(AttributeName.of("attribute")).build();
 
-        assertEquals("", attribute.getDescription());
+        assertNull(attribute.getDescription());
         assertEquals(AttributeName.of("id"), attribute.getId().getName());
         assertEquals(ColumnName.of("attribute__id"), ((SimpleAttribute) attribute.getId()).getColumn());
-        assertEquals("", attribute.getId().getDescription());
+        assertNull(attribute.getId().getDescription());
         assertEquals(AttributeName.of("filename"), attribute.getFilename().getName());
         assertEquals(ColumnName.of("attribute__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
-        assertEquals("", attribute.getFilename().getDescription());
+        assertNull(attribute.getFilename().getDescription());
         assertEquals(AttributeName.of("mimetype"), attribute.getMimetype().getName());
         assertEquals(ColumnName.of("attribute__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
-        assertEquals("", attribute.getMimetype().getDescription());
+        assertNull(attribute.getMimetype().getDescription());
         assertEquals(AttributeName.of("length"), attribute.getLength().getName());
         assertEquals(ColumnName.of("attribute__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
-        assertEquals("", attribute.getLength().getDescription());
+        assertNull(attribute.getLength().getDescription());
     }
 
     @Test

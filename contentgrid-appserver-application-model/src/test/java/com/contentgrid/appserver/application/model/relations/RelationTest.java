@@ -191,8 +191,8 @@ class RelationTest {
         assertEquals(TableName.of("source__sources"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_src_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("source_tgt_id"), manyToManyRelation.getTargetReference());
-        assertEquals("", manyToManyRelation.getSource().getDescription());
-        assertEquals("", manyToManyRelation.getTarget().getDescription());
+        assertNull(manyToManyRelation.getSource().getDescription());
+        assertNull(manyToManyRelation.getTarget().getDescription());
     }
 
     @Test

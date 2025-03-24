@@ -55,9 +55,7 @@ public abstract class Relation {
          */
         RelationName name;
 
-        @NonNull
-        @Builder.Default
-        String description = "";
+        String description;
 
         /**
          * The entity at this endpoint of the relation.

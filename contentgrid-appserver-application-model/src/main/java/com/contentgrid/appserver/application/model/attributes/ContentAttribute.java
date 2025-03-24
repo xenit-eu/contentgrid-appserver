@@ -20,7 +20,6 @@ public class ContentAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
-    @NonNull
     String description;
 
     List<AttributeFlag> flags;
@@ -41,7 +40,7 @@ public class ContentAttribute implements Attribute {
     ContentAttribute(@NonNull AttributeName name, String description, @Singular List<AttributeFlag> flags,
             Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
         this.name = name;
-        this.description = description == null ? "" : description;
+        this.description = description;
         this.flags = flags;
         this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
                 name.getValue() + "__id")).type(Type.TEXT).build() : id;

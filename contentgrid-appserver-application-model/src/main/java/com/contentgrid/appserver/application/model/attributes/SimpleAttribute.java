@@ -28,7 +28,6 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
-    @NonNull
     String description;
 
     /**
@@ -68,7 +67,7 @@ public class SimpleAttribute implements Attribute {
     SimpleAttribute(@NonNull AttributeName name, String description, @NonNull ColumnName column,
             @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
-        this.description = description == null ? "" : description;
+        this.description = description;
         this.column = column;
         this.type = type;
         this.flags = flags;
