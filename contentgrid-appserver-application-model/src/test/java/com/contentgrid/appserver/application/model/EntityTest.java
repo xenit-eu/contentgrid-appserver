@@ -32,12 +32,17 @@ class EntityTest {
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .table(TableName.of("table"))
+                .description("entity description")
                 .primaryKey(PRIMARY_KEY)
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2)
                 .build();
+
+        assertEquals(EntityName.of("entity"), entity.getName());
+        assertEquals(TableName.of("table"), entity.getTable());
+        assertEquals("entity description", entity.getDescription());
 
         // getAttributeByName
         var foundAttribute = entity.getAttributeByName(AttributeName.of("attribute1")).orElseThrow();

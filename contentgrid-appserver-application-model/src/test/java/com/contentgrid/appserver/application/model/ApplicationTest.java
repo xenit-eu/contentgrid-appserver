@@ -36,13 +36,13 @@ class ApplicationTest {
     private static final Entity CUSTOMER = Entity.builder()
             .name(EntityName.of("Customer"))
             .table(TableName.of("customer"))
-            .attribute(SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of("name")).type(Type.TEXT).build())
-            .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email")).type(Type.TEXT).build())
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of("name")).description("The name of the customer").type(Type.TEXT).build())
+            .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email")).description("The email of the customer").type(Type.TEXT).build())
             .build();
 
     private static final Relation MANY_TO_ONE = ManyToOneRelation.builder()
-            .source(Relation.RelationEndPoint.builder().name(RelationName.of("customer")).entity(INVOICE).build())
-            .target(Relation.RelationEndPoint.builder().name(RelationName.of("invoices")).entity(CUSTOMER).build())
+            .source(Relation.RelationEndPoint.builder().name(RelationName.of("customer")).entity(INVOICE).description("The customer of the invoice").build())
+            .target(Relation.RelationEndPoint.builder().name(RelationName.of("invoices")).entity(CUSTOMER).description("The invoices of the customer").build())
             .targetReference(ColumnName.of("customer_id"))
             .build();
 

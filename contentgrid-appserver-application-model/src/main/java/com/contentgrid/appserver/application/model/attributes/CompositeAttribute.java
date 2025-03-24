@@ -23,14 +23,18 @@ public class CompositeAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
+    @NonNull
+    String description;
+
     List<AttributeFlag> flags;
 
     @Getter(AccessLevel.NONE)
     Map<AttributeName, Attribute> attributes = new HashMap<>();
 
     @Builder
-    CompositeAttribute(@NonNull AttributeName name, @Singular Set<Attribute> attributes, @Singular List<AttributeFlag> flags) {
+    CompositeAttribute(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular List<AttributeFlag> flags) {
         this.name = name;
+        this.description = description == null ? "" : description;
         this.flags = flags;
         for (var attribute : attributes) {
             if (this.attributes.put(attribute.getName(), attribute) != null) {

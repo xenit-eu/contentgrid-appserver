@@ -28,6 +28,9 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
+    @NonNull
+    String description;
+
     /**
      * The name of the database column this attribute maps to.
      */
@@ -62,8 +65,10 @@ public class SimpleAttribute implements Attribute {
     }
 
     @Builder
-    SimpleAttribute(@NonNull AttributeName name, @NonNull ColumnName column, @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+    SimpleAttribute(@NonNull AttributeName name, String description, @NonNull ColumnName column,
+            @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
+        this.description = description == null ? "" : description;
         this.column = column;
         this.type = type;
         this.flags = flags;

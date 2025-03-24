@@ -9,6 +9,8 @@ public sealed interface Attribute permits CompositeAttribute, ContentAttribute, 
 
     AttributeName getName();
 
+    String getDescription();
+
     List<ColumnName> getColumns();
 
     List<AttributeFlag> getFlags();

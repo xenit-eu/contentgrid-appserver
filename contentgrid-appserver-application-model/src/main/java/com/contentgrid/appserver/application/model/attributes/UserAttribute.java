@@ -20,6 +20,9 @@ public class UserAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
+    @NonNull
+    String description;
+
     List<AttributeFlag> flags;
 
     @NonNull
@@ -32,8 +35,10 @@ public class UserAttribute implements Attribute {
     Attribute username;
 
     @Builder
-    UserAttribute(@NonNull AttributeName name, @Singular List<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
+    UserAttribute(@NonNull AttributeName name, String description, @Singular List<AttributeFlag> flags,
+            Attribute id, Attribute namespace, Attribute username) {
         this.name = name;
+        this.description = description == null ? "" : description;
         this.flags = flags;
         this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
                 name.getValue() + "__id")).type(Type.TEXT).build() : id;

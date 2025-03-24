@@ -47,9 +47,10 @@ public class Entity {
      * @throws InvalidArgumentModelException if a search filter references an invalid attribute
      */
     @Builder
-    Entity(@NonNull EntityName name, @NonNull TableName table, @Singular List<Attribute> attributes,
+    Entity(@NonNull EntityName name, String description, @NonNull TableName table, @Singular List<Attribute> attributes,
             SimpleAttribute primaryKey, @Singular List<SearchFilter> searchFilters) {
         this.name = name;
+        this.description = description == null ? "" : description;
         this.table = table;
         this.primaryKey = primaryKey == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build() : primaryKey;
 
@@ -93,6 +94,9 @@ public class Entity {
      */
     @NonNull
     EntityName name;
+
+    @NonNull
+    String description;
 
     /**
      * The name of the database table that this entity maps to.

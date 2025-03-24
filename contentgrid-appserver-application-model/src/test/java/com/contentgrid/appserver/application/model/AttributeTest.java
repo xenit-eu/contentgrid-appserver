@@ -16,9 +16,11 @@ import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
@@ -74,53 +76,84 @@ class AttributeTest {
     }
 
     @Test
+    void eTagAttribute() {
+        var attribute = SimpleAttribute.builder().name(AttributeName.of("attribute"))
+                .column(ColumnName.of("column")).type(Type.LONG).flag(ETagFlag.builder().build()).build();
+
+        assertEquals(List.of(ETagFlag.builder().build()), attribute.getFlags());
+    }
+
+    @Test
+    void eTag_invalidAttribute() {
+        var builder = SimpleAttribute.builder().name(AttributeName.of("attribute"))
+                .column(ColumnName.of("column")).type(Type.DATETIME).flag(ETagFlag.builder().build());
+
+        assertThrows(InvalidFlagException.class, builder::build);
+    }
+
+    @Test
     void contentAttribute_defaultFields() {
         var attribute = ContentAttribute.builder().name(AttributeName.of("attribute")).build();
 
+        assertEquals("", attribute.getDescription());
         assertEquals(AttributeName.of("id"), attribute.getId().getName());
         assertEquals(ColumnName.of("attribute__id"), ((SimpleAttribute) attribute.getId()).getColumn());
+        assertEquals("", attribute.getId().getDescription());
         assertEquals(AttributeName.of("filename"), attribute.getFilename().getName());
         assertEquals(ColumnName.of("attribute__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
+        assertEquals("", attribute.getFilename().getDescription());
         assertEquals(AttributeName.of("mimetype"), attribute.getMimetype().getName());
         assertEquals(ColumnName.of("attribute__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
+        assertEquals("", attribute.getMimetype().getDescription());
         assertEquals(AttributeName.of("length"), attribute.getLength().getName());
         assertEquals(ColumnName.of("attribute__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
+        assertEquals("", attribute.getLength().getDescription());
     }
 
     @Test
     void contentAttribute_customFields() {
         var attribute = ContentAttribute.builder().name(AttributeName.of("attribute"))
+                .description("The pdf file of the entity")
                 .id(SimpleAttribute.builder()
                         .type(Type.UUID)
                         .name(AttributeName.of("attribute_id"))
                         .column(ColumnName.of("column__id"))
+                        .description("The content id of the attribute")
                         .build())
                 .filename(SimpleAttribute.builder()
                         .type(Type.TEXT)
                         .name(AttributeName.of("attribute_filename"))
                         .column(ColumnName.of("column__filename"))
+                        .description("The content filename of the attribute")
                         .build())
                 .mimetype(SimpleAttribute.builder()
                         .type(Type.TEXT)
                         .name(AttributeName.of("attribute_mimetype"))
                         .column(ColumnName.of("column__mimetype"))
+                        .description("The content mimetype of the attribute")
                         .build())
                 .length(SimpleAttribute.builder()
                         .type(Type.LONG)
                         .name(AttributeName.of("attribute_length"))
                         .column(ColumnName.of("column__length"))
+                        .description("The content length of the attribute")
                         .build())
                 .build();
 
+        assertEquals("The pdf file of the entity", attribute.getDescription());
         assertEquals(AttributeName.of("attribute_id"), attribute.getId().getName());
         assertEquals(ColumnName.of("column__id"), ((SimpleAttribute) attribute.getId()).getColumn());
         assertEquals(Type.UUID, ((SimpleAttribute) attribute.getId()).getType());
+        assertEquals("The content id of the attribute", attribute.getId().getDescription());
         assertEquals(AttributeName.of("attribute_filename"), attribute.getFilename().getName());
         assertEquals(ColumnName.of("column__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
+        assertEquals("The content filename of the attribute", attribute.getFilename().getDescription());
         assertEquals(AttributeName.of("attribute_mimetype"), attribute.getMimetype().getName());
         assertEquals(ColumnName.of("column__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
+        assertEquals("The content mimetype of the attribute", attribute.getMimetype().getDescription());
         assertEquals(AttributeName.of("attribute_length"), attribute.getLength().getName());
         assertEquals(ColumnName.of("column__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
+        assertEquals("The content length of the attribute", attribute.getLength().getDescription());
     }
 
     @Test
