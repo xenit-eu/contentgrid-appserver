@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
@@ -18,7 +20,6 @@ import lombok.Value;
  * data type, and constraints. Attributes map to columns in a database table.
  */
 @Value
-@Builder
 public class SimpleAttribute implements Attribute {
 
     /**
@@ -39,14 +40,11 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     Type type;
 
-    @NonNull
-    @Builder.Default
-    ManagedType managedType = ManagedType.UNMANAGED;
+    List<AttributeFlag> flags;
 
     /**
      * The list of constraints applied to this attribute.
      */
-    @Singular
     List<Constraint> constraints;
 
     /**
@@ -63,17 +61,18 @@ public class SimpleAttribute implements Attribute {
         public static final Set<Type> NATIVE_TYPES = Set.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
     }
 
-    public enum ManagedType {
-        UNMANAGED,
-        CREATOR_ID,
-        CREATOR_NAMESPACE,
-        CREATOR_NAME,
-        CREATED_DATE,
-        MODIFIER_ID,
-        MODIFIER_NAMESPACE,
-        MODIFIER_NAME,
-        MODIFIED_DATE,
-        ETAG
+    @Builder
+    SimpleAttribute(@NonNull AttributeName name, @NonNull ColumnName column, @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+        this.name = name;
+        this.column = column;
+        this.type = type;
+        this.flags = flags;
+        this.constraints = constraints;
+        for (var flag : this.flags) {
+            if (!flag.isSupported(this)) {
+                throw new InvalidFlagException("Flag %s is not supported".formatted(flag.getClass().getSimpleName()));
+            }
+        }
     }
 
 

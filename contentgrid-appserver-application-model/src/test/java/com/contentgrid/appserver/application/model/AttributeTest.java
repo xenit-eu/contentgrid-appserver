@@ -9,11 +9,15 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.ManagedType;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
+import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -160,59 +164,55 @@ class AttributeTest {
     void compositeAttribute_auditMetadata() {
         var attribute = CompositeAttribute.builder()
                 .name(AttributeName.of("auditing"))
-                .attribute(CompositeAttribute.builder()
+                .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
-                        .attribute(SimpleAttribute.builder()
+                        .flag(CreatorFlag.builder().build())
+                        .id(SimpleAttribute.builder()
                                 .name(AttributeName.of("id"))
                                 .column(ColumnName.of("auditing__created_by_id"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.CREATOR_ID)
                                 .build())
-                        .attribute(SimpleAttribute.builder()
+                        .namespace(SimpleAttribute.builder()
                                 .name(AttributeName.of("namespace"))
                                 .column(ColumnName.of("auditing__created_by_ns"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.CREATOR_NAME)
                                 .build())
-                        .attribute(SimpleAttribute.builder()
+                        .username(SimpleAttribute.builder()
                                 .name(AttributeName.of("name"))
                                 .column(ColumnName.of("auditing__created_by_name"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.CREATOR_NAMESPACE)
                                 .build())
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("created_date"))
                         .column(ColumnName.of("auditing__created_date"))
                         .type(Type.DATETIME)
-                        .managedType(ManagedType.CREATED_DATE)
+                        .flag(CreatedDateFlag.builder().build())
                         .build())
-                .attribute(CompositeAttribute.builder()
+                .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
-                        .attribute(SimpleAttribute.builder()
+                        .flag(ModifierFlag.builder().build())
+                        .id(SimpleAttribute.builder()
                                 .name(AttributeName.of("id"))
                                 .column(ColumnName.of("auditing__last_modified_by_id"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.MODIFIER_ID)
                                 .build())
-                        .attribute(SimpleAttribute.builder()
+                        .namespace(SimpleAttribute.builder()
                                 .name(AttributeName.of("namespace"))
                                 .column(ColumnName.of("auditing__last_modified_by_ns"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.MODIFIER_NAMESPACE)
                                 .build())
-                        .attribute(SimpleAttribute.builder()
+                        .username(SimpleAttribute.builder()
                                 .name(AttributeName.of("name"))
                                 .column(ColumnName.of("auditing__last_modified_by_name"))
                                 .type(Type.TEXT)
-                                .managedType(ManagedType.MODIFIER_NAME)
                                 .build())
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("last_modified_date"))
                         .column(ColumnName.of("auditing__last_modified_date"))
                         .type(Type.DATETIME)
-                        .managedType(ManagedType.MODIFIED_DATE)
+                        .flag(ModifiedDateFlag.builder().build())
                         .build())
                 .build();
 
@@ -220,10 +220,15 @@ class AttributeTest {
 
         var attributeNames = attribute.getAttributes().stream().map(Attribute::getName).toList();
         assertEquals(4, attributeNames.size());
-        assertInstanceOf(CompositeAttribute.class, attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow());
+        assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow());
-        assertInstanceOf(CompositeAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow());
+        assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
+
+        assertEquals(List.of(CreatorFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().getFlags());
+        assertEquals(List.of(CreatedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().getFlags());
+        assertEquals(List.of(ModifierFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().getFlags());
+        assertEquals(List.of(ModifiedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().getFlags());
 
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));

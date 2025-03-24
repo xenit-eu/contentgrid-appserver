@@ -15,7 +15,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class ContentAttribute implements Attribute {
+public class UserAttribute implements Attribute {
 
     @NonNull
     AttributeName name;
@@ -26,30 +26,25 @@ public class ContentAttribute implements Attribute {
     Attribute id;
 
     @NonNull
-    Attribute filename;
+    Attribute namespace;
 
     @NonNull
-    Attribute mimetype;
-
-    @NonNull
-    Attribute length;
+    Attribute username;
 
     @Builder
-    ContentAttribute(@NonNull AttributeName name, @Singular List<AttributeFlag> flags, Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
+    UserAttribute(@NonNull AttributeName name, @Singular List<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
         this.name = name;
         this.flags = flags;
         this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
                 name.getValue() + "__id")).type(Type.TEXT).build() : id;
-        this.filename = filename == null ? SimpleAttribute.builder().name(AttributeName.of("filename")).column(ColumnName.of(
-                name.getValue() + "__filename")).type(Type.TEXT).build() : filename;
-        this.mimetype  = mimetype == null ? SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(ColumnName.of(
-                name.getValue() + "__mimetype")).type(Type.TEXT).build() : mimetype;
-        this.length  = length == null ? SimpleAttribute.builder().name(AttributeName.of("length")).column(ColumnName.of(
-                name.getValue() + "__length")).type(Type.LONG).build() : length;
+        this.namespace = namespace == null ? SimpleAttribute.builder().name(AttributeName.of("namespace")).column(ColumnName.of(
+                name.getValue() + "__ns")).type(Type.TEXT).build() : namespace;
+        this.username = username == null ? SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of(
+                name.getValue() + "__name")).type(Type.TEXT).build() : username;
 
         // Check for duplicate attribute names, (duplicate column names are checked on the entity)
         var attributes = new HashSet<AttributeName>();
-        for (var attribute : List.of(this.id, this.filename, this.mimetype, this.length)) {
+        for (var attribute : List.of(this.id, this.namespace, this.username)) {
             if (!attributes.add(attribute.getName())) {
                 throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
             }
@@ -63,7 +58,7 @@ public class ContentAttribute implements Attribute {
 
     @Override
     public List<ColumnName> getColumns() {
-        return Stream.of(id.getColumns(), filename.getColumns(), mimetype.getColumns(), length.getColumns())
+        return Stream.of(id.getColumns(), namespace.getColumns(), username.getColumns())
                 .flatMap(List::stream)
                 .toList();
     }
