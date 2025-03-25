@@ -27,12 +27,17 @@ public class ExactSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    ExactSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) throws InvalidSearchFilterException {
+    ExactSearchFilter(FilterName name, @NonNull SimpleAttribute attribute) throws InvalidSearchFilterException {
         super(name, attribute);
     }
 
     @Override
     protected boolean supports(Type type) {
         return Type.NATIVE_TYPES.contains(type);
+    }
+
+    @Override
+    protected FilterName defaultFilterName(SimpleAttribute attribute) {
+        return attribute.getName().toFilterName();
     }
 }

@@ -195,7 +195,8 @@ class AttributeTest {
     }
 
     @Test
-    void compositeAttribute_auditMetadata() {
+    void compositeAttribute_auditMetadata_full() {
+        // Fully write out created_by, simplify last_modified_by
         var attribute = CompositeAttribute.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
@@ -225,22 +226,8 @@ class AttributeTest {
                         .build())
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
+                        .columnPrefix(ColumnName.of("auditing__last_modified_by_"))
                         .flag(ModifierFlag.builder().build())
-                        .id(SimpleAttribute.builder()
-                                .name(AttributeName.of("id"))
-                                .column(ColumnName.of("auditing__last_modified_by_id"))
-                                .type(Type.TEXT)
-                                .build())
-                        .namespace(SimpleAttribute.builder()
-                                .name(AttributeName.of("namespace"))
-                                .column(ColumnName.of("auditing__last_modified_by_ns"))
-                                .type(Type.TEXT)
-                                .build())
-                        .username(SimpleAttribute.builder()
-                                .name(AttributeName.of("name"))
-                                .column(ColumnName.of("auditing__last_modified_by_name"))
-                                .type(Type.TEXT)
-                                .build())
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("last_modified_date"))
@@ -254,9 +241,15 @@ class AttributeTest {
 
         var attributeNames = attribute.getAttributes().stream().map(Attribute::getName).toList();
         assertEquals(4, attributeNames.size());
-        assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow());
+        var createdBy = assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow());
+        assertEquals(AttributeName.of("id"), createdBy.getId().getName());
+        assertEquals(AttributeName.of("namespace"), createdBy.getNamespace().getName());
+        assertEquals(AttributeName.of("name"), createdBy.getUsername().getName());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow());
-        assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow());
+        var modifiedBy = assertInstanceOf(UserAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow());
+        assertEquals(AttributeName.of("id"), modifiedBy.getId().getName());
+        assertEquals(AttributeName.of("namespace"), modifiedBy.getNamespace().getName());
+        assertEquals(AttributeName.of("name"), modifiedBy.getUsername().getName());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
 
         assertEquals(List.of(CreatorFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().getFlags());

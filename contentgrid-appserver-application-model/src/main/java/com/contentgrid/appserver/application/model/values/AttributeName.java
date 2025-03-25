@@ -13,4 +13,12 @@ public class AttributeName {
     public String toString() {
         return getValue();
     }
+
+    public ColumnName toColumnName() {
+        return ColumnName.of(value);
+    }
+
+    public FilterName toFilterName() {
+        return FilterName.of(value);
+    }
 }

@@ -64,11 +64,11 @@ public class SimpleAttribute implements Attribute {
     }
 
     @Builder
-    SimpleAttribute(@NonNull AttributeName name, String description, @NonNull ColumnName column,
+    SimpleAttribute(@NonNull AttributeName name, String description, ColumnName column,
             @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
         this.description = description;
-        this.column = column;
+        this.column = column == null ? name.toColumnName() : column;
         this.type = type;
         this.flags = flags;
         this.constraints = constraints;

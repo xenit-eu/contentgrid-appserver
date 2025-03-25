@@ -24,9 +24,13 @@ class SearchFilterTest {
             "TEXT", "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
     })
     void exactSearchFilter(Type type) {
+        var attribute = getAttribute(type);
         var exactSearchFilter = ExactSearchFilter.builder()
-                .name(FilterName.of("filter")).attribute(getAttribute(type)).build();
+                .name(FilterName.of("filter")).attribute(attribute).build();
         assertEquals(FilterName.of("filter"), exactSearchFilter.getName());
+
+        var defaultFilter = ExactSearchFilter.builder().attribute(attribute).build();
+        assertEquals(FilterName.of("name"), defaultFilter.getName());
     }
 
     @ParameterizedTest
@@ -39,9 +43,13 @@ class SearchFilterTest {
 
     @Test
     void prefixSearchFilter() {
+        var attribute = getAttribute(Type.TEXT);
         var prefixSearchFilter = PrefixSearchFilter.builder()
-                .name(FilterName.of("filter~prefix")).attribute(getAttribute(Type.TEXT)).build();
+                .name(FilterName.of("filter~prefix")).attribute(attribute).build();
         assertEquals(FilterName.of("filter~prefix"), prefixSearchFilter.getName());
+
+        var defaultFilter = PrefixSearchFilter.builder().attribute(attribute).build();
+        assertEquals(FilterName.of("name~prefix"), defaultFilter.getName());
     }
 
     @ParameterizedTest

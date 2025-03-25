@@ -13,4 +13,8 @@ public class FilterName {
     public String toString() {
         return getValue();
     }
+
+    public FilterName withSuffix(String suffix) {
+        return FilterName.of(value + suffix);
+    }
 }

@@ -37,19 +37,20 @@ public class ContentAttribute implements Attribute {
     Attribute length;
 
     @Builder
-    ContentAttribute(@NonNull AttributeName name, String description, @Singular List<AttributeFlag> flags,
-            Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
+    ContentAttribute(@NonNull AttributeName name, String description, ColumnName columnPrefix,
+            @Singular List<AttributeFlag> flags, Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
         this.name = name;
         this.description = description;
         this.flags = flags;
-        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
-                name.getValue() + "__id")).type(Type.TEXT).build() : id;
-        this.filename = filename == null ? SimpleAttribute.builder().name(AttributeName.of("filename")).column(ColumnName.of(
-                name.getValue() + "__filename")).type(Type.TEXT).build() : filename;
-        this.mimetype  = mimetype == null ? SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(ColumnName.of(
-                name.getValue() + "__mimetype")).type(Type.TEXT).build() : mimetype;
-        this.length  = length == null ? SimpleAttribute.builder().name(AttributeName.of("length")).column(ColumnName.of(
-                name.getValue() + "__length")).type(Type.LONG).build() : length;
+        columnPrefix = columnPrefix == null ? name.toColumnName().withSuffix("__") : columnPrefix;
+        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id"))
+                .column(columnPrefix.withSuffix("id")).type(Type.TEXT).build() : id;
+        this.filename = filename == null ? SimpleAttribute.builder().name(AttributeName.of("filename"))
+                .column(columnPrefix.withSuffix("filename")).type(Type.TEXT).build() : filename;
+        this.mimetype  = mimetype == null ? SimpleAttribute.builder().name(AttributeName.of("mimetype"))
+                .column(columnPrefix.withSuffix("mimetype")).type(Type.TEXT).build() : mimetype;
+        this.length  = length == null ? SimpleAttribute.builder().name(AttributeName.of("length"))
+                .column(columnPrefix.withSuffix("length")).type(Type.LONG).build() : length;
 
         // Check for duplicate attribute names, (duplicate column names are checked on the entity)
         var attributes = new HashSet<AttributeName>();

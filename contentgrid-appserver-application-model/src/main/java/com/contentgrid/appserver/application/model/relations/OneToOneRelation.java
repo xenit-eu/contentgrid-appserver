@@ -25,9 +25,9 @@ public class OneToOneRelation extends Relation {
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    OneToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName targetReference) {
+    OneToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, ColumnName targetReference) {
         super(source, target);
-        this.targetReference = targetReference;
+        this.targetReference = targetReference == null ? this.source.getName().toColumnName() : targetReference;
     }
 
     /**

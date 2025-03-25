@@ -25,9 +25,9 @@ public class ManyToOneRelation extends Relation {
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName targetReference) {
+    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, ColumnName targetReference) {
         super(source, target);
-        this.targetReference = targetReference;
+        this.targetReference = targetReference == null ? this.source.getName().toColumnName() : targetReference;
     }
 
     /**

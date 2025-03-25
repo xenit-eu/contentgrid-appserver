@@ -34,17 +34,18 @@ public class UserAttribute implements Attribute {
     Attribute username;
 
     @Builder
-    UserAttribute(@NonNull AttributeName name, String description, @Singular List<AttributeFlag> flags,
-            Attribute id, Attribute namespace, Attribute username) {
+    UserAttribute(@NonNull AttributeName name, String description, ColumnName columnPrefix,
+            @Singular List<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
         this.name = name;
         this.description = description;
         this.flags = flags;
-        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of(
-                name.getValue() + "__id")).type(Type.TEXT).build() : id;
-        this.namespace = namespace == null ? SimpleAttribute.builder().name(AttributeName.of("namespace")).column(ColumnName.of(
-                name.getValue() + "__ns")).type(Type.TEXT).build() : namespace;
-        this.username = username == null ? SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of(
-                name.getValue() + "__name")).type(Type.TEXT).build() : username;
+        columnPrefix = columnPrefix == null ? name.toColumnName().withSuffix("__") : columnPrefix;
+        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id"))
+                .column(columnPrefix.withSuffix("id")).type(Type.TEXT).build() : id;
+        this.namespace = namespace == null ? SimpleAttribute.builder().name(AttributeName.of("namespace"))
+                .column(columnPrefix.withSuffix("ns")).type(Type.TEXT).build() : namespace;
+        this.username = username == null ? SimpleAttribute.builder().name(AttributeName.of("name"))
+                .column(columnPrefix.withSuffix("name")).type(Type.TEXT).build() : username;
 
         // Check for duplicate attribute names, (duplicate column names are checked on the entity)
         var attributes = new HashSet<AttributeName>();
