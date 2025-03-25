@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
+import java.util.Set;
 
 public sealed interface Attribute permits CompositeAttribute, ContentAttribute, SimpleAttribute, UserAttribute {
 
@@ -13,6 +14,6 @@ public sealed interface Attribute permits CompositeAttribute, ContentAttribute, 
 
     List<ColumnName> getColumns();
 
-    List<AttributeFlag> getFlags();
+    Set<AttributeFlag> getFlags();
 
 }

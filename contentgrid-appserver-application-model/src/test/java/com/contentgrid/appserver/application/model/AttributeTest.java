@@ -25,6 +25,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidFlagExcepti
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AttributeTest {
@@ -81,7 +82,7 @@ class AttributeTest {
         var attribute = SimpleAttribute.builder().name(AttributeName.of("attribute"))
                 .column(ColumnName.of("column")).type(Type.LONG).flag(ETagFlag.builder().build()).build();
 
-        assertEquals(List.of(ETagFlag.builder().build()), attribute.getFlags());
+        assertEquals(Set.of(ETagFlag.builder().build()), attribute.getFlags());
     }
 
     @Test
@@ -252,10 +253,10 @@ class AttributeTest {
         assertEquals(AttributeName.of("name"), modifiedBy.getUsername().getName());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
 
-        assertEquals(List.of(CreatorFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().getFlags());
-        assertEquals(List.of(CreatedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().getFlags());
-        assertEquals(List.of(ModifierFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().getFlags());
-        assertEquals(List.of(ModifiedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().getFlags());
+        assertEquals(Set.of(CreatorFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().getFlags());
+        assertEquals(Set.of(CreatedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().getFlags());
+        assertEquals(Set.of(ModifierFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().getFlags());
+        assertEquals(Set.of(ModifiedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().getFlags());
 
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));

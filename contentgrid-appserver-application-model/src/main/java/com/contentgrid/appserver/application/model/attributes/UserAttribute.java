@@ -3,11 +3,11 @@ package com.contentgrid.appserver.application.model.attributes;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.NonNull;
@@ -22,7 +22,7 @@ public class UserAttribute implements Attribute {
 
     String description;
 
-    List<AttributeFlag> flags;
+    Set<AttributeFlag> flags;
 
     @NonNull
     Attribute id;
@@ -35,7 +35,7 @@ public class UserAttribute implements Attribute {
 
     @Builder
     UserAttribute(@NonNull AttributeName name, String description, ColumnName columnPrefix,
-            @Singular List<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
+            @Singular Set<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
         this.name = name;
         this.description = description;
         this.flags = flags;
@@ -55,9 +55,7 @@ public class UserAttribute implements Attribute {
             }
         }
         for (var flag : this.flags) {
-            if (!flag.isSupported(this)) {
-                throw new InvalidFlagException("Flag %s is not supported".formatted(flag.getClass().getSimpleName()));
-            }
+            flag.checkSupported(this);
         }
     }
 

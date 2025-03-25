@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.HashMap;
@@ -25,13 +24,13 @@ public class CompositeAttribute implements Attribute {
 
     String description;
 
-    List<AttributeFlag> flags;
+    Set<AttributeFlag> flags;
 
     @Getter(AccessLevel.NONE)
     Map<AttributeName, Attribute> attributes = new HashMap<>();
 
     @Builder
-    CompositeAttribute(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular List<AttributeFlag> flags) {
+    CompositeAttribute(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
         this.name = name;
         this.description = description;
         this.flags = flags;
@@ -41,9 +40,7 @@ public class CompositeAttribute implements Attribute {
             }
         }
         for (var flag : this.flags) {
-            if (!flag.isSupported(this)) {
-                throw new InvalidFlagException("Flag %s is not supported".formatted(flag.getClass().getSimpleName()));
-            }
+            flag.checkSupported(this);
         }
     }
 

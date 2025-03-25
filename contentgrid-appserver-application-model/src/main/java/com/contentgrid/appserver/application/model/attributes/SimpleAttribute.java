@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
-import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
@@ -42,7 +41,7 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     Type type;
 
-    List<AttributeFlag> flags;
+    Set<AttributeFlag> flags;
 
     /**
      * The list of constraints applied to this attribute.
@@ -65,7 +64,7 @@ public class SimpleAttribute implements Attribute {
 
     @Builder
     SimpleAttribute(@NonNull AttributeName name, String description, ColumnName column,
-            @NonNull Type type, @Singular List<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+            @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
         this.description = description;
         this.column = column == null ? name.toColumnName() : column;
@@ -73,9 +72,7 @@ public class SimpleAttribute implements Attribute {
         this.flags = flags;
         this.constraints = constraints;
         for (var flag : this.flags) {
-            if (!flag.isSupported(this)) {
-                throw new InvalidFlagException("Flag %s is not supported".formatted(flag.getClass().getSimpleName()));
-            }
+            flag.checkSupported(this);
         }
     }
 
