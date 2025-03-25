@@ -26,17 +26,12 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    PrefixSearchFilter(FilterName name, @NonNull SimpleAttribute attribute) {
+    PrefixSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
         super(name, attribute);
     }
 
     @Override
     protected boolean supports(Type type) {
         return Type.TEXT.equals(type);
-    }
-
-    @Override
-    protected FilterName defaultFilterName(SimpleAttribute attribute) {
-        return attribute.getName().toFilterName().withSuffix("~prefix");
     }
 }

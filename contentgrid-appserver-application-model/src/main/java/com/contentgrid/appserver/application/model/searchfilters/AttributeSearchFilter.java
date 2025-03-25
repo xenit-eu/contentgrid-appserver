@@ -35,11 +35,11 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * @param attribute the attribute to apply the filter on
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected AttributeSearchFilter(FilterName name, @NonNull SimpleAttribute attribute) {
+    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
         if (!supports(attribute.getType())) {
             throw new InvalidSearchFilterException("SimpleAttribute with type %s is not supported".formatted(attribute.getType()));
         }
-        this.name = name == null ? defaultFilterName(attribute) : name;
+        this.name = name;
         this.attribute = attribute;
     }
 
@@ -50,7 +50,5 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * @return true if the attribute type is supported, false otherwise
      */
     protected abstract boolean supports(Type type);
-
-    protected abstract FilterName defaultFilterName(SimpleAttribute attribute);
 
 }

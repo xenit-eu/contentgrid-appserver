@@ -2,10 +2,8 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
-import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -34,26 +32,18 @@ public class UserAttribute implements Attribute {
     Attribute username;
 
     @Builder
-    UserAttribute(@NonNull AttributeName name, String description, ColumnName columnPrefix,
-            @Singular Set<AttributeFlag> flags, Attribute id, Attribute namespace, Attribute username) {
+    UserAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
+            @NonNull ColumnName idColumn, @NonNull ColumnName namespaceColumn, @NonNull ColumnName usernameColumn) {
         this.name = name;
         this.description = description;
         this.flags = flags;
-        columnPrefix = columnPrefix == null ? name.toColumnName().withSuffix("__") : columnPrefix;
-        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id"))
-                .column(columnPrefix.withSuffix("id")).type(Type.TEXT).build() : id;
-        this.namespace = namespace == null ? SimpleAttribute.builder().name(AttributeName.of("namespace"))
-                .column(columnPrefix.withSuffix("ns")).type(Type.TEXT).build() : namespace;
-        this.username = username == null ? SimpleAttribute.builder().name(AttributeName.of("name"))
-                .column(columnPrefix.withSuffix("name")).type(Type.TEXT).build() : username;
+        this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
+                .type(Type.TEXT).build();
+        this.namespace = SimpleAttribute.builder().name(AttributeName.of("namespace")).column(namespaceColumn)
+                .type(Type.TEXT).build();
+        this.username = SimpleAttribute.builder().name(AttributeName.of("name")).column(usernameColumn)
+                .type(Type.TEXT).build();
 
-        // Check for duplicate attribute names, (duplicate column names are checked on the entity)
-        var attributes = new HashSet<AttributeName>();
-        for (var attribute : List.of(this.id, this.namespace, this.username)) {
-            if (!attributes.add(attribute.getName())) {
-                throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
-            }
-        }
         for (var flag : this.flags) {
             flag.checkSupported(this);
         }

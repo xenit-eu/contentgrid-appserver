@@ -94,130 +94,36 @@ class AttributeTest {
     }
 
     @Test
-    void contentAttribute_defaultFields() {
-        var attribute = ContentAttribute.builder().name(AttributeName.of("attribute")).build();
-
-        assertNull(attribute.getDescription());
-        assertEquals(AttributeName.of("id"), attribute.getId().getName());
-        assertEquals(ColumnName.of("attribute__id"), ((SimpleAttribute) attribute.getId()).getColumn());
-        assertNull(attribute.getId().getDescription());
-        assertEquals(AttributeName.of("filename"), attribute.getFilename().getName());
-        assertEquals(ColumnName.of("attribute__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
-        assertNull(attribute.getFilename().getDescription());
-        assertEquals(AttributeName.of("mimetype"), attribute.getMimetype().getName());
-        assertEquals(ColumnName.of("attribute__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
-        assertNull(attribute.getMimetype().getDescription());
-        assertEquals(AttributeName.of("length"), attribute.getLength().getName());
-        assertEquals(ColumnName.of("attribute__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
-        assertNull(attribute.getLength().getDescription());
-    }
-
-    @Test
-    void contentAttribute_customFields() {
+    void contentAttribute() {
         var attribute = ContentAttribute.builder().name(AttributeName.of("attribute"))
                 .description("The pdf file of the entity")
-                .id(SimpleAttribute.builder()
-                        .type(Type.UUID)
-                        .name(AttributeName.of("attribute_id"))
-                        .column(ColumnName.of("column__id"))
-                        .description("The content id of the attribute")
-                        .build())
-                .filename(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("attribute_filename"))
-                        .column(ColumnName.of("column__filename"))
-                        .description("The content filename of the attribute")
-                        .build())
-                .mimetype(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("attribute_mimetype"))
-                        .column(ColumnName.of("column__mimetype"))
-                        .description("The content mimetype of the attribute")
-                        .build())
-                .length(SimpleAttribute.builder()
-                        .type(Type.LONG)
-                        .name(AttributeName.of("attribute_length"))
-                        .column(ColumnName.of("column__length"))
-                        .description("The content length of the attribute")
-                        .build())
+                .idColumn(ColumnName.of("column__id"))
+                .filenameColumn(ColumnName.of("column__filename"))
+                .mimetypeColumn(ColumnName.of("column__mimetype"))
+                .lengthColumn(ColumnName.of("column__length"))
                 .build();
 
         assertEquals("The pdf file of the entity", attribute.getDescription());
-        assertEquals(AttributeName.of("attribute_id"), attribute.getId().getName());
+        assertEquals(AttributeName.of("id"), attribute.getId().getName());
         assertEquals(ColumnName.of("column__id"), ((SimpleAttribute) attribute.getId()).getColumn());
-        assertEquals(Type.UUID, ((SimpleAttribute) attribute.getId()).getType());
-        assertEquals("The content id of the attribute", attribute.getId().getDescription());
-        assertEquals(AttributeName.of("attribute_filename"), attribute.getFilename().getName());
+        assertEquals(AttributeName.of("filename"), attribute.getFilename().getName());
         assertEquals(ColumnName.of("column__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
-        assertEquals("The content filename of the attribute", attribute.getFilename().getDescription());
-        assertEquals(AttributeName.of("attribute_mimetype"), attribute.getMimetype().getName());
+        assertEquals(AttributeName.of("mimetype"), attribute.getMimetype().getName());
         assertEquals(ColumnName.of("column__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
-        assertEquals("The content mimetype of the attribute", attribute.getMimetype().getDescription());
-        assertEquals(AttributeName.of("attribute_length"), attribute.getLength().getName());
+        assertEquals(AttributeName.of("length"), attribute.getLength().getName());
         assertEquals(ColumnName.of("column__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
-        assertEquals("The content length of the attribute", attribute.getLength().getDescription());
     }
 
     @Test
-    void contentAttribute_duplicateFieldName() {
-        var builder = ContentAttribute.builder().name(AttributeName.of("attribute"))
-                .id(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("duplicate"))
-                        .column(ColumnName.of("column__id"))
-                        .build())
-                .filename(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("attribute_filename"))
-                        .column(ColumnName.of("column__filename"))
-                        .build())
-                .mimetype(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("duplicate"))
-                        .column(ColumnName.of("column__mimetype"))
-                        .build())
-                .length(SimpleAttribute.builder()
-                        .type(Type.LONG)
-                        .name(AttributeName.of("attribute_length"))
-                        .column(ColumnName.of("column__length"))
-                        .build());
-        assertThrows(DuplicateElementException.class, builder::build);
-    }
-
-    @Test
-    void contentAttribute_duplicateDefaultFieldName() {
-        var builder = ContentAttribute.builder().name(AttributeName.of("attribute"))
-                .mimetype(SimpleAttribute.builder()
-                        .type(Type.TEXT)
-                        .name(AttributeName.of("filename")) // mimetype is called filename too
-                        .column(ColumnName.of("column__mimetype"))
-                        .build());
-        assertThrows(DuplicateElementException.class, builder::build);
-    }
-
-    @Test
-    void compositeAttribute_auditMetadata_full() {
-        // Fully write out created_by, simplify last_modified_by
+    void compositeAttribute_auditMetadata() {
         var attribute = CompositeAttribute.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
                         .flag(CreatorFlag.builder().build())
-                        .id(SimpleAttribute.builder()
-                                .name(AttributeName.of("id"))
-                                .column(ColumnName.of("auditing__created_by_id"))
-                                .type(Type.TEXT)
-                                .build())
-                        .namespace(SimpleAttribute.builder()
-                                .name(AttributeName.of("namespace"))
-                                .column(ColumnName.of("auditing__created_by_ns"))
-                                .type(Type.TEXT)
-                                .build())
-                        .username(SimpleAttribute.builder()
-                                .name(AttributeName.of("name"))
-                                .column(ColumnName.of("auditing__created_by_name"))
-                                .type(Type.TEXT)
-                                .build())
+                        .idColumn(ColumnName.of("auditing__created_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__created_by_name"))
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("created_date"))
@@ -227,7 +133,9 @@ class AttributeTest {
                         .build())
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
-                        .columnPrefix(ColumnName.of("auditing__last_modified_by_"))
+                        .idColumn(ColumnName.of("auditing__last_modified_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
                         .flag(ModifierFlag.builder().build())
                         .build())
                 .attribute(SimpleAttribute.builder()

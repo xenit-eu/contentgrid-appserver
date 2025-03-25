@@ -13,8 +13,4 @@ public class EntityName {
     public String toString() {
         return getValue();
     }
-
-    public TableName toTableName() {
-        return TableName.of(value.replace('-', '_'));
-    }
 }

@@ -13,8 +13,4 @@ public class ColumnName {
     public String toString() {
         return getValue();
     }
-
-    public ColumnName withSuffix(String suffix) {
-        return ColumnName.of(value + suffix);
-    }
 }

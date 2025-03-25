@@ -45,6 +45,7 @@ class RelationTest {
         var oneToOneRelation = OneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).description(TARGET_DESCRIPTION).build())
+                .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, oneToOneRelation.getSource().getEntity());
         assertEquals(TARGET, oneToOneRelation.getTarget().getEntity());
@@ -93,6 +94,7 @@ class RelationTest {
         var manyToOneRelation = ManyToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).description(TARGET_DESCRIPTION).build())
+                .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, manyToOneRelation.getSource().getEntity());
         assertEquals(TARGET, manyToOneRelation.getTarget().getEntity());
@@ -123,12 +125,13 @@ class RelationTest {
         var oneToManyRelation = OneToManyRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).description(TARGET_DESCRIPTION).build())
+                .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
         assertEquals(SOURCE, oneToManyRelation.getSource().getEntity());
         assertEquals(TARGET, oneToManyRelation.getTarget().getEntity());
         assertEquals(RelationName.of("targets"), oneToManyRelation.getSource().getName());
         assertEquals(RelationName.of("source"), oneToManyRelation.getTarget().getName());
-        assertEquals(ColumnName.of("source"), oneToManyRelation.getSourceReference());
+        assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
         assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSource().getDescription());
         assertEquals(TARGET_DESCRIPTION, oneToManyRelation.getTarget().getDescription());
     }

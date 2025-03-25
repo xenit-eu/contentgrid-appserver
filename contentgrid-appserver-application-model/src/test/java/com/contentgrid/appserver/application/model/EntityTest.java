@@ -83,9 +83,10 @@ class EntityTest {
     }
 
     @Test
-    void entity_defaultPrimaryKeyAndTable() {
+    void entity_defaultPrimaryKey() {
         var entity = Entity.builder()
-                .name(EntityName.of("test-entity"))
+                .name(EntityName.of("entity"))
+                .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
@@ -93,8 +94,6 @@ class EntityTest {
                 .build();
 
         assertEquals(PRIMARY_KEY, entity.getPrimaryKey());
-        assertEquals(EntityName.of("test-entity"), entity.getName());
-        assertEquals(TableName.of("test_entity"), entity.getTable());
     }
 
     @Test

@@ -2,10 +2,8 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
-import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -37,28 +35,21 @@ public class ContentAttribute implements Attribute {
     Attribute length;
 
     @Builder
-    ContentAttribute(@NonNull AttributeName name, String description, ColumnName columnPrefix,
-            @Singular Set<AttributeFlag> flags, Attribute id, Attribute filename, Attribute mimetype, Attribute length) {
+    ContentAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
+            @NonNull ColumnName idColumn, @NonNull ColumnName filenameColumn, @NonNull ColumnName mimetypeColumn,
+            @NonNull ColumnName lengthColumn) {
         this.name = name;
         this.description = description;
         this.flags = flags;
-        columnPrefix = columnPrefix == null ? name.toColumnName().withSuffix("__") : columnPrefix;
-        this.id = id == null ? SimpleAttribute.builder().name(AttributeName.of("id"))
-                .column(columnPrefix.withSuffix("id")).type(Type.TEXT).build() : id;
-        this.filename = filename == null ? SimpleAttribute.builder().name(AttributeName.of("filename"))
-                .column(columnPrefix.withSuffix("filename")).type(Type.TEXT).build() : filename;
-        this.mimetype  = mimetype == null ? SimpleAttribute.builder().name(AttributeName.of("mimetype"))
-                .column(columnPrefix.withSuffix("mimetype")).type(Type.TEXT).build() : mimetype;
-        this.length  = length == null ? SimpleAttribute.builder().name(AttributeName.of("length"))
-                .column(columnPrefix.withSuffix("length")).type(Type.LONG).build() : length;
+        this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
+                .type(Type.TEXT).build();
+        this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
+                .type(Type.TEXT).build();
+        this.mimetype  = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
+                .type(Type.TEXT).build();
+        this.length  = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
+                .type(Type.LONG).build();
 
-        // Check for duplicate attribute names, (duplicate column names are checked on the entity)
-        var attributes = new HashSet<AttributeName>();
-        for (var attribute : List.of(this.id, this.filename, this.mimetype, this.length)) {
-            if (!attributes.add(attribute.getName())) {
-                throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
-            }
-        }
         for (var flag : this.flags) {
             flag.checkSupported(this);
         }

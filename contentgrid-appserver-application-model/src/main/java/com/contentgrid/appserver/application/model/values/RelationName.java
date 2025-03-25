@@ -13,8 +13,4 @@ public class RelationName {
     public String toString() {
         return getValue();
     }
-
-    public ColumnName toColumnName() {
-        return ColumnName.of(value);
-    }
 }

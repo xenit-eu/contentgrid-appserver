@@ -43,7 +43,12 @@ class ApplicationTest {
                     .type(Type.DOUBLE).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("isPaid")).column(ColumnName.of("is_paid"))
                     .type(Type.BOOLEAN).build())
-            .attribute(ContentAttribute.builder().name(AttributeName.of("content")).build())
+            .attribute(ContentAttribute.builder().name(AttributeName.of("content"))
+                    .idColumn(ColumnName.of("content__id"))
+                    .filenameColumn(ColumnName.of("content__filename"))
+                    .mimetypeColumn(ColumnName.of("content__mimetype"))
+                    .lengthColumn(ColumnName.of("content__length"))
+                    .build())
             .build();
 
     private static final Entity CUSTOMER = Entity.builder()
@@ -207,23 +212,28 @@ class ApplicationTest {
     @Test
     void application_integration_testing() {
 
-        var customerId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).build();
+        var customerId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id"))
+                .column(ColumnName.of("id")).build();
         var customerName = SimpleAttribute.builder().type(Type.TEXT)
                 .name(AttributeName.of("name"))
+                .column(ColumnName.of("name"))
                 .description("the name of the customer")
                 .build();
         var customerEmail = SimpleAttribute.builder().type(Type.TEXT)
                 .name(AttributeName.of("email"))
+                .column(ColumnName.of("email"))
                 .description("the email of the customer")
                 .constraint(Constraint.unique())
                 .build();
 
         var customerPhone = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("phone_number"))
+                .column(ColumnName.of("phone_number"))
                 .description("phone number of the customer")
                 .build();
 
         var customer = Entity.builder()
                 .name(EntityName.of("customer"))
+                .table(TableName.of("customer"))
                 .primaryKey(customerId)
                 .attribute(customerName)
                 .searchFilter(
@@ -232,27 +242,36 @@ class ApplicationTest {
                 .attribute(customerPhone)
                 .build();
 
-        var orderId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).build();
+        var orderId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id"))
+                .build();
 
         var orderNumber = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("order_number"))
+                .column(ColumnName.of("order_number"))
                 .description("the order number")
                 .constraint(Constraint.unique())
                 .build();
 
         var orderTotalAmount = SimpleAttribute.builder().type(Type.DOUBLE).name(AttributeName.of("total_amount"))
+                .column(ColumnName.of("total_amount"))
                 .description("the total amount of the order")
                 .build();
 
         var orderDocument = ContentAttribute.builder().name(AttributeName.of("document"))
                 .description("A file attachment representing the document associated with the order.")
+                .idColumn(ColumnName.of("document__id"))
+                .filenameColumn(ColumnName.of("document__filename"))
+                .mimetypeColumn(ColumnName.of("document__mimetype"))
+                .lengthColumn(ColumnName.of("document__length"))
                 .build();
 
         var orderAudit = CompositeAttribute.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
-                        .columnPrefix(ColumnName.of("auditing__created_by_"))
                         .flag(CreatorFlag.builder().build())
+                        .idColumn(ColumnName.of("auditing__created_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__created_by_name"))
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("created_date"))
@@ -262,8 +281,10 @@ class ApplicationTest {
                         .build())
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
-                        .columnPrefix(ColumnName.of("auditing__last_modified_by_"))
                         .flag(ModifierFlag.builder().build())
+                        .idColumn(ColumnName.of("auditing__last_modified_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("last_modified_date"))
@@ -276,10 +297,11 @@ class ApplicationTest {
         var order = Entity.builder()
                 .name(EntityName.of("order"))
                 .description("Represents an order placed by a customer, consisting of various products.")
+                .table(TableName.of("order"))
                 .primaryKey(orderId)
                 .attribute(orderNumber)
                 .searchFilter(
-                        ExactSearchFilter.builder().attribute(orderNumber).build()
+                        ExactSearchFilter.builder().attribute(orderNumber).name(FilterName.of("order_number")).build()
                 )
                 .attribute(orderTotalAmount)
                 .attribute(orderDocument)
@@ -287,28 +309,32 @@ class ApplicationTest {
                 .build();
 
         var productName = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("name"))
+                .column(ColumnName.of("name"))
                 .description("the name of the product")
                 .build();
 
         var productCode = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("code"))
+                .column(ColumnName.of("code"))
                 .description("the code of the product")
                 .constraint(Constraint.unique())
                 .build();
 
         var productCategory = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("category"))
+                .column(ColumnName.of("category"))
                 .description("the category of the product")
                 .constraint(Constraint.allowedValues(List.of("electronics", "clothing", "books")))
                 .build();
 
         var product = Entity.builder()
                 .name(EntityName.of("product"))
-                .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).build())
+                .table(TableName.of("product"))
+                .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id")).build())
                 .attribute(productName)
-                .searchFilter(PrefixSearchFilter.builder().attribute(productName).build())
-                .attribute(SimpleAttribute.builder().type(Type.DOUBLE).name(AttributeName.of("price")).build())
+                .searchFilter(PrefixSearchFilter.builder().attribute(productName).name(FilterName.of("name")).build())
+                .attribute(SimpleAttribute.builder().type(Type.DOUBLE).name(AttributeName.of("price")).column(ColumnName.of("price")).build())
                 .attribute(productCode)
                 .attribute(productCategory)
-                .searchFilter(ExactSearchFilter.builder().attribute(productCategory).build())
+                .searchFilter(ExactSearchFilter.builder().attribute(productCategory).name(FilterName.of("category")).build())
                 .build();
 
         var application = Application.builder()
