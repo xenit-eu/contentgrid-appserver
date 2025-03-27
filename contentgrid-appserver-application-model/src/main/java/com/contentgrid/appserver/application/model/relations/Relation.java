@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
 import lombok.Builder;
@@ -22,9 +23,20 @@ public abstract class Relation {
         if (source.getName() == null) {
             throw new InvalidRelationException("Source endpoint must have a name");
         }
+        if (source.getPathSegment() == null) {
+            throw new InvalidRelationException("Source endpoint must have a path segment");
+        }
+        if ((target.getName() == null && target.getPathSegment() != null) ||
+                (target.getName() != null && target.getPathSegment() == null)) {
+            throw new InvalidRelationException("Name and path segment of target endpoint must be both absent or both present");
+        }
         if (source.getEntity().getName().equals(target.getEntity().getName())
                 && Objects.equals(source.getName(), target.getName())) {
             throw new InvalidRelationException("Source and target must have a different name when on the same entity");
+        }
+        if (source.getEntity().getPathSegment().equals(target.getEntity().getPathSegment())
+                && Objects.equals(source.getPathSegment(), target.getPathSegment())) {
+            throw new InvalidRelationException("Source and target must have a different path segment when on the same entity");
         }
         this.source = source;
         this.target = target;
@@ -55,6 +67,8 @@ public abstract class Relation {
          */
         RelationName name;
 
+        PathSegmentName pathSegment;
+
         String description;
 
         /**
@@ -64,13 +78,17 @@ public abstract class Relation {
         Entity entity;
     }
 
+    public boolean collides(Relation other) {
+        return collidesName(other) || collidesSegment(other);
+    }
+
     /**
      * Returns whether this relation collides with the other relation.
      *
      * @param other The relation to check
      * @return whether this relation collides with the other relation.
      */
-    public boolean collides(Relation other) {
+    public boolean collidesName(Relation other) {
         var sourceName = this.getSource().getName();
         var sourceEntity = this.getSource().getEntity().getName();
         var targetName = this.getTarget().getName();
@@ -80,6 +98,32 @@ public abstract class Relation {
         var otherSourceEntity = other.getSource().getEntity().getName();
         var otherTargetName = other.getTarget().getName();
         var otherTargetEntity = other.getTarget().getEntity().getName();
+
+        return (Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
+                ||
+                (Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
+                ||
+                (Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
+                ||
+                (Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
+    }
+
+    /**
+     * Returns whether the url path segment of this relation collides with the segment of the other relation.
+     *
+     * @param other The relation to check
+     * @return whether the url path segment of this relation collides with the segment of the other relation.
+     */
+    public boolean collidesSegment(Relation other) {
+        var sourceName = this.getSource().getPathSegment();
+        var sourceEntity = this.getSource().getEntity().getPathSegment();
+        var targetName = this.getTarget().getPathSegment();
+        var targetEntity = this.getTarget().getEntity().getPathSegment();
+
+        var otherSourceName = other.getSource().getPathSegment();
+        var otherSourceEntity = other.getSource().getEntity().getPathSegment();
+        var otherTargetName = other.getTarget().getPathSegment();
+        var otherTargetEntity = other.getTarget().getEntity().getPathSegment();
 
         return (Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
                 ||

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -19,6 +20,9 @@ public class ContentAttribute implements Attribute {
     AttributeName name;
 
     String description;
+
+    @NonNull
+    PathSegmentName pathSegment;
 
     Set<AttributeFlag> flags;
 
@@ -36,11 +40,12 @@ public class ContentAttribute implements Attribute {
 
     @Builder
     ContentAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
-            @NonNull ColumnName idColumn, @NonNull ColumnName filenameColumn, @NonNull ColumnName mimetypeColumn,
-            @NonNull ColumnName lengthColumn) {
+            @NonNull PathSegmentName pathSegment, @NonNull ColumnName idColumn, @NonNull ColumnName filenameColumn,
+            @NonNull ColumnName mimetypeColumn, @NonNull ColumnName lengthColumn) {
         this.name = name;
         this.description = description;
         this.flags = flags;
+        this.pathSegment = pathSegment;
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
                 .type(Type.TEXT).build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)

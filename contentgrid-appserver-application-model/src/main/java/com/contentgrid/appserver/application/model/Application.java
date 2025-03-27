@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundExce
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
@@ -51,6 +52,9 @@ public class Application {
             if (!tables.add(entity.getTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(entity.getTable()));
             }
+            if (this.pathSegmentEntities.put(entity.getPathSegment(), entity) != null) {
+                throw new DuplicateElementException("Duplicate path segment named %s".formatted(entity.getPathSegment()));
+            }
         });
 
         relations.forEach(relation -> {
@@ -78,6 +82,9 @@ public class Application {
     @Getter(AccessLevel.NONE)
     Map<EntityName, Entity> entities = new HashMap<>();
 
+    @Getter(AccessLevel.NONE)
+    Map<PathSegmentName, Entity> pathSegmentEntities = new HashMap<>();
+
     /**
      * The set of relations defined in this application.
      */
@@ -99,6 +106,10 @@ public class Application {
      */
     public Optional<Entity> getEntityByName(EntityName entityName) {
         return Optional.ofNullable(entities.get(entityName));
+    }
+
+    public Optional<Entity> getEntityByPathSegment(PathSegmentName pathSegment) {
+        return Optional.ofNullable(pathSegmentEntities.get(pathSegment));
     }
 
     /**
@@ -135,6 +146,17 @@ public class Application {
                                 ||
                                 (relation.getTarget().getEntity().getName().equals(entityName)
                                         && relation.getTarget().getName().equals(name)))
+                .findFirst();
+    }
+
+    public Optional<Relation> getRelationForPath(PathSegmentName entitySegment, PathSegmentName relationSegment) {
+        return relations.stream()
+                .filter(relation ->
+                        (relation.getSource().getEntity().getPathSegment().equals(entitySegment)
+                                && relation.getSource().getPathSegment().equals(relationSegment))
+                                ||
+                                (relation.getTarget().getEntity().getPathSegment().equals(entitySegment)
+                                        && relation.getTarget().getPathSegment().equals(relationSegment)))
                 .findFirst();
     }
 

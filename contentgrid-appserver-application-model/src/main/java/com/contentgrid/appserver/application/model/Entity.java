@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +40,8 @@ public class Entity {
      * Constructs an Entity with the specified parameters.
      *
      * @param name the entity name
+     * @param pathSegment the url path segment
+     * @param description the description for this entity
      * @param table the database table name
      * @param attributes list of attributes for this entity (excluding primary key attribute)
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
@@ -47,9 +50,10 @@ public class Entity {
      * @throws InvalidArgumentModelException if a search filter references an invalid attribute
      */
     @Builder
-    Entity(@NonNull EntityName name, String description, @NonNull TableName table, @Singular List<Attribute> attributes,
-            SimpleAttribute primaryKey, @Singular List<SearchFilter> searchFilters) {
+    Entity(@NonNull EntityName name, @NonNull PathSegmentName pathSegment, String description, @NonNull TableName table,
+            @Singular List<Attribute> attributes, SimpleAttribute primaryKey, @Singular List<SearchFilter> searchFilters) {
         this.name = name;
+        this.pathSegment = pathSegment;
         this.description = description;
         this.table = table;
         this.primaryKey = primaryKey == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build() : primaryKey;
@@ -94,6 +98,9 @@ public class Entity {
      */
     @NonNull
     EntityName name;
+
+    @NonNull
+    PathSegmentName pathSegment;
 
     String description;
 
