@@ -78,17 +78,17 @@ public abstract class Relation {
         Entity entity;
     }
 
-    public boolean collides(Relation other) {
-        return collidesName(other) || collidesSegment(other);
-    }
-
     /**
      * Returns whether this relation collides with the other relation.
      *
      * @param other The relation to check
      * @return whether this relation collides with the other relation.
      */
-    public boolean collidesName(Relation other) {
+    public boolean collides(Relation other) {
+        return collidesName(other) || collidesSegment(other);
+    }
+
+    private boolean collidesName(Relation other) {
         var sourceName = this.getSource().getName();
         var sourceEntity = this.getSource().getEntity().getName();
         var targetName = this.getTarget().getName();
@@ -114,7 +114,7 @@ public abstract class Relation {
      * @param other The relation to check
      * @return whether the url path segment of this relation collides with the segment of the other relation.
      */
-    public boolean collidesSegment(Relation other) {
+    private boolean collidesSegment(Relation other) {
         var sourceName = this.getSource().getPathSegment();
         var sourceEntity = this.getSource().getEntity().getPathSegment();
         var targetName = this.getTarget().getPathSegment();
