@@ -85,7 +85,7 @@ class ApplicationTest {
                 application.getRelationForEntity(INVOICE, RelationName.of("customer")).orElseThrow().getTarget()
                         .getEntity());
         assertEquals(INVOICE, application.getEntityByName(EntityName.of("Invoice")).orElseThrow());
-        assertEquals(INVOICE,
+        assertEquals(CUSTOMER,
                 application.getRelationForEntity(EntityName.of("Customer"), RelationName.of("invoices")).orElseThrow()
                         .getSource().getEntity());
         assertEquals(INVOICE, application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());

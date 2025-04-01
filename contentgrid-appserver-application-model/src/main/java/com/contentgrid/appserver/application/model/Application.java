@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -121,13 +122,14 @@ public class Application {
      * and the name matches
      */
     public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
-        return relations.stream()
-                .filter(relation ->
-                        (relation.getSource().getEntity().equals(entity) && relation.getSource().getName().equals(name))
-                                ||
-                                (relation.getTarget().getEntity().equals(entity) && relation.getTarget().getName()
-                                        .equals(name)))
-                .findFirst();
+        for (var relation : relations) {
+            if (relation.getSource().getEntity().equals(entity) && Objects.equals(relation.getSource().getName(), name)) {
+                return Optional.of(relation);
+            } else if (relation.getTarget().getEntity().equals(entity) && Objects.equals(relation.getTarget().getName(), name)) {
+                return Optional.of(relation.inverse());
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -139,25 +141,18 @@ public class Application {
      * and the name matches
      */
     public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
-        return relations.stream()
-                .filter(relation ->
-                        (relation.getSource().getEntity().getName().equals(entityName)
-                                && relation.getSource().getName().equals(name))
-                                ||
-                                (relation.getTarget().getEntity().getName().equals(entityName)
-                                        && relation.getTarget().getName().equals(name)))
-                .findFirst();
+        return getEntityByName(entityName).flatMap(entity -> getRelationForEntity(entity, name));
     }
 
     public Optional<Relation> getRelationForPath(PathSegmentName entitySegment, PathSegmentName relationSegment) {
-        return relations.stream()
-                .filter(relation ->
-                        (relation.getSource().getEntity().getPathSegment().equals(entitySegment)
-                                && relation.getSource().getPathSegment().equals(relationSegment))
-                                ||
-                                (relation.getTarget().getEntity().getPathSegment().equals(entitySegment)
-                                        && relation.getTarget().getPathSegment().equals(relationSegment)))
-                .findFirst();
+        for (var relation : relations) {
+            if (relation.getSource().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getSource().getPathSegment(), relationSegment)) {
+                return Optional.of(relation);
+            } else if (relation.getTarget().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getTarget().getPathSegment(), relationSegment)) {
+                return Optional.of(relation.inverse());
+            }
+        }
+        return Optional.empty();
     }
 
 }
