@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Value;
@@ -17,6 +18,7 @@ import lombok.Value;
  * It defines source and target endpoints that specify the related entities and their relation names.
  */
 @Getter
+@EqualsAndHashCode
 public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelation, OneToManyRelation,
         OneToOneRelation {
 
@@ -82,6 +84,8 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         @NonNull
         Entity entity;
     }
+
+    public abstract Relation inverse();
 
     /**
      * Returns whether this relation collides with the other relation.

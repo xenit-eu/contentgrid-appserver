@@ -17,9 +17,9 @@ import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundExce
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -159,7 +159,7 @@ class ApplicationTest {
                 .entity(INVOICE)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
-                .relation(OneToOneRelation.builder()
+                .relation(SourceOneToOneRelation.builder()
                         .source(RelationEndPoint.builder().name(RelationName.of("name_on_source")).entity(INVOICE)
                                 .pathSegment(PathSegmentName.of("segment-on-source")).build())
                         .target(MANY_TO_ONE.getTarget())

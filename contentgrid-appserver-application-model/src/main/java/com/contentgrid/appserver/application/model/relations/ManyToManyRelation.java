@@ -62,4 +62,14 @@ public class ManyToManyRelation extends Relation {
     @NonNull
     ColumnName targetReference;
 
+    @Override
+    public Relation inverse() {
+        return ManyToManyRelation.builder()
+                .source(this.getTarget())
+                .target(this.getSource())
+                .joinTable(this.joinTable)
+                .sourceReference(this.targetReference)
+                .targetReference(this.sourceReference)
+                .build();
+    }
 }

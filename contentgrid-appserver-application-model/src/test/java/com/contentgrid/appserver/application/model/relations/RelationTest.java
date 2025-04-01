@@ -28,7 +28,7 @@ class RelationTest {
 
     @Test
     void oneToOne() {
-        var oneToOneRelation = OneToOneRelation.builder()
+        var oneToOneRelation = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(
                         PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).build())
@@ -42,11 +42,17 @@ class RelationTest {
         assertNull(oneToOneRelation.getTarget().getPathSegment());
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSource().getDescription());
+
+        var inverseRelation = oneToOneRelation.inverse();
+        assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
+        assertEquals(oneToOneRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(oneToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
     @Test
     void oneToOne_bidirectional() {
-        var oneToOneRelation = OneToOneRelation.builder()
+        var oneToOneRelation = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"))
@@ -60,11 +66,17 @@ class RelationTest {
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSource().getDescription());
         assertEquals(TARGET_DESCRIPTION, oneToOneRelation.getTarget().getDescription());
+
+        var inverseRelation = oneToOneRelation.inverse();
+        assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
+        assertEquals(oneToOneRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(oneToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
     @Test
     void oneToOne_missingSourceName() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).pathSegment(PathSegmentName.of("target")).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"));
@@ -73,7 +85,7 @@ class RelationTest {
 
     @Test
     void oneToOne_missingTargetName() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"));
@@ -82,7 +94,7 @@ class RelationTest {
 
     @Test
     void oneToOne_missingSourcePathSegment() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"));
@@ -91,7 +103,7 @@ class RelationTest {
 
     @Test
     void oneToOne_missingTargetPathSegment() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"));
@@ -100,7 +112,7 @@ class RelationTest {
 
     @Test
     void oneToOne_reflexive_duplicateRelationName() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("other")).build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
                 .targetReference(ColumnName.of("source"));
@@ -109,7 +121,7 @@ class RelationTest {
 
     @Test
     void oneToOne_reflexive_duplicatePathSegment() {
-        var builder = OneToOneRelation.builder()
+        var builder = SourceOneToOneRelation.builder()
                 .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("source")).build())
                 .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
                 .targetReference(ColumnName.of("source"));
@@ -131,6 +143,12 @@ class RelationTest {
         assertNull(manyToOneRelation.getTarget().getPathSegment());
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSource().getDescription());
+
+        var inverseRelation = manyToOneRelation.inverse();
+        assertInstanceOf(OneToManyRelation.class, inverseRelation);
+        assertEquals(manyToOneRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(manyToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
     @Test
@@ -149,6 +167,12 @@ class RelationTest {
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSource().getDescription());
         assertEquals(TARGET_DESCRIPTION, manyToOneRelation.getTarget().getDescription());
+
+        var inverseRelation = manyToOneRelation.inverse();
+        assertInstanceOf(OneToManyRelation.class, inverseRelation);
+        assertEquals(manyToOneRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(manyToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
     @Test
@@ -166,6 +190,12 @@ class RelationTest {
         assertNull(oneToManyRelation.getTarget().getPathSegment());
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
         assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSource().getDescription());
+
+        var inverseRelation = oneToManyRelation.inverse();
+        assertInstanceOf(ManyToOneRelation.class, inverseRelation);
+        assertEquals(oneToManyRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(oneToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
     @Test
@@ -184,6 +214,12 @@ class RelationTest {
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
         assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSource().getDescription());
         assertEquals(TARGET_DESCRIPTION, oneToManyRelation.getTarget().getDescription());
+
+        var inverseRelation = oneToManyRelation.inverse();
+        assertInstanceOf(ManyToOneRelation.class, inverseRelation);
+        assertEquals(oneToManyRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(oneToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
     @Test
@@ -205,6 +241,12 @@ class RelationTest {
         assertEquals(ColumnName.of("source_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSource().getDescription());
+
+        var inverseRelation = manyToManyRelation.inverse();
+        assertInstanceOf(ManyToManyRelation.class, inverseRelation);
+        assertEquals(manyToManyRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(manyToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 
     @Test
@@ -227,6 +269,12 @@ class RelationTest {
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSource().getDescription());
         assertEquals(TARGET_DESCRIPTION, manyToManyRelation.getTarget().getDescription());
+
+        var inverseRelation = manyToManyRelation.inverse();
+        assertInstanceOf(ManyToManyRelation.class, inverseRelation);
+        assertEquals(manyToManyRelation.getSource(), inverseRelation.getTarget());
+        assertEquals(manyToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 
     @Test

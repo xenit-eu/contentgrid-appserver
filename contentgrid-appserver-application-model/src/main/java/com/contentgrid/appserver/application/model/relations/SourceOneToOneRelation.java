@@ -6,18 +6,12 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 
-/**
- * Represents a many-to-one relationship between two entities.
- * 
- * In a many-to-one relationship, multiple instances of one entity (the source) can be associated
- * with a single instance of another entity (the target).
- */
-@EqualsAndHashCode(callSuper = true)
 @Value
-public class ManyToOneRelation extends Relation {
+@EqualsAndHashCode(callSuper = true)
+public class SourceOneToOneRelation extends OneToOneRelation {
 
     /**
-     * Constructs a ManyToOneRelation with the specified parameters.
+     * Constructs a SourceOneToOneRelation with the specified parameters.
      *
      * @param source the source endpoint of the relation
      * @param target the target endpoint of the relation
@@ -25,7 +19,7 @@ public class ManyToOneRelation extends Relation {
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName targetReference) {
+    SourceOneToOneRelation(@NonNull Relation.RelationEndPoint source, @NonNull Relation.RelationEndPoint target, @NonNull ColumnName targetReference) {
         super(source, target);
         this.targetReference = targetReference;
     }
@@ -38,7 +32,7 @@ public class ManyToOneRelation extends Relation {
 
     @Override
     public Relation inverse() {
-        return OneToManyRelation.builder()
+        return TargetOneToOneRelation.builder()
                 .source(this.getTarget())
                 .target(this.getSource())
                 .sourceReference(this.targetReference)
