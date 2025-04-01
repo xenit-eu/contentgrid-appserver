@@ -17,14 +17,19 @@ import lombok.Value;
  * It defines source and target endpoints that specify the related entities and their relation names.
  */
 @Getter
-public abstract class Relation {
+public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelation, OneToManyRelation,
+        OneToOneRelation {
 
     protected Relation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
-        if (source.getName() == null) {
-            throw new InvalidRelationException("Source endpoint must have a name");
+        if (source.getName() == null && target.getName() == null) {
+            throw new InvalidRelationException("At least one endpoint must have a name");
         }
-        if (source.getPathSegment() == null) {
-            throw new InvalidRelationException("Source endpoint must have a path segment");
+        if (source.getPathSegment() == null && target.getPathSegment() == null) {
+            throw new InvalidRelationException("At least one endpoint must have a path segment");
+        }
+        if ((source.getName() == null && source.getPathSegment() != null) ||
+                (source.getName() != null && source.getPathSegment() == null)) {
+            throw new InvalidRelationException("Name and path segment of source endpoint must be both absent or both present");
         }
         if ((target.getName() == null && target.getPathSegment() != null) ||
                 (target.getName() != null && target.getPathSegment() == null)) {
@@ -99,13 +104,13 @@ public abstract class Relation {
         var otherTargetName = other.getTarget().getName();
         var otherTargetEntity = other.getTarget().getEntity().getName();
 
-        return (Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
+        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
                 ||
-                (Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
+                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
                 ||
-                (Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
+                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
                 ||
-                (Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
+                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
     }
 
     /**
@@ -125,13 +130,13 @@ public abstract class Relation {
         var otherTargetName = other.getTarget().getPathSegment();
         var otherTargetEntity = other.getTarget().getEntity().getPathSegment();
 
-        return (Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
+        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
                 ||
-                (Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
+                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
                 ||
-                (Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
+                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
                 ||
-                (Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
+                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
     }
 
 
