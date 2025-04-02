@@ -11,3 +11,4 @@ dependencyResolutionManagement {
 rootProject.name = 'contentgrid-appserver'
 
 include 'contentgrid-appserver-application-model'
+include 'contentgrid-appserver-query-engine'
