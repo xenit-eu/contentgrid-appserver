@@ -47,9 +47,9 @@ class RelationTest {
     @Test
     void oneToOne() {
         var oneToOneRelation = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(
                         PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
@@ -73,8 +73,8 @@ class RelationTest {
     @Test
     void oneToOne_bidirectional() {
         var oneToOneRelation = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
@@ -99,8 +99,8 @@ class RelationTest {
     @Test
     void oneToOne_reflexive_duplicateRelationName() {
         var builder = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("other")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("other")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -108,8 +108,8 @@ class RelationTest {
     @Test
     void oneToOne_reflexive_duplicatePathSegment() {
         var builder = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("source")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("source")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -117,8 +117,8 @@ class RelationTest {
     @Test
     void oneToOne_bothRequired() {
         var builder = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).required(true).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).required(true).build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -126,8 +126,8 @@ class RelationTest {
     @Test
     void oneToOne_reflexive_requiredSource() {
         var builder = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).required(true).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -135,8 +135,8 @@ class RelationTest {
     @Test
     void oneToOne_reflexive_requiredTarget() {
         var builder = SourceOneToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).required(true).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).required(true).build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -144,8 +144,8 @@ class RelationTest {
     @Test
     void manyToOne() {
         var manyToOneRelation = ManyToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
@@ -169,8 +169,8 @@ class RelationTest {
     @Test
     void manyToOne_bidirectional() {
         var manyToOneRelation = ManyToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
         assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
@@ -195,8 +195,8 @@ class RelationTest {
     @Test
     void manyToOne_requiredTarget() {
         var builder = ManyToOneRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).required(true).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).required(true).build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -204,8 +204,8 @@ class RelationTest {
     @Test
     void oneToMany() {
         var oneToManyRelation = OneToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
         assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
@@ -229,8 +229,8 @@ class RelationTest {
     @Test
     void oneToMany_bidirectional() {
         var oneToManyRelation = OneToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).required(true).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).required(true).build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
         assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
@@ -255,8 +255,8 @@ class RelationTest {
     @Test
     void oneToMany_requiredSource() {
         var builder = OneToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).required(true).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .sourceReference(ColumnName.of("_source_id__targets"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
@@ -264,8 +264,8 @@ class RelationTest {
     @Test
     void manyToMany() {
         var manyToManyRelation = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .joinTable(TableName.of("source__targets"))
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
@@ -293,8 +293,8 @@ class RelationTest {
     @Test
     void manyToMany_bidirectional() {
         var manyToManyRelation = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
                 .joinTable(TableName.of("source__targets"))
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
@@ -323,8 +323,8 @@ class RelationTest {
     @Test
     void manyToMany_reflexive() {
         var manyToManyRelation = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("others")).pathSegment(PathSegmentName.of("others")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("others")).pathSegment(PathSegmentName.of("others")).build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_src_id"))
                 .targetReference(ColumnName.of("source_tgt_id"))
@@ -345,8 +345,8 @@ class RelationTest {
     @Test
     void manyToMany_reflexive_duplicateRelationName() {
         var builder = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("others")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("others")).build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_src_id"))
                 .targetReference(ColumnName.of("source_tgt_id"));
@@ -356,8 +356,8 @@ class RelationTest {
     @Test
     void manyToMany_reflexive_duplicateColumnReference() {
         var builder = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
-                .target(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("others")).pathSegment(PathSegmentName.of("others")).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("others")).pathSegment(PathSegmentName.of("others")).build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("source_id"));
@@ -367,8 +367,8 @@ class RelationTest {
     @Test
     void manyToMany_requiredSource() {
         var builder = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).required(true).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).required(true).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
                 .joinTable(TableName.of("source__targets"))
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"));
@@ -378,8 +378,8 @@ class RelationTest {
     @Test
     void manyToMany_requiredTarget() {
         var builder = ManyToManyRelation.builder()
-                .source(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
-                .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).required(true).build())
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("targets")).pathSegment(PathSegmentName.of("targets")).description(SOURCE_DESCRIPTION).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).required(true).build())
                 .joinTable(TableName.of("source__targets"))
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"));

@@ -10,7 +10,7 @@ import lombok.NonNull;
  */
 public abstract sealed class OneToOneRelation extends Relation permits SourceOneToOneRelation, TargetOneToOneRelation {
 
-    protected OneToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
-        super(source, target);
+    protected OneToOneRelation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint) {
+        super(sourceEndPoint, targetEndPoint);
     }
 }

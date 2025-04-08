@@ -20,14 +20,14 @@ public class ManyToOneRelation extends Relation {
     /**
      * Constructs a ManyToOneRelation with the specified parameters.
      *
-     * @param source the source endpoint of the relation
-     * @param target the target endpoint of the relation
+     * @param sourceEndPoint the source endpoint of the relation
+     * @param targetEndPoint the target endpoint of the relation
      * @param targetReference the column in the source entity that references the target entity
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    ManyToOneRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName targetReference) {
-        super(source, target);
+    ManyToOneRelation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint, @NonNull ColumnName targetReference) {
+        super(sourceEndPoint, targetEndPoint);
         if (this.getTargetEndPoint().isRequired()) {
             throw new InvalidRelationException("Target endpoint %s can not be required, because it does not reference a single source entity".formatted(this.getTargetEndPoint().getName()));
         }
@@ -43,8 +43,8 @@ public class ManyToOneRelation extends Relation {
     @Override
     public Relation inverse() {
         return OneToManyRelation.builder()
-                .source(this.getTargetEndPoint())
-                .target(this.getSourceEndPoint())
+                .sourceEndPoint(this.getTargetEndPoint())
+                .targetEndPoint(this.getSourceEndPoint())
                 .sourceReference(this.targetReference)
                 .build();
     }

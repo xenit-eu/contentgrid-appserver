@@ -23,8 +23,8 @@ public class ManyToManyRelation extends Relation {
     /**
      * Constructs a ManyToManyRelation with the specified parameters.
      *
-     * @param source the source endpoint of the relation
-     * @param target the target endpoint of the relation
+     * @param sourceEndPoint the source endpoint of the relation
+     * @param targetEndPoint the target endpoint of the relation
      * @param joinTable the name of the join table
      * @param sourceReference the column in the join table referencing the source entity
      * @param targetReference the column in the join table referencing the target entity
@@ -32,10 +32,9 @@ public class ManyToManyRelation extends Relation {
      *                                 if sourceReference and targetReference are the same
      */
     @Builder
-    ManyToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull TableName joinTable,
-            @NonNull ColumnName sourceReference,
-            @NonNull ColumnName targetReference) {
-        super(source, target);
+    ManyToManyRelation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint,
+            @NonNull TableName joinTable, @NonNull ColumnName sourceReference, @NonNull ColumnName targetReference) {
+        super(sourceEndPoint, targetEndPoint);
         if (Objects.equals(sourceReference, targetReference)) {
             throw new InvalidRelationException("'%s' is used for sourceReference and targetReference".formatted(sourceReference));
         }
@@ -71,8 +70,8 @@ public class ManyToManyRelation extends Relation {
     @Override
     public Relation inverse() {
         return ManyToManyRelation.builder()
-                .source(this.getTargetEndPoint())
-                .target(this.getSourceEndPoint())
+                .sourceEndPoint(this.getTargetEndPoint())
+                .targetEndPoint(this.getSourceEndPoint())
                 .joinTable(this.joinTable)
                 .sourceReference(this.targetReference)
                 .targetReference(this.sourceReference)

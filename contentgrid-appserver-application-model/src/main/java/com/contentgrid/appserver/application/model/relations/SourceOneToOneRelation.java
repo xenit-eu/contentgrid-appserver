@@ -13,14 +13,14 @@ public class SourceOneToOneRelation extends OneToOneRelation {
     /**
      * Constructs a SourceOneToOneRelation with the specified parameters.
      *
-     * @param source the source endpoint of the relation
-     * @param target the target endpoint of the relation
+     * @param sourceEndPoint the source endpoint of the relation
+     * @param targetEndPoint the target endpoint of the relation
      * @param targetReference the column in the source entity that references the target entity
      * @throws InvalidRelationException if source and target have the same name on the same entity
      */
     @Builder
-    SourceOneToOneRelation(@NonNull Relation.RelationEndPoint source, @NonNull Relation.RelationEndPoint target, @NonNull ColumnName targetReference) {
-        super(source, target);
+    SourceOneToOneRelation(@NonNull Relation.RelationEndPoint sourceEndPoint, @NonNull Relation.RelationEndPoint targetEndPoint, @NonNull ColumnName targetReference) {
+        super(sourceEndPoint, targetEndPoint);
         this.targetReference = targetReference;
     }
 
@@ -33,8 +33,8 @@ public class SourceOneToOneRelation extends OneToOneRelation {
     @Override
     public Relation inverse() {
         return TargetOneToOneRelation.builder()
-                .source(this.getTargetEndPoint())
-                .target(this.getSourceEndPoint())
+                .sourceEndPoint(this.getTargetEndPoint())
+                .targetEndPoint(this.getSourceEndPoint())
                 .sourceReference(this.targetReference)
                 .build();
     }
