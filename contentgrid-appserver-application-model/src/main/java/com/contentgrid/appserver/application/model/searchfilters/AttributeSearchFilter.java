@@ -37,7 +37,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      */
     protected AttributeSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
         if (!supports(attribute.getType())) {
-            throw new InvalidSearchFilterException("SimpleAttribute with type %s is not supported".formatted(attribute.getType()));
+            throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attribute.getType()));
         }
         this.name = name;
         this.attribute = attribute;

@@ -22,51 +22,48 @@ import lombok.Value;
 public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelation, OneToManyRelation,
         OneToOneRelation {
 
-    protected Relation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target) {
-        if (source.getName() == null && target.getName() == null) {
+    protected Relation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint) {
+        if (sourceEndPoint.getName() == null && targetEndPoint.getName() == null) {
             throw new InvalidRelationException("At least one endpoint must have a name");
         }
-        if (source.getPathSegment() == null && target.getPathSegment() == null) {
-            throw new InvalidRelationException("At least one endpoint must have a path segment");
+        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
+                && Objects.equals(sourceEndPoint.getName(), targetEndPoint.getName())) {
+            throw new InvalidRelationException("Source and target endpoints must have a different name when on the same entity");
         }
-        if ((source.getName() == null && source.getPathSegment() != null) ||
-                (source.getName() != null && source.getPathSegment() == null)) {
-            throw new InvalidRelationException("Name and path segment of source endpoint must be both absent or both present");
+        if (sourceEndPoint.getEntity().getPathSegment().equals(targetEndPoint.getEntity().getPathSegment())
+                && Objects.equals(sourceEndPoint.getPathSegment(), targetEndPoint.getPathSegment())) {
+            throw new InvalidRelationException("Source and target endpoints must have a different path segment when on the same entity");
         }
-        if ((target.getName() == null && target.getPathSegment() != null) ||
-                (target.getName() != null && target.getPathSegment() == null)) {
-            throw new InvalidRelationException("Name and path segment of target endpoint must be both absent or both present");
+        if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
+            // Chicken and egg problem
+            throw new InvalidRelationException("Source and target endpoints can not be both required");
         }
-        if (source.getEntity().getName().equals(target.getEntity().getName())
-                && Objects.equals(source.getName(), target.getName())) {
-            throw new InvalidRelationException("Source and target must have a different name when on the same entity");
+        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
+                && (sourceEndPoint.isRequired() || targetEndPoint.isRequired())) {
+            // Chicken and egg problem
+            throw new InvalidRelationException("Source and target endpoints can not be required when on the same entity");
         }
-        if (source.getEntity().getPathSegment().equals(target.getEntity().getPathSegment())
-                && Objects.equals(source.getPathSegment(), target.getPathSegment())) {
-            throw new InvalidRelationException("Source and target must have a different path segment when on the same entity");
-        }
-        this.source = source;
-        this.target = target;
+        this.sourceEndPoint = sourceEndPoint;
+        this.targetEndPoint = targetEndPoint;
     }
 
     /**
      * The source endpoint of the relation.
      */
     @NonNull
-    RelationEndPoint source;
+    RelationEndPoint sourceEndPoint;
 
     /**
      * The target endpoint of the relation.
      */
     @NonNull
-    RelationEndPoint target;
+    RelationEndPoint targetEndPoint;
 
 
     /**
      * Represents an endpoint of a relation, defining an entity and an optional relation name.
      */
     @Value
-    @Builder
     public static class RelationEndPoint {
 
         /**
@@ -83,6 +80,29 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          */
         @NonNull
         Entity entity;
+
+        boolean required;
+
+        @Builder
+        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, String description, boolean required) {
+            if (name != null && pathSegment == null) {
+                throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
+            }
+            if (name == null && pathSegment != null) {
+                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a name".formatted(pathSegment));
+            }
+            if (name == null && description != null) {
+                throw new InvalidRelationException("Relation endpoint can not have a description without a name");
+            }
+            if (name == null && required) {
+                throw new InvalidRelationException("Relation endpoint can not be required without name");
+            }
+            this.entity = entity;
+            this.name = name;
+            this.pathSegment = pathSegment;
+            this.description = description;
+            this.required = required;
+        }
     }
 
     public abstract Relation inverse();
@@ -98,15 +118,15 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
     }
 
     private boolean collidesName(Relation other) {
-        var sourceName = this.getSource().getName();
-        var sourceEntity = this.getSource().getEntity().getName();
-        var targetName = this.getTarget().getName();
-        var targetEntity = this.getTarget().getEntity().getName();
+        var sourceName = this.getSourceEndPoint().getName();
+        var sourceEntity = this.getSourceEndPoint().getEntity().getName();
+        var targetName = this.getTargetEndPoint().getName();
+        var targetEntity = this.getTargetEndPoint().getEntity().getName();
 
-        var otherSourceName = other.getSource().getName();
-        var otherSourceEntity = other.getSource().getEntity().getName();
-        var otherTargetName = other.getTarget().getName();
-        var otherTargetEntity = other.getTarget().getEntity().getName();
+        var otherSourceName = other.getSourceEndPoint().getName();
+        var otherSourceEntity = other.getSourceEndPoint().getEntity().getName();
+        var otherTargetName = other.getTargetEndPoint().getName();
+        var otherTargetEntity = other.getTargetEndPoint().getEntity().getName();
 
         return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
                 ||
@@ -124,15 +144,15 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * @return whether the url path segment of this relation collides with the segment of the other relation.
      */
     private boolean collidesSegment(Relation other) {
-        var sourceName = this.getSource().getPathSegment();
-        var sourceEntity = this.getSource().getEntity().getPathSegment();
-        var targetName = this.getTarget().getPathSegment();
-        var targetEntity = this.getTarget().getEntity().getPathSegment();
+        var sourceName = this.getSourceEndPoint().getPathSegment();
+        var sourceEntity = this.getSourceEndPoint().getEntity().getPathSegment();
+        var targetName = this.getTargetEndPoint().getPathSegment();
+        var targetEntity = this.getTargetEndPoint().getEntity().getPathSegment();
 
-        var otherSourceName = other.getSource().getPathSegment();
-        var otherSourceEntity = other.getSource().getEntity().getPathSegment();
-        var otherTargetName = other.getTarget().getPathSegment();
-        var otherTargetEntity = other.getTarget().getEntity().getPathSegment();
+        var otherSourceName = other.getSourceEndPoint().getPathSegment();
+        var otherSourceEntity = other.getSourceEndPoint().getEntity().getPathSegment();
+        var otherTargetName = other.getTargetEndPoint().getPathSegment();
+        var otherTargetEntity = other.getTargetEndPoint().getEntity().getPathSegment();
 
         return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
                 ||
