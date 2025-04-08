@@ -27,20 +27,26 @@ class RelationTest {
     private static final String TARGET_DESCRIPTION = "A link to the source of the target entity";
 
     @Test
-    void relationEndPoint_missingName() {
+    void relationEndPoint_withPathSegment_missingName() {
         var builder = RelationEndPoint.builder().entity(SOURCE).pathSegment(PathSegmentName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
-    void relationEndPoint_missingPathSegment() {
+    void relationEndPoint_withName_missingPathSegment() {
         var builder = RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
-    void relationEndPoint_requiredAndMissingName() {
+    void relationEndPoint_withRequired_missingName() {
         var builder = RelationEndPoint.builder().entity(SOURCE).required(true);
+        assertThrows(InvalidRelationException.class, builder::build);
+    }
+
+    @Test
+    void relationEndPoint_withDescription_missingName() {
+        var builder = RelationEndPoint.builder().entity(SOURCE).description(SOURCE_DESCRIPTION);
         assertThrows(InvalidRelationException.class, builder::build);
     }
 

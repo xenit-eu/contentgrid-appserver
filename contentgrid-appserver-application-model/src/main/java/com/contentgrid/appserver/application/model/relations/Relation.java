@@ -91,6 +91,9 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             if (name == null && pathSegment != null) {
                 throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a name".formatted(pathSegment));
             }
+            if (name == null && description != null) {
+                throw new InvalidRelationException("Relation endpoint can not have a description without a name");
+            }
             if (name == null && required) {
                 throw new InvalidRelationException("Relation endpoint can not be required without name");
             }
