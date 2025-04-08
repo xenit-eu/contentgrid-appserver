@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.relations;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -28,6 +29,9 @@ public class OneToManyRelation extends Relation {
     @Builder
     OneToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName sourceReference) {
         super(source, target);
+        if (this.getSource().isRequired()) {
+            throw new InvalidRelationException("Source endpoint %s can not be required, because it does not reference a single target entity".formatted(this.getSource().getName()));
+        }
         this.sourceReference = sourceReference;
     }
 

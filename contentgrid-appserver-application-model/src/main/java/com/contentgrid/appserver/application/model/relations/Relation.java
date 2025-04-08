@@ -45,6 +45,16 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                 && Objects.equals(source.getPathSegment(), target.getPathSegment())) {
             throw new InvalidRelationException("Source and target must have a different path segment when on the same entity");
         }
+        if (source.getName() == null && source.isRequired()) {
+            throw new InvalidRelationException("Source is required but doesn't have a name");
+        }
+        if (target.getName() == null && target.isRequired()) {
+            throw new InvalidRelationException("Target is required but doesn't have a name");
+        }
+        if (source.isRequired() && target.isRequired()) {
+            // Chicken and egg problem
+            throw new InvalidRelationException("Source and target can not be both required");
+        }
         this.source = source;
         this.target = target;
     }
@@ -83,6 +93,8 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          */
         @NonNull
         Entity entity;
+
+        boolean required;
     }
 
     public abstract Relation inverse();
