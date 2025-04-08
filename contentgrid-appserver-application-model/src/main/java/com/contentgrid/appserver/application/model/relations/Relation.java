@@ -26,34 +26,22 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getName() == null && targetEndPoint.getName() == null) {
             throw new InvalidRelationException("At least one endpoint must have a name");
         }
-        if (sourceEndPoint.getPathSegment() == null && targetEndPoint.getPathSegment() == null) {
-            throw new InvalidRelationException("At least one endpoint must have a path segment");
-        }
-        if ((sourceEndPoint.getName() == null && sourceEndPoint.getPathSegment() != null) ||
-                (sourceEndPoint.getName() != null && sourceEndPoint.getPathSegment() == null)) {
-            throw new InvalidRelationException("Name and path segment of source endpoint must be both absent or both present");
-        }
-        if ((targetEndPoint.getName() == null && targetEndPoint.getPathSegment() != null) ||
-                (targetEndPoint.getName() != null && targetEndPoint.getPathSegment() == null)) {
-            throw new InvalidRelationException("Name and path segment of target endpoint must be both absent or both present");
-        }
         if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
                 && Objects.equals(sourceEndPoint.getName(), targetEndPoint.getName())) {
-            throw new InvalidRelationException("Source and target must have a different name when on the same entity");
+            throw new InvalidRelationException("Source and target endpoints must have a different name when on the same entity");
         }
         if (sourceEndPoint.getEntity().getPathSegment().equals(targetEndPoint.getEntity().getPathSegment())
                 && Objects.equals(sourceEndPoint.getPathSegment(), targetEndPoint.getPathSegment())) {
-            throw new InvalidRelationException("Source and target must have a different path segment when on the same entity");
-        }
-        if (sourceEndPoint.getName() == null && sourceEndPoint.isRequired()) {
-            throw new InvalidRelationException("Source is required but doesn't have a name");
-        }
-        if (targetEndPoint.getName() == null && targetEndPoint.isRequired()) {
-            throw new InvalidRelationException("Target is required but doesn't have a name");
+            throw new InvalidRelationException("Source and target endpoints must have a different path segment when on the same entity");
         }
         if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
             // Chicken and egg problem
-            throw new InvalidRelationException("Source and target can not be both required");
+            throw new InvalidRelationException("Source and target endpoints can not be both required");
+        }
+        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
+                && (sourceEndPoint.isRequired() || targetEndPoint.isRequired())) {
+            // Chicken and egg problem
+            throw new InvalidRelationException("Source and target endpoints can not be required when on the same entity");
         }
         this.sourceEndPoint = sourceEndPoint;
         this.targetEndPoint = targetEndPoint;
@@ -76,7 +64,6 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * Represents an endpoint of a relation, defining an entity and an optional relation name.
      */
     @Value
-    @Builder
     public static class RelationEndPoint {
 
         /**
@@ -95,6 +82,24 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         Entity entity;
 
         boolean required;
+
+        @Builder
+        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, String description, boolean required) {
+            if (name != null && pathSegment == null) {
+                throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
+            }
+            if (name == null && pathSegment != null) {
+                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a name".formatted(pathSegment));
+            }
+            if (name == null && required) {
+                throw new InvalidRelationException("Relation endpoint can not be required without name");
+            }
+            this.entity = entity;
+            this.name = name;
+            this.pathSegment = pathSegment;
+            this.description = description;
+            this.required = required;
+        }
     }
 
     public abstract Relation inverse();
