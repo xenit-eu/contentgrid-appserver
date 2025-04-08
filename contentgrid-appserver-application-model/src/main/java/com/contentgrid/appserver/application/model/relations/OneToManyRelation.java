@@ -29,8 +29,8 @@ public class OneToManyRelation extends Relation {
     @Builder
     OneToManyRelation(@NonNull RelationEndPoint source, @NonNull RelationEndPoint target, @NonNull ColumnName sourceReference) {
         super(source, target);
-        if (this.getSource().isRequired()) {
-            throw new InvalidRelationException("Source endpoint %s can not be required, because it does not reference a single target entity".formatted(this.getSource().getName()));
+        if (this.getSourceEndPoint().isRequired()) {
+            throw new InvalidRelationException("Source endpoint %s can not be required, because it does not reference a single target entity".formatted(this.getSourceEndPoint().getName()));
         }
         this.sourceReference = sourceReference;
     }
@@ -44,8 +44,8 @@ public class OneToManyRelation extends Relation {
     @Override
     public Relation inverse() {
         return ManyToOneRelation.builder()
-                .source(this.getTarget())
-                .target(this.getSource())
+                .source(this.getTargetEndPoint())
+                .target(this.getSourceEndPoint())
                 .targetReference(this.sourceReference)
                 .build();
     }

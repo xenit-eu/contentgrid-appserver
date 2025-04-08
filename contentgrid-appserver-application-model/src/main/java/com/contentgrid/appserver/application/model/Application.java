@@ -59,14 +59,14 @@ public class Application {
         });
 
         relations.forEach(relation -> {
-            if (!this.entities.containsValue(relation.getSource().getEntity())) {
-                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSource().getEntity().getName()));
+            if (!this.entities.containsValue(relation.getSourceEndPoint().getEntity())) {
+                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
-            if (!this.entities.containsValue(relation.getTarget().getEntity())) {
-                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTarget().getEntity().getName()));
+            if (!this.entities.containsValue(relation.getTargetEndPoint().getEntity())) {
+                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
-                throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSource().getEntity().getName(), relation.getSource().getName()));
+                throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
             }
         });
     }
@@ -123,9 +123,9 @@ public class Application {
      */
     public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
         for (var relation : relations) {
-            if (relation.getSource().getEntity().equals(entity) && Objects.equals(relation.getSource().getName(), name)) {
+            if (relation.getSourceEndPoint().getEntity().equals(entity) && Objects.equals(relation.getSourceEndPoint().getName(), name)) {
                 return Optional.of(relation);
-            } else if (relation.getTarget().getEntity().equals(entity) && Objects.equals(relation.getTarget().getName(), name)) {
+            } else if (relation.getTargetEndPoint().getEntity().equals(entity) && Objects.equals(relation.getTargetEndPoint().getName(), name)) {
                 return Optional.of(relation.inverse());
             }
         }
@@ -146,9 +146,9 @@ public class Application {
 
     public Optional<Relation> getRelationForPath(PathSegmentName entitySegment, PathSegmentName relationSegment) {
         for (var relation : relations) {
-            if (relation.getSource().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getSource().getPathSegment(), relationSegment)) {
+            if (relation.getSourceEndPoint().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getSourceEndPoint().getPathSegment(), relationSegment)) {
                 return Optional.of(relation);
-            } else if (relation.getTarget().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getTarget().getPathSegment(), relationSegment)) {
+            } else if (relation.getTargetEndPoint().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getTargetEndPoint().getPathSegment(), relationSegment)) {
                 return Optional.of(relation.inverse());
             }
         }

@@ -82,15 +82,15 @@ class ApplicationTest {
                 .build();
 
         assertEquals(CUSTOMER,
-                application.getRelationForEntity(INVOICE, RelationName.of("customer")).orElseThrow().getTarget()
+                application.getRelationForEntity(INVOICE, RelationName.of("customer")).orElseThrow().getTargetEndPoint()
                         .getEntity());
         assertEquals(INVOICE, application.getEntityByName(EntityName.of("Invoice")).orElseThrow());
         assertEquals(CUSTOMER,
                 application.getRelationForEntity(EntityName.of("Customer"), RelationName.of("invoices")).orElseThrow()
-                        .getSource().getEntity());
+                        .getSourceEndPoint().getEntity());
         assertEquals(INVOICE, application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());
         assertEquals(CUSTOMER, application.getRelationForPath(PathSegmentName.of("invoices"), PathSegmentName.of("customer"))
-                .orElseThrow().getTarget().getEntity());
+                .orElseThrow().getTargetEndPoint().getEntity());
     }
 
     @Test
@@ -141,7 +141,7 @@ class ApplicationTest {
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .relation(ManyToManyRelation.builder()
-                        .source(MANY_TO_ONE.getSource())
+                        .source(MANY_TO_ONE.getSourceEndPoint())
                         .target(RelationEndPoint.builder().name(RelationName.of("name_on_target")).entity(CUSTOMER)
                                 .pathSegment(PathSegmentName.of("segment-on-target")).build())
                         .joinTable(TableName.of("join_table"))
@@ -162,7 +162,7 @@ class ApplicationTest {
                 .relation(SourceOneToOneRelation.builder()
                         .source(RelationEndPoint.builder().name(RelationName.of("name_on_source")).entity(INVOICE)
                                 .pathSegment(PathSegmentName.of("segment-on-source")).build())
-                        .target(MANY_TO_ONE.getTarget())
+                        .target(MANY_TO_ONE.getTargetEndPoint())
                         .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
@@ -179,7 +179,7 @@ class ApplicationTest {
                 .relation(OneToManyRelation.builder()
                         .source(RelationEndPoint.builder().name(RelationName.of("name_on_source")).entity(CUSTOMER)
                                 .pathSegment(PathSegmentName.of("segment-on-source")).build())
-                        .target(MANY_TO_ONE.getSource())
+                        .target(MANY_TO_ONE.getSourceEndPoint())
                         .sourceReference(ColumnName.of("ref_on_source"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);

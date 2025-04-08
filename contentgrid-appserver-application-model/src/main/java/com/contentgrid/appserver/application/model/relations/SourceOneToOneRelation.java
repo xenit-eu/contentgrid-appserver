@@ -33,8 +33,8 @@ public class SourceOneToOneRelation extends OneToOneRelation {
     @Override
     public Relation inverse() {
         return TargetOneToOneRelation.builder()
-                .source(this.getTarget())
-                .target(this.getSource())
+                .source(this.getTargetEndPoint())
+                .target(this.getSourceEndPoint())
                 .sourceReference(this.targetReference)
                 .build();
     }

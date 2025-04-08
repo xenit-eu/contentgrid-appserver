@@ -39,11 +39,11 @@ public class ManyToManyRelation extends Relation {
         if (Objects.equals(sourceReference, targetReference)) {
             throw new InvalidRelationException("'%s' is used for sourceReference and targetReference".formatted(sourceReference));
         }
-        if (this.getTarget().isRequired()) {
-            throw new InvalidRelationException("Target endpoint %s can not be required, because it does not reference a single source entity".formatted(this.getTarget().getName()));
+        if (this.getTargetEndPoint().isRequired()) {
+            throw new InvalidRelationException("Target endpoint %s can not be required, because it does not reference a single source entity".formatted(this.getTargetEndPoint().getName()));
         }
-        if (this.getSource().isRequired()) {
-            throw new InvalidRelationException("Source endpoint %s can not be required, because it does not reference a single target entity".formatted(this.getSource().getName()));
+        if (this.getSourceEndPoint().isRequired()) {
+            throw new InvalidRelationException("Source endpoint %s can not be required, because it does not reference a single target entity".formatted(this.getSourceEndPoint().getName()));
         }
         this.joinTable = joinTable;
         this.sourceReference = sourceReference;
@@ -71,8 +71,8 @@ public class ManyToManyRelation extends Relation {
     @Override
     public Relation inverse() {
         return ManyToManyRelation.builder()
-                .source(this.getTarget())
-                .target(this.getSource())
+                .source(this.getTargetEndPoint())
+                .target(this.getSourceEndPoint())
                 .joinTable(this.joinTable)
                 .sourceReference(this.targetReference)
                 .targetReference(this.sourceReference)

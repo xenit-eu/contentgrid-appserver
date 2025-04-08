@@ -34,21 +34,21 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, oneToOneRelation.getSource().getEntity());
-        assertEquals(TARGET, oneToOneRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("target"), oneToOneRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSource().getPathSegment());
-        assertNull(oneToOneRelation.getTarget().getName());
-        assertNull(oneToOneRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
+        assertNull(oneToOneRelation.getTargetEndPoint().getName());
+        assertNull(oneToOneRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSource().getDescription());
-        assertFalse(oneToOneRelation.getSource().isRequired());
-        assertFalse(oneToOneRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSourceEndPoint().getDescription());
+        assertFalse(oneToOneRelation.getSourceEndPoint().isRequired());
+        assertFalse(oneToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToOneRelation.inverse();
         assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
-        assertEquals(oneToOneRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(oneToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(oneToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
@@ -59,22 +59,22 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, oneToOneRelation.getSource().getEntity());
-        assertEquals(TARGET, oneToOneRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("target"), oneToOneRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSource().getPathSegment());
-        assertEquals(RelationName.of("source"), oneToOneRelation.getTarget().getName());
-        assertEquals(PathSegmentName.of("source"), oneToOneRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
+        assertEquals(RelationName.of("source"), oneToOneRelation.getTargetEndPoint().getName());
+        assertEquals(PathSegmentName.of("source"), oneToOneRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSource().getDescription());
-        assertEquals(TARGET_DESCRIPTION, oneToOneRelation.getTarget().getDescription());
-        assertTrue(oneToOneRelation.getSource().isRequired());
-        assertFalse(oneToOneRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSourceEndPoint().getDescription());
+        assertEquals(TARGET_DESCRIPTION, oneToOneRelation.getTargetEndPoint().getDescription());
+        assertTrue(oneToOneRelation.getSourceEndPoint().isRequired());
+        assertFalse(oneToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToOneRelation.inverse();
         assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
-        assertEquals(oneToOneRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(oneToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(oneToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
@@ -166,21 +166,21 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, manyToOneRelation.getSource().getEntity());
-        assertEquals(TARGET, manyToOneRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("target"), manyToOneRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSource().getPathSegment());
-        assertNull(manyToOneRelation.getTarget().getName());
-        assertNull(manyToOneRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
+        assertNull(manyToOneRelation.getTargetEndPoint().getName());
+        assertNull(manyToOneRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSource().getDescription());
-        assertFalse(manyToOneRelation.getSource().isRequired());
-        assertFalse(manyToOneRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSourceEndPoint().getDescription());
+        assertFalse(manyToOneRelation.getSourceEndPoint().isRequired());
+        assertFalse(manyToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToOneRelation.inverse();
         assertInstanceOf(OneToManyRelation.class, inverseRelation);
-        assertEquals(manyToOneRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(manyToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(manyToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
@@ -191,22 +191,22 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("sources")).pathSegment(PathSegmentName.of("sources")).description(TARGET_DESCRIPTION).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, manyToOneRelation.getSource().getEntity());
-        assertEquals(TARGET, manyToOneRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("target"), manyToOneRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSource().getPathSegment());
-        assertEquals(RelationName.of("sources"), manyToOneRelation.getTarget().getName());
-        assertEquals(PathSegmentName.of("sources"), manyToOneRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
+        assertEquals(RelationName.of("sources"), manyToOneRelation.getTargetEndPoint().getName());
+        assertEquals(PathSegmentName.of("sources"), manyToOneRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSource().getDescription());
-        assertEquals(TARGET_DESCRIPTION, manyToOneRelation.getTarget().getDescription());
-        assertTrue(manyToOneRelation.getSource().isRequired());
-        assertFalse(manyToOneRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSourceEndPoint().getDescription());
+        assertEquals(TARGET_DESCRIPTION, manyToOneRelation.getTargetEndPoint().getDescription());
+        assertTrue(manyToOneRelation.getSourceEndPoint().isRequired());
+        assertFalse(manyToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToOneRelation.inverse();
         assertInstanceOf(OneToManyRelation.class, inverseRelation);
-        assertEquals(manyToOneRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(manyToOneRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(manyToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
@@ -226,21 +226,21 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
-        assertEquals(SOURCE, oneToManyRelation.getSource().getEntity());
-        assertEquals(TARGET, oneToManyRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("targets"), oneToManyRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSource().getPathSegment());
-        assertNull(oneToManyRelation.getTarget().getName());
-        assertNull(oneToManyRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
+        assertNull(oneToManyRelation.getTargetEndPoint().getName());
+        assertNull(oneToManyRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
-        assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSource().getDescription());
-        assertFalse(oneToManyRelation.getSource().isRequired());
-        assertFalse(oneToManyRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSourceEndPoint().getDescription());
+        assertFalse(oneToManyRelation.getSourceEndPoint().isRequired());
+        assertFalse(oneToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToManyRelation.inverse();
         assertInstanceOf(ManyToOneRelation.class, inverseRelation);
-        assertEquals(oneToManyRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(oneToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(oneToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
@@ -251,22 +251,22 @@ class RelationTest {
                 .target(RelationEndPoint.builder().entity(TARGET).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).description(TARGET_DESCRIPTION).required(true).build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
-        assertEquals(SOURCE, oneToManyRelation.getSource().getEntity());
-        assertEquals(TARGET, oneToManyRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("targets"), oneToManyRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSource().getPathSegment());
-        assertEquals(RelationName.of("source"), oneToManyRelation.getTarget().getName());
-        assertEquals(PathSegmentName.of("source"), oneToManyRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
+        assertEquals(RelationName.of("source"), oneToManyRelation.getTargetEndPoint().getName());
+        assertEquals(PathSegmentName.of("source"), oneToManyRelation.getTargetEndPoint().getPathSegment());
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
-        assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSource().getDescription());
-        assertEquals(TARGET_DESCRIPTION, oneToManyRelation.getTarget().getDescription());
-        assertFalse(oneToManyRelation.getSource().isRequired());
-        assertTrue(oneToManyRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSourceEndPoint().getDescription());
+        assertEquals(TARGET_DESCRIPTION, oneToManyRelation.getTargetEndPoint().getDescription());
+        assertFalse(oneToManyRelation.getSourceEndPoint().isRequired());
+        assertTrue(oneToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToManyRelation.inverse();
         assertInstanceOf(ManyToOneRelation.class, inverseRelation);
-        assertEquals(oneToManyRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(oneToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(oneToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(oneToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
@@ -288,23 +288,23 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSource().getEntity());
-        assertEquals(TARGET, manyToManyRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("targets"), manyToManyRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSource().getPathSegment());
-        assertNull(manyToManyRelation.getTarget().getName());
-        assertNull(manyToManyRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
+        assertNull(manyToManyRelation.getTargetEndPoint().getName());
+        assertNull(manyToManyRelation.getTargetEndPoint().getPathSegment());
         assertEquals(TableName.of("source__targets"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSource().getDescription());
-        assertFalse(manyToManyRelation.getSource().isRequired());
-        assertFalse(manyToManyRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSourceEndPoint().getDescription());
+        assertFalse(manyToManyRelation.getSourceEndPoint().isRequired());
+        assertFalse(manyToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToManyRelation.inverse();
         assertInstanceOf(ManyToManyRelation.class, inverseRelation);
-        assertEquals(manyToManyRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(manyToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(manyToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 
@@ -317,24 +317,24 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSource().getEntity());
-        assertEquals(TARGET, manyToManyRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("targets"), manyToManyRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSource().getPathSegment());
-        assertEquals(RelationName.of("sources"), manyToManyRelation.getTarget().getName());
-        assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
+        assertEquals(RelationName.of("sources"), manyToManyRelation.getTargetEndPoint().getName());
+        assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getTargetEndPoint().getPathSegment());
         assertEquals(TableName.of("source__targets"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
-        assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSource().getDescription());
-        assertEquals(TARGET_DESCRIPTION, manyToManyRelation.getTarget().getDescription());
-        assertFalse(manyToManyRelation.getSource().isRequired());
-        assertFalse(manyToManyRelation.getTarget().isRequired());
+        assertEquals(SOURCE_DESCRIPTION, manyToManyRelation.getSourceEndPoint().getDescription());
+        assertEquals(TARGET_DESCRIPTION, manyToManyRelation.getTargetEndPoint().getDescription());
+        assertFalse(manyToManyRelation.getSourceEndPoint().isRequired());
+        assertFalse(manyToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToManyRelation.inverse();
         assertInstanceOf(ManyToManyRelation.class, inverseRelation);
-        assertEquals(manyToManyRelation.getSource(), inverseRelation.getTarget());
-        assertEquals(manyToManyRelation.getTarget(), inverseRelation.getSource());
+        assertEquals(manyToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
+        assertEquals(manyToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
         assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 
@@ -347,17 +347,17 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_src_id"))
                 .targetReference(ColumnName.of("source_tgt_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSource().getEntity());
-        assertEquals(SOURCE, manyToManyRelation.getTarget().getEntity());
-        assertEquals(RelationName.of("sources"), manyToManyRelation.getSource().getName());
-        assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getSource().getPathSegment());
-        assertEquals(RelationName.of("others"), manyToManyRelation.getTarget().getName());
-        assertEquals(PathSegmentName.of("others"), manyToManyRelation.getTarget().getPathSegment());
+        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(SOURCE, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(RelationName.of("sources"), manyToManyRelation.getSourceEndPoint().getName());
+        assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getSourceEndPoint().getPathSegment());
+        assertEquals(RelationName.of("others"), manyToManyRelation.getTargetEndPoint().getName());
+        assertEquals(PathSegmentName.of("others"), manyToManyRelation.getTargetEndPoint().getPathSegment());
         assertEquals(TableName.of("source__sources"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_src_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("source_tgt_id"), manyToManyRelation.getTargetReference());
-        assertNull(manyToManyRelation.getSource().getDescription());
-        assertNull(manyToManyRelation.getTarget().getDescription());
+        assertNull(manyToManyRelation.getSourceEndPoint().getDescription());
+        assertNull(manyToManyRelation.getTargetEndPoint().getDescription());
     }
 
     @Test
