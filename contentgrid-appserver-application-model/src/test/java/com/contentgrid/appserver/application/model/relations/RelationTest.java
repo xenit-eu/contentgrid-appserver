@@ -152,16 +152,16 @@ class RelationTest {
         var builder = SourceOneToOneRelation.builder()
                 .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).required(true).build())
                 .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
-                .targetReference(ColumnName.of("target"));
+                .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
     void oneToOne_reflexive_requiredTarget() {
-        var builder = SourceOneToOneRelation.builder()
-                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).build())
-                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).required(true).build())
-                .targetReference(ColumnName.of("target"));
+        var builder = TargetOneToOneRelation.builder()
+                .sourceEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("source")).pathSegment(PathSegmentName.of("source")).build())
+                .targetEndPoint(RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("other")).pathSegment(PathSegmentName.of("other")).required(true).build())
+                .sourceReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
 
