@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.relations;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -21,6 +22,14 @@ public class SourceOneToOneRelation extends OneToOneRelation {
     @Builder
     SourceOneToOneRelation(@NonNull Relation.RelationEndPoint sourceEndPoint, @NonNull Relation.RelationEndPoint targetEndPoint, @NonNull ColumnName targetReference) {
         super(sourceEndPoint, targetEndPoint);
+        if (this.getTargetEndPoint().isRequired()) {
+            throw new InvalidRelationException(
+                    """
+                    Target endpoint %s can not be required, because the column is present on the source entity.
+                    Use com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation instead.
+                    """.formatted(this.getTargetEndPoint().getName())
+            );
+        }
         this.targetReference = targetReference;
     }
 
