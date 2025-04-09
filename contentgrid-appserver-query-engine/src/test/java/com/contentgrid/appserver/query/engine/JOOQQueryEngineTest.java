@@ -2,6 +2,8 @@ package com.contentgrid.appserver.query.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -23,9 +25,14 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQQueryEngineTest.TestApplication;
+import com.contentgrid.appserver.query.engine.model.CGColumnFilter;
+import com.contentgrid.appserver.query.engine.model.CGColumnFilter.Operator;
+import com.contentgrid.appserver.query.engine.model.CGDelete;
 import com.contentgrid.appserver.query.engine.model.CGInsert;
+import com.contentgrid.appserver.query.engine.model.CGUpdate;
 import java.util.UUID;
 import org.jooq.DSLContext;
+import org.jooq.exception.NoDataFoundException;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -210,6 +217,55 @@ class JOOQQueryEngineTest {
         assertEquals("application/pdf", invoiceData.get(((SimpleAttribute) ((ContentAttribute) INVOICE_DOCUMENT).getMimetype()).getColumn()));
         assertEquals(128L, invoiceData.get(((SimpleAttribute) ((ContentAttribute) INVOICE_DOCUMENT).getLength()).getColumn()));
         assertEquals(customerId, invoiceData.get(INVOICE_CUSTOMER.getTargetReference()));
+    }
+
+    @Test
+    void updateEntity() {
+        var insertCustomer = CGInsert.builder()
+                .table(CUSTOMER.getTable())
+                .primaryKey(CUSTOMER.getPrimaryKey().getColumn())
+                .pair(((SimpleAttribute) CUSTOMER_VAT).getColumn(), "VAT-0000")
+                .pair(((SimpleAttribute) CUSTOMER_NAME).getColumn(), "test")
+                .build();
+        var customerId = queryEngine.create(insertCustomer);
+        var updateCustomer = CGUpdate.builder()
+                .table(CUSTOMER.getTable())
+                .condition(CGColumnFilter.builder()
+                        .table(CUSTOMER.getTable())
+                        .column(CUSTOMER.getPrimaryKey().getColumn())
+                        .operator(Operator.EQUALS)
+                        .value(customerId)
+                        .build())
+                .pair(((SimpleAttribute) CUSTOMER_NAME).getColumn(), "updated name")
+                .build();
+        queryEngine.update(updateCustomer);
+        var customerData = queryEngine.findById(CUSTOMER.getTable(), CUSTOMER.getPrimaryKey().getColumn(), customerId).orElseThrow();
+        assertEquals("VAT-0000", customerData.get(((SimpleAttribute) CUSTOMER_VAT).getColumn()));
+        assertEquals("updated name", customerData.get(((SimpleAttribute) CUSTOMER_NAME).getColumn()));
+    }
+
+    @Test
+    void deleteEntity() {
+        var insertCustomer = CGInsert.builder()
+                .table(CUSTOMER.getTable())
+                .primaryKey(CUSTOMER.getPrimaryKey().getColumn())
+                .pair(((SimpleAttribute) CUSTOMER_VAT).getColumn(), "VAT-0000")
+                .pair(((SimpleAttribute) CUSTOMER_NAME).getColumn(), "test")
+                .build();
+        var customerId = queryEngine.create(insertCustomer);
+        var deleteCustomer = CGDelete.builder()
+                .table(CUSTOMER.getTable())
+                .condition(CGColumnFilter.builder()
+                        .table(CUSTOMER.getTable())
+                        .column(CUSTOMER.getPrimaryKey().getColumn())
+                        .operator(Operator.EQUALS)
+                        .value(customerId)
+                        .build())
+                .build();
+        queryEngine.delete(deleteCustomer);
+        var customerData = queryEngine.findById(CUSTOMER.getTable(), CUSTOMER.getPrimaryKey().getColumn(), customerId);
+        assertTrue(customerData.isEmpty());
+//        assertThrows(NoDataFoundException.class, () -> queryEngine.delete(deleteCustomer));
     }
 
     @SpringBootApplication
