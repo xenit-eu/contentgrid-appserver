@@ -124,7 +124,7 @@ public class JOOQTableCreator {
     private static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {
         var dataType = switch (type) {
             case UUID -> SQLDataType.UUID;
-            case TEXT -> SQLDataType.NVARCHAR;
+            case TEXT -> SQLDataType.CLOB;
             case LONG -> SQLDataType.BIGINT;
             case DOUBLE -> SQLDataType.DOUBLE;
             case BOOLEAN -> SQLDataType.BOOLEAN;
