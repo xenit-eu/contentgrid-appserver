@@ -37,18 +37,14 @@ public class JOOQTableCreator {
             var sourceEndPoint = relation.getSourceEndPoint();
             var targetEndPoint = relation.getTargetEndPoint();
             switch (relation) {
-                case SourceOneToOneRelation oneToOneRelation -> {
-                    createRelation(sourceEndPoint, targetEndPoint, oneToOneRelation.getTargetReference(), true);
-                }
-                case ManyToOneRelation manyToOneRelation -> {
-                    createRelation(sourceEndPoint, targetEndPoint, manyToOneRelation.getTargetReference(), false);
-                }
-                case TargetOneToOneRelation oneToOneRelation -> {
-                    createRelation(targetEndPoint, sourceEndPoint, oneToOneRelation.getSourceReference(), true);
-                }
-                case OneToManyRelation oneToManyRelation -> {
-                    createRelation(targetEndPoint, sourceEndPoint, oneToManyRelation.getSourceReference(), false);
-                }
+                case SourceOneToOneRelation oneToOneRelation ->
+                        createRelation(sourceEndPoint, targetEndPoint, oneToOneRelation.getTargetReference(), true);
+                case ManyToOneRelation manyToOneRelation ->
+                        createRelation(sourceEndPoint, targetEndPoint, manyToOneRelation.getTargetReference(), false);
+                case TargetOneToOneRelation oneToOneRelation ->
+                        createRelation(targetEndPoint, sourceEndPoint, oneToOneRelation.getSourceReference(), true);
+                case OneToManyRelation oneToManyRelation ->
+                        createRelation(targetEndPoint, sourceEndPoint, oneToManyRelation.getSourceReference(), false);
                 case ManyToManyRelation manyToManyRelation -> {
                     // Create the join table
                     dslContext.createTable(manyToManyRelation.getJoinTable().getValue())
