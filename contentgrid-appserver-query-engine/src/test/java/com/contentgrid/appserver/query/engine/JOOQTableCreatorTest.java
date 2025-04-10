@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -17,7 +18,10 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -31,8 +35,11 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplication;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -175,6 +182,8 @@ class JOOQTableCreatorTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
+                    .name(RelationName.of("invoices"))
+                    .pathSegment(PathSegmentName.of("invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -191,6 +200,20 @@ class JOOQTableCreatorTest {
             .joinTable(TableName.of("person__friends"))
             .sourceReference(ColumnName.of("person_src_id"))
             .targetReference(ColumnName.of("person_tgt_id"))
+            .build();
+
+    private static final OneToOneRelation INVOICE_NEXT = SourceOneToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(INVOICE)
+                    .name(RelationName.of("next_invoice"))
+                    .pathSegment(PathSegmentName.of("next-invoice"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(INVOICE)
+                    .name(RelationName.of("previous_invoice"))
+                    .pathSegment(PathSegmentName.of("previous-invoice"))
+                    .build())
+            .targetReference(ColumnName.of("next_invoice"))
             .build();
 
     @Autowired
@@ -270,13 +293,18 @@ class JOOQTableCreatorTest {
         dslContext.dropTable(INVOICE.getTable().getValue()).execute();
     }
 
-    @Test
-    void applicationWithRelation() {
+    static Stream<Relation> customerInvoicesRelations() {
+        return Stream.of(INVOICE_CUSTOMER, INVOICE_CUSTOMER.inverse());
+    }
+
+    @ParameterizedTest
+    @MethodSource("customerInvoicesRelations")
+    void applicationWithRelation(Relation relation) {
         var application = Application.builder()
                 .name(ApplicationName.of("relation-application"))
                 .entity(INVOICE)
                 .entity(PERSON)
-                .relation(INVOICE_CUSTOMER)
+                .relation(relation)
                 .build();
 
         tableCreator.createTables(application);
@@ -336,6 +364,40 @@ class JOOQTableCreatorTest {
         // cleanup
         dslContext.dropTable("person__friends").execute();
         dslContext.dropTable(PERSON.getTable().getValue()).execute();
+    }
+
+    static Stream<Relation> oneToOneRelations() {
+        return Stream.of(INVOICE_NEXT, INVOICE_NEXT.inverse());
+    }
+
+    @ParameterizedTest
+    @MethodSource("oneToOneRelations")
+    void applicationWithOneToOne(Relation oneToOneRelation) {
+        var application = Application.builder()
+                .name(ApplicationName.of("one-to-one-application"))
+                .entity(INVOICE)
+                .relation(oneToOneRelation)
+                .build();
+
+        tableCreator.createTables(application);
+
+        var tablesMeta = dslContext.meta().getTables();
+
+        var publicTables = tablesMeta.stream()
+                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
+                .toList();
+
+        assertEquals(1, publicTables.size());
+        assertEquals("invoice", publicTables.getFirst().getName());
+
+        var invoice = publicTables.getFirst();
+
+        assertEquals(19, invoice.fields().length);
+        assertNotNull(invoice.field("next_invoice", UUID.class));
+        assertNull(invoice.field("previous_invoice", UUID.class));
+
+        // cleanup
+        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
     }
 
     @SpringBootApplication
