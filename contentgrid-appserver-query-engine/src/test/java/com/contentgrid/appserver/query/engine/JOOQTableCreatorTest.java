@@ -229,9 +229,13 @@ class JOOQTableCreatorTest {
                 .entity(PERSON)
                 .build();
 
+        // create tables
         tableCreator.createTables(application);
 
         var tablesMeta = dslContext.meta().getTables();
+
+        // cleanup tables (so next test can run gracefully if this one fails)
+        dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
         var publicTables = tablesMeta.stream()
                 .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
@@ -245,9 +249,6 @@ class JOOQTableCreatorTest {
         assertNotNull(person.field("id", UUID.class));
         assertNotNull(person.field("vat", String.class));
         assertNotNull(person.field("name", String.class));
-
-        // cleanup
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
     }
 
     @Test
@@ -257,9 +258,13 @@ class JOOQTableCreatorTest {
                 .entity(INVOICE)
                 .build();
 
+        // create tables
         tableCreator.createTables(application);
 
         var tablesMeta = dslContext.meta().getTables();
+
+        // cleanup tables (so next test can run gracefully if this one fails)
+        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
 
         var publicTables = tablesMeta.stream()
                 .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
@@ -288,9 +293,6 @@ class JOOQTableCreatorTest {
         assertNotNull(invoice.field("audit_metadata__last_modified_by_id", String.class));
         assertNotNull(invoice.field("audit_metadata__last_modified_by_ns", String.class));
         assertNotNull(invoice.field("audit_metadata__last_modified_by_name", String.class));
-
-        // cleanup
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
     }
 
     static Stream<Relation> customerInvoicesRelations() {
@@ -307,9 +309,14 @@ class JOOQTableCreatorTest {
                 .relation(relation)
                 .build();
 
+        // create tables
         tableCreator.createTables(application);
 
         var tablesMeta = dslContext.meta().getTables();
+
+        // cleanup tables (so next test can run gracefully if this one fails)
+        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
+        dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
         var publicTables = tablesMeta.stream()
                 .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
@@ -326,10 +333,6 @@ class JOOQTableCreatorTest {
         assertEquals(3, person.fields().length); // unchanged
         assertEquals(19, invoice.fields().length);
         assertNotNull(invoice.field("customer", UUID.class));
-
-        // cleanup
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
     }
 
     @Test
@@ -340,9 +343,14 @@ class JOOQTableCreatorTest {
                 .relation(PERSON_FRIENDS)
                 .build();
 
+        // create tables
         tableCreator.createTables(application);
 
         var tablesMeta = dslContext.meta().getTables();
+
+        // cleanup tables (so next test can run gracefully if this one fails)
+        dslContext.dropTable(PERSON_FRIENDS.getJoinTable().getValue()).execute();
+        dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
         var publicTables = tablesMeta.stream()
                 .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
@@ -360,10 +368,6 @@ class JOOQTableCreatorTest {
         assertEquals(2, joinTable.fields().length);
         assertNotNull(joinTable.field("person_src_id", UUID.class));
         assertNotNull(joinTable.field("person_tgt_id", UUID.class));
-
-        // cleanup
-        dslContext.dropTable("person__friends").execute();
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
     }
 
     static Stream<Relation> oneToOneRelations() {
@@ -379,9 +383,13 @@ class JOOQTableCreatorTest {
                 .relation(oneToOneRelation)
                 .build();
 
+        // create tables
         tableCreator.createTables(application);
 
         var tablesMeta = dslContext.meta().getTables();
+
+        // cleanup tables (so next test can run gracefully if this one fails)
+        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
 
         var publicTables = tablesMeta.stream()
                 .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
@@ -395,9 +403,6 @@ class JOOQTableCreatorTest {
         assertEquals(19, invoice.fields().length);
         assertNotNull(invoice.field("next_invoice", UUID.class));
         assertNull(invoice.field("previous_invoice", UUID.class));
-
-        // cleanup
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
     }
 
     @SpringBootApplication
