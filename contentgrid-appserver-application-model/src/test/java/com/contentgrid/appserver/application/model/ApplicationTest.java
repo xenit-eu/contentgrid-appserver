@@ -120,6 +120,22 @@ class ApplicationTest {
     }
 
     @Test
+    void application_duplicateTableName_withJoinTable() {
+        var builder = Application.builder()
+                .name(ApplicationName.of("duplicateTableApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(ManyToManyRelation.builder()
+                        .sourceEndPoint(MANY_TO_ONE.getSourceEndPoint())
+                        .targetEndPoint(MANY_TO_ONE.getTargetEndPoint())
+                        .joinTable(INVOICE.getTable())
+                        .sourceReference(ColumnName.of("source_id"))
+                        .targetReference(ColumnName.of("target_id"))
+                        .build());
+        assertThrows(DuplicateElementException.class, builder::build);
+    }
+
+    @Test
     void application_duplicatePathSegment() {
         var builder = Application.builder()
                 .name(ApplicationName.of("duplicatePathSegmentApplication"))

@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -67,6 +68,9 @@ public class Application {
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
+            }
+            if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
+                throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
         });
     }
