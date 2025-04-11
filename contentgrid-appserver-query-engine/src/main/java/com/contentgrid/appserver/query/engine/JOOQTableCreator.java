@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 
@@ -29,6 +30,18 @@ public class JOOQTableCreator {
     private final DSLContext dslContext;
 
     public void createTables(Application application) {
+        // Use a transaction for creating the tables
+        dslContext.startTransaction().execute();
+        try {
+            createTablesForApplication(application);
+            dslContext.commit().execute();
+        } catch (DataAccessException e) {
+            dslContext.rollback().execute();
+            throw e;
+        }
+    }
+
+    private void createTablesForApplication(Application application) {
         for (var entity : application.getEntities()) {
             createTableForEntity(entity);
         }
