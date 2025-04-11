@@ -35,7 +35,8 @@ public class JOOQTableCreator {
         try {
             createTablesForApplication(application);
             dslContext.commit().execute();
-        } catch (DataAccessException e) {
+        } catch (DataAccessException | org.springframework.dao.DataAccessException e) {
+            // JOOQ or spring threw an exception
             dslContext.rollback().execute();
             throw e;
         }

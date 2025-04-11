@@ -3,6 +3,8 @@ package com.contentgrid.appserver.query.engine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -45,6 +47,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest(properties = {
@@ -403,6 +406,36 @@ class JOOQTableCreatorTest {
         assertEquals(19, invoice.fields().length);
         assertNotNull(invoice.field("next_invoice", UUID.class));
         assertNull(invoice.field("previous_invoice", UUID.class));
+    }
+
+    @Test
+    void invalidApplication_rollbackTransaction() {
+        // Table names are too long, so they are capped at the postgres limit.
+        // And then they have the same name.
+        var application = Application.builder()
+                .name(ApplicationName.of("invalid-application"))
+                .entity(Entity.builder()
+                        .name(EntityName.of("foo"))
+                        .pathSegment(PathSegmentName.of("foo"))
+                        .table(TableName.of("a_very_long_database_table_name_that_should_be_longer_than_the_postgres_limit"))
+                        .build())
+                .entity(Entity.builder()
+                        .name(EntityName.of("bar"))
+                        .pathSegment(PathSegmentName.of("bar"))
+                        .table(TableName.of("a_very_long_database_table_name_that_should_be_longer_than_the_postgres_limit_too"))
+                        .build())
+                .build();
+
+        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
+
+        // Check no public tables exist
+        var tablesMeta = dslContext.meta().getTables();
+
+        var publicTables = tablesMeta.stream()
+                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
+                .toList();
+
+        assertTrue(publicTables.isEmpty());
     }
 
     @SpringBootApplication
