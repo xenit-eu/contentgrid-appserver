@@ -140,7 +140,7 @@ public class JOOQTableCreator {
             case UUID -> SQLDataType.UUID;
             case TEXT -> SQLDataType.CLOB;
             case LONG -> SQLDataType.BIGINT;
-            case DOUBLE -> SQLDataType.DOUBLE;
+            case DOUBLE -> SQLDataType.DECIMAL;
             case BOOLEAN -> SQLDataType.BOOLEAN;
             case DATETIME -> SQLDataType.INSTANT;
         };

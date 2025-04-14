@@ -35,10 +35,18 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplication;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import javax.sql.DataSource;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -48,12 +56,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///"
 })
 @ContextConfiguration(classes = TestApplication.class)
+@Slf4j
 class JOOQTableCreatorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -225,6 +235,12 @@ class JOOQTableCreatorTest {
     @Autowired
     private JOOQTableCreator tableCreator;
 
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void applicationWithSimpleEntity() {
         var application = Application.builder()
@@ -235,23 +251,46 @@ class JOOQTableCreatorTest {
         // create tables
         tableCreator.createTables(application);
 
-        var tablesMeta = dslContext.meta().getTables();
-
-        // cleanup tables (so next test can run gracefully if this one fails)
+        var columnInfo = getColumnInfo("public", "person");
         dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
+        assertEquals(3, columnInfo.size());
+        assertEquals("uuid", columnInfo.get("id"));
+        assertEquals("text", columnInfo.get("vat"));
+        assertEquals("text", columnInfo.get("name"));
+    }
 
-        assertEquals(1, publicTables.size());
-        assertEquals("person", publicTables.getFirst().getName());
+    private Map<String, String> getColumnInfo(String dbSchema, String tableName) {
+        // Use JdbcTemplate's execute method with a ConnectionCallback
+        // This gives access to the Connection while managing resources correctly.
+        return jdbcTemplate.execute((Connection con) -> {
+            Map<String, String> columnData = new HashMap<>();
+            DatabaseMetaData metaData = con.getMetaData();
 
-        var person = publicTables.getFirst();
-        assertEquals(3, person.fields().length);
-        assertNotNull(person.field("id", UUID.class));
-        assertNotNull(person.field("vat", String.class));
-        assertNotNull(person.field("name", String.class));
+            log.debug("Querying metadata for columns in table: %s.%s using Connection %s%n",
+                    dbSchema, tableName, con);
+
+            try (ResultSet columns = metaData.getColumns(null, dbSchema, tableName, null)) {
+                boolean foundColumn = false;
+                while (columns.next()) {
+                    foundColumn = true;
+                    String columnName = columns.getString("COLUMN_NAME");
+                    String typeName = columns.getString("TYPE_NAME");
+                    int dataType = columns.getInt("DATA_TYPE");
+
+                   log.debug("Found column: %s, DB Type: %s, SQL Type: %d%n",
+                            columnName, typeName, dataType);
+
+                    // Store details (lowercase key for consistent comparison)
+                    columnData.put(columnName, typeName);
+                }
+                if (!foundColumn) {
+                    // Fail inside the callback if necessary, or return empty map and check outside
+                    Assertions.fail("No columns found for table '" + tableName + "' in schema '" + dbSchema + "'. Check table/schema names and permissions.");
+                }
+            }
+            return columnData; // Return the map from the callback
+        });
     }
 
     @Test
@@ -264,38 +303,47 @@ class JOOQTableCreatorTest {
         // create tables
         tableCreator.createTables(application);
 
-        var tablesMeta = dslContext.meta().getTables();
-
-        // cleanup tables (so next test can run gracefully if this one fails)
+        var columnInfo = getColumnInfo("public", "invoice");
         dslContext.dropTable(INVOICE.getTable().getValue()).execute();
 
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
+        assertEquals(18, columnInfo.size());
+        assertEquals("uuid", columnInfo.get("id"));
+        assertEquals("text", columnInfo.get("number"));
+        assertDecimal(columnInfo.get("amount"));
+        assertEquals("timestamptz", columnInfo.get("received"));
+        assertEquals("timestamptz", columnInfo.get("pay_before"));
+        assertBoolean(columnInfo.get("is_paid"));
+        assertEquals("text", columnInfo.get("content__id"));
+        assertEquals("text", columnInfo.get("content__filename"));
+        assertEquals("text", columnInfo.get("content__mimetype"));
+        assertBigInt(columnInfo.get("content__length"));
+        assertEquals("timestamptz", columnInfo.get("audit_metadata__created_date"));
+        assertEquals("text", columnInfo.get("audit_metadata__created_by_id"));
+        assertEquals("text", columnInfo.get("audit_metadata__created_by_ns"));
+        assertEquals("text", columnInfo.get("audit_metadata__created_by_name"));
+        assertEquals("timestamptz", columnInfo.get("audit_metadata__last_modified_date"));
+        assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_id"));
+        assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_ns"));
+        assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_name"));
+    }
 
-        assertEquals(1, publicTables.size());
-        assertEquals("invoice", publicTables.getFirst().getName());
+    // Decimal and numeric are synonyms in PostgreSQL
+    static void assertDecimal(String columnType) {
+        if (! (columnType.equals("decimal") || columnType.equals("numeric"))) {
+            Assertions.fail("Type is not decimal or numeric: " + columnType);
+        }
+    }
 
-        var invoice = publicTables.getFirst();
-        assertEquals(18, invoice.fields().length);
-        assertNotNull(invoice.field("id", UUID.class));
-        assertNotNull(invoice.field("number", String.class));
-        assertNotNull(invoice.field("amount", Double.class));
-        assertNotNull(invoice.field("received", Instant.class));
-        assertNotNull(invoice.field("pay_before", Instant.class));
-        assertNotNull(invoice.field("is_paid", Boolean.class));
-        assertNotNull(invoice.field("content__id", String.class));
-        assertNotNull(invoice.field("content__filename", String.class));
-        assertNotNull(invoice.field("content__mimetype", String.class));
-        assertNotNull(invoice.field("content__length", Long.class));
-        assertNotNull(invoice.field("audit_metadata__created_date", Instant.class));
-        assertNotNull(invoice.field("audit_metadata__created_by_id", String.class));
-        assertNotNull(invoice.field("audit_metadata__created_by_ns", String.class));
-        assertNotNull(invoice.field("audit_metadata__created_by_name", String.class));
-        assertNotNull(invoice.field("audit_metadata__last_modified_date", Instant.class));
-        assertNotNull(invoice.field("audit_metadata__last_modified_by_id", String.class));
-        assertNotNull(invoice.field("audit_metadata__last_modified_by_ns", String.class));
-        assertNotNull(invoice.field("audit_metadata__last_modified_by_name", String.class));
+    static void assertBoolean(String columnType) {
+        if (! (columnType.equals("bool") || columnType.equals("boolean"))) {
+            Assertions.fail("Type is not boolean: " + columnType);
+        }
+    }
+
+    static void assertBigInt(String columnType) {
+        if (! (columnType.equals("bigint") || columnType.equals("int8"))) {
+            Assertions.fail("Type is not bigint: " + columnType);
+        }
     }
 
     static Stream<Relation> customerInvoicesRelations() {
