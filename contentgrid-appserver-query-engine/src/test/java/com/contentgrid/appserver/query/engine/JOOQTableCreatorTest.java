@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
@@ -53,7 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
@@ -231,11 +229,7 @@ class JOOQTableCreatorTest {
     @Autowired
     private DSLContext dslContext;
 
-    @Autowired
-    private JOOQTableCreator tableCreator;
-
-    @Autowired
-    private DataSource dataSource;
+    private final JOOQTableCreator tableCreator = new JOOQTableCreator();
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -254,7 +248,7 @@ class JOOQTableCreatorTest {
                     result.add(table);
                 }
             }
-            return result; // Return the map from the callback
+            return result; // Return the list from the callback
         });
     }
 
@@ -265,8 +259,7 @@ class JOOQTableCreatorTest {
             Map<String, String> columnData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for columns in table: %s.%s using Connection %s%n",
-                    dbSchema, tableName, con);
+            log.debug("Querying metadata for columns in table: %s.%s%n", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getColumns(null, dbSchema, tableName, null)) {
                 boolean foundColumn = false;
@@ -297,8 +290,7 @@ class JOOQTableCreatorTest {
             Map<String, String> foreignKeyData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for foreign keys in table: %s.%s%n",
-                    dbSchema, tableName);
+            log.debug("Querying metadata for foreign keys in table: %s.%s%n", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getImportedKeys(null, dbSchema, tableName)) {
                 while (columns.next()) {
@@ -319,7 +311,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(application);
+        tableCreator.createTables(dslContext, application);
 
         var columnInfo = getColumnInfo("public", "person");
         dslContext.dropTable(PERSON.getTable().getValue()).execute();
@@ -338,7 +330,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(application);
+        tableCreator.createTables(dslContext, application);
 
         var columnInfo = getColumnInfo("public", "invoice");
         dslContext.dropTable(INVOICE.getTable().getValue()).execute();
@@ -398,7 +390,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(application);
+        tableCreator.createTables(dslContext, application);
 
         var personInfo = getColumnInfo("public", "person");
         var invoiceInfo = getColumnInfo("public", "invoice");
@@ -425,7 +417,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(application);
+        tableCreator.createTables(dslContext, application);
 
         var personInfo = getColumnInfo("public", "person");
         var joinTableInfo = getColumnInfo("public", "person__friends");
@@ -459,7 +451,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(application);
+        tableCreator.createTables(dslContext, application);
 
         var columnInfo = getColumnInfo("public", "invoice");
         var foreignKeys = getForeignKeys("public", "invoice");
@@ -493,7 +485,7 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
+        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(dslContext, application));
 
         // Check no public tables exist
         assertTrue(getTables("public").isEmpty());
@@ -503,11 +495,6 @@ class JOOQTableCreatorTest {
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
-        }
-
-        @Bean
-        public JOOQTableCreator jooqTableCreator(DSLContext dslContext) {
-            return new JOOQTableCreator(dslContext);
         }
     }
 }

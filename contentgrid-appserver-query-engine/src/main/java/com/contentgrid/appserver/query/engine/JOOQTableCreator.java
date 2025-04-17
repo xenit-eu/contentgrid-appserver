@@ -27,13 +27,11 @@ import org.jooq.impl.SQLDataType;
 @RequiredArgsConstructor
 public class JOOQTableCreator {
 
-    private final DSLContext dslContext;
-
-    public void createTables(Application application) {
+    public void createTables(DSLContext dslContext, Application application) {
         // Use a transaction for creating the tables
         dslContext.startTransaction().execute();
         try {
-            createTablesForApplication(application);
+            createTablesForApplication(dslContext, application);
             dslContext.commit().execute();
         } catch (DataAccessException | org.springframework.dao.DataAccessException e) {
             // JOOQ or spring threw an exception
@@ -42,9 +40,9 @@ public class JOOQTableCreator {
         }
     }
 
-    private void createTablesForApplication(Application application) {
+    private void createTablesForApplication(DSLContext dslContext, Application application) {
         for (var entity : application.getEntities()) {
-            createTableForEntity(entity);
+            createTableForEntity(dslContext, entity);
         }
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
@@ -52,13 +50,13 @@ public class JOOQTableCreator {
             var targetEndPoint = relation.getTargetEndPoint();
             switch (relation) {
                 case SourceOneToOneRelation oneToOneRelation ->
-                        createRelation(sourceEndPoint, targetEndPoint, oneToOneRelation.getTargetReference(), true);
+                        createRelation(dslContext, sourceEndPoint, targetEndPoint, oneToOneRelation.getTargetReference(), true);
                 case ManyToOneRelation manyToOneRelation ->
-                        createRelation(sourceEndPoint, targetEndPoint, manyToOneRelation.getTargetReference(), false);
+                        createRelation(dslContext, sourceEndPoint, targetEndPoint, manyToOneRelation.getTargetReference(), false);
                 case TargetOneToOneRelation oneToOneRelation ->
-                        createRelation(targetEndPoint, sourceEndPoint, oneToOneRelation.getSourceReference(), true);
+                        createRelation(dslContext, targetEndPoint, sourceEndPoint, oneToOneRelation.getSourceReference(), true);
                 case OneToManyRelation oneToManyRelation ->
-                        createRelation(targetEndPoint, sourceEndPoint, oneToManyRelation.getSourceReference(), false);
+                        createRelation(dslContext, targetEndPoint, sourceEndPoint, oneToManyRelation.getSourceReference(), false);
                 case ManyToManyRelation manyToManyRelation -> {
                     // Create the join table
                     dslContext.createTable(manyToManyRelation.getJoinTable().getValue())
@@ -79,7 +77,7 @@ public class JOOQTableCreator {
         }
     }
 
-    private void createRelation(RelationEndPoint owningEndPoint, RelationEndPoint otherEndPoint, ColumnName reference, boolean unique) {
+    private void createRelation(DSLContext dslContext, RelationEndPoint owningEndPoint, RelationEndPoint otherEndPoint, ColumnName reference, boolean unique) {
         dslContext.alterTable(owningEndPoint.getEntity().getTable().getValue())
                 .add(resolveField(reference, otherEndPoint.getEntity().getPrimaryKey().getType(), owningEndPoint.isRequired()),
                         DSL.foreignKey(reference.getValue()).references(otherEndPoint.getEntity().getTable().getValue(),
@@ -92,7 +90,7 @@ public class JOOQTableCreator {
         }
     }
 
-    private void createTableForEntity(Entity entity) {
+    private void createTableForEntity(DSLContext dslContext, Entity entity) {
         var step = dslContext.createTable(entity.getTable().getValue())
                 .column(resolveField(entity.getPrimaryKey().getColumn(), entity.getPrimaryKey().getType(), true))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
