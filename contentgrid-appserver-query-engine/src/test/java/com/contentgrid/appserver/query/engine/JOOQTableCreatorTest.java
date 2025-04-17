@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.query.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,10 +37,8 @@ import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplicati
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
@@ -293,6 +290,26 @@ class JOOQTableCreatorTest {
         });
     }
 
+    private Map<String, String> getForeignKeys(String dbSchema, String tableName) {
+        // Get all foreign key columns from the given table
+        return jdbcTemplate.execute((Connection con) -> {
+            Map<String, String> foreignKeyData = new HashMap<>();
+            DatabaseMetaData metaData = con.getMetaData();
+
+            log.debug("Querying metadata for foreign keys in table: %s.%s%n",
+                    dbSchema, tableName);
+
+            try (ResultSet columns = metaData.getImportedKeys(null, dbSchema, tableName)) {
+                while (columns.next()) {
+                    String foreignKey = columns.getString("FKCOLUMN_NAME");
+                    String table = columns.getString("PKTABLE_NAME");
+                    foreignKeyData.put(foreignKey, table);
+                }
+            }
+            return foreignKeyData; // Return the map from the callback
+        });
+    }
+
     @Test
     void applicationWithAdvancedEntity() {
         var application = Application.builder()
@@ -363,27 +380,20 @@ class JOOQTableCreatorTest {
         // create tables
         tableCreator.createTables(application);
 
-        var tablesMeta = dslContext.meta().getTables();
+        var personInfo = getColumnInfo("public", "person");
+        var invoiceInfo = getColumnInfo("public", "invoice");
+        var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
         // cleanup tables (so next test can run gracefully if this one fails)
         dslContext.dropTable(INVOICE.getTable().getValue()).execute();
         dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
+        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(19, invoiceInfo.size());
+        assertEquals("uuid", invoiceInfo.get("customer"));
 
-        assertEquals(2, publicTables.size());
-        var person = publicTables.stream()
-                .filter(table -> table.getName().equals("person")).findAny()
-                .orElseThrow();
-        var invoice = publicTables.stream()
-                .filter(table -> table.getName().equals("invoice")).findAny()
-                .orElseThrow();
-
-        assertEquals(3, person.fields().length); // unchanged
-        assertEquals(19, invoice.fields().length);
-        assertNotNull(invoice.field("customer", UUID.class));
+        assertEquals(1, invoiceForeignKeys.size());
+        assertEquals("person", invoiceForeignKeys.get("customer"));
     }
 
     @Test
@@ -397,28 +407,22 @@ class JOOQTableCreatorTest {
         // create tables
         tableCreator.createTables(application);
 
-        var tablesMeta = dslContext.meta().getTables();
+        var personInfo = getColumnInfo("public", "person");
+        var joinTableInfo = getColumnInfo("public", "person__friends");
+        var joinTableForeignKeys = getForeignKeys("public", "person__friends");
 
         // cleanup tables (so next test can run gracefully if this one fails)
         dslContext.dropTable(PERSON_FRIENDS.getJoinTable().getValue()).execute();
         dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
+        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(2, joinTableInfo.size());
+        assertEquals("uuid", joinTableInfo.get("person_src_id"));
+        assertEquals("uuid", joinTableInfo.get("person_tgt_id"));
 
-        assertEquals(2, publicTables.size());
-        var person = publicTables.stream()
-                .filter(table -> table.getName().equals("person")).findAny()
-                .orElseThrow();
-        var joinTable = publicTables.stream()
-                .filter(table -> table.getName().equals("person__friends")).findAny()
-                .orElseThrow();
-
-        assertEquals(3, person.fields().length); // unchanged
-        assertEquals(2, joinTable.fields().length);
-        assertNotNull(joinTable.field("person_src_id", UUID.class));
-        assertNotNull(joinTable.field("person_tgt_id", UUID.class));
+        assertEquals(2, joinTableForeignKeys.size());
+        assertEquals("person", joinTableForeignKeys.get("person_src_id"));
+        assertEquals("person", joinTableForeignKeys.get("person_tgt_id"));
     }
 
     static Stream<Relation> oneToOneRelations() {
@@ -437,23 +441,18 @@ class JOOQTableCreatorTest {
         // create tables
         tableCreator.createTables(application);
 
-        var tablesMeta = dslContext.meta().getTables();
+        var columnInfo = getColumnInfo("public", "invoice");
+        var foreignKeys = getForeignKeys("public", "invoice");
 
         // cleanup tables (so next test can run gracefully if this one fails)
         dslContext.dropTable(INVOICE.getTable().getValue()).execute();
 
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
+        assertEquals(19, columnInfo.size());
+        assertEquals("uuid", columnInfo.get("next_invoice"));
+        assertNull(columnInfo.get("previous_invoice"));
 
-        assertEquals(1, publicTables.size());
-        assertEquals("invoice", publicTables.getFirst().getName());
-
-        var invoice = publicTables.getFirst();
-
-        assertEquals(19, invoice.fields().length);
-        assertNotNull(invoice.field("next_invoice", UUID.class));
-        assertNull(invoice.field("previous_invoice", UUID.class));
+        assertEquals(1, foreignKeys.size());
+        assertEquals("invoice", foreignKeys.get("next_invoice"));
     }
 
     @Test
