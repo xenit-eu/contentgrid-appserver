@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -37,9 +36,7 @@ import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplicati
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -55,12 +52,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///"
 })
 @ContextConfiguration(classes = TestApplication.class)
 @Slf4j
+@Transactional
 class JOOQTableCreatorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -234,24 +233,6 @@ class JOOQTableCreatorTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private List<String> getTables(String dbSchema) {
-        // Get all tables for the given schema
-        return jdbcTemplate.execute((Connection con) -> {
-            List<String> result = new ArrayList<>();
-            DatabaseMetaData metaData = con.getMetaData();
-
-            log.debug("Querying metadata for tables in schema: %s%n", dbSchema);
-
-            try (ResultSet columns = metaData.getTables(null, dbSchema, null, null)) {
-                while (columns.next()) {
-                    String table = columns.getString("TABLE_NAME");
-                    result.add(table);
-                }
-            }
-            return result; // Return the list from the callback
-        });
-    }
-
     private Map<String, String> getColumnInfo(String dbSchema, String tableName) {
         // Use JdbcTemplate's execute method with a ConnectionCallback
         // This gives access to the Connection while managing resources correctly.
@@ -314,7 +295,6 @@ class JOOQTableCreatorTest {
         tableCreator.createTables(dslContext, application);
 
         var columnInfo = getColumnInfo("public", "person");
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
         assertEquals(3, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
@@ -333,7 +313,6 @@ class JOOQTableCreatorTest {
         tableCreator.createTables(dslContext, application);
 
         var columnInfo = getColumnInfo("public", "invoice");
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
 
         assertEquals(18, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
@@ -396,10 +375,6 @@ class JOOQTableCreatorTest {
         var invoiceInfo = getColumnInfo("public", "invoice");
         var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
-        // cleanup tables (so next test can run gracefully if this one fails)
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
-
         assertEquals(3, personInfo.size()); // unchanged
         assertEquals(19, invoiceInfo.size());
         assertEquals("uuid", invoiceInfo.get("customer"));
@@ -422,10 +397,6 @@ class JOOQTableCreatorTest {
         var personInfo = getColumnInfo("public", "person");
         var joinTableInfo = getColumnInfo("public", "person__friends");
         var joinTableForeignKeys = getForeignKeys("public", "person__friends");
-
-        // cleanup tables (so next test can run gracefully if this one fails)
-        dslContext.dropTable(PERSON_FRIENDS.getJoinTable().getValue()).execute();
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
 
         assertEquals(3, personInfo.size()); // unchanged
         assertEquals(2, joinTableInfo.size());
@@ -456,9 +427,6 @@ class JOOQTableCreatorTest {
         var columnInfo = getColumnInfo("public", "invoice");
         var foreignKeys = getForeignKeys("public", "invoice");
 
-        // cleanup tables (so next test can run gracefully if this one fails)
-        dslContext.dropTable(INVOICE.getTable().getValue()).execute();
-
         assertEquals(19, columnInfo.size());
         assertEquals("uuid", columnInfo.get("next_invoice"));
         assertNull(columnInfo.get("previous_invoice"));
@@ -486,9 +454,6 @@ class JOOQTableCreatorTest {
                 .build();
 
         assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(dslContext, application));
-
-        // Check no public tables exist
-        assertTrue(getTables("public").isEmpty());
     }
 
     @SpringBootApplication

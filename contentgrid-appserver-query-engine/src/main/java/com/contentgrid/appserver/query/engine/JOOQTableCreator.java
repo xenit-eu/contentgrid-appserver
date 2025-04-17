@@ -20,27 +20,15 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 public class JOOQTableCreator {
 
+    @Transactional
     public void createTables(DSLContext dslContext, Application application) {
-        // Use a transaction for creating the tables
-        dslContext.startTransaction().execute();
-        try {
-            createTablesForApplication(dslContext, application);
-            dslContext.commit().execute();
-        } catch (DataAccessException | org.springframework.dao.DataAccessException e) {
-            // JOOQ or spring threw an exception
-            dslContext.rollback().execute();
-            throw e;
-        }
-    }
-
-    private void createTablesForApplication(DSLContext dslContext, Application application) {
         for (var entity : application.getEntities()) {
             createTableForEntity(dslContext, entity);
         }
