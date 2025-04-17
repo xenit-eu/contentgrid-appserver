@@ -37,7 +37,9 @@ import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplicati
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -238,23 +240,22 @@ class JOOQTableCreatorTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Test
-    void applicationWithSimpleEntity() {
-        var application = Application.builder()
-                .name(ApplicationName.of("simple-entity-application"))
-                .entity(PERSON)
-                .build();
+    private List<String> getTables(String dbSchema) {
+        // Get all tables for the given schema
+        return jdbcTemplate.execute((Connection con) -> {
+            List<String> result = new ArrayList<>();
+            DatabaseMetaData metaData = con.getMetaData();
 
-        // create tables
-        tableCreator.createTables(application);
+            log.debug("Querying metadata for tables in schema: %s%n", dbSchema);
 
-        var columnInfo = getColumnInfo("public", "person");
-        dslContext.dropTable(PERSON.getTable().getValue()).execute();
-
-        assertEquals(3, columnInfo.size());
-        assertEquals("uuid", columnInfo.get("id"));
-        assertEquals("text", columnInfo.get("vat"));
-        assertEquals("text", columnInfo.get("name"));
+            try (ResultSet columns = metaData.getTables(null, dbSchema, null, null)) {
+                while (columns.next()) {
+                    String table = columns.getString("TABLE_NAME");
+                    result.add(table);
+                }
+            }
+            return result; // Return the map from the callback
+        });
     }
 
     private Map<String, String> getColumnInfo(String dbSchema, String tableName) {
@@ -308,6 +309,25 @@ class JOOQTableCreatorTest {
             }
             return foreignKeyData; // Return the map from the callback
         });
+    }
+
+    @Test
+    void applicationWithSimpleEntity() {
+        var application = Application.builder()
+                .name(ApplicationName.of("simple-entity-application"))
+                .entity(PERSON)
+                .build();
+
+        // create tables
+        tableCreator.createTables(application);
+
+        var columnInfo = getColumnInfo("public", "person");
+        dslContext.dropTable(PERSON.getTable().getValue()).execute();
+
+        assertEquals(3, columnInfo.size());
+        assertEquals("uuid", columnInfo.get("id"));
+        assertEquals("text", columnInfo.get("vat"));
+        assertEquals("text", columnInfo.get("name"));
     }
 
     @Test
@@ -476,13 +496,7 @@ class JOOQTableCreatorTest {
         assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
-        var tablesMeta = dslContext.meta().getTables();
-
-        var publicTables = tablesMeta.stream()
-                .filter(tableMeta -> tableMeta.getSchema() != null && "public".equals(tableMeta.getSchema().getName()))
-                .toList();
-
-        assertTrue(publicTables.isEmpty());
+        assertTrue(getTables("public").isEmpty());
     }
 
     @SpringBootApplication
