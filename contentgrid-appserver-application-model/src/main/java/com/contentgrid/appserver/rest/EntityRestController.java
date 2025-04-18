@@ -16,11 +16,15 @@ import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -28,16 +32,15 @@ public class EntityRestController {
 
     private final Application application;
     private final QueryEngine queryEngine;
+    
+    private Entity getEntityOrThrow(PathSegmentName entityName) {
+        return application.getEntityByPathSegment(entityName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
+    }
 
     @GetMapping("/{entityName}")
     public CollectionModel<?> listEntity(@PathVariable PathSegmentName entityName, @RequestParam Map<String, String> params) {
-
-        var maybeEntity = application.getEntityByPathSegment(entityName);
-
-        if (maybeEntity.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        var entity = maybeEntity.get();
+        var entity = getEntityOrThrow(entityName);
 
         var results = queryEngine.query(entity, params);
 
@@ -50,12 +53,7 @@ public class EntityRestController {
 
     @GetMapping("/{entityName}/{instanceId}")
     public RepresentationModel<?> getEntity(@PathVariable PathSegmentName entityName, @PathVariable String instanceId) {
-
-        var maybeEntity = application.getEntityByPathSegment(entityName);
-        if (maybeEntity.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        var entity = maybeEntity.get();
+        var entity = getEntityOrThrow(entityName);
 
         var result = queryEngine.findById(entity, instanceId);
 
@@ -68,5 +66,22 @@ public class EntityRestController {
                 .add(linkTo(methodOn(EntityRestController.class)
                         .getEntity(entity.getPathSegment(), inst.getId())
                 ).withSelfRel());
+    }
+
+    @PostMapping("/{entityName}")
+    public ResponseEntity<?> createEntity(@PathVariable PathSegmentName entityName, @RequestBody Map<String, Object> data) {
+        var entity = getEntityOrThrow(entityName);
+
+        try {
+            EntityInstance instance = queryEngine.createInstance(entity, data);
+            RepresentationModel<?> model = toRepresentationModel(entity, instance);
+
+            return ResponseEntity
+                    .created(linkTo(methodOn(EntityRestController.class)
+                            .getEntity(entity.getPathSegment(), instance.getId())).toUri())
+                    .body(model);
+        } catch (InvalidEntityDataException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 }
