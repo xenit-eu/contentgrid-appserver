@@ -163,6 +163,9 @@ public class Entity {
      * @return an Optional containing the Attribute if found, or empty if not found
      */
     public Optional<Attribute> getAttributeByName(AttributeName attributeName) {
+        if (this.primaryKey.getName().equals(attributeName)) {
+            return Optional.of(this.primaryKey);
+        }
         return Optional.ofNullable(attributes.get(attributeName));
     }
 
