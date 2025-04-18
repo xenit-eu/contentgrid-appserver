@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -91,6 +92,7 @@ public class Entity {
                     }
                 }
         );
+        this.attributes.remove(this.primaryKey.getName());
     }
 
     /**
@@ -129,12 +131,21 @@ public class Entity {
     Map<FilterName, SearchFilter> searchFilters = new HashMap<>();
 
     /**
-     * Returns an unmodifiable list of attributes.
+     * Returns an unmodifiable list of attributes (primary key excluded).
      *
-     * @return an unmodifiable list of attributes
+     * @return an unmodifiable list of attributes (primary key excluded)
      */
     public List<Attribute> getAttributes() {
         return List.copyOf(attributes.values());
+    }
+
+    /**
+     * Returns an unmodifiable list of attributes (primary key included).
+     *
+     * @return an unmodifiable list of attributes (primary key included)
+     */
+    public List<Attribute> getAllAttributes() {
+        return Stream.concat(Stream.of(this.primaryKey), attributes.values().stream()).toList();
     }
 
     /**
