@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class DummyQueryEngine implements QueryEngine {
@@ -28,5 +29,13 @@ public class DummyQueryEngine implements QueryEngine {
         } else{
             return List.of();
         }
+    }
+
+    @Override
+    public Optional<EntityInstance> findById(Entity entity, String id) {
+        if (entity.getName().getValue().equals("person")) {
+            return persons.stream().filter(p -> p.getId().equals(id)).findAny();
+        }
+        return Optional.empty();
     }
 }
