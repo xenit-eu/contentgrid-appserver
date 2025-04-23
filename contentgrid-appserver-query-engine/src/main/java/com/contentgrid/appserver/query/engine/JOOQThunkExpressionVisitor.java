@@ -19,6 +19,7 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,13 +43,16 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (scalar.getValue() == null) {
             // Special case, the value is null
             throw new InvalidThunkExpressionException("null values are not supported");
+        } else if (Number.class.equals(scalar.getResultType())) {
+            // Number is not supported, use BigDecimal instead
+            return DSL.value(scalar.getValue(), BigDecimal.class);
         }
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
 
     @Override
-    public Condition visit(FunctionExpression<?> functionExpression, JOOQContext context) throws InvalidThunkExpressionException {
-        Condition result = switch (functionExpression.getOperator()) {
+    public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context) throws InvalidThunkExpressionException {
+        Field<?> result = switch (functionExpression.getOperator()) {
             case EQUALS -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
@@ -120,11 +124,15 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 }
             }
             default -> {
-                throw new InvalidThunkExpressionException("Operator %s is not supported.".formatted(functionExpression.getOperator()));
+                throw new InvalidThunkExpressionException(
+                        "Operator %s is not supported.".formatted(functionExpression.getOperator()));
             }
         };
 
-        return joinCollection.collect(result);
+        if (result instanceof Condition condition) {
+            return joinCollection.collect(condition);
+        }
+        return result;
     }
 
     private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {

@@ -19,16 +19,8 @@ public class JOOQUtils {
         return resolveTable(entity.getTable(), alias);
     }
 
-    public static Table<?> resolveTable(Entity entity, int aliasCount) {
-        return resolveTable(entity.getTable(), aliasCount);
-    }
-
     public static Table<?> resolveTable(TableName tableName, TableName alias) {
         return DSL.table(tableName.getValue()).as(alias.getValue());
-    }
-
-    public static Table<?> resolveTable(TableName tableName, int aliasCount) {
-        return resolveTable(tableName, alias(tableName, aliasCount));
     }
 
     public static Field<?> resolveField(TableName alias, SimpleAttribute attribute) {
