@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -30,6 +31,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -38,11 +40,15 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -236,6 +242,8 @@ class JOOQThunkExpressionVisitorTest {
     private static final UUID INVOICE1_ID = UUID.randomUUID();
     private static final UUID INVOICE2_ID = UUID.randomUUID();
 
+    private static final Variable ENTITY_VAR = Variable.named("entity");
+
     @Autowired
     private DSLContext dslContext;
 
@@ -312,7 +320,7 @@ class JOOQThunkExpressionVisitorTest {
     void findAlice() {
         // entity.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
         var condition = expression.accept(personVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON));
@@ -332,7 +340,7 @@ class JOOQThunkExpressionVisitorTest {
     void findInvoiceOfAlice() {
         // entity.customer.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
@@ -350,7 +358,7 @@ class JOOQThunkExpressionVisitorTest {
     void findInvoiceCreatedByAlice() {
         // entity.audit_metadata.created_by.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
@@ -368,7 +376,7 @@ class JOOQThunkExpressionVisitorTest {
     void findFriendsOfAlice() {
         // entity.friends.[_].name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("friends"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
         var condition = expression.accept(personVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON));
@@ -386,7 +394,7 @@ class JOOQThunkExpressionVisitorTest {
     void findInvoiceNextOfAlice() {
         // entity.previous_invoice.customer.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
@@ -404,7 +412,7 @@ class JOOQThunkExpressionVisitorTest {
     void findInvoicePrevOfBob() {
         // entity.next_invoice.customer.name = bob
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("next_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("bob")
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
@@ -422,8 +430,8 @@ class JOOQThunkExpressionVisitorTest {
     void findInvoiceWith2relations() {
         // entity.customer.name = entity.next_invoice.audit_metadata.created_by.name
         ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("next_invoice"), SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
         var results = dslContext.selectFrom(DSL.table("invoice").as("i0"))
@@ -434,6 +442,89 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(1, results.size());
         var result = results.getFirst();
         assertEquals(INVOICE1_ID, result.get("id"));
+    }
+
+    static Stream<Arguments> illegalExpressions() {
+        return Stream.of(
+                // use of null value
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
+                        Scalar.nullValue()
+                )),
+                // use of null string value
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
+                        Scalar.of((String) null)
+                )),
+                // use of variable
+                Arguments.of(Comparison.areEqual(Variable.named("foo"), Scalar.of("alice"))),
+                // use of wrong variable
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(Variable.named("user"), SymbolicReference.path("number")),
+                        Scalar.of("alice")
+                )),
+                // no path
+                Arguments.of(Comparison.areEqual(SymbolicReference.of(ENTITY_VAR), Scalar.of("alice"))),
+                // path too short
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content")),
+                        Scalar.of("alice")
+                )),
+                // path too long
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"), SymbolicReference.path("id")),
+                        Scalar.of("alice")
+                )),
+                // non-existing attribute on entity
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("non_existing")),
+                        Scalar.of("alice")
+                )),
+                // non-existing attribute on relation (exists on source entity)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("number")),
+                        Scalar.of("alice")
+                )),
+                // non-existing attribute on composite attribute (exists on parent attribute)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("number")),
+                        Scalar.of("alice")
+                )),
+                // variable access on entity (variable name from existing attribute)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.pathVar("number")),
+                        Scalar.of("alice")
+                )),
+                // variable access on composite attribute (variable name from existing attribute)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.pathVar("name")),
+                        Scalar.of("alice")
+                )),
+                // variable access on *-to-one relation
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
+                        Scalar.of("alice")
+                )),
+                // no variable access on *-to-many relation
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.path("name")),
+                        Scalar.of("alice")
+                )),
+                // same variable used multiple times
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name")),
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name"))
+                ))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("illegalExpressions")
+    void findIllegalExpression(ThunkExpression<?> expression) {
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        assertThrows(InvalidThunkExpressionException.class, () -> {
+            expression.accept(invoiceVisitor, context);
+        });
     }
 
     @SpringBootApplication
