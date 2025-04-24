@@ -249,44 +249,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         Optional<Relation> maybeRelation = application.getRelationForEntity(entity, RelationName.of(name));
         if (maybeRelation.isPresent()) {
             var relation = maybeRelation.get();
-            if (tail.isEmpty()) {
-                // TODO: maybe you don't want to follow the relation and just want to use the UUID?
-                throw new InvalidThunkExpressionException("Path is not long enough");
-            }
-            // check variable access for *-to-many relations
-            switch (relation) {
-                case OneToManyRelation ignored -> {
-                    if (tail.getFirst() instanceof VariablePathElement variable) {
-                        // add to variables and check whether variable is unique
-                        if (!variables.add(variable.getVariable().getName())) {
-                            throw new InvalidThunkExpressionException(
-                                    "Variable %s is not unique".formatted(variable.getVariable().getName()));
-                        }
-                        tail = tail.subList(1, tail.size());
-                    } else {
-                        throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a one-to-many relation, got '%s' of type %s."
-                                .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
-                    }
-                }
-                case ManyToManyRelation ignored -> {
-                    if (tail.getFirst() instanceof VariablePathElement variable) {
-                        // add to variables and check whether variable is unique
-                        if (!variables.add(variable.getVariable().getName())) {
-                            throw new InvalidThunkExpressionException(
-                                    "Variable %s is not unique".formatted(variable.getVariable().getName()));
-                        }
-                        tail = tail.subList(1, tail.size());
-                    } else {
-                        throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a many-to-many relation, got '%s' of type %s."
-                                .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
-                    }
-                }
-                default -> {
-                    // no variable access for *-to-one relations
-                }
-            }
-            this.joinCollection.addRelation(relation);
-            return handlePath(tail, application, relation.getTargetEndPoint().getEntity());
+            return handleRelation(application, relation, tail);
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
@@ -321,6 +284,47 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 }
             }
         }
+    }
+
+    public Field<?> handleRelation(@NonNull Application application, @NonNull Relation relation, List<SymbolicReference.PathElement> tail) {
+        if (tail.isEmpty()) {
+            // TODO: maybe you don't want to follow the relation and just want to use the UUID?
+            throw new InvalidThunkExpressionException("Path is not long enough");
+        }
+        // check variable access for *-to-many relations
+        switch (relation) {
+            case OneToManyRelation ignored -> {
+                if (tail.getFirst() instanceof VariablePathElement variable) {
+                    // add to variables and check whether variable is unique
+                    if (!variables.add(variable.getVariable().getName())) {
+                        throw new InvalidThunkExpressionException(
+                                "Variable %s is not unique".formatted(variable.getVariable().getName()));
+                    }
+                    tail = tail.subList(1, tail.size());
+                } else {
+                    throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a one-to-many relation, got '%s' of type %s."
+                            .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
+                }
+            }
+            case ManyToManyRelation ignored -> {
+                if (tail.getFirst() instanceof VariablePathElement variable) {
+                    // add to variables and check whether variable is unique
+                    if (!variables.add(variable.getVariable().getName())) {
+                        throw new InvalidThunkExpressionException(
+                                "Variable %s is not unique".formatted(variable.getVariable().getName()));
+                    }
+                    tail = tail.subList(1, tail.size());
+                } else {
+                    throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a many-to-many relation, got '%s' of type %s."
+                            .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
+                }
+            }
+            default -> {
+                // no variable access for *-to-one relations
+            }
+        }
+        this.joinCollection.addRelation(relation);
+        return handlePath(tail, application, relation.getTargetEndPoint().getEntity());
     }
 
     @Override
