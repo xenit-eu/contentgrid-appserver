@@ -33,7 +33,10 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitorTest.TestApplication;
+import com.contentgrid.appserver.query.engine.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression;
 import com.contentgrid.thunx.predicates.model.Comparison;
+import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -255,10 +258,23 @@ class JOOQThunkExpressionVisitorTest {
     @BeforeEach
     void setup() {
         if (!tablesCreated) {
+            createCGPrefixSearchNormalize();
             tableCreator.createTables(dslContext, APPLICATION);
             insertData();
             tablesCreated = true;
         }
+    }
+
+    void createCGPrefixSearchNormalize() {
+        var schema = DSL.schema("extensions");
+        dslContext.createSchemaIfNotExists(schema).execute();
+        dslContext.execute(DSL.sql("CREATE EXTENSION unaccent SCHEMA ?;", schema));
+        dslContext.execute(DSL.sql("""
+                CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
+                  RETURNS text
+                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+                RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
+                """, schema, schema));
     }
 
     void insertData() {
@@ -284,7 +300,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("amount", Double.class), 10.0)
                 .set(DSL.field("received", Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
                 .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), false)
+                .set(DSL.field("is_paid", Boolean.class), true)
                 .set(DSL.field("content__id", String.class), "content_1")
                 .set(DSL.field("content__filename", String.class), "file.pdf")
                 .set(DSL.field("content__mimetype", String.class), "application/pdf")
@@ -322,6 +338,26 @@ class JOOQThunkExpressionVisitorTest {
         ThunkExpression<?> expression = Comparison.areEqual(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("alice")
+        );
+        var condition = expression.accept(personVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON));
+        var results = dslContext.selectFrom(DSL.table("person").as("p0"))
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        assertEquals(ALICE_ID, result.get("id"));
+        assertEquals("alice", result.get("name"));
+        assertEquals("vat_1", result.get("vat"));
+    }
+
+    @Test
+    void findAliceWithPrefixSearch() {
+        // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
+        ThunkExpression<?> expression = StringComparison.startsWith(
+                StringFunctionExpression.contentGridPrefixSearchNormalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name"))),
+                StringFunctionExpression.contentGridPrefixSearchNormalize(Scalar.of("ALI"))
         );
         var condition = expression.accept(personVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON));
         var results = dslContext.selectFrom(DSL.table("person").as("p0"))
@@ -434,6 +470,96 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))
         );
         var condition = expression.accept(invoiceVisitor, new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE));
+        var results = dslContext.selectFrom(DSL.table("invoice").as("i0"))
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        assertEquals(INVOICE1_ID, result.get("id"));
+    }
+
+    static Stream<Arguments> allFunctions() {
+        return Stream.of(
+                // equals (double)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                        Scalar.of(10.0)
+                )),
+                // equals (long)
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                        Scalar.of(100L)
+                )),
+                // not equals
+                Arguments.of(Comparison.notEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                        Scalar.of("invoice_2")
+                )),
+                // and, less than, greater than
+                Arguments.of(LogicalOperation.conjunction(Stream.of(
+                        Comparison.greater(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(0.0)
+                        ),
+                        Comparison.less(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(12.0)
+                        )
+                ))),
+                // and, less than or equals, greater than or equals
+                Arguments.of(LogicalOperation.conjunction(Stream.of(
+                        Comparison.greaterOrEquals(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(0.0)
+                        ),
+                        Comparison.lessOrEquals(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(10.0)
+                        )
+                ))),
+                // or (when query parameter is provided multiple times)
+                Arguments.of(LogicalOperation.disjunction(Stream.of(
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(0.0)
+                        ),
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(10.0)
+                        )
+                ))),
+                // not
+                Arguments.of(LogicalOperation.negation(
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                Scalar.of("invoice_2")
+                        )
+                )),
+                // normalize
+                Arguments.of(Comparison.areEqual(
+                        StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"))),
+                        StringFunctionExpression.normalize(Scalar.of("invoice_¹")) // invoice_1
+                )),
+                // starts with
+                Arguments.of(StringComparison.startsWith(
+                        StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
+                        StringFunctionExpression.normalize(Scalar.of("b")) // bob
+                )),
+                // contentgrid prefix search
+                Arguments.of(StringComparison.startsWith(
+                        StringFunctionExpression.contentGridPrefixSearchNormalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
+                        StringFunctionExpression.contentGridPrefixSearchNormalize(Scalar.of("Bö")) // bob
+                ))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("allFunctions")
+    void findInvoice1(ThunkExpression<?> expression) {
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        var condition = expression.accept(invoiceVisitor, context);
         var results = dslContext.selectFrom(DSL.table("invoice").as("i0"))
                 .where((Condition) condition)
                 .fetch()

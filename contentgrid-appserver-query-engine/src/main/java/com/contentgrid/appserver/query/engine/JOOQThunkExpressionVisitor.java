@@ -10,6 +10,10 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.query.engine.expression.CustomFunctionExpression;
+import com.contentgrid.appserver.query.engine.expression.StringComparison.StartsWith;
+import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression.ContentGridPrefixSearchNormalizeExpression;
+import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression.NormalizeExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
@@ -121,6 +125,34 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 } else {
                     // Try casting to Field<Boolean>
                     yield DSL.condition(DSL.not((Field<Boolean>) field));
+                }
+            }
+            case CUSTOM -> {
+                if (functionExpression instanceof CustomFunctionExpression<?> customFunctionExpression) {
+                    switch (customFunctionExpression) {
+                        case StartsWith startsWith -> {
+                            var leftField = startsWith.getLeftTerm().accept(this, context);
+                            var rightField = startsWith.getRightTerm().accept(this, context);
+                            yield ((Field<Object>) leftField).startsWith((Field<Object>) rightField);
+                        }
+                        case NormalizeExpression normalizeExpression -> {
+                            var field = normalizeExpression.getTerm().accept(this, context);
+                            yield DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
+                        }
+                        case ContentGridPrefixSearchNormalizeExpression expression -> {
+                            var field = expression.getTerm().accept(this, context);
+                            yield DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
+                        }
+                        default -> {
+                            throw new InvalidThunkExpressionException(
+                                    "Function expression with type %s is not supported.".formatted(
+                                            functionExpression.getClass().getSimpleName()));
+                        }
+                    }
+                } else {
+                    throw new InvalidThunkExpressionException(
+                            "Function expression with type %s is not supported.".formatted(
+                                    functionExpression.getClass().getSimpleName()));
                 }
             }
             default -> {
