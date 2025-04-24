@@ -37,6 +37,7 @@ import com.contentgrid.appserver.query.engine.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
+import com.contentgrid.thunx.predicates.model.NumericFunction;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -536,6 +537,31 @@ class JOOQThunkExpressionVisitorTest {
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                 Scalar.of("invoice_2")
                         )
+                )),
+                // plus
+                Arguments.of(Comparison.areEqual(
+                        NumericFunction.plus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
+                        Scalar.of(20.0)
+                )),
+                // multiply
+                Arguments.of(Comparison.areEqual(
+                        NumericFunction.multiply(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
+                        Scalar.of(20.0)
+                )),
+                // minus
+                Arguments.of(Comparison.areEqual(
+                        NumericFunction.minus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
+                        Scalar.of(0.0)
+                )),
+                // divide
+                Arguments.of(Comparison.areEqual(
+                        NumericFunction.divide(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
+                        Scalar.of(5.0)
+                )),
+                // modulo
+                Arguments.of(Comparison.areEqual(
+                        NumericFunction.modulus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(3L)),
+                        Scalar.of(1.0)
                 )),
                 // normalize
                 Arguments.of(Comparison.areEqual(

@@ -127,6 +127,45 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     yield DSL.condition(DSL.not((Field<Boolean>) field));
                 }
             }
+            case PLUS -> {
+                assertTwoTerms(functionExpression.getTerms());
+                var left = functionExpression.getTerms().getFirst().accept(this, context);
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                yield left.add(right);
+            }
+            case MULTIPLY -> {
+                assertTwoTerms(functionExpression.getTerms());
+                var left = functionExpression.getTerms().getFirst().accept(this, context);
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (right.getDataType().isNumeric()) {
+                    yield left.times((Field<? extends Number>) right);
+                }
+                throw new InvalidThunkExpressionException("Terms should be numeric");
+            }
+            case MINUS -> {
+                assertTwoTerms(functionExpression.getTerms());
+                var left = functionExpression.getTerms().getFirst().accept(this, context);
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                yield left.minus(right);
+            }
+            case DIVIDE -> {
+                assertTwoTerms(functionExpression.getTerms());
+                var left = functionExpression.getTerms().getFirst().accept(this, context);
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (right.getDataType().isNumeric()) {
+                    yield left.divide((Field<? extends Number>) right);
+                }
+                throw new InvalidThunkExpressionException("Terms should be numeric");
+            }
+            case MODULUS -> {
+                assertTwoTerms(functionExpression.getTerms());
+                var left = functionExpression.getTerms().getFirst().accept(this, context);
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (right.getDataType().isNumeric()) {
+                    yield left.modulo((Field<? extends Number>) right);
+                }
+                throw new InvalidThunkExpressionException("Terms should be numeric");
+            }
             case CUSTOM -> {
                 if (functionExpression instanceof CustomFunctionExpression<?> customFunctionExpression) {
                     switch (customFunctionExpression) {
