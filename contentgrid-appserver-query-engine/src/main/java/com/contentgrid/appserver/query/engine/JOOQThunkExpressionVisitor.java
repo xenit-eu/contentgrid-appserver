@@ -194,10 +194,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                                     functionExpression.getClass().getSimpleName()));
                 }
             }
-            default -> {
-                throw new InvalidThunkExpressionException(
-                        "Operator %s is not supported.".formatted(functionExpression.getOperator()));
-            }
         };
 
         if (result instanceof Condition condition) {
@@ -257,6 +253,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 // TODO: maybe you don't want to follow the relation and just want to use the UUID?
                 throw new InvalidThunkExpressionException("Path is not long enough");
             }
+            // check variable access for *-to-many relations
             switch (relation) {
                 case OneToManyRelation ignored -> {
                     if (tail.getFirst() instanceof VariablePathElement variable) {
@@ -284,7 +281,9 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                                 .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
                     }
                 }
-                default -> {}
+                default -> {
+                    // no variable access for *-to-one relations
+                }
             }
             this.joinCollection.addRelation(relation);
             return handlePath(tail, application, relation.getTargetEndPoint().getEntity());

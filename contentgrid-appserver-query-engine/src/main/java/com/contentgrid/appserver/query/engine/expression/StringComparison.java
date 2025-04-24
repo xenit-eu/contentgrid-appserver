@@ -3,8 +3,10 @@ package com.contentgrid.appserver.query.engine.expression;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Locale;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
+@EqualsAndHashCode(callSuper = true)
 public sealed class StringComparison extends Comparison implements CustomFunctionExpression<Boolean> {
 
     @NonNull

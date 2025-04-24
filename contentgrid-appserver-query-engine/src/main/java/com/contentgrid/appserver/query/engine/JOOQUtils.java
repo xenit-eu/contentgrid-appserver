@@ -50,12 +50,4 @@ public class JOOQUtils {
         };
         return dataType.nullable(!required);
     }
-
-    public static TableName alias(Entity entity, int aliasCount) {
-        return alias(entity.getTable(), aliasCount);
-    }
-
-    public static TableName alias(TableName tableName, int aliasCount) {
-        return TableName.of(tableName.getValue().charAt(0) + String.valueOf(aliasCount));
-    }
 }

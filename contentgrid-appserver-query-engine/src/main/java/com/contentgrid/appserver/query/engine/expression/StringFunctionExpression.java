@@ -3,11 +3,13 @@ package com.contentgrid.appserver.query.engine.expression;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
 import java.util.Locale;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@EqualsAndHashCode
 public sealed class StringFunctionExpression implements CustomFunctionExpression<String> {
 
     @NonNull

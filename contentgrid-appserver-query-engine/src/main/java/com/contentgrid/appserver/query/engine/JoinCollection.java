@@ -109,9 +109,6 @@ public class JoinCollection {
     }
 
     public Condition collect(Condition condition) {
-        if (joins.isEmpty()) {
-            return condition;
-        }
         SelectJoinStep<?> selectBuilder = null;
         Condition where = null;
         for (var join : joins) {
@@ -127,12 +124,16 @@ public class JoinCollection {
         joins.clear();
         this.resetCurrentTable();
 
-        return DSL.exists(selectBuilder.where(DSL.and(where, condition)));
+        if (selectBuilder == null || where == null) {
+            return condition;
+        } else {
+            return DSL.exists(selectBuilder.where(DSL.and(where, condition)));
+        }
     }
 
     @Getter
     @RequiredArgsConstructor
-    public abstract sealed static class Join {
+    public abstract static sealed class Join {
 
         private final TableName sourceAlias;
         private final TableName targetAlias;
