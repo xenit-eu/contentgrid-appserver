@@ -31,7 +31,7 @@ public class EntityRestController {
 
     private final Application application;
     private final QueryEngine queryEngine;
-    
+
     private Entity getEntityOrThrow(PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));

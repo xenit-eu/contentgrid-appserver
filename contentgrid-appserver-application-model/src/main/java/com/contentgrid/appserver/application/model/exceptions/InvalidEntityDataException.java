@@ -7,12 +7,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 
 /**
  * Exception thrown when validation fails for entity instance data.
  */
-public class InvalidEntityDataException extends HttpMessageNotReadableException {
+public class InvalidEntityDataException extends RuntimeException {
 
     @Getter
     private final Map<AttributeName, String> validationErrors;

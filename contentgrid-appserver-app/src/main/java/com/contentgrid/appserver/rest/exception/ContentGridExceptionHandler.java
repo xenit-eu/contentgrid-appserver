@@ -32,8 +32,8 @@ public class ContentGridExceptionHandler {
     private final MessageSourceAccessor messageSourceAccessor;
 
 
-    @ExceptionHandler
-    ResponseEntity<Problem> handleHttpMessageReadException(@NonNull HttpMessageNotReadableException exception) {
+    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class})
+    ResponseEntity<Problem> handleHttpMessageReadException(@NonNull Exception exception) {
         Throwable currentException = exception;
 
         while (currentException != null) {
