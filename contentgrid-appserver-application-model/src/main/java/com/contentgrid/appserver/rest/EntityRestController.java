@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -72,16 +71,12 @@ public class EntityRestController {
     public ResponseEntity<?> createEntity(@PathVariable PathSegmentName entityName, @RequestBody Map<String, Object> data) {
         var entity = getEntityOrThrow(entityName);
 
-        try {
-            EntityInstance instance = queryEngine.createInstance(entity, data);
-            RepresentationModel<?> model = toRepresentationModel(entity, instance);
+        EntityInstance instance = queryEngine.createInstance(entity, data);
+        RepresentationModel<?> model = toRepresentationModel(entity, instance);
 
-            return ResponseEntity
-                    .created(linkTo(methodOn(EntityRestController.class)
-                            .getEntity(entity.getPathSegment(), instance.getId())).toUri())
-                    .body(model);
-        } catch (InvalidEntityDataException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
+        return ResponseEntity
+                .created(linkTo(methodOn(EntityRestController.class)
+                        .getEntity(entity.getPathSegment(), instance.getId())).toUri())
+                .body(model);
     }
 }

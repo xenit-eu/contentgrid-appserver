@@ -1,0 +1,98 @@
+package com.contentgrid.appserver.rest.exception;
+
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.rest.problem.ProblemFactory;
+import com.contentgrid.appserver.rest.problem.ProblemType;
+import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.Objects;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.MessageSourceAccessor;
+import org.springframework.hateoas.mediatype.problem.Problem;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+@Slf4j
+@ControllerAdvice
+@RequiredArgsConstructor
+public class ContentGridExceptionHandler {
+
+    @NonNull
+    private final ProblemFactory problemFactory;
+
+    @NonNull
+    private final MessageSourceAccessor messageSourceAccessor;
+
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleHttpMessageReadException(@NonNull HttpMessageNotReadableException exception) {
+        Throwable currentException = exception;
+
+        while (currentException != null) {
+            if (currentException instanceof InvalidEntityDataException invalidEntityDataException) {
+                return handleMappingException(invalidEntityDataException);
+            } else if (currentException instanceof JsonParseException parseException) {
+                return handleJsonParseException(parseException);
+            }
+            currentException = currentException.getCause();
+        }
+
+        // Fallback handler: just a generic bad request
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+        );
+    }
+
+    ResponseEntity<Problem> handleMappingException(InvalidEntityDataException exception) {
+        var problem = problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_TYPE)
+                .withStatus(HttpStatus.BAD_REQUEST);
+        log.warn("Invalid request body type!");
+
+        for (AttributeName attr : exception.getInvalidAttributes()) {
+            problem = problem.withProperties(new FieldViolationProblemProperties(attr.getValue()));
+        }
+
+        return createResponse(problem);
+    }
+
+    ResponseEntity<Problem> handleJsonParseException(JsonParseException exception) {
+        log.warn("Invalid request body json!");
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_JSON)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(formatJacksonError(exception))
+        );
+    }
+
+    private static String formatJacksonError(JsonProcessingException exception) {
+        var message = Objects.requireNonNullElse(exception.getOriginalMessage(), "No message");
+        var location = exception.getLocation();
+        if (location == null) {
+            return message;
+        }
+
+        return message + " at " + location.offsetDescription();
+    }
+
+
+    static ResponseEntity<Problem> createResponse(Problem problem) {
+        var responseBuilder = ResponseEntity.internalServerError();
+        if (problem.getStatus() != null) {
+            responseBuilder = ResponseEntity.status(problem.getStatus());
+        }
+
+        return responseBuilder.contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
+    }
+
+}
