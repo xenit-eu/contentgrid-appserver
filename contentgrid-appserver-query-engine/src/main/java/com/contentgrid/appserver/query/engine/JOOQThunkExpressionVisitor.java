@@ -25,6 +25,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -223,61 +224,59 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             throw new InvalidThunkExpressionException("Symbolic reference with subject %s is not supported"
                     .formatted(symbolicReference.getSubject().getName()));
         }
-        var result = handlePath(symbolicReference.getPath(), context.application(), context.entity());
+        var result = handlePath(symbolicReference.getPath().iterator(), context.application(), context.entity());
         // Reset current table of join collection, so that next joins are added to root again
         this.joinCollection.resetCurrentTable();
         return result;
     }
 
-    private Field<?> handlePath(List<SymbolicReference.PathElement> path, @NonNull Application application, @NonNull Entity entity)
+    private Field<?> handlePath(Iterator<PathElement> path, @NonNull Application application, @NonNull Entity entity)
             throws InvalidThunkExpressionException {
-        if (path.isEmpty()) {
+        if (!path.hasNext()) {
             throw new InvalidThunkExpressionException("Empty path");
         }
-        var pathElement = path.getFirst();
-        var tail = path.subList(1, path.size());
+        var pathElement = path.next();
         var name = getPathElementName(pathElement);
 
         // Check if pathElement references attribute
         Optional<Attribute> maybeAttribute = entity.getAttributeByName(AttributeName.of(name));
         if (maybeAttribute.isPresent()) {
             var attribute = maybeAttribute.get();
-            return handleAttribute(attribute, tail);
+            return handleAttribute(attribute, path);
         }
 
         // Check if pathElement references relation
         Optional<Relation> maybeRelation = application.getRelationForEntity(entity, RelationName.of(name));
         if (maybeRelation.isPresent()) {
             var relation = maybeRelation.get();
-            return handleRelation(application, relation, tail);
+            return handleRelation(application, relation, path);
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
         throw new InvalidThunkExpressionException("Path element %s does not exist on entity %s".formatted(name, entity));
     }
 
-    private Field<?> handleAttribute(Attribute attribute, List<SymbolicReference.PathElement> tail)
+    private Field<?> handleAttribute(Attribute attribute, Iterator<SymbolicReference.PathElement> path)
             throws InvalidThunkExpressionException {
         switch (attribute) {
             case SimpleAttribute simpleAttribute -> {
-                if (!tail.isEmpty()) {
+                if (path.hasNext()) {
                     throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
                 }
                 return JOOQUtils.resolveField(joinCollection.getCurrentAlias(), simpleAttribute);
             }
             case CompositeAttribute compositeAttribute -> {
-                if (tail.isEmpty()) {
+                if (!path.hasNext()) {
                     throw new InvalidThunkExpressionException("Path is not long enough");
                 }
-                var pathElement = tail.getFirst();
-                var newTail = tail.subList(1, tail.size());
+                var pathElement = path.next();
                 var name = getPathElementName(pathElement);
 
                 // Check if pathElement references existing attribute
                 Optional<Attribute> maybeAttribute = compositeAttribute.getAttributeByName(AttributeName.of(name));
                 if (maybeAttribute.isPresent()) {
                     var subAttribute = maybeAttribute.get();
-                    return handleAttribute(subAttribute, newTail);
+                    return handleAttribute(subAttribute, path);
                 } else {
                     // pathElement seems to reference a non-existing attribute
                     throw new InvalidThunkExpressionException("Path element %s does not exist on attribute %s".formatted(name, compositeAttribute.getName()));
@@ -286,37 +285,37 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    public Field<?> handleRelation(@NonNull Application application, @NonNull Relation relation, List<SymbolicReference.PathElement> tail) {
-        if (tail.isEmpty()) {
+    public Field<?> handleRelation(@NonNull Application application, @NonNull Relation relation, Iterator<SymbolicReference.PathElement> path) {
+        if (!path.hasNext()) {
             // TODO: maybe you don't want to follow the relation and just want to use the UUID?
             throw new InvalidThunkExpressionException("Path is not long enough");
         }
         // check variable access for *-to-many relations
         switch (relation) {
             case OneToManyRelation ignored -> {
-                if (tail.getFirst() instanceof VariablePathElement variable) {
+                var pathElement = path.next();
+                if (pathElement instanceof VariablePathElement variable) {
                     // add to variables and check whether variable is unique
                     if (!variables.add(variable.getVariable().getName())) {
                         throw new InvalidThunkExpressionException(
                                 "Variable %s is not unique".formatted(variable.getVariable().getName()));
                     }
-                    tail = tail.subList(1, tail.size());
                 } else {
                     throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a one-to-many relation, got '%s' of type %s."
-                            .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
+                            .formatted(pathElement, pathElement.getClass().getSimpleName()));
                 }
             }
             case ManyToManyRelation ignored -> {
-                if (tail.getFirst() instanceof VariablePathElement variable) {
+                var pathElement = path.next();
+                if (pathElement instanceof VariablePathElement variable) {
                     // add to variables and check whether variable is unique
                     if (!variables.add(variable.getVariable().getName())) {
                         throw new InvalidThunkExpressionException(
                                 "Variable %s is not unique".formatted(variable.getVariable().getName()));
                     }
-                    tail = tail.subList(1, tail.size());
                 } else {
                     throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a many-to-many relation, got '%s' of type %s."
-                            .formatted(tail.getFirst(), tail.getFirst().getClass().getSimpleName()));
+                            .formatted(pathElement, pathElement.getClass().getSimpleName()));
                 }
             }
             default -> {
@@ -324,7 +323,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             }
         }
         this.joinCollection.addRelation(relation);
-        return handlePath(tail, application, relation.getTargetEndPoint().getEntity());
+        return handlePath(path, application, relation.getTargetEndPoint().getEntity());
     }
 
     @Override
