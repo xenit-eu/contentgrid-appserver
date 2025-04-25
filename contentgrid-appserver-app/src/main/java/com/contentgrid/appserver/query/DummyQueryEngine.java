@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 public class DummyQueryEngine implements QueryEngine {
 
-    private final Map<String, List<EntityInstance>> entityInstances = new ConcurrentHashMap<>();
+    protected final Map<String, List<EntityInstance>> entityInstances = new ConcurrentHashMap<>();
 
     public DummyQueryEngine() {
         entityInstances.put("person", new ArrayList<>(Stream.of(

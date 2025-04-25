@@ -45,7 +45,7 @@ public class EntityRestController {
 
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.stream()
-                .map(res -> wrappers.wrap(toRepresentationModel(entity, res), LinkRelation.of(entity.getName().getValue())))
+                .map(res -> wrappers.wrap(toRepresentationModel(entity, res), LinkRelation.of("item")))
                 .toList();
         return CollectionModel.of(models);
     }
