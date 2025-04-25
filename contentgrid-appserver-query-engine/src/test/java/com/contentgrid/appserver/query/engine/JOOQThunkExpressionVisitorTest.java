@@ -564,9 +564,9 @@ class JOOQThunkExpressionVisitorTest {
                         Scalar.of(1.0)
                 )),
                 // normalize
-                Arguments.of(Comparison.areEqual(
-                        StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"))),
-                        StringFunctionExpression.normalize(Scalar.of("invoice_¹")) // invoice_1
+                Arguments.of(StringComparison.normalizedEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                        Scalar.of("invoice_¹") // invoice_1
                 )),
                 // starts with
                 Arguments.of(StringComparison.startsWith(
@@ -574,9 +574,9 @@ class JOOQThunkExpressionVisitorTest {
                         StringFunctionExpression.normalize(Scalar.of("b")) // bob
                 )),
                 // contentgrid prefix search
-                Arguments.of(StringComparison.startsWith(
-                        StringFunctionExpression.contentGridPrefixSearchNormalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
-                        StringFunctionExpression.contentGridPrefixSearchNormalize(Scalar.of("Bö")) // bob
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
+                        Scalar.of("Bö") // bob
                 ))
         );
     }

@@ -22,8 +22,22 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return key.toUpperCase(Locale.ROOT) + "(" + getLeftTerm() + ", " + getRightTerm() + ")";
     }
 
-    public static StartsWith startsWith(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+    public static Comparison startsWith(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
         return new StartsWith(leftTerm, rightTerm);
+    }
+
+    public static Comparison normalizedEqual(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
+        return Comparison.areEqual(
+                StringFunctionExpression.normalize(leftTerm),
+                StringFunctionExpression.normalize(rightTerm)
+        );
+    }
+
+    public static Comparison contentGridPrefixSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        return startsWith(
+                StringFunctionExpression.contentGridPrefixSearchNormalize(leftTerm),
+                StringFunctionExpression.contentGridPrefixSearchNormalize(rightTerm)
+        );
     }
 
     public static final class StartsWith extends StringComparison {
