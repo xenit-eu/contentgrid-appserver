@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.expression.CustomFunctionExpression;
 import com.contentgrid.appserver.query.engine.expression.StringComparison.StartsWith;
 import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression.ContentGridPrefixSearchNormalizeExpression;
@@ -29,8 +30,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -38,10 +42,6 @@ import org.jooq.impl.DSL;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQThunkExpressionVisitor.JOOQContext> {
-
-    @NonNull
-    private final JoinCollection joinCollection;
-    private final Set<String> variables = new HashSet<>();
 
     @Override
     public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
@@ -198,7 +198,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         };
 
         if (result instanceof Condition condition) {
-            return joinCollection.collect(condition);
+            return context.getJoinCollection().collect(condition);
         }
         return result;
     }
@@ -224,13 +224,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             throw new InvalidThunkExpressionException("Symbolic reference with subject %s is not supported"
                     .formatted(symbolicReference.getSubject().getName()));
         }
-        var result = handlePath(symbolicReference.getPath().iterator(), context.application(), context.entity());
+        var result = handlePath(context.getEntity(), symbolicReference.getPath().iterator(), context);
         // Reset current table of join collection, so that next joins are added to root again
-        this.joinCollection.resetCurrentTable();
+        context.getJoinCollection().resetCurrentTable();
         return result;
     }
 
-    private Field<?> handlePath(Iterator<PathElement> path, @NonNull Application application, @NonNull Entity entity)
+    private Field<?> handlePath(@NonNull Entity entity, @NonNull Iterator<PathElement> path, @NonNull JOOQContext context)
             throws InvalidThunkExpressionException {
         if (!path.hasNext()) {
             throw new InvalidThunkExpressionException("Empty path");
@@ -242,28 +242,28 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         Optional<Attribute> maybeAttribute = entity.getAttributeByName(AttributeName.of(name));
         if (maybeAttribute.isPresent()) {
             var attribute = maybeAttribute.get();
-            return handleAttribute(attribute, path);
+            return handleAttribute(context.getJoinCollection().getCurrentAlias(), attribute, path);
         }
 
         // Check if pathElement references relation
-        Optional<Relation> maybeRelation = application.getRelationForEntity(entity, RelationName.of(name));
+        Optional<Relation> maybeRelation = context.getApplication().getRelationForEntity(entity, RelationName.of(name));
         if (maybeRelation.isPresent()) {
             var relation = maybeRelation.get();
-            return handleRelation(application, relation, path);
+            return handleRelation(relation, path, context);
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
         throw new InvalidThunkExpressionException("Path element %s does not exist on entity %s".formatted(name, entity));
     }
 
-    private Field<?> handleAttribute(Attribute attribute, Iterator<SymbolicReference.PathElement> path)
+    private Field<?> handleAttribute(@NonNull TableName currentAlias, @NonNull Attribute attribute, @NonNull Iterator<SymbolicReference.PathElement> path)
             throws InvalidThunkExpressionException {
         switch (attribute) {
             case SimpleAttribute simpleAttribute -> {
                 if (path.hasNext()) {
                     throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
                 }
-                return JOOQUtils.resolveField(joinCollection.getCurrentAlias(), simpleAttribute);
+                return JOOQUtils.resolveField(currentAlias, simpleAttribute);
             }
             case CompositeAttribute compositeAttribute -> {
                 if (!path.hasNext()) {
@@ -276,7 +276,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 Optional<Attribute> maybeAttribute = compositeAttribute.getAttributeByName(AttributeName.of(name));
                 if (maybeAttribute.isPresent()) {
                     var subAttribute = maybeAttribute.get();
-                    return handleAttribute(subAttribute, path);
+                    return handleAttribute(currentAlias, subAttribute, path);
                 } else {
                     // pathElement seems to reference a non-existing attribute
                     throw new InvalidThunkExpressionException("Path element %s does not exist on attribute %s".formatted(name, compositeAttribute.getName()));
@@ -285,7 +285,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    public Field<?> handleRelation(@NonNull Application application, @NonNull Relation relation, Iterator<SymbolicReference.PathElement> path) {
+    public Field<?> handleRelation(@NonNull Relation relation, @NonNull Iterator<SymbolicReference.PathElement> path, @NonNull JOOQContext context) {
         if (!path.hasNext()) {
             // TODO: maybe you don't want to follow the relation and just want to use the UUID?
             throw new InvalidThunkExpressionException("Path is not long enough");
@@ -295,8 +295,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             case OneToManyRelation ignored -> {
                 var pathElement = path.next();
                 if (pathElement instanceof VariablePathElement variable) {
-                    // add to variables and check whether variable is unique
-                    if (!variables.add(variable.getVariable().getName())) {
+                    // add variable to context and check whether variable is unique
+                    if (!context.addVariable(variable.getVariable().getName())) {
                         throw new InvalidThunkExpressionException(
                                 "Variable %s is not unique".formatted(variable.getVariable().getName()));
                     }
@@ -308,8 +308,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             case ManyToManyRelation ignored -> {
                 var pathElement = path.next();
                 if (pathElement instanceof VariablePathElement variable) {
-                    // add to variables and check whether variable is unique
-                    if (!variables.add(variable.getVariable().getName())) {
+                    // add variable to context and check whether variable is unique
+                    if (!context.addVariable(variable.getVariable().getName())) {
                         throw new InvalidThunkExpressionException(
                                 "Variable %s is not unique".formatted(variable.getVariable().getName()));
                     }
@@ -322,8 +322,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 // no variable access for *-to-one relations
             }
         }
-        this.joinCollection.addRelation(relation);
-        return handlePath(path, application, relation.getTargetEndPoint().getEntity());
+        context.getJoinCollection().addRelation(relation);
+        return handlePath(relation.getTargetEndPoint().getEntity(), path, context);
     }
 
     @Override
@@ -331,7 +331,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         throw new InvalidThunkExpressionException("Variable %s is not supported".formatted(variable.getName()));
     }
 
-    private static String getPathElementName(PathElement elem) throws InvalidThunkExpressionException {
+    private static String getPathElementName(@NonNull PathElement elem) throws InvalidThunkExpressionException {
         if (elem instanceof StringPathElement string) {
             return ((Scalar<String>) string.getPath()).getValue();
         }
@@ -339,7 +339,34 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
     }
 
-    public record JOOQContext(@NonNull Application application, @NonNull Entity entity) {
+    @Value
+    public static class JOOQContext {
 
+        @NonNull Application application;
+        @NonNull Entity entity;
+
+        @Getter(AccessLevel.PRIVATE)
+        @NonNull JoinCollection joinCollection;
+
+        @Getter(AccessLevel.NONE)
+        Set<String> variables = new HashSet<>();
+
+        public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
+            this.application = application;
+            this.entity = entity;
+            this.joinCollection = new JoinCollection(entity.getTable());
+        }
+
+        public TableName getRootTable() {
+            return joinCollection.getRootTable();
+        }
+
+        public TableName getRootAlias() {
+            return joinCollection.getRootAlias();
+        }
+
+        private boolean addVariable(String variable) {
+            return variables.add(variable);
+        }
     }
 }

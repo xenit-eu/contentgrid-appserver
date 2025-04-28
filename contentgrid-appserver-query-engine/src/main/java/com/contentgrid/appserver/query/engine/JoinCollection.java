@@ -44,14 +44,6 @@ public class JoinCollection {
         this.currentAlias = this.rootAlias;
     }
 
-    public JoinCollection(@NonNull TableName rootTable, @NonNull TableName rootAlias, int aliasCount) {
-        this.rootTable = rootTable;
-        this.rootAlias = rootAlias;
-        this.aliasCount = aliasCount;
-        this.currentTable = this.rootTable;
-        this.currentAlias = this.rootAlias;
-    }
-
     private TableName generateAlias(TableName table) {
         this.currentTable = table;
         this.currentAlias = TableName.of(table.getValue().charAt(0) + String.valueOf(aliasCount));
