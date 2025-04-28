@@ -23,7 +23,7 @@ public enum ProblemType implements ProblemTypeResolvable {
         this.params = params;
     }
 
-    private final static String CLASSNAME = ProblemType.class.getName();
+    private static final String CLASSNAME = ProblemType.class.getName();
 
     final String[] params;
 

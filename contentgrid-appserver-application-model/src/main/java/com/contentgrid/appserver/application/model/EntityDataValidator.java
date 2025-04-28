@@ -6,14 +6,17 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import lombok.experimental.UtilityClass;
 
 /**
  * Validates entity instance data against the entity's attribute definitions. Ensures that all required attributes are
  * present and have the correct data types.
  */
+@UtilityClass
 public class EntityDataValidator {
 
     /**
@@ -70,75 +73,84 @@ public class EntityDataValidator {
     }
 
     private static Object validateSimpleAttributeValue(SimpleAttribute attribute, Object value) {
-        Type type = attribute.getType();
+        return switch (attribute.getType()) {
+            case TEXT -> validateStringAttributeValue(value);
+            case LONG -> validateLongAttributeValue(value);
+            case DOUBLE -> validateDoubleAttributeValue(value);
+            case BOOLEAN -> validateBooleanAttributeValue(value);
+            case DATETIME -> validateDatetimeAttributeValue(value);
+            case UUID -> validateUuidAttributeValue(value);
+        };
+    }
 
-        switch (type) {
-            case TEXT -> {
-                if (!(value instanceof String)) {
-                    throw new IllegalArgumentException("Expected text value, got: " + value.getClass().getSimpleName());
-                }
-                return value;
+    private static UUID validateUuidAttributeValue(Object value) {
+        if (value instanceof UUID uuid) {
+            return uuid;
+        } else if (value instanceof String str) {
+            try {
+                return UUID.fromString(str);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid UUID format: " + str);
             }
-            case LONG -> {
-                if (value instanceof Number number) {
-                    return number.longValue();
-                } else if (value instanceof String str) {
-                    try {
-                        return Long.parseLong(str);
-                    } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Invalid number format: " + str);
-                    }
-                }
-                throw new IllegalArgumentException("Expected numeric value, got: " + value.getClass().getSimpleName());
-            }
-            case DOUBLE -> {
-                if (value instanceof Number number) {
-                    return number.doubleValue();
-                } else if (value instanceof String str) {
-                    try {
-                        return Double.parseDouble(str);
-                    } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Invalid decimal format: " + str);
-                    }
-                }
-                throw new IllegalArgumentException("Expected decimal value, got: " + value.getClass().getSimpleName());
-            }
-            case BOOLEAN -> {
-                if (value instanceof Boolean) {
-                    return value;
-                } else if (value instanceof String str) {
-                    if (str.equalsIgnoreCase("true") || str.equalsIgnoreCase("false")) {
-                        return Boolean.parseBoolean(str);
-                    }
-                    throw new IllegalArgumentException("Invalid boolean value: " + str);
-                }
-                throw new IllegalArgumentException("Expected boolean value, got: " + value.getClass().getSimpleName());
-            }
-            case DATETIME -> {
-                if (value instanceof Instant) {
-                    return value;
-                } else if (value instanceof String str) {
-                    try {
-                        return Instant.parse(str);
-                    } catch (Exception e) {
-                        throw new IllegalArgumentException("Invalid datetime format: " + str);
-                    }
-                }
-                throw new IllegalArgumentException("Expected datetime value, got: " + value.getClass().getSimpleName());
-            }
-            case UUID -> {
-                if (value instanceof UUID) {
-                    return value;
-                } else if (value instanceof String str) {
-                    try {
-                        return UUID.fromString(str);
-                    } catch (IllegalArgumentException e) {
-                        throw new IllegalArgumentException("Invalid UUID format: " + str);
-                    }
-                }
-                throw new IllegalArgumentException("Expected UUID value, got: " + value.getClass().getSimpleName());
-            }
-            default -> throw new IllegalArgumentException("Unsupported attribute type: " + type);
         }
+        throw new IllegalArgumentException("Expected UUID value, got: " + value.getClass().getSimpleName());
+    }
+
+    private static Instant validateDatetimeAttributeValue(Object value) {
+        if (value instanceof Instant instant) {
+            return instant;
+        } else if (value instanceof String str) {
+            try {
+                return Instant.parse(str);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid datetime format: " + str, e);
+            }
+        }
+        throw new IllegalArgumentException("Expected datetime value, got: " + value.getClass().getSimpleName());
+    }
+
+    private static boolean validateBooleanAttributeValue(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        } else if (value instanceof String str) {
+            if (str.equalsIgnoreCase("true") || str.equalsIgnoreCase("false")) {
+                return Boolean.parseBoolean(str);
+            }
+            throw new IllegalArgumentException("Invalid boolean value: " + str);
+        }
+        throw new IllegalArgumentException("Expected boolean value, got: " + value.getClass().getSimpleName());
+    }
+
+    private static double validateDoubleAttributeValue(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        } else if (value instanceof String str) {
+            try {
+                return Double.parseDouble(str);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid decimal format: " + str);
+            }
+        }
+        throw new IllegalArgumentException("Expected decimal value, got: " + value.getClass().getSimpleName());
+    }
+
+    private static long validateLongAttributeValue(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        } else if (value instanceof String str) {
+            try {
+                return Long.parseLong(str);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid number format: " + str);
+            }
+        }
+        throw new IllegalArgumentException("Expected numeric value, got: " + value.getClass().getSimpleName());
+    }
+
+    private static String validateStringAttributeValue(Object value) {
+        if (!(value instanceof String)) {
+            throw new IllegalArgumentException("Expected text value, got: " + value.getClass().getSimpleName());
+        }
+        return (String) value;
     }
 }

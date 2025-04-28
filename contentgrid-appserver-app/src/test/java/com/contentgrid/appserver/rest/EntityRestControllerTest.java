@@ -111,7 +111,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testSuccessfullyCreateEntityInstance() throws Exception {
+    void testSuccessfullyCreateEntityInstance() throws Exception {
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Test Product");
         product.put("price", 29.99);
@@ -132,7 +132,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testSuccessfullyRetrieveEntityInstance() throws Exception {
+    void testSuccessfullyRetrieveEntityInstance() throws Exception {
         // First create an entity
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Retrievable Product");
@@ -160,7 +160,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testFailToCreateEntityWithInvalidPayloadStructure() throws Exception {
+    void testFailToCreateEntityWithInvalidPayloadStructure() throws Exception {
         Map<String, Object> invalidProduct = new HashMap<>();
         invalidProduct.put("name", "Invalid Product");
         invalidProduct.put("price", "not-a-number"); // This should be a number
@@ -177,7 +177,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testFailToCreateEntityWithInvalidJson() throws Exception {
+    void testFailToCreateEntityWithInvalidJson() throws Exception {
         String invalidJson = "{\"name\": \"Broken JSON, \"price\": 19.99}"; // Missing quotes
 
         mockMvc.perform(post("/products")
@@ -190,7 +190,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testGetNonExistentEntityInstance() throws Exception {
+    void testGetNonExistentEntityInstance() throws Exception {
         String nonExistentId = UUID.randomUUID().toString();
 
         mockMvc.perform(get("/products/" + nonExistentId))
@@ -198,7 +198,7 @@ public class EntityRestControllerTest {
     }
 
     @Test
-    public void testListEntityInstances() throws Exception {
+    void testListEntityInstances() throws Exception {
         // Create multiple products first
         Map<String, Object> product1 = new HashMap<>();
         product1.put("name", "First Product");
