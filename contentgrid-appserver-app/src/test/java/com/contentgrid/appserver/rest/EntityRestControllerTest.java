@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class EntityRestControllerTest {
+class EntityRestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
