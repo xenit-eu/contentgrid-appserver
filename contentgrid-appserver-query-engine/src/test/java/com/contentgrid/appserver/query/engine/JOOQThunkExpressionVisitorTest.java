@@ -57,12 +57,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
+@Transactional
 class JOOQThunkExpressionVisitorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -237,8 +239,6 @@ class JOOQThunkExpressionVisitorTest {
             .relation(PERSON_FRIENDS)
             .build();
 
-    private static boolean tablesCreated;
-
     private static final UUID ALICE_ID = UUID.randomUUID();
     private static final UUID BOB_ID = UUID.randomUUID();
     private static final UUID JOHN_ID = UUID.randomUUID();
@@ -256,12 +256,10 @@ class JOOQThunkExpressionVisitorTest {
 
     @BeforeEach
     void setup() {
-        if (!tablesCreated) {
-            createCGPrefixSearchNormalize();
-            tableCreator.createTables(dslContext, APPLICATION);
-            insertData();
-            tablesCreated = true;
-        }
+        // no AfterEach needed, because setup() is called in the same transaction of a test.
+        createCGPrefixSearchNormalize();
+        tableCreator.createTables(dslContext, APPLICATION);
+        insertData();
     }
 
     void createCGPrefixSearchNormalize() {
