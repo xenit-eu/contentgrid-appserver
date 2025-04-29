@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.expression;
+package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
