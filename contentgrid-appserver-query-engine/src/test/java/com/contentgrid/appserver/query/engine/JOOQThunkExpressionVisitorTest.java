@@ -32,6 +32,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitorTest.TestApplication;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -56,6 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -250,7 +252,8 @@ class JOOQThunkExpressionVisitorTest {
     @Autowired
     private DSLContext dslContext;
 
-    private final JOOQTableCreator tableCreator = new JOOQTableCreator();
+    @Autowired
+    private TableCreator tableCreator;
 
     private static final JOOQThunkExpressionVisitor VISITOR = new JOOQThunkExpressionVisitor();
 
@@ -258,7 +261,7 @@ class JOOQThunkExpressionVisitorTest {
     void setup() {
         // no AfterEach needed, because setup() is called in the same transaction of a test.
         createCGPrefixSearchNormalize();
-        tableCreator.createTables(dslContext, APPLICATION);
+        tableCreator.createTables(APPLICATION);
         insertData();
     }
 
@@ -694,6 +697,11 @@ class JOOQThunkExpressionVisitorTest {
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
+        }
+
+        @Bean
+        public TableCreator jooqTableCreator(DSLContext dslContext) {
+            return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
         }
     }
 }

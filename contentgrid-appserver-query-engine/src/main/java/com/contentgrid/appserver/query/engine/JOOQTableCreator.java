@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
 import lombok.RequiredArgsConstructor;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
@@ -20,10 +21,19 @@ import org.jooq.impl.DSL;
 import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
-public class JOOQTableCreator {
+public class JOOQTableCreator implements TableCreator {
+
+    private final DSLContextResolver resolver;
+
+    @Override
+    public void createTables(Application application) {
+        var dslContext = resolver.resolve(application);
+        // create tables inside transaction
+        createTablesForDslContext(dslContext, application);
+    }
 
     @Transactional
-    public void createTables(DSLContext dslContext, Application application) {
+    public void createTablesForDslContext(DSLContext dslContext, Application application) {
         for (var entity : application.getEntities()) {
             createTableForEntity(dslContext, entity);
         }

@@ -34,6 +34,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplication;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -50,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
@@ -229,7 +231,8 @@ class JOOQTableCreatorTest {
     @Autowired
     private DSLContext dslContext;
 
-    private final JOOQTableCreator tableCreator = new JOOQTableCreator();
+    @Autowired
+    private TableCreator tableCreator;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -293,7 +296,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(dslContext, application);
+        tableCreator.createTables(application);
 
         var columnInfo = getColumnInfo("public", "person");
 
@@ -311,7 +314,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(dslContext, application);
+        tableCreator.createTables(application);
 
         var columnInfo = getColumnInfo("public", "invoice");
 
@@ -370,7 +373,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(dslContext, application);
+        tableCreator.createTables(application);
 
         var personInfo = getColumnInfo("public", "person");
         var invoiceInfo = getColumnInfo("public", "invoice");
@@ -393,7 +396,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(dslContext, application);
+        tableCreator.createTables(application);
 
         var personInfo = getColumnInfo("public", "person");
         var joinTableInfo = getColumnInfo("public", "person__friends");
@@ -423,7 +426,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         // create tables
-        tableCreator.createTables(dslContext, application);
+        tableCreator.createTables(application);
 
         var columnInfo = getColumnInfo("public", "invoice");
         var foreignKeys = getForeignKeys("public", "invoice");
@@ -454,13 +457,18 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(dslContext, application));
+        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
     }
 
     @SpringBootApplication
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
+        }
+
+        @Bean
+        public TableCreator jooqTableCreator(DSLContext dslContext) {
+            return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
         }
     }
 }
