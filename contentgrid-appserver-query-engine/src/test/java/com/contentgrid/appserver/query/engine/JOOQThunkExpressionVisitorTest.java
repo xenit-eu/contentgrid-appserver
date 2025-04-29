@@ -35,6 +35,7 @@ import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitorTest.Tes
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.expression.StringFunctionExpression;
+import com.contentgrid.appserver.query.engine.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.NumericFunction;

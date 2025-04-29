@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.resolver;
 
 import com.contentgrid.appserver.application.model.Application;
 import lombok.RequiredArgsConstructor;
