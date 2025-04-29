@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.jooq;
 
 public class InvalidThunkExpressionException extends RuntimeException {
 

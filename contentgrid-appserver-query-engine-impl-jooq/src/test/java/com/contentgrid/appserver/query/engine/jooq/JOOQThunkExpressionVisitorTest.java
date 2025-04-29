@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,11 +31,11 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.JOOQThunkExpressionVisitorTest.TestApplication;
+import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
-import com.contentgrid.appserver.query.engine.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.NumericFunction;

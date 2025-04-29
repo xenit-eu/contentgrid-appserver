@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -9,8 +9,8 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.JoinCollection.Join.SourceColumnJoin;
-import com.contentgrid.appserver.query.engine.JoinCollection.Join.TargetColumnJoin;
+import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.SourceColumnJoin;
+import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.TargetColumnJoin;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;

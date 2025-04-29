@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;

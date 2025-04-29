@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine;
+package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,9 +33,9 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.JOOQTableCreatorTest.TestApplication;
+import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;

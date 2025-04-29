@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.resolver;
+package com.contentgrid.appserver.query.engine.jooq.resolver;
 
 import com.contentgrid.appserver.application.model.Application;
 import org.jooq.DSLContext;
