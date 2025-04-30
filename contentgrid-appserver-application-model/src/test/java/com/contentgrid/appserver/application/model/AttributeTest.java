@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -119,7 +119,7 @@ class AttributeTest {
 
     @Test
     void compositeAttribute_auditMetadata() {
-        var attribute = CompositeAttribute.builder()
+        var attribute = CompositeAttributeImpl.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))

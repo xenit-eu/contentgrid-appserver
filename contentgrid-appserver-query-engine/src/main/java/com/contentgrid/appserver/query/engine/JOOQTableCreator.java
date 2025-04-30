@@ -6,9 +6,7 @@ import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -102,17 +100,6 @@ public class JOOQTableCreator {
                     step = createColumnsForAttribute(step, nestedAttribute);
                 }
                 return step;
-            }
-            case ContentAttribute contentAttribute -> {
-                step = createColumnsForAttribute(step, contentAttribute.getId());
-                step = createColumnsForAttribute(step, contentAttribute.getFilename());
-                step = createColumnsForAttribute(step, contentAttribute.getMimetype());
-                return createColumnsForAttribute(step, contentAttribute.getLength());
-            }
-            case UserAttribute userAttribute -> {
-                step = createColumnsForAttribute(step, userAttribute.getId());
-                step = createColumnsForAttribute(step, userAttribute.getNamespace());
-                return createColumnsForAttribute(step, userAttribute.getUsername());
             }
         }
     }

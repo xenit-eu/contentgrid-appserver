@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -135,7 +136,7 @@ class JOOQTableCreatorTest {
             .lengthColumn(ColumnName.of("content__length"))
             .build();
 
-    private static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttribute.builder()
+    private static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttributeImpl.builder()
             .name(AttributeName.of("audit_metadata"))
             .attribute(SimpleAttribute.builder()
                     .name(AttributeName.of("created_date"))

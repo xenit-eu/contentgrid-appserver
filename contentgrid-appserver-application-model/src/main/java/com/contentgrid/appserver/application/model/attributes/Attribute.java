@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
 import java.util.Set;
 
-public sealed interface Attribute permits CompositeAttribute, ContentAttribute, SimpleAttribute, UserAttribute {
+public sealed interface Attribute permits CompositeAttribute, SimpleAttribute {
 
     AttributeName getName();
 

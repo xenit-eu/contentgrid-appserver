@@ -13,7 +13,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class UserAttribute implements Attribute {
+public class UserAttribute implements CompositeAttribute {
 
     @NonNull
     AttributeName name;
@@ -50,9 +50,7 @@ public class UserAttribute implements Attribute {
     }
 
     @Override
-    public List<ColumnName> getColumns() {
-        return Stream.of(id.getColumns(), namespace.getColumns(), username.getColumns())
-                .flatMap(List::stream)
-                .toList();
+    public List<Attribute> getAttributes() {
+        return Stream.of(id, namespace, username).toList();
     }
 }

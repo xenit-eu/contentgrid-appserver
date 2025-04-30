@@ -14,7 +14,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class ContentAttribute implements Attribute {
+public class ContentAttribute implements CompositeAttribute {
 
     @NonNull
     AttributeName name;
@@ -50,9 +50,9 @@ public class ContentAttribute implements Attribute {
                 .type(Type.TEXT).build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
                 .type(Type.TEXT).build();
-        this.mimetype  = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
+        this.mimetype = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
                 .type(Type.TEXT).build();
-        this.length  = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
+        this.length = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
                 .type(Type.LONG).build();
 
         for (var flag : this.flags) {
@@ -61,9 +61,7 @@ public class ContentAttribute implements Attribute {
     }
 
     @Override
-    public List<ColumnName> getColumns() {
-        return Stream.of(id.getColumns(), filename.getColumns(), mimetype.getColumns(), length.getColumns())
-                .flatMap(List::stream)
-                .toList();
+    public List<Attribute> getAttributes() {
+        return Stream.of(id, filename, mimetype, length).toList();
     }
 }
