@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.CustomFunctionExpression;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.StartsWith;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.ContentGridPrefixSearchNormalizeExpression;
