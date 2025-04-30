@@ -3,7 +3,7 @@ package com.contentgrid.appserver.application.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -310,7 +310,7 @@ class ApplicationTest {
                 .lengthColumn(ColumnName.of("document__length"))
                 .build();
 
-        var orderAudit = CompositeAttribute.builder()
+        var orderAudit = CompositeAttributeImpl.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))

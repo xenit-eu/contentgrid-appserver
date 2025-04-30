@@ -58,8 +58,6 @@ public class SimpleAttribute implements Attribute {
         TEXT,
         DATETIME,
         UUID;
-
-        public static final Set<Type> NATIVE_TYPES = Set.of(TEXT, UUID, LONG, DOUBLE, BOOLEAN, DATETIME);
     }
 
     @Builder

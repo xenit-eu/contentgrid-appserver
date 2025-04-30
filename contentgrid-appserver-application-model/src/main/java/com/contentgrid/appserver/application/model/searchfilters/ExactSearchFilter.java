@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -33,6 +34,6 @@ public class ExactSearchFilter extends AttributeSearchFilter {
 
     @Override
     protected boolean supports(Type type) {
-        return Type.NATIVE_TYPES.contains(type);
+        return Set.of(Type.values()).contains(type);
     }
 }
