@@ -15,32 +15,32 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class EntityDataMapper {
 
-    public EntityData convert(@NonNull Entity entity, Map<String, Object> data) {
+    public EntityData from(@NonNull Entity entity, Map<String, Object> data) {
         var builder = EntityData.builder().name(entity.getName());
         for (var attribute : entity.getAllAttributes()) {
-            builder.attribute(attribute.getName(), convert(attribute, data));
+            builder.attribute(attribute.getName(), from(attribute, data));
         }
         return builder.build();
     }
 
-    public AttributeData convert(@NonNull Attribute attribute, Map<String, Object> data) {
+    public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {
         return switch (attribute) {
-            case SimpleAttribute simpleAttribute -> convert(simpleAttribute, data);
-            case CompositeAttribute compositeAttribute -> convert(compositeAttribute, data);
+            case SimpleAttribute simpleAttribute -> from(simpleAttribute, data);
+            case CompositeAttribute compositeAttribute -> from(compositeAttribute, data);
         };
     }
 
-    public SimpleAttributeData<?> convert(@NonNull SimpleAttribute attribute, Map<String, Object> data) {
+    public SimpleAttributeData<?> from(@NonNull SimpleAttribute attribute, Map<String, Object> data) {
         return SimpleAttributeData.builder()
                 .name(attribute.getName())
                 .value(data.get(attribute.getColumn().getValue()))
                 .build();
     }
 
-    public CompositeAttributeData convert(@NonNull CompositeAttribute attribute, Map<String, Object> data) {
+    public CompositeAttributeData from(@NonNull CompositeAttribute attribute, Map<String, Object> data) {
         var builder = CompositeAttributeData.builder().name(attribute.getName());
         for (var child : attribute.getAttributes()) {
-            builder.attribute(child.getName(), convert(child, data));
+            builder.attribute(child.getName(), from(child, data));
         }
         return builder.build();
     }

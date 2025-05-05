@@ -1,0 +1,200 @@
+package com.contentgrid.appserver.query.engine.jooq;
+
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.RelationData;
+import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
+import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.jooq.Condition;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.UpdateSetFirstStep;
+import org.jooq.UpdateSetMoreStep;
+import org.jooq.impl.DSL;
+import org.springframework.transaction.annotation.Transactional;
+
+@RequiredArgsConstructor
+@Transactional
+public class JOOQQueryEngine implements QueryEngine {
+
+    private final DSLContextResolver resolver;
+    private final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
+
+    @Override
+    public Stream<EntityData> findAll(@NonNull Application application, @NonNull Entity entity,
+            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(application, entity);
+        var alias = context.getRootAlias();
+        var table = JOOQUtils.resolveTable(entity, alias);
+
+        var condition = (Condition) expression.accept(visitor, context);
+        var results = dslContext.selectFrom(table)
+                .where(condition)
+                .fetch()
+                .intoMaps();
+
+        return results.stream()
+                .map(result -> EntityDataMapper.from(entity, result));
+    }
+
+    /**
+     * Return root alias for entity table, to be used in places without JOOQThunkExpressionVisitor.
+     */
+    private TableName getRootAlias(Entity entity) {
+        return new JoinCollection(entity.getTable()).getRootAlias();
+    }
+
+    @Override
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var alias = getRootAlias(entity);
+        var table = JOOQUtils.resolveTable(entity, alias);
+        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(alias, entity);
+
+        return dslContext.selectFrom(table)
+                .where(primaryKey.eq(id))
+                .fetchOptional()
+                .map(Record::intoMap)
+                .map(result -> EntityDataMapper.from(entity, result));
+    }
+
+    @Override
+    public Object create(@NonNull Application application, @NonNull EntityData data,
+            @NonNull List<RelationData> relations) throws QueryEngineException {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var entity = application.getEntityByName(data.getName())
+                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
+                        .formatted(data.getName(), application.getName())));
+        var table = DSL.table(entity.getTable().getValue());
+        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+        var id = generateId(entity);
+
+        var step = dslContext.insertInto(table)
+                .set(primaryKey, id);
+
+        var map = EntityDataConverter.convert(data, entity);
+        for (var entry : map.entrySet()) {
+            step = step.set(entry.getKey(), entry.getValue());
+        }
+
+        // TODO: add owning relations to step
+
+        step.execute();
+
+        // TODO: add relations owned by other entities
+
+        return id;
+    }
+
+    private Object generateId(Entity entity) {
+        return switch (entity.getPrimaryKey().getType()) {
+            case UUID -> UUID.randomUUID();
+            case TEXT -> UUID.randomUUID().toString();
+            default -> throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
+        };
+    }
+
+    @Override
+    public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var entity = application.getEntityByName(data.getName())
+                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
+                        .formatted(data.getName(), application.getName())));
+        var table = DSL.table(entity.getTable().getValue());
+        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+
+        UpdateSetFirstStep<?> update = dslContext.update(table);
+        UpdateSetMoreStep<?> step = null;
+        Object id = null;
+
+        var map = EntityDataConverter.convert(data, entity);
+        for (var entry : map.entrySet()) {
+            if (primaryKey.equals(entry.getKey())) {
+                // Primary key ends up in the where clause.
+                id = entry.getValue();
+            } else if (step == null) {
+                step = update.set(entry.getKey(), entry.getValue());
+            } else {
+                step = step.set(entry.getKey(), entry.getValue());
+            }
+        }
+
+        if (id == null) {
+            throw new InvalidDataException("Provided data does not contain primary key attribute '%s'"
+                    .formatted(entity.getPrimaryKey().getName()));
+        } else if (step == null) {
+            throw new InvalidDataException("Provided data is empty");
+        }
+
+        var updated = step.where(primaryKey.eq(id))
+                .execute();
+
+        if (updated == 0) {
+            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
+        }
+    }
+
+    @Override
+    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id)
+            throws QueryEngineException {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var table = DSL.table(entity.getTable().getValue());
+        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+
+        // TODO: Try deleting relations first?
+
+        var deleted = dslContext.deleteFrom(table)
+                .where(primaryKey.eq(id))
+                .execute();
+
+        if (deleted == 0) {
+            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
+        }
+    }
+
+    @Override
+    public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
+        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var table = DSL.table(entity.getTable().getValue());
+
+        dslContext.deleteFrom(table).execute();
+    }
+
+    @Override
+    public void setLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
+            @NonNull RelationData data) throws QueryEngineException {
+
+    }
+
+    @Override
+    public void unsetLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
+            @NonNull Relation relation) throws QueryEngineException {
+
+    }
+
+    @Override
+    public void addLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
+            @NonNull RelationData data) throws QueryEngineException {
+
+    }
+
+    @Override
+    public void removeLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
+            @NonNull RelationData data) throws QueryEngineException {
+
+    }
+}
