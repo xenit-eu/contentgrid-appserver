@@ -24,7 +24,6 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
-import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -48,8 +47,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             // Special case, the value is null
             throw new InvalidThunkExpressionException("null values are not supported");
         } else if (Number.class.equals(scalar.getResultType())) {
-            // Number is not supported, use BigDecimal instead
-            return DSL.value(scalar.getValue(), BigDecimal.class);
+            // Number is not supported
+            return DSL.value(scalar.getValue(), scalar.getValue().getClass());
         }
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
@@ -168,7 +167,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             }
             case CUSTOM -> {
                 if (functionExpression instanceof CustomFunctionExpression<?> customFunctionExpression) {
-                    switch (customFunctionExpression) {
+                    yield switch (customFunctionExpression) {
                         case StartsWith startsWith -> {
                             var leftField = startsWith.getLeftTerm().accept(this, context);
                             var rightField = startsWith.getRightTerm().accept(this, context);
@@ -182,12 +181,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             var field = expression.getTerm().accept(this, context);
                             yield DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
                         }
-                        default -> {
-                            throw new InvalidThunkExpressionException(
-                                    "Function expression with type %s is not supported.".formatted(
-                                            functionExpression.getClass().getSimpleName()));
-                        }
-                    }
+                        default -> throw new InvalidThunkExpressionException(
+                                "Function expression with type %s is not supported.".formatted(
+                                        functionExpression.getClass().getSimpleName()));
+                    };
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
@@ -267,7 +264,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             }
             case CompositeAttribute compositeAttribute -> {
                 if (tail.isEmpty()) {
-                    throw new InvalidThunkExpressionException("Path is not long enough");
+                    throw new InvalidThunkExpressionException("Path can not end in a composite attribute");
                 }
                 var pathElement = tail.getFirst();
                 var newTail = tail.subList(1, tail.size());
@@ -288,41 +285,21 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
     private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<SymbolicReference.PathElement> tail, @NonNull JOOQContext context) {
         if (tail.isEmpty()) {
-            // TODO: maybe you don't want to follow the relation and just want to use the UUID?
-            throw new InvalidThunkExpressionException("Path is not long enough");
+            throw new InvalidThunkExpressionException("Path can not end in a relation");
         }
         // check variable access for *-to-many relations
-        switch (relation) {
-            case OneToManyRelation ignored -> {
-                var pathElement = tail.getFirst();
-                if (pathElement instanceof VariablePathElement variable) {
-                    // add variable to context and check whether variable is unique
-                    if (!context.addVariable(variable.getVariable().getName())) {
-                        throw new InvalidThunkExpressionException(
-                                "Variable %s is not unique".formatted(variable.getVariable().getName()));
-                    }
-                    tail = tail.subList(1, tail.size());
-                } else {
-                    throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a one-to-many relation, got '%s' of type %s."
-                            .formatted(pathElement, pathElement.getClass().getSimpleName()));
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            var pathElement = tail.getFirst();
+            if (pathElement instanceof VariablePathElement variable) {
+                // add variable to context and check whether variable is unique
+                if (!context.addVariable(variable.getVariable().getName())) {
+                    throw new InvalidThunkExpressionException(
+                            "Variable %s is not unique".formatted(variable.getVariable().getName()));
                 }
-            }
-            case ManyToManyRelation ignored -> {
-                var pathElement = tail.getFirst();
-                if (pathElement instanceof VariablePathElement variable) {
-                    // add variable to context and check whether variable is unique
-                    if (!context.addVariable(variable.getVariable().getName())) {
-                        throw new InvalidThunkExpressionException(
-                                "Variable %s is not unique".formatted(variable.getVariable().getName()));
-                    }
-                    tail = tail.subList(1, tail.size());
-                } else {
-                    throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a many-to-many relation, got '%s' of type %s."
-                            .formatted(pathElement, pathElement.getClass().getSimpleName()));
-                }
-            }
-            default -> {
-                // no variable access for *-to-one relations
+                tail = tail.subList(1, tail.size());
+            } else {
+                throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a *-to-many relation, got '%s' of type %s."
+                        .formatted(pathElement, pathElement.getClass().getSimpleName()));
             }
         }
         context.getJoinCollection().addRelation(relation);
