@@ -11,7 +11,6 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import lombok.NonNull;
 
 public interface QueryEngine {
