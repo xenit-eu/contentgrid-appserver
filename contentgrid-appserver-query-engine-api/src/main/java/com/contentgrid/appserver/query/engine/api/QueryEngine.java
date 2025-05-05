@@ -4,7 +4,9 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
@@ -17,7 +19,8 @@ public interface QueryEngine {
     /**
      * Find all entities that match the given expression.
      */
-    Stream<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
+    SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression,
+            PageData pageData) throws QueryEngineException;
 
     /**
      * Find an entity that matches the given id.

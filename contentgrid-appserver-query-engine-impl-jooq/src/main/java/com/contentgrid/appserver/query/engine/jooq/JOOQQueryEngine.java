@@ -6,7 +6,10 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -15,7 +18,6 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Condition;
@@ -34,8 +36,8 @@ public class JOOQQueryEngine implements QueryEngine {
     private final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     @Override
-    public Stream<EntityData> findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
+    public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
+            @NonNull ThunkExpression<Boolean> expression, PageData pageData) throws QueryEngineException {
         var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
         var context = new JOOQThunkExpressionVisitor.JOOQContext(application, entity);
         var alias = context.getRootAlias();
@@ -47,8 +49,14 @@ public class JOOQQueryEngine implements QueryEngine {
                 .fetch()
                 .intoMaps();
 
-        return results.stream()
-                .map(result -> EntityDataMapper.from(entity, result));
+        return SliceData.builder()
+                .entities(results.stream()
+                        .map(result -> EntityDataMapper.from(entity, result))
+                        .toList())
+                .pageInfo(PageInfo.builder()
+                        // TODO: ACC-2048 support paging
+                        .build())
+                .build();
     }
 
     /**
@@ -88,6 +96,9 @@ public class JOOQQueryEngine implements QueryEngine {
 
         var map = EntityDataConverter.convert(data, entity);
         for (var entry : map.entrySet()) {
+            if (primaryKey.equals(entry.getKey())) {
+                throw new InvalidDataException("Provided data contains primary key, which is auto-generated");
+            }
             step = step.set(entry.getKey(), entry.getValue());
         }
 
