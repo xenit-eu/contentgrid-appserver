@@ -86,7 +86,7 @@ public class JOOQTableCreator implements TableCreator {
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
         var step = dslContext.createTable(entity.getTable().getValue())
-                .column(JOOQUtils.resolveField(entity.getPrimaryKey().getColumn(), entity.getPrimaryKey().getType(), true))
+                .column(JOOQUtils.resolvePrimaryKey(entity))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
         for (var attribute : entity.getAttributes()) {
             step = createColumnsForAttribute(step, attribute);

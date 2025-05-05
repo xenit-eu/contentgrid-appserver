@@ -39,6 +39,22 @@ public class JOOQUtils {
         return DSL.field(DSL.name(alias.getValue(), column.getValue()), resolveType(type, required));
     }
 
+    public static Field<?> resolvePrimaryKey(Entity entity) {
+        return resolvePrimaryKey(entity.getPrimaryKey());
+    }
+
+    public static Field<?> resolvePrimaryKey(SimpleAttribute primaryKey) {
+        return resolveField(primaryKey.getColumn(), primaryKey.getType(), true);
+    }
+
+    public static Field<?> resolvePrimaryKey(TableName alias, Entity entity) {
+        return resolvePrimaryKey(alias, entity.getPrimaryKey());
+    }
+
+    public static Field<?> resolvePrimaryKey(TableName alias, SimpleAttribute primaryKey) {
+        return resolveField(alias, primaryKey.getColumn(), primaryKey.getType(), true);
+    }
+
     private static DataType<?> resolveType(SimpleAttribute.Type type, boolean required) {
         var dataType = switch (type) {
             case UUID -> SQLDataType.UUID;
