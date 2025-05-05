@@ -286,7 +286,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    public Field<?> handleRelation(@NonNull Relation relation, @NonNull List<SymbolicReference.PathElement> tail, @NonNull JOOQContext context) {
+    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<SymbolicReference.PathElement> tail, @NonNull JOOQContext context) {
         if (tail.isEmpty()) {
             // TODO: maybe you don't want to follow the relation and just want to use the UUID?
             throw new InvalidThunkExpressionException("Path is not long enough");
