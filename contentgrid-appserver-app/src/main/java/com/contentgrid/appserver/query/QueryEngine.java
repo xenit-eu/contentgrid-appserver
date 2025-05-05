@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface QueryEngine {
-    List<EntityInstance> query(Entity entity, Map<String, String> filters);
+    ItemCountPage<EntityInstance> query(Entity entity, Map<String, String> filters, PageRequest pageRequest);
     Optional<EntityInstance> findById(Entity entity, String id);
     EntityInstance createInstance(Entity entity, Map<String, Object> data);
 }

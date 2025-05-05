@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.EntityDataValidator;
+import com.contentgrid.appserver.query.ItemCountPage.ItemCount;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,9 +31,10 @@ public class DummyQueryEngine implements QueryEngine {
     }
 
     @Override
-    public List<EntityInstance> query(Entity entity, Map<String, String> filters) {
+    public ItemCountPage<EntityInstance> query(Entity entity, Map<String, String> filters, PageRequest pageRequest) {
         String entityName = entity.getName().getValue();
-        return entityInstances.getOrDefault(entityName, List.of());
+        var res = entityInstances.getOrDefault(entityName, List.of());
+        return new ItemCountPageImpl<>(res, new ItemCount(res.size(), true));
     }
 
     @Override

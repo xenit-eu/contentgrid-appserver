@@ -7,12 +7,16 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.EntityInstance;
+import com.contentgrid.appserver.query.PageRequest;
 import com.contentgrid.appserver.query.QueryEngine;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.LinkRelation;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
@@ -38,16 +42,20 @@ public class EntityRestController {
     }
 
     @GetMapping("/{entityName}")
-    public CollectionModel<?> listEntity(@PathVariable PathSegmentName entityName, @RequestParam Map<String, String> params) {
+    public CollectionModel<?> listEntity(
+            @PathVariable PathSegmentName entityName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam Map<String, String> params
+    ) {
         var entity = getEntityOrThrow(entityName);
 
-        var results = queryEngine.query(entity, params);
+        var results = queryEngine.query(entity, params, PageRequest.ofPage(page));
 
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
-        var models = results.stream()
+        var models = results.getResults().stream()
                 .map(res -> wrappers.wrap(toRepresentationModel(entity, res), LinkRelation.of("item")))
                 .toList();
-        return CollectionModel.of(models);
+        return PagedModel.of(models, new PageMetadata(results.getPageSize(), page, results.getTotalItemCount().count()));
     }
 
     @GetMapping("/{entityName}/{instanceId}")
