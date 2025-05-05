@@ -33,58 +33,66 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class EntityRestController {
 
-    private final Application application;
     private final QueryEngine queryEngine;
 
-    private Entity getEntityOrThrow(PathSegmentName entityName) {
+    private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
     }
 
     @GetMapping("/{entityName}")
     public CollectionModel<?> listEntity(
+            Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam Map<String, String> params
     ) {
-        var entity = getEntityOrThrow(entityName);
+        var entity = getEntityOrThrow(application, entityName);
 
         var results = queryEngine.query(entity, params, PageRequest.ofPage(page));
 
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.getResults().stream()
-                .map(res -> wrappers.wrap(toRepresentationModel(entity, res), LinkRelation.of("item")))
+                .map(res -> wrappers.wrap(toRepresentationModel(application, entity, res), LinkRelation.of("item")))
                 .toList();
         return PagedModel.of(models, new PageMetadata(results.getPageSize(), page, results.getTotalItemCount().count()));
     }
 
     @GetMapping("/{entityName}/{instanceId}")
-    public RepresentationModel<?> getEntity(@PathVariable PathSegmentName entityName, @PathVariable String instanceId) {
-        var entity = getEntityOrThrow(entityName);
+    public RepresentationModel<?> getEntity(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable String instanceId
+    ) {
+        var entity = getEntityOrThrow(application, entityName);
 
         var result = queryEngine.findById(entity, instanceId);
 
-        return result.map(res -> toRepresentationModel(entity, res))
+        return result.map(res -> toRepresentationModel(application, entity, res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    static RepresentationModel<?> toRepresentationModel(Entity entity, EntityInstance inst) {
+    static RepresentationModel<?> toRepresentationModel(Application application, Entity entity, EntityInstance inst) {
         return RepresentationModel.of(inst)
                 .add(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(entity.getPathSegment(), inst.getId())
+                        .getEntity(application, entity.getPathSegment(), inst.getId())
                 ).withSelfRel());
     }
 
     @PostMapping("/{entityName}")
-    public ResponseEntity<?> createEntity(@PathVariable PathSegmentName entityName, @RequestBody Map<String, Object> data) {
-        var entity = getEntityOrThrow(entityName);
+    public ResponseEntity<?> createEntity(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @RequestBody Map<String, Object> data
+    ) {
+        var entity = getEntityOrThrow(application, entityName);
 
         EntityInstance instance = queryEngine.createInstance(entity, data);
-        RepresentationModel<?> model = toRepresentationModel(entity, instance);
+        RepresentationModel<?> model = toRepresentationModel(application, entity, instance);
 
         return ResponseEntity
                 .created(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(entity.getPathSegment(), instance.getId())).toUri())
+                        .getEntity(application, entity.getPathSegment(), instance.getId())).toUri())
                 .body(model);
     }
 }
