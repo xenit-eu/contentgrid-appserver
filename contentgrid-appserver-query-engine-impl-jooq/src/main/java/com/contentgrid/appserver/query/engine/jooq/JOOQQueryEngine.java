@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
+import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -25,7 +26,10 @@ import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.UpdateSetFirstStep;
 import org.jooq.UpdateSetMoreStep;
+import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
@@ -104,7 +108,13 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // TODO: add owning relations to step
 
-        step.execute();
+        try {
+            step.execute();
+        } catch (DuplicateKeyException e) {
+            throw new ConstraintViolationException("Provided value for unique field already exists" + e.getMessage(), e);
+        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
+            throw new ConstraintViolationException(e.getMessage(), e);
+        }
 
         // TODO: add relations owned by other entities
 
@@ -151,11 +161,17 @@ public class JOOQQueryEngine implements QueryEngine {
             throw new InvalidDataException("Provided data is empty");
         }
 
-        var updated = step.where(primaryKey.eq(id))
-                .execute();
+        try {
+            var updated = step.where(primaryKey.eq(id))
+                    .execute();
 
-        if (updated == 0) {
-            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
+            if (updated == 0) {
+                throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
+            }
+        } catch (DuplicateKeyException e) {
+            throw new ConstraintViolationException("Provided value for unique field already exists" + e.getMessage(), e);
+        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
+            throw new ConstraintViolationException(e.getMessage(), e);
         }
     }
 
