@@ -12,7 +12,8 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.DummyQueryEngine;
 import com.contentgrid.appserver.query.QueryEngine;
-import com.contentgrid.appserver.registry.ApplicationRegistry;
+import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ApplicationArgumentResolverConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +35,8 @@ public class ContentgridAppConfiguration {
     }
 
     @Bean
-    ApplicationRegistry applicationRegistry() {
-        return ApplicationRegistry.bootstrap(
+    ApplicationResolver applicationResolver() {
+        return new SingleApplicationResolver(
                 Application.builder()
                         .name(ApplicationName.of("test"))
                         .entity(Entity.builder()
