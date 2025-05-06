@@ -94,12 +94,12 @@ public class JOOQQueryEngine implements QueryEngine {
         var step = dslContext.insertInto(table)
                 .set(primaryKey, id);
 
-        var map = EntityDataConverter.convert(data, entity);
-        for (var entry : map.entrySet()) {
-            if (primaryKey.equals(entry.getKey())) {
+        var list = EntityDataConverter.convert(data, entity);
+        for (var entry : list) {
+            if (primaryKey.equals(entry.field())) {
                 throw new InvalidDataException("Provided data contains primary key, which is auto-generated");
             }
-            step = step.set(entry.getKey(), entry.getValue());
+            step = step.set(entry.field(), entry.value());
         }
 
         // TODO: add owning relations to step
@@ -132,15 +132,15 @@ public class JOOQQueryEngine implements QueryEngine {
         UpdateSetMoreStep<?> step = null;
         Object id = null;
 
-        var map = EntityDataConverter.convert(data, entity);
-        for (var entry : map.entrySet()) {
-            if (primaryKey.equals(entry.getKey())) {
+        var list = EntityDataConverter.convert(data, entity);
+        for (var entry : list) {
+            if (primaryKey.equals(entry.field())) {
                 // Primary key ends up in the where clause.
-                id = entry.getValue();
+                id = entry.value();
             } else if (step == null) {
-                step = update.set(entry.getKey(), entry.getValue());
+                step = update.set(entry.field(), entry.value());
             } else {
-                step = step.set(entry.getKey(), entry.getValue());
+                step = step.set(entry.field(), entry.value());
             }
         }
 
