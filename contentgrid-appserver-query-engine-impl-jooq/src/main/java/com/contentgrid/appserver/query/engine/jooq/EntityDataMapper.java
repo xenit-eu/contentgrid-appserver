@@ -18,7 +18,7 @@ public class EntityDataMapper {
     public EntityData from(@NonNull Entity entity, Map<String, Object> data) {
         var builder = EntityData.builder().name(entity.getName());
         for (var attribute : entity.getAllAttributes()) {
-            builder.attribute(attribute.getName(), from(attribute, data));
+            builder.attribute(from(attribute, data));
         }
         return builder.build();
     }
@@ -40,7 +40,7 @@ public class EntityDataMapper {
     public CompositeAttributeData from(@NonNull CompositeAttribute attribute, Map<String, Object> data) {
         var builder = CompositeAttributeData.builder().name(attribute.getName());
         for (var child : attribute.getAttributes()) {
-            builder.attribute(child.getName(), from(child, data));
+            builder.attribute(from(child, data));
         }
         return builder.build();
     }

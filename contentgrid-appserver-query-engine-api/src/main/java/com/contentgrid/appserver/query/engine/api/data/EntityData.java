@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.query.engine.api.data;
 
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,15 +15,24 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-@Builder
 public class EntityData {
 
     @NonNull
     EntityName name;
 
-    @Singular
     @Getter(AccessLevel.NONE)
-    Map<AttributeName, AttributeData> attributes;
+    Map<AttributeName, AttributeData> attributes = new HashMap<>();
+
+    @Builder
+    EntityData(@NonNull EntityName name, @Singular List<AttributeData> attributes) {
+        this.name = name;
+        for (var attribute : attributes) {
+            var old = this.attributes.put(attribute.getName(), attribute);
+            if (old != null) {
+                throw new DuplicateElementException("Duplicate attribute with name '%s'".formatted(attribute.getName()));
+            }
+        }
+    }
 
     public List<AttributeData> getAttributes() {
         return List.copyOf(attributes.values());
