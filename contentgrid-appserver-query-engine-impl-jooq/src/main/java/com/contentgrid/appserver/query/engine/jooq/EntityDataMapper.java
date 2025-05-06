@@ -8,7 +8,11 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.Temporal;
 import java.util.Map;
+import java.util.UUID;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
@@ -31,9 +35,10 @@ public class EntityDataMapper {
     }
 
     public SimpleAttributeData<?> from(@NonNull SimpleAttribute attribute, Map<String, Object> data) {
+        var value = convert(attribute, data.get(attribute.getColumn().getValue()));
         return SimpleAttributeData.builder()
                 .name(attribute.getName())
-                .value(data.get(attribute.getColumn().getValue()))
+                .value(value)
                 .build();
     }
 
@@ -43,6 +48,50 @@ public class EntityDataMapper {
             builder.attribute(from(child, data));
         }
         return builder.build();
+    }
+
+    private Object convert(SimpleAttribute attribute, Object value) {
+        if (value == null) {
+            return null;
+        }
+        return switch (attribute.getType()) {
+            case TEXT -> {
+                if (value instanceof String string) {
+                    yield string;
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not a string".formatted(attribute.getName()));
+            }
+            case LONG -> {
+                if (value instanceof Number number) {
+                    yield number.longValue();
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not numeric".formatted(attribute.getName()));
+            }
+            case DOUBLE -> switch (value) {
+                case BigDecimal number -> number;
+                case Double number -> BigDecimal.valueOf(number);
+                case Float number -> BigDecimal.valueOf(number);
+                default -> throw new IllegalStateException("Value of attribute '%s' is not decimal".formatted(attribute.getName()));
+            };
+            case BOOLEAN -> {
+                if (value instanceof Boolean bool) {
+                    yield bool;
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not a boolean".formatted(attribute.getName()));
+            }
+            case DATETIME -> {
+                if (value instanceof Temporal temporal) {
+                    yield Instant.from(temporal);
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not a datetime".formatted(attribute.getName()));
+            }
+            case UUID -> {
+                if (value instanceof UUID uuid) {
+                    yield uuid;
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not a uuid".formatted(attribute.getName()));
+            }
+        };
     }
 
 }
