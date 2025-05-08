@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.UpdateSetFirstStep;
@@ -48,7 +47,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
 
-        var condition = (Condition) expression.accept(visitor, context);
+        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()

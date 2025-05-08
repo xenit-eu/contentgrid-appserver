@@ -1106,6 +1106,13 @@ class JOOQQueryEngineTest {
         assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, PERSON, INVOICE1_ID));
     }
 
+    @Test
+    void deleteAll() {
+        queryEngine.deleteAll(APPLICATION, INVOICE);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
+        assertTrue(slice.getEntities().isEmpty());
+    }
+
     @SpringBootApplication
     static class TestApplication {
         public static void main(String[] args) {
