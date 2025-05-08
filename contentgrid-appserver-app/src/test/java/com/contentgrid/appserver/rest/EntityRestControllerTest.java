@@ -19,6 +19,10 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.DummyQueryEngine;
 import com.contentgrid.appserver.query.QueryEngine;
+import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
@@ -48,47 +52,55 @@ class EntityRestControllerTest {
 
     static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine();
 
+    static final Application APPLICATION = Application.builder()
+            .name(ApplicationName.of("testapp"))
+            .entity(Entity.builder()
+                    .name(EntityName.of("product"))
+                    .table(TableName.of("product"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("name"))
+                            .description("Product name")
+                            .column(ColumnName.of("name"))
+                            .type(Type.TEXT)
+                            .build()
+                    )
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("price"))
+                            .description("Product price")
+                            .column(ColumnName.of("price"))
+                            .type(Type.DOUBLE)
+                            .build()
+                    )
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("release_date"))
+                            .description("Product release date")
+                            .column(ColumnName.of("release_date"))
+                            .type(Type.DATETIME)
+                            .build()
+                    )
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("in_stock"))
+                            .description("Is product in stock")
+                            .column(ColumnName.of("in_stock"))
+                            .type(Type.BOOLEAN)
+                            .build()
+                    )
+                    .build())
+            .build();
+
     @TestConfiguration
     static class TestConfig {
         @Bean
         @Primary
-        public Application testApplication() {
-            return Application.builder()
-                    .name(ApplicationName.of("testapp"))
-                    .entity(Entity.builder()
-                            .name(EntityName.of("product"))
-                            .table(TableName.of("product"))
-                            .pathSegment(PathSegmentName.of("products"))
-                            .attribute(SimpleAttribute.builder()
-                                    .name(AttributeName.of("name"))
-                                    .description("Product name")
-                                    .column(ColumnName.of("name"))
-                                    .type(Type.TEXT)
-                                    .build()
-                            )
-                            .attribute(SimpleAttribute.builder()
-                                    .name(AttributeName.of("price"))
-                                    .description("Product price")
-                                    .column(ColumnName.of("price"))
-                                    .type(Type.DOUBLE)
-                                    .build()
-                            )
-                            .attribute(SimpleAttribute.builder()
-                                    .name(AttributeName.of("release_date"))
-                                    .description("Product release date")
-                                    .column(ColumnName.of("release_date"))
-                                    .type(Type.DATETIME)
-                                    .build()
-                            )
-                            .attribute(SimpleAttribute.builder()
-                                    .name(AttributeName.of("in_stock"))
-                                    .description("Is product in stock")
-                                    .column(ColumnName.of("in_stock"))
-                                    .type(Type.BOOLEAN)
-                                    .build()
-                            )
-                            .build())
-                    .build();
+        public ApplicationResolver singleApplicationResolver() {
+            return new SingleApplicationResolver(APPLICATION);
+        }
+
+        @Bean
+        @Primary
+        EntityDataRepresentationModelAssemblerProvider assemblerProvider() {
+            return application -> new EntityDataRepresentationModelAssembler(APPLICATION);
         }
 
         @Bean
