@@ -53,7 +53,6 @@ import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -498,25 +497,25 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(INVOICE1_ID, result.get("id"));
     }
 
-    static Stream<Arguments> allFunctions() {
+    static Stream<ThunkExpression<Boolean>> allFunctions() {
         return Stream.of(
                 // equals (double)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                         Scalar.of(10.0)
-                )),
+                ),
                 // equals (long)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
                         Scalar.of(100L)
-                )),
+                ),
                 // not equals
-                Arguments.of(Comparison.notEqual(
+                Comparison.notEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_2")
-                )),
+                ),
                 // and, less than, greater than
-                Arguments.of(LogicalOperation.conjunction(Stream.of(
+                LogicalOperation.conjunction(Stream.of(
                         Comparison.greater(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(0.0)
@@ -525,9 +524,9 @@ class JOOQThunkExpressionVisitorTest {
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(12.0)
                         )
-                ))),
+                )),
                 // and, less than or equals, greater than or equals
-                Arguments.of(LogicalOperation.conjunction(Stream.of(
+                LogicalOperation.conjunction(Stream.of(
                         Comparison.greaterOrEquals(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(0.0)
@@ -536,9 +535,9 @@ class JOOQThunkExpressionVisitorTest {
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(10.0)
                         )
-                ))),
+                )),
                 // or (when query parameter is provided multiple times)
-                Arguments.of(LogicalOperation.disjunction(Stream.of(
+                LogicalOperation.disjunction(Stream.of(
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(0.0)
@@ -547,60 +546,60 @@ class JOOQThunkExpressionVisitorTest {
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(10.0)
                         )
-                ))),
+                )),
                 // not
-                Arguments.of(LogicalOperation.negation(
+                LogicalOperation.negation(
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                 Scalar.of("invoice_2")
                         )
-                )),
+                ),
                 // plus
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         NumericFunction.plus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
                         Scalar.of(20.0)
-                )),
+                ),
                 // multiply
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         NumericFunction.multiply(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
                         Scalar.of(20.0)
-                )),
+                ),
                 // minus
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         NumericFunction.minus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
                         Scalar.of(0.0)
-                )),
+                ),
                 // divide
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         NumericFunction.divide(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
                         Scalar.of(5.0)
-                )),
+                ),
                 // modulo
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         NumericFunction.modulus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(3L)),
                         Scalar.of(1.0)
-                )),
+                ),
                 // normalize
-                Arguments.of(StringComparison.normalizedEqual(
+                StringComparison.normalizedEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_¹") // invoice_1
-                )),
+                ),
                 // starts with
-                Arguments.of(StringComparison.startsWith(
+                StringComparison.startsWith(
                         StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
                         StringFunctionExpression.normalize(Scalar.of("b")) // bob
-                )),
+                ),
                 // contentgrid prefix search
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                         Scalar.of("Bö") // bob
-                ))
+                )
         );
     }
 
     @ParameterizedTest
     @MethodSource("allFunctions")
-    void findInvoice1(ThunkExpression<?> expression) {
+    void findInvoice1(ThunkExpression<Boolean> expression) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
@@ -614,83 +613,83 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(INVOICE1_ID, result.get("id"));
     }
 
-    static Stream<Arguments> illegalExpressions() {
+    static Stream<ThunkExpression<Boolean>> illegalExpressions() {
         return Stream.of(
                 // use of null value
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
                         Scalar.nullValue()
-                )),
+                ),
                 // use of null string value
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
                         Scalar.of((String) null)
-                )),
+                ),
                 // use of variable
-                Arguments.of(Comparison.areEqual(Variable.named("foo"), Scalar.of("alice"))),
+                Comparison.areEqual(Variable.named("foo"), Scalar.of("alice")),
                 // use of wrong variable
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(Variable.named("user"), SymbolicReference.path("number")),
                         Scalar.of("alice")
-                )),
+                ),
                 // no path
-                Arguments.of(Comparison.areEqual(SymbolicReference.of(ENTITY_VAR), Scalar.of("alice"))),
+                Comparison.areEqual(SymbolicReference.of(ENTITY_VAR), Scalar.of("alice")),
                 // path too short
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content")),
                         Scalar.of("alice")
-                )),
+                ),
                 // path too long
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"), SymbolicReference.path("id")),
                         Scalar.of("alice")
-                )),
+                ),
                 // non-existing attribute on entity
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("non_existing")),
                         Scalar.of("alice")
-                )),
+                ),
                 // non-existing attribute on relation (exists on source entity)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("number")),
                         Scalar.of("alice")
-                )),
+                ),
                 // non-existing attribute on composite attribute (exists on parent attribute)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("number")),
                         Scalar.of("alice")
-                )),
+                ),
                 // variable access on entity (variable name from existing attribute)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.pathVar("number")),
                         Scalar.of("alice")
-                )),
+                ),
                 // variable access on composite attribute (variable name from existing attribute)
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.pathVar("name")),
                         Scalar.of("alice")
-                )),
+                ),
                 // variable access on *-to-one relation
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
                         Scalar.of("alice")
-                )),
+                ),
                 // no variable access on *-to-many relation
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.path("name")),
                         Scalar.of("alice")
-                )),
+                ),
                 // same variable used multiple times
-                Arguments.of(Comparison.areEqual(
+                Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name")),
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name"))
-                ))
+                )
         );
     }
 
     @ParameterizedTest
     @MethodSource("illegalExpressions")
-    void findIllegalExpression(ThunkExpression<?> expression) {
+    void findIllegalExpression(ThunkExpression<Boolean> expression) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         assertThrows(InvalidThunkExpressionException.class, () -> expression.accept(VISITOR, context));
     }
