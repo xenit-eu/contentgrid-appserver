@@ -53,6 +53,8 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -252,11 +254,13 @@ class JOOQQueryEngineTest {
             .relation(PERSON_FRIENDS)
             .build();
 
-    private static final UUID ALICE_ID = UUID.randomUUID();
-    private static final UUID BOB_ID = UUID.randomUUID();
-    private static final UUID JOHN_ID = UUID.randomUUID();
-    private static final UUID INVOICE1_ID = UUID.randomUUID();
-    private static final UUID INVOICE2_ID = UUID.randomUUID();
+    private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
+
+    private static final UUID ALICE_ID = UUID_GENERATOR.generate();
+    private static final UUID BOB_ID = UUID_GENERATOR.generate();
+    private static final UUID JOHN_ID = UUID_GENERATOR.generate();
+    private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
+    private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -715,7 +719,7 @@ class JOOQQueryEngineTest {
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON.getPrimaryKey().getName())
-                                .value(UUID.randomUUID())
+                                .value(UUID_GENERATOR.generate())
                                 .build())
                         .build(),
                 // Missing required attribute
@@ -969,7 +973,7 @@ class JOOQQueryEngineTest {
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON.getPrimaryKey().getName())
-                                .value(UUID.randomUUID())
+                                .value(UUID_GENERATOR.generate())
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())

@@ -44,6 +44,8 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -242,11 +244,13 @@ class JOOQThunkExpressionVisitorTest {
             .relation(PERSON_FRIENDS)
             .build();
 
-    private static final UUID ALICE_ID = UUID.randomUUID();
-    private static final UUID BOB_ID = UUID.randomUUID();
-    private static final UUID JOHN_ID = UUID.randomUUID();
-    private static final UUID INVOICE1_ID = UUID.randomUUID();
-    private static final UUID INVOICE2_ID = UUID.randomUUID();
+    private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
+
+    private static final UUID ALICE_ID = UUID_GENERATOR.generate();
+    private static final UUID BOB_ID = UUID_GENERATOR.generate();
+    private static final UUID JOHN_ID = UUID_GENERATOR.generate();
+    private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
+    private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 

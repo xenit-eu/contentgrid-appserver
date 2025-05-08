@@ -17,9 +17,10 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Field;
@@ -38,6 +39,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private final DSLContextResolver resolver;
     private final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
+
+    private final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
@@ -123,8 +126,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private Object generateId(Entity entity) {
         return switch (entity.getPrimaryKey().getType()) {
-            case UUID -> UUID.randomUUID();
-            case TEXT -> UUID.randomUUID().toString();
+            case UUID -> uuidGenerator.generate();
+            case TEXT -> uuidGenerator.generate().toString();
             default -> throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
         };
     }
