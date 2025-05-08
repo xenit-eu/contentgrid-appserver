@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "https://contentgrid.com/schemas/application-schema.json",
+  "title": "ContentGrid Application Configuration",
+  "type": "object",
+  "properties": {
+    "applicationName": {
+      "type": "string",
+      "description": "The name of the application."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the application."
+    },
+    "entities": {
+      "type": "array",
+      "description": "A list of entities within the application.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the entity."
+          },
+          "table": {
+            "type": "string",
+            "description": "The database table associated with the entity."
+          },
+          "pathSegment": {
+            "type": "string",
+            "description": "The path segment for the entity."
+          },
+          "primaryKey": {
+            "type": "string",
+            "description": "The primary key of the entity."
+          },
+          "attributes": {
+            "type": "array",
+            "description": "A list of attributes for the entity.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the attribute."
+                },
+                "type": {
+                  "type": "string",
+                  "description": "The data type of the attribute (e.g., string, integer, boolean)."
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Indicates whether the attribute is required."
+                }
+              },
+              "required": [
+                "name",
+                "type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "table",
+          "pathSegment"
+        ]
+      }
+    },
+    "relations": {
+      "type": "array",
+      "description": "A list of relations between entities in the application.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "one-to-one",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "targetReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the target entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "targetReference"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "one-to-many",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "sourceReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the source entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "sourceReference"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "many-to-many",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "joinTable": {
+                "type": "string",
+                "description": "The name of the join table for the many-to-many relation."
+              },
+              "sourceReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the source entity"
+              },
+              "targetReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the target entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "sourceReference",
+              "targetReference",
+              "joinTable"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "applicationName",
+    "version",
+    "entities"
+  ],
+  "$defs": {
+    "relationEndPoint": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the relation."
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "The path segment for the source entity."
+        },
+        "entityName": {
+          "type": "string",
+          "description": "The name of the entity."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the relationEndPoint"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Indicates whether the relation is required for the entity"
+        }
+      },
+      "required": [
+        "entityName",
+        "required"
+      ]
+    }
+  }
+}

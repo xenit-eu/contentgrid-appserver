@@ -1,0 +1,65 @@
+{
+  "$schema": "./schema.json",
+  "applicationName": "Test Application",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "User",
+      "table": "users",
+      "pathSegment": "users",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Post",
+      "table": "posts",
+      "pathSegment": "posts",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "User",
+        "required": true
+      },
+        "targetEndpoint": {
+            "entityName": "Post",
+            "required": false
+        },
+      "sourceReference": "user_id"
+    }
+  ]
+}
