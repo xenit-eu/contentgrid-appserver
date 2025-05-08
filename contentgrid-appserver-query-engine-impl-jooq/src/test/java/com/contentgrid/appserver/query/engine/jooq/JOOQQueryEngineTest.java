@@ -205,7 +205,7 @@ class JOOQQueryEngineTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
-//                    .required(true) // ACC-2059: enable
+//                    .required(true) // TODO: ACC-2059: enable
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -593,7 +593,7 @@ class JOOQQueryEngineTest {
                                         .value(100L)
                                         .build())
                                 .build())
-                        // ACC-2051: audit_metadata not provided
+                        // audit_metadata not provided (readonly)
                         .build(),
                 // only required attributes provided
                 EntityData.builder()
@@ -800,6 +800,7 @@ class JOOQQueryEngineTest {
                                 .value("invalid_boolean") // String instead of boolean
                                 .build())
                         .build()
+                // TODO: ACC-2051: provide audit_metadata/readonly attribute
         );
     }
 
@@ -873,7 +874,7 @@ class JOOQQueryEngineTest {
                                         .value(100L)
                                         .build())
                                 .build())
-                        // ACC-2051: audit_metadata not provided
+                        // audit_metadata not provided (readonly)
                         .build(),
                 // only one attribute provided
                 EntityData.builder()
@@ -1084,6 +1085,7 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_CONTENT.getName()) // No attributes
                                 .build())
                         .build()
+                // TODO: ACC-2051: provide audit_metadata/readonly attribute
         );
     }
 

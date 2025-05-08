@@ -58,7 +58,7 @@ public class JOOQQueryEngine implements QueryEngine {
                         .map(result -> EntityDataMapper.from(entity, result))
                         .toList())
                 .pageInfo(PageInfo.builder()
-                        // ACC-2048: support paging
+                        // TODO: ACC-2048: support paging
                         .build())
                 .build();
     }
@@ -106,7 +106,7 @@ public class JOOQQueryEngine implements QueryEngine {
             step = step.set(entry.field(), entry.value());
         }
 
-        // ACC-2059: add owning relations to step
+        // TODO: ACC-2059: add owning relations to step
 
         try {
             step.execute();
@@ -116,7 +116,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throw new ConstraintViolationException(e.getMessage(), e);
         }
 
-        // ACC-2059: add relations owned by other entities
+        // TODO: ACC-2059: add relations owned by other entities
 
         return id;
     }
@@ -182,7 +182,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = DSL.table(entity.getTable().getValue());
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
 
-        // ACC-2059: Try deleting relations first?
+        // TODO: ACC-2059: Try deleting relations first?
 
         var deleted = dslContext.deleteFrom(table)
                 .where(primaryKey.eq(id))
@@ -204,36 +204,36 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId,
             @NonNull Object targetId) throws QueryEngineException {
-        return false; // ACC-2059
+        return false; // TODO: ACC-2059
     }
 
     @Override
     public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
             throws QueryEngineException {
-        return null; // ACC-2059
+        return null; // TODO: ACC-2059
     }
 
     @Override
     public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id)
             throws QueryEngineException {
-        // ACC-2059
+        // TODO: ACC-2059
     }
 
     @Override
     public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
             throws QueryEngineException {
-        // ACC-2059
+        // TODO: ACC-2059
     }
 
     @Override
     public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
             throws QueryEngineException {
-        // ACC-2059
+        // TODO: ACC-2059
     }
 
     @Override
     public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
             throws QueryEngineException {
-        // ACC-2059
+        // TODO: ACC-2059
     }
 }
