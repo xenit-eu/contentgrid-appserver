@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -39,7 +40,9 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextR
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +59,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
@@ -237,6 +241,26 @@ class JOOQTableCreatorTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+
+    private List<String> getTables(String dbSchema) {
+        // Get all tables for the given schema
+        return jdbcTemplate.execute((Connection con) -> {
+            List<String> result = new ArrayList<>();
+            DatabaseMetaData metaData = con.getMetaData();
+
+            log.debug("Querying metadata for tables in schema: %s%n", dbSchema);
+
+            try (ResultSet columns = metaData.getTables(null, dbSchema, null, null)) {
+                while (columns.next()) {
+                    String table = columns.getString("TABLE_NAME");
+                    result.add(table);
+                }
+            }
+            return result; // Return the list from the callback
+        });
+    }
+
 
     private Map<String, String> getColumnInfo(String dbSchema, String tableName) {
         // Use JdbcTemplate's execute method with a ConnectionCallback
@@ -441,6 +465,9 @@ class JOOQTableCreatorTest {
     }
 
     @Test
+    // Do not execute the test in a transaction,
+    // so that we can perform a check after the transaction of createTables() is finished
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void invalidApplication_rollbackTransaction() {
         // Table names are too long, so they are capped at the postgres limit.
         // And then they have the same name.
@@ -459,6 +486,9 @@ class JOOQTableCreatorTest {
                 .build();
 
         assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
+
+        // Check no public tables exist
+        assertTrue(getTables("public").isEmpty());
     }
 
     @SpringBootApplication

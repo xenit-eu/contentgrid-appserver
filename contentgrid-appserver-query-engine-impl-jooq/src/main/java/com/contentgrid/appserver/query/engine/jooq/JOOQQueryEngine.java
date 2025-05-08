@@ -43,7 +43,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression, PageData pageData) throws QueryEngineException {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var context = new JOOQThunkExpressionVisitor.JOOQContext(application, entity);
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
@@ -73,7 +73,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var alias = getRootAlias(entity);
         var table = JOOQUtils.resolveTable(entity, alias);
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(alias, entity);
@@ -88,7 +88,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public Object create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var entity = application.getEntityByName(data.getName())
                 .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
                         .formatted(data.getName(), application.getName())));
@@ -132,7 +132,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var entity = application.getEntityByName(data.getName())
                 .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
                         .formatted(data.getName(), application.getName())));
@@ -179,7 +179,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id)
             throws QueryEngineException {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var table = DSL.table(entity.getTable().getValue());
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
 
@@ -196,7 +196,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
-        var dslContext = resolver.resolve(application); // TODO: is it part of the transaction?
+        var dslContext = resolver.resolve(application);
         var table = DSL.table(entity.getTable().getValue());
 
         dslContext.deleteFrom(table).execute();

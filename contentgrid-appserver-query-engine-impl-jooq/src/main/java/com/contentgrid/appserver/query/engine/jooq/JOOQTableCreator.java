@@ -27,14 +27,9 @@ public class JOOQTableCreator implements TableCreator {
     private final DSLContextResolver resolver;
 
     @Override
+    @Transactional
     public void createTables(Application application) {
         var dslContext = resolver.resolve(application);
-        // create tables inside transaction
-        createTablesForDslContext(dslContext, application);
-    }
-
-    @Transactional
-    public void createTablesForDslContext(DSLContext dslContext, Application application) {
         for (var entity : application.getEntities()) {
             createTableForEntity(dslContext, entity);
         }
