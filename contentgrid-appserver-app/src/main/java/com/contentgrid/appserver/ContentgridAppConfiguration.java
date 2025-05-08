@@ -14,8 +14,12 @@ import com.contentgrid.appserver.query.DummyQueryEngine;
 import com.contentgrid.appserver.query.QueryEngine;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.ApplicationArgumentResolverConfiguration;
+import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +30,7 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 @Slf4j
 @Configuration
 @EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
-@Import({ContentgridProblemDetailConfiguration.class, ApplicationArgumentResolverConfiguration.class})
+@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class})
 public class ContentgridAppConfiguration {
 
     @Bean
@@ -67,5 +71,17 @@ public class ContentgridAppConfiguration {
                                 .build())
                         .build()
         );
+    }
+
+    @Bean
+    EntityDataRepresentationModelAssemblerProvider entityDataRepresentationModelAssemblerProvider() {
+        return new EntityDataRepresentationModelAssemblerProvider() {
+            final Map<ApplicationName, EntityDataRepresentationModelAssembler> assemblers = new HashMap<>();
+            @Override
+            public EntityDataRepresentationModelAssembler getAssemblerFor(Application application) {
+                return assemblers.computeIfAbsent(application.getName(),
+                        (_a) -> new EntityDataRepresentationModelAssembler(application));
+            }
+        };
     }
 }

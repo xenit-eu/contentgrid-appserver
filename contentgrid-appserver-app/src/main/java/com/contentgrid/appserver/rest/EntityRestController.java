@@ -9,6 +9,8 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.EntityInstance;
 import com.contentgrid.appserver.query.PageRequest;
 import com.contentgrid.appserver.query.QueryEngine;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class EntityRestController {
 
     private final QueryEngine queryEngine;
+    private final EntityDataRepresentationModelAssemblerProvider assemblerProvider;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -51,9 +54,10 @@ public class EntityRestController {
 
         var results = queryEngine.query(entity, params, PageRequest.ofPage(page));
 
+        var assembler = assemblerProvider.getAssemblerFor(application);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.getResults().stream()
-                .map(res -> wrappers.wrap(toRepresentationModel(application, entity, res), LinkRelation.of("item")))
+                .map(res -> wrappers.wrap(assembler.toModel(res), LinkRelation.of("item")))
                 .toList();
         return PagedModel.of(models, new PageMetadata(results.getPageSize(), page, results.getTotalItemCount().count()));
     }
@@ -68,7 +72,7 @@ public class EntityRestController {
 
         var result = queryEngine.findById(entity, instanceId);
 
-        return result.map(res -> toRepresentationModel(application, entity, res))
+        return result.map(res -> assemblerProvider.getAssemblerFor(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
@@ -88,7 +92,7 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         EntityInstance instance = queryEngine.createInstance(entity, data);
-        RepresentationModel<?> model = toRepresentationModel(application, entity, instance);
+        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(instance);
 
         return ResponseEntity
                 .created(linkTo(methodOn(EntityRestController.class)

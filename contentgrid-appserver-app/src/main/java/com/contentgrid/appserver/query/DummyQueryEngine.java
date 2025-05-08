@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.EntityDataValidator;
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.query.ItemCountPage.ItemCount;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class DummyQueryEngine implements QueryEngine {
                         "last_name", "Aaronson",
                         "birth_date", Instant.ofEpochSecond(765432100)
                 )
-        ).map(DummyEntityInstance::fromMap).toList()));
+        ).map(m -> DummyEntityInstance.fromMap(m, EntityName.of("person"))).toList()));
     }
 
     @Override
@@ -52,7 +53,7 @@ public class DummyQueryEngine implements QueryEngine {
         // Validate and convert data according to entity attribute definitions
         Map<String, Object> validatedData = EntityDataValidator.validate(entity, data);
 
-        EntityInstance instance = DummyEntityInstance.fromMap(validatedData);
+        EntityInstance instance = DummyEntityInstance.fromMap(validatedData, entity.getName());
         entityInstances.computeIfAbsent(entityName, k -> new ArrayList<>()).add(instance);
         return instance;
     }
