@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
+import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
@@ -202,26 +203,38 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
-            @NonNull RelationData data) throws QueryEngineException {
-
+    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId,
+            @NonNull Object targetId) throws QueryEngineException {
+        return false; // ACC-2059
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
-            @NonNull Relation relation) throws QueryEngineException {
-
+    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+            throws QueryEngineException {
+        return null; // ACC-2059
     }
 
     @Override
-    public void addLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
-            @NonNull RelationData data) throws QueryEngineException {
-
+    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id)
+            throws QueryEngineException {
+        // ACC-2059
     }
 
     @Override
-    public void removeLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id,
-            @NonNull RelationData data) throws QueryEngineException {
+    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+            throws QueryEngineException {
+        // ACC-2059
+    }
 
+    @Override
+    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+            throws QueryEngineException {
+        // ACC-2059
+    }
+
+    @Override
+    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+            throws QueryEngineException {
+        // ACC-2059
     }
 }

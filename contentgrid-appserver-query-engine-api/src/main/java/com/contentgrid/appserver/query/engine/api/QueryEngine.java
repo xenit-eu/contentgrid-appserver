@@ -7,6 +7,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
@@ -47,23 +48,33 @@ public interface QueryEngine {
     void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException;
 
     /**
+     * Returns whether the given {@code sourceId} and {@code targetId} are linked.
+     */
+    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId, @NonNull Object targetId) throws QueryEngineException;
+
+    /**
+     * Returns the target(s) that is/are linked with the entity with the given id.
+     */
+    RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id) throws QueryEngineException;
+
+    /**
      * Overwrite the link(s) from the entity with the given id with the link(s) provided in data.
      */
-    void setLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id, @NonNull RelationData data) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id) throws QueryEngineException;
 
     /**
      * Remove all link(s) from the entity with the given id.
      */
-    void unsetLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id, @NonNull Relation relation) throws QueryEngineException;
+    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id) throws QueryEngineException;
 
     /**
-     * Add the link(s) provided in data to the entity with the given id.
+     * Add the links provided in data to the entity with the given id.
      */
-    void addLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id, @NonNull RelationData data) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id) throws QueryEngineException;
 
     /**
-     * Remove the link(s) provided in data from the entity with the given id.
+     * Remove the links provided in data from the entity with the given id.
      */
-    void removeLink(@NonNull Application application, @NonNull Entity entity, @NonNull Object id, @NonNull RelationData data) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id) throws QueryEngineException;
 
 }

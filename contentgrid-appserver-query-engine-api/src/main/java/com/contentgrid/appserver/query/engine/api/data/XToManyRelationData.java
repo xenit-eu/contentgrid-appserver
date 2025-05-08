@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.api.data;
 
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.List;
 import lombok.Builder;
@@ -12,8 +13,11 @@ import lombok.Value;
 public class XToManyRelationData<T> implements RelationData {
 
     @NonNull
+    EntityName entity;
+
+    @NonNull
     RelationName name;
 
     @Singular
-    List<T> refs;
+    List<@NonNull T> refs;
 }
