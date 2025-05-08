@@ -59,7 +59,7 @@ public class JOOQQueryEngine implements QueryEngine {
                         .map(result -> EntityDataMapper.from(entity, result))
                         .toList())
                 .pageInfo(PageInfo.builder()
-                        // TODO: ACC-2048 support paging
+                        // ACC-2048: support paging
                         .build())
                 .build();
     }
@@ -107,7 +107,7 @@ public class JOOQQueryEngine implements QueryEngine {
             step = step.set(entry.field(), entry.value());
         }
 
-        // TODO: add owning relations to step
+        // ACC-2059: add owning relations to step
 
         try {
             step.execute();
@@ -117,7 +117,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throw new ConstraintViolationException(e.getMessage(), e);
         }
 
-        // TODO: add relations owned by other entities
+        // ACC-2059: add relations owned by other entities
 
         return id;
     }
@@ -183,7 +183,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = DSL.table(entity.getTable().getValue());
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
 
-        // TODO: Try deleting relations first?
+        // ACC-2059: Try deleting relations first?
 
         var deleted = dslContext.deleteFrom(table)
                 .where(primaryKey.eq(id))

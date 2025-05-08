@@ -43,7 +43,6 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
-import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -196,7 +195,7 @@ class JOOQQueryEngineTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
-//                    .required(true) // TODO: enable
+//                    .required(true) // ACC-2059: enable
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -248,8 +247,6 @@ class JOOQQueryEngineTest {
     private static final UUID JOHN_ID = UUID.randomUUID();
     private static final UUID INVOICE1_ID = UUID.randomUUID();
     private static final UUID INVOICE2_ID = UUID.randomUUID();
-
-    private static final Variable ENTITY_VAR = Variable.named("entity");
 
     @Autowired
     private DSLContext dslContext;
@@ -900,7 +897,8 @@ class JOOQQueryEngineTest {
 
     @Test
     void deleteEntityInvalidId() {
-        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, PERSON, UUID.randomUUID()));
+        // INVOICE1_ID is not a person
+        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, PERSON, INVOICE1_ID));
     }
 
     @SpringBootApplication
