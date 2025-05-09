@@ -1,0 +1,43 @@
+package com.contentgrid.appserver.query.engine.api.data;
+
+import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Singular;
+import lombok.Value;
+
+@Value
+public class CompositeAttributeData implements AttributeData {
+
+    @NonNull
+    AttributeName name;
+
+    @Getter(AccessLevel.NONE)
+    Map<AttributeName, AttributeData> attributes = new HashMap<>();
+
+    @Builder
+    CompositeAttributeData(@NonNull AttributeName name, @Singular List<AttributeData> attributes) {
+        this.name = name;
+        for (var attribute : attributes) {
+            var old = this.attributes.put(attribute.getName(), attribute);
+            if (old != null) {
+                throw new DuplicateElementException("Duplicate attribute with name '%s'".formatted(attribute.getName()));
+            }
+        }
+    }
+
+    public List<AttributeData> getAttributes() {
+        return List.copyOf(attributes.values());
+    }
+
+    public Optional<AttributeData> getAttributeByName(AttributeName name) {
+        return Optional.ofNullable(attributes.get(name));
+    }
+}
