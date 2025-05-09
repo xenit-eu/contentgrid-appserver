@@ -15,6 +15,14 @@ import org.jooq.impl.SQLDataType;
 @UtilityClass
 public class JOOQUtils {
 
+    public static Table<?> resolveTable(Entity entity) {
+        return resolveTable(entity.getTable());
+    }
+
+    public static Table<?> resolveTable(TableName tableName) {
+        return DSL.table(tableName.getValue());
+    }
+
     public static Table<?> resolveTable(Entity entity, TableName alias) {
         return resolveTable(entity.getTable(), alias);
     }

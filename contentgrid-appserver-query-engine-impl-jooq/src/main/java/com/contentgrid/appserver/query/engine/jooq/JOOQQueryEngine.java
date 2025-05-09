@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -91,10 +92,8 @@ public class JOOQQueryEngine implements QueryEngine {
     public Object create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = application.getEntityByName(data.getName())
-                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
-                        .formatted(data.getName(), application.getName())));
-        var table = DSL.table(entity.getTable().getValue());
+        var entity = getEntity(application, data.getName());
+        var table = JOOQUtils.resolveTable(entity);
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
 
@@ -124,6 +123,12 @@ public class JOOQQueryEngine implements QueryEngine {
         return id;
     }
 
+    private Entity getEntity(Application application, EntityName entityName) {
+        return application.getEntityByName(entityName)
+                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
+                        .formatted(entityName, application.getName())));
+    }
+
     private Object generateId(Entity entity) {
         return switch (entity.getPrimaryKey().getType()) {
             case UUID -> uuidGenerator.generate();
@@ -135,10 +140,8 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = application.getEntityByName(data.getName())
-                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
-                        .formatted(data.getName(), application.getName())));
-        var table = DSL.table(entity.getTable().getValue());
+        var entity = getEntity(application, data.getName());
+        var table = JOOQUtils.resolveTable(entity);
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
 
         UpdateSetFirstStep<?> update = dslContext.update(table);
@@ -182,7 +185,7 @@ public class JOOQQueryEngine implements QueryEngine {
     public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var table = DSL.table(entity.getTable().getValue());
+        var table = JOOQUtils.resolveTable(entity);
         var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
 
         // TODO: ACC-2059: Try deleting relations first?
@@ -199,7 +202,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var table = DSL.table(entity.getTable().getValue());
+        var table = JOOQUtils.resolveTable(entity);
 
         dslContext.deleteFrom(table).execute();
     }
