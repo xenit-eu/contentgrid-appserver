@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.query;
 
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.EntityDataValidator;
+import com.contentgrid.appserver.rest.EntityDataValidator;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.query.ItemCountPage.ItemCount;
 import java.time.Instant;

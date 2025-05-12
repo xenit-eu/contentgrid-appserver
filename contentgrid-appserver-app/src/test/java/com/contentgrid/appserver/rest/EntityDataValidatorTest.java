@@ -1,12 +1,22 @@
-package com.contentgrid.appserver.application.model;
+package com.contentgrid.appserver.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
+import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.rest.exception.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -16,6 +26,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class EntityDataValidatorTest {
@@ -110,4 +121,75 @@ class EntityDataValidatorTest {
         )));
     }
 
+    @Nested
+    class CompositeTest {
+
+        Attribute attribute = CompositeAttribute.builder()
+                .name(AttributeName.of("auditing"))
+                .attribute(UserAttribute.builder()
+                        .name(AttributeName.of("created_by"))
+                        .flag(CreatorFlag.builder().build())
+                        .idColumn(ColumnName.of("auditing__created_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__created_by_name"))
+                        .build())
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("created_date"))
+                        .column(ColumnName.of("auditing__created_date"))
+                        .type(Type.DATETIME)
+                        .flag(CreatedDateFlag.builder().build())
+                        .build())
+                .attribute(UserAttribute.builder()
+                        .name(AttributeName.of("last_modified_by"))
+                        .idColumn(ColumnName.of("auditing__last_modified_by_id"))
+                        .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
+                        .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
+                        .flag(ModifierFlag.builder().build())
+                        .build())
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("last_modified_date"))
+                        .column(ColumnName.of("auditing__last_modified_date"))
+                        .type(Type.DATETIME)
+                        .flag(ModifiedDateFlag.builder().build())
+                        .build())
+                .build();
+
+        @Test
+        void testCompositeCorrect() {
+
+            var entity = Entity.builder()
+                    .name(EntityName.of("thing"))
+                    .pathSegment(PathSegmentName.of("thing"))
+                    .table(TableName.of("thing"))
+                    .attribute(attribute)
+                    .build();
+
+            EntityDataValidator.validate(entity, Map.of(
+                    "auditing", Map.of(
+                            "created_date", "2025-05-25T05:25:25Z",
+                            "last_modified_date", "2026-06-26T06:26:26Z"
+                    )
+            ));
+        }
+
+        @Test
+        void testCompositeSubError() {
+            var entity = Entity.builder()
+                    .name(EntityName.of("thing"))
+                    .pathSegment(PathSegmentName.of("thing"))
+                    .table(TableName.of("thing"))
+                    .attribute(attribute)
+                    .build();
+
+            var exception = assertThrows(InvalidEntityDataException.class, () ->
+                    EntityDataValidator.validate(entity, Map.of(
+                            "auditing", Map.of(
+                                    "created_date", "2025-05-25T05:25:25Z",
+                                    "last_modified_date", "not a date"
+                            )
+                    )));
+            assertEquals(exception.getInvalidAttributes().size(), 1);
+            assertTrue(exception.getValidationErrors().containsKey("auditing.last_modified_date"));
+        }
+    }
 }

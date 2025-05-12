@@ -1,9 +1,11 @@
-package com.contentgrid.appserver.application.model;
+package com.contentgrid.appserver.rest;
 
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
+import com.contentgrid.appserver.rest.exception.AttributesValidationException;
+import com.contentgrid.appserver.rest.exception.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -28,19 +30,19 @@ public class EntityDataValidator {
      * @throws InvalidEntityDataException if validation fails
      */
     public static Map<String, Object> validate(Entity entity, Map<String, Object> data) {
-        Map<AttributeName, String> validationErrors = new HashMap<>();
+        Map<String, String> validationErrors = new HashMap<>();
         Map<String, Object> validatedData = new HashMap<>();
 
         // Check for unknown attributes
         for (String attributeKey : data.keySet()) {
             AttributeName attrName = AttributeName.of(attributeKey);
             if (entity.getAttributeByName(attrName).isEmpty()) {
-                validationErrors.put(attrName, "Unknown attribute");
+                validationErrors.put(attrName.getValue(), "Unknown attribute");
             }
         }
 
         // Validate each attribute
-        for (Attribute attribute : entity.getAttributes()) {
+        for (Attribute attribute : entity.getAllAttributes()) {
             AttributeName attributeName = attribute.getName();
             String key = attributeName.getValue();
             Object value = data.get(key);
@@ -55,13 +57,16 @@ public class EntityDataValidator {
                 continue;
             }
 
-            if (attribute instanceof SimpleAttribute simpleAttribute) {
-                try {
-                    Object convertedValue = validateSimpleAttributeValue(simpleAttribute, value);
-                    validatedData.put(key, convertedValue);
-                } catch (IllegalArgumentException e) {
-                    validationErrors.put(attributeName, e.getMessage());
+            try {
+                Object convertedValue = validate(attribute, value);
+                validatedData.put(key, convertedValue);
+            } catch (AttributesValidationException ave) {
+                for (Map.Entry<String, String> error : ave.getValidationErrors().entrySet()) {
+                    String errorKey = attribute.getName().getValue() + "." + error.getKey();
+                    validationErrors.put(errorKey, error.getValue());
                 }
+            } catch (IllegalArgumentException e) {
+                validationErrors.put(attribute.getName().getValue(), e.getMessage());
             }
         }
 
@@ -70,6 +75,14 @@ public class EntityDataValidator {
         }
 
         return validatedData;
+    }
+
+    private Object validate(Attribute attribute, Object value) {
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute -> validateSimpleAttributeValue(simpleAttribute, value);
+            case CompositeAttribute compositeAttribute -> validateCompositeAttributeValue(compositeAttribute, value);
+            default -> throw new UnsupportedOperationException("Not implemented validation: " + attribute.getClass().getSimpleName());
+        };
     }
 
     private static Object validateSimpleAttributeValue(SimpleAttribute attribute, Object value) {
@@ -153,4 +166,33 @@ public class EntityDataValidator {
         }
         return (String) value;
     }
+
+    private static Map<AttributeName, Object> validateCompositeAttributeValue(CompositeAttribute attribute, Object value) {
+        Map<AttributeName, Object> validatedData = new HashMap<>();
+        Map<String, String> validationErrors = new HashMap<>();
+
+        if (value instanceof Map map) {
+            for (Attribute subAttribute : attribute.getAttributes()) {
+                Object subAttributeValue = map.get(subAttribute.getName().getValue());
+
+                try {
+                    validatedData.put(attribute.getName(), validate(subAttribute, subAttributeValue));
+                } catch (AttributesValidationException ave) {
+                    for (Map.Entry<String, String> error : ave.getValidationErrors().entrySet()) {
+                        String errorKey = subAttribute.getName().getValue() + "." + error.getKey();
+                        validationErrors.put(errorKey, error.getValue());
+                    }
+                } catch (IllegalArgumentException e) {
+                    validationErrors.put(subAttribute.getName().getValue(), e.getMessage());
+                }
+            }
+        }
+
+        if (!validationErrors.isEmpty()) {
+            throw new AttributesValidationException(validationErrors);
+        }
+
+        return validatedData;
+    }
+
 }

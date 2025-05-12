@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.application.model.exceptions;
+package com.contentgrid.appserver.rest.exception;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -14,33 +14,23 @@ import lombok.Getter;
 public class InvalidEntityDataException extends RuntimeException {
 
     @Getter
-    private final Map<AttributeName, String> validationErrors;
+    private final Map<String, String> validationErrors;
 
     @Getter
     private final Entity entity;
 
-    public InvalidEntityDataException(Entity entity, Map<AttributeName, String> validationErrors) {
+    public InvalidEntityDataException(Entity entity, Map<String, String> validationErrors) {
         super("Invalid data for entity '" + entity.getName().getValue() + "': " + validationErrors);
         this.entity = entity;
         this.validationErrors = Collections.unmodifiableMap(new HashMap<>(validationErrors));
     }
 
-    public InvalidEntityDataException(Entity entity, AttributeName attributeName, String errorMessage) {
+    public InvalidEntityDataException(Entity entity, String attributeName, String errorMessage) {
         this(entity, Map.of(attributeName, errorMessage));
     }
 
-    public Collection<AttributeName> getInvalidAttributes() {
+    public Collection<String> getInvalidAttributes() {
         return validationErrors.keySet();
     }
 
-    /**
-     * @return Map of attribute names (as strings) to error messages
-     */
-    public Map<String, String> getFormattedValidationErrors() {
-        Map<String, String> formattedErrors = new HashMap<>();
-        validationErrors.forEach((name, message) ->
-                formattedErrors.put(name.getValue(), message)
-        );
-        return formattedErrors;
-    }
 }

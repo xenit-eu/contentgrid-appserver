@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.exception;
 
-import com.contentgrid.appserver.application.model.exceptions.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
@@ -16,7 +15,6 @@ import org.springframework.hateoas.mediatype.problem.Problem;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -58,8 +56,8 @@ public class ContentGridExceptionHandler {
                 .withStatus(HttpStatus.BAD_REQUEST);
         log.warn("Invalid request body type!");
 
-        for (AttributeName attr : exception.getInvalidAttributes()) {
-            problem = problem.withProperties(new FieldViolationProblemProperties(attr.getValue()));
+        for (String attr : exception.getInvalidAttributes()) {
+            problem = problem.withProperties(new FieldViolationProblemProperties(attr));
         }
 
         return createResponse(problem);
