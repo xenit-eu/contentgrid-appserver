@@ -3,7 +3,9 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.rest.exception.AttributesValidationException;
 import com.contentgrid.appserver.rest.exception.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -13,6 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.experimental.UtilityClass;
+import org.springframework.util.InvalidMimeTypeException;
+import org.springframework.util.MimeType;
 
 /**
  * Validates entity instance data against the entity's attribute definitions. Ensures that all required attributes are
@@ -81,7 +85,8 @@ public class EntityDataValidator {
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> validateSimpleAttributeValue(simpleAttribute, value);
             case CompositeAttribute compositeAttribute -> validateCompositeAttributeValue(compositeAttribute, value);
-            default -> throw new UnsupportedOperationException("Not implemented validation: " + attribute.getClass().getSimpleName());
+            case ContentAttribute contentAttribute -> validateContentAttributeValue(contentAttribute, value);
+            case UserAttribute userAttribute -> validateUserAttributeValue(userAttribute, value);
         };
     }
 
@@ -167,6 +172,19 @@ public class EntityDataValidator {
         return (String) value;
     }
 
+    private static MimeType validateMimetypeAttributeValue(Object value) {
+        if (value instanceof MimeType mimeType) {
+            return mimeType;
+        } else if (value instanceof String str) {
+            try {
+                return MimeType.valueOf(str);
+            } catch (InvalidMimeTypeException e) {
+                throw new IllegalArgumentException("Invalid mimetype format: " + str);
+            }
+        }
+        throw new IllegalArgumentException("Expected mimetype value, got: " + value.getClass().getSimpleName());
+    }
+
     private static Map<AttributeName, Object> validateCompositeAttributeValue(CompositeAttribute attribute, Object value) {
         Map<AttributeName, Object> validatedData = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
@@ -186,6 +204,9 @@ public class EntityDataValidator {
                     validationErrors.put(subAttribute.getName().getValue(), e.getMessage());
                 }
             }
+        } else {
+            // TODO add required check
+            throw new IllegalArgumentException("Expected map, got: " + value.getClass().getSimpleName());
         }
 
         if (!validationErrors.isEmpty()) {
@@ -195,4 +216,71 @@ public class EntityDataValidator {
         return validatedData;
     }
 
+    private static Map<AttributeName, Object> validateContentAttributeValue(ContentAttribute attribute, Object value) {
+        Map<AttributeName, Object> validatedData = new HashMap<>();
+        Map<String, String> validationErrors = new HashMap<>();
+
+        if (value instanceof Map map) {
+            // Filename
+            try {
+                var filename = map.get(attribute.getFilename().getName().getValue());
+                validatedData.put(attribute.getFilename().getName(), validateStringAttributeValue(filename));
+            } catch(IllegalArgumentException e) {
+                validationErrors.put(attribute.getFilename().getName().getValue(), e.getMessage());
+            }
+
+            // Mimetype
+            try {
+                var mimetype = map.get(attribute.getMimetype().getName().getValue());
+                validatedData.put(attribute.getMimetype().getName(), validateMimetypeAttributeValue(mimetype));
+            } catch(IllegalArgumentException e) {
+                validationErrors.put(attribute.getMimetype().getName().getValue(), e.getMessage());
+            }
+
+            // User doesn't get to set id or length
+        }
+        // TODO add required check
+
+        if (!validationErrors.isEmpty()) {
+            throw new AttributesValidationException(validationErrors);
+        }
+        return validatedData;
+    }
+
+    private static Map<AttributeName, Object> validateUserAttributeValue(UserAttribute attribute, Object value) {
+        Map<AttributeName, Object> validatedData = new HashMap<>();
+        Map<String, String> validationErrors = new HashMap<>();
+
+        if (value instanceof Map map) {
+            // Id
+            try {
+                var id = map.get(attribute.getId().getName().getValue());
+                validatedData.put(attribute.getId().getName(), validateStringAttributeValue(id));
+            } catch(IllegalArgumentException e) {
+                validationErrors.put(attribute.getId().getName().getValue(), e.getMessage());
+            }
+
+            // Username
+            try {
+                var filename = map.get(attribute.getUsername().getName().getValue());
+                validatedData.put(attribute.getUsername().getName(), validateStringAttributeValue(filename));
+            } catch(IllegalArgumentException e) {
+                validationErrors.put(attribute.getUsername().getName().getValue(), e.getMessage());
+            }
+
+            // Namespace
+            try {
+                var namespace = map.get(attribute.getNamespace().getName().getValue());
+                validatedData.put(attribute.getNamespace().getName(), validateStringAttributeValue(namespace));
+            } catch(IllegalArgumentException e) {
+                validationErrors.put(attribute.getNamespace().getName().getValue(), e.getMessage());
+            }
+        }
+        // TODO add required check
+
+        if (!validationErrors.isEmpty()) {
+            throw new AttributesValidationException(validationErrors);
+        }
+        return validatedData;
+    }
 }

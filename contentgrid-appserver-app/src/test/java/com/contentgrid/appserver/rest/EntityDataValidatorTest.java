@@ -154,32 +154,31 @@ class EntityDataValidatorTest {
                         .build())
                 .build();
 
+        Entity entity = Entity.builder()
+                .name(EntityName.of("thing"))
+                .pathSegment(PathSegmentName.of("thing"))
+                .table(TableName.of("thing"))
+                .attribute(attribute)
+                .build();
+
         @Test
         void testCompositeCorrect() {
-
-            var entity = Entity.builder()
-                    .name(EntityName.of("thing"))
-                    .pathSegment(PathSegmentName.of("thing"))
-                    .table(TableName.of("thing"))
-                    .attribute(attribute)
-                    .build();
 
             EntityDataValidator.validate(entity, Map.of(
                     "auditing", Map.of(
                             "created_date", "2025-05-25T05:25:25Z",
-                            "last_modified_date", "2026-06-26T06:26:26Z"
+                            "last_modified_date", "2026-06-26T06:26:26Z",
+                            "created_by", Map.of(
+                                    "id", "alan.smithee@example.com",
+                                    "name", "Alan Smithee",
+                                    "namespace", "https://keycloak.test/realms/cg-a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
+                            )
                     )
             ));
         }
 
         @Test
         void testCompositeSubError() {
-            var entity = Entity.builder()
-                    .name(EntityName.of("thing"))
-                    .pathSegment(PathSegmentName.of("thing"))
-                    .table(TableName.of("thing"))
-                    .attribute(attribute)
-                    .build();
 
             var exception = assertThrows(InvalidEntityDataException.class, () ->
                     EntityDataValidator.validate(entity, Map.of(
@@ -191,5 +190,53 @@ class EntityDataValidatorTest {
             assertEquals(exception.getInvalidAttributes().size(), 1);
             assertTrue(exception.getValidationErrors().containsKey("auditing.last_modified_date"));
         }
+
+        @Test
+        void testCompositeAuditError() {
+
+            var exception = assertThrows(InvalidEntityDataException.class, () ->
+                    EntityDataValidator.validate(entity, Map.of(
+                            "auditing", Map.of(
+                                    "created_date", "2025-05-25T05:25:25Z",
+                                    "last_modified_date", "2026-06-26T06:26:26Z",
+                                    "created_by", Map.of(
+                                            "id", "alan.smithee@example.com",
+                                            "name", "Alan Smithee",
+                                            "namespace", false // <-- oops
+                                    )
+                            )
+                    )));
+            assertEquals(exception.getInvalidAttributes().size(), 1);
+            assertTrue(exception.getValidationErrors().containsKey("auditing.created_by.namespace"));
+        }
     }
+
+    @Nested
+    class ContentTest {
+
+        @Test
+        void testFilenameAndMimetype() {
+            EntityDataValidator.validate(INVOICE, Map.of(
+                    "content", Map.of(
+                            "filename", "voynich.pdf",
+                            "mimetype", "application/pdf"
+                    )
+            ));
+        }
+
+        @Test
+        void testInvalidMimetype() {
+            var exception = assertThrows(InvalidEntityDataException.class, () ->
+                    EntityDataValidator.validate(INVOICE, Map.of(
+                            "content", Map.of(
+                                    "filename", "voynich.pdf",
+                                    "mimetype", "oops"
+                            )
+                    ))
+            );
+
+            assertTrue(exception.getValidationErrors().containsKey("content.mimetype"));
+        }
+    }
+
 }
