@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -1649,6 +1650,106 @@ class JOOQQueryEngineTest {
     @MethodSource("invalidUnsetRelationData")
     void unsetRelationInvalidData(EntityId id, Relation relation) {
         assertThrows(QueryEngineException.class, () -> queryEngine.unsetLink(APPLICATION, relation, id));
+    }
+
+    static Stream<Arguments> validAddRelationData() {
+        return Stream.of(
+                // one-to-many: new values
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // many-to-many: new values
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // one-to-many: empty list
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .build()),
+                // many-to-many: empty list
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validAddRelationData")
+    void addRelationValidData(EntityId id, XToManyRelationData data) {
+        queryEngine.addLinks(APPLICATION, data, id);
+        var relation = APPLICATION.getRelationForEntity(data.getEntity(), data.getName()).orElseThrow();
+
+        for (var ref : data.getRefs()) {
+            assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
+        }
+    }
+
+    static Stream<Arguments> invalidAddRelationData() {
+        return Stream.of(
+                // one-to-many: already linked values
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // many-to-many: already linked values
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidAddRelationData")
+    void addRelationInvalidData(EntityId id, XToManyRelationData data) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.addLinks(APPLICATION, data, id));
+    }
+
+    @Test
+    void removeRelationValidData() {
+        var data = XToManyRelationData.builder()
+                .entity(INVOICE.getName())
+                .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                .ref(PRODUCT1_ID)
+                .build();
+        queryEngine.removeLinks(APPLICATION, data, INVOICE1_ID);
+
+        var relation = APPLICATION.getRelationForEntity(data.getEntity(), data.getName()).orElseThrow();
+        assertFalse(queryEngine.isLinked(APPLICATION, relation, INVOICE1_ID, PRODUCT1_ID));
+    }
+
+    static Stream<Arguments> invalidRemoveRelationData() {
+        return Stream.of(
+                // non-existing value
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID) // not linked with INVOICE1_ID
+                        .build()),
+                // inverse of one-to-many required
+                Arguments.of(ALICE_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRemoveRelationData")
+    void removeRelationInvalidData(EntityId id, XToManyRelationData data) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.removeLinks(APPLICATION, data, id));
     }
 
     @SpringBootApplication
