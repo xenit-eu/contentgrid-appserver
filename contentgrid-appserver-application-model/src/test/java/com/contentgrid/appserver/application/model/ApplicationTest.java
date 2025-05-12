@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
@@ -415,6 +416,12 @@ class ApplicationTest {
                 .build();
 
         assertEquals(customer, application.getEntityByName(EntityName.of("customer")).orElseThrow());
+        var orderOutgoingRelations = application.getRelationsForSourceEntity(order);
+        var orderIncomingRelations = application.getRelationsForTargetEntity(order);
+        assertEquals(2, orderOutgoingRelations.size());
+        assertEquals(2, orderIncomingRelations.size());
+        assertTrue(orderIncomingRelations.stream()
+                .allMatch(incomingRelation -> orderOutgoingRelations.contains(incomingRelation.inverse())));
     }
 
 }
