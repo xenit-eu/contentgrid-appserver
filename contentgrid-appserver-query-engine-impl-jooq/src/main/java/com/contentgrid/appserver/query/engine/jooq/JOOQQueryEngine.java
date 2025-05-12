@@ -454,6 +454,11 @@ public class JOOQQueryEngine implements QueryEngine {
 
         switch (data) {
             case XToOneRelationData xToOneRelationData -> {
+                if (xToOneRelationData.getRef() == null) {
+                    // TODO: check if relation is not a *-to-many relation
+                    unsetLink(application, relation, id);
+                    return;
+                }
                 switch (relation) {
                     case SourceOneToOneRelation oneToOneRelation -> {
                         var table = JOOQUtils.resolveTable(sourceEntity);
@@ -516,15 +521,29 @@ public class JOOQQueryEngine implements QueryEngine {
                                 .map(EntityId::getValue)
                                 .toList();
 
+                        // Delete existing links, except if the inverse is required
+                        if (oneToManyRelation.getTargetEndPoint().isRequired()) {
+                            // Assert existing values are a subset of provided values
+                            if (dslContext.fetchExists(
+                                    DSL.selectOne()
+                                            .from(table)
+                                            .where(DSL.and(field.eq(id.getValue()), primaryKey.notIn(refs)))
+                            )) {
+                                throw new ConstraintViolationException(
+                                        "Cannot remove links of one-to-many relation '%s' because inverse many-to-one relation is required"
+                                                .formatted(oneToManyRelation.getSourceEndPoint().getName()));
+                            }
+                        } else {
+                            // Delete existing links
+                            dslContext.update(table)
+                                    .set(field, (UUID) null)
+                                    .where(field.eq(id.getValue()))
+                                    .execute();
+                        }
+
                         var updated = dslContext.update(table)
                                 .set(field, id.getValue())
                                 .where(primaryKey.in(refs))
-                                .execute();
-
-                        // delete first might be simpler, but what if inverse many-to-one is required?
-                        dslContext.update(table)
-                                .set(field, (UUID) null)
-                                .where(DSL.and(field.eq(id.getValue()), primaryKey.notIn(refs)))
                                 .execute();
 
                         if (updated < refs.size()) {
@@ -538,11 +557,12 @@ public class JOOQQueryEngine implements QueryEngine {
                         var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
                                 targetEntity.getPrimaryKey().getType(), true);
 
-                        var step = dslContext.with("deleted")
-                                .as(DSL.deleteFrom(table)
-                                        .where(sourceRef.eq(id.getValue()))
-                                        .returningResult())
-                                .insertInto(table, sourceRef, targetRef);
+                        // Delete before insert
+                        dslContext.deleteFrom(table)
+                                .where(sourceRef.eq(id.getValue()))
+                                .execute();
+
+                        var step = dslContext.insertInto(table, sourceRef, targetRef);
 
                         for (var ref : xToManyRelationData.getRefs()) {
                             step = step.values(id.getValue(), ref.getValue());
