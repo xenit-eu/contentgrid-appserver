@@ -600,7 +600,7 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validCreateData() {
         return Stream.of(
-                // valid person
+                // Valid person
                 Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -612,7 +612,7 @@ class JOOQQueryEngineTest {
                                 .value("random_vat")
                                 .build())
                         .build(), List.of()),
-                // all attributes and relations provided
+                // All attributes and relations provided
                 Arguments.of(
                         EntityData.builder()
                                 .name(INVOICE.getName())
@@ -680,7 +680,7 @@ class JOOQQueryEngineTest {
                                         .ref(PRODUCT2_ID)
                                         .build()
                         )),
-                // only required attributes/relations provided
+                // Only required attributes/relations provided
                 Arguments.of(
                         EntityData.builder()
                                 .name(INVOICE.getName())
@@ -700,7 +700,7 @@ class JOOQQueryEngineTest {
                                         .ref(ALICE_ID)
                                         .build()
                         )),
-                // null for non-required attribute/relation
+                // Null for non-required attribute/relation
                 Arguments.of(
                         EntityData.builder()
                                 .name(INVOICE.getName())
@@ -730,7 +730,7 @@ class JOOQQueryEngineTest {
                                         .build()
                                 // TODO: null for non-owning *-to-one relation
                         )),
-                // empty CompositeAttributeData, empty XToManyRelationData
+                // Empty CompositeAttributeData, empty XToManyRelationData
                 Arguments.of(
                         EntityData.builder()
                                 .name(INVOICE.getName())
@@ -1199,7 +1199,7 @@ class JOOQQueryEngineTest {
 
     static Stream<EntityData> validUpdateData() {
         return Stream.of(
-                // valid person
+                // Valid person
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
@@ -1212,7 +1212,7 @@ class JOOQQueryEngineTest {
                                 .value("random_vat")
                                 .build())
                         .build(),
-                // all attributes provided
+                // All attributes provided
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1257,7 +1257,7 @@ class JOOQQueryEngineTest {
                                 .build())
                         // audit_metadata not provided (readonly)
                         .build(),
-                // only one attribute provided
+                // Only one attribute provided
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1266,7 +1266,7 @@ class JOOQQueryEngineTest {
                                 .value(BigDecimal.valueOf(25.0))
                                 .build())
                         .build(),
-                // null for non-required attribute
+                // Null for non-required attribute
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1275,7 +1275,7 @@ class JOOQQueryEngineTest {
                                 .value(null)
                                 .build())
                         .build(),
-                // update inside CompositeAttributeData
+                // Update inside CompositeAttributeData
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1461,39 +1461,39 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validSetRelationData() {
         return Stream.of(
-                // owning one-to-one
+                // Owning one-to-one
                 Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
                         .ref(INVOICE2_ID)
                         .build()),
-                // non-owning one-to-one
+                // Non-owning one-to-one
                 Arguments.of(INVOICE2_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PREVIOUS.getTargetEndPoint().getName()) // next_invoice
                         .ref(INVOICE1_ID)
                         .build()),
-                // many-to-one
+                // Many-to-one
                 Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_CUSTOMER.getSourceEndPoint().getName()) // customer
                         .ref(JOHN_ID) // originally ALICE_ID
                         .build()),
-                // one-to-many
+                // One-to-many
                 Arguments.of(JOHN_ID, XToManyRelationData.builder()
                         .entity(PERSON.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // invoices
                         .ref(INVOICE1_ID)
                         .ref(INVOICE2_ID)
                         .build()),
-                // many-to-many
+                // Many-to-many
                 Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName()) // products
                         .ref(PRODUCT2_ID) // originally PRODUCT1_ID and PRODUCT2_ID
                         .ref(PRODUCT3_ID)
                         .build()),
-                // null for *-to-one relation
+                // Null for *-to-one relation
                 Arguments.of(INVOICE2_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
@@ -1578,6 +1578,18 @@ class JOOQQueryEngineTest {
                         .entity(INVOICE.getName())
                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
                         .ref(INVOICE1_ID) // previous_invoice of INVOICE2_ID already contains INVOICE1_ID
+                        .build()),
+                // XToManyRelationData for *-to-one relation
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder() // should be XToOneRelationData
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // XToOneRelationData for *-to-many relation
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder() // should be XToManyRelationData
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT3_ID)
                         .build())
         );
     }
@@ -1600,7 +1612,7 @@ class JOOQQueryEngineTest {
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
                 // Non-empty *-to-many relation
                 Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS),
-                // Empty *-to-one relation
+                // Empty *-to-many relation
                 Arguments.of(JOHN_ID, INVOICE_CUSTOMER.inverse())
         );
     }
@@ -1654,25 +1666,31 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validAddRelationData() {
         return Stream.of(
-                // one-to-many: new values
+                // One-to-many: new values
                 Arguments.of(BOB_ID, XToManyRelationData.builder()
                         .entity(PERSON.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
                         .ref(INVOICE1_ID)
                         .build()),
-                // many-to-many: new values
+                // Many-to-many: new values
                 Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
                         .ref(PRODUCT1_ID)
                         .ref(PRODUCT3_ID)
                         .build()),
-                // one-to-many: empty list
+                // One-to-many: already linked values
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // One-to-many: empty list
                 Arguments.of(BOB_ID, XToManyRelationData.builder()
                         .entity(PERSON.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
                         .build()),
-                // many-to-many: empty list
+                // Many-to-many: empty list
                 Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
@@ -1693,18 +1711,44 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidAddRelationData() {
         return Stream.of(
-                // one-to-many: already linked values
-                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                // One-to-many: non-existing source ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
                         .entity(PERSON.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
                         .ref(INVOICE2_ID)
                         .build()),
-                // many-to-many: already linked values
+                // One-to-many: non-existing target ref
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(ALICE_ID) // should be an invoice
+                        .build()),
+                // Many-to-many: non-existing source ref
+                Arguments.of(ALICE_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Many-to-many: non-existing target ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(ALICE_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Many-to-many: already linked values
                 Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
                         .ref(PRODUCT1_ID)
                         .ref(PRODUCT3_ID)
+                        .build()),
+                // *-to-one relation
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                        .ref(INVOICE2_ID)
                         .build())
         );
     }
@@ -1730,17 +1774,37 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidRemoveRelationData() {
         return Stream.of(
-                // non-existing value
+                // Non-existing source ref
+                Arguments.of(ALICE_ID, XToManyRelationData.builder() // not an invoice
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Non-existing target ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(ALICE_ID) // not a product
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Invalid target value
                 Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
                         .ref(PRODUCT1_ID)
                         .ref(PRODUCT3_ID) // not linked with INVOICE1_ID
                         .build()),
-                // inverse of one-to-many required
+                // Inverse of one-to-many required
                 Arguments.of(ALICE_ID, XToManyRelationData.builder()
                         .entity(PERSON.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // *-to-one relation
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                         .ref(INVOICE1_ID)
                         .build())
         );
