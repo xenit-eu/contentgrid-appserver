@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -84,9 +85,9 @@ public class EntityDataValidator {
     private Object validate(Attribute attribute, Object value) {
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> validateSimpleAttributeValue(simpleAttribute, value);
-            case CompositeAttribute compositeAttribute -> validateCompositeAttributeValue(compositeAttribute, value);
             case ContentAttribute contentAttribute -> validateContentAttributeValue(contentAttribute, value);
             case UserAttribute userAttribute -> validateUserAttributeValue(userAttribute, value);
+            case CompositeAttributeImpl compositeAttribute -> validateCompositeAttributeValue(compositeAttribute, value);
         };
     }
 

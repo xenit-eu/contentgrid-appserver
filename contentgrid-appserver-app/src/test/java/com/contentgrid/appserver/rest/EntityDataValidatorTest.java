@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -124,7 +125,7 @@ class EntityDataValidatorTest {
     @Nested
     class CompositeTest {
 
-        Attribute attribute = CompositeAttribute.builder()
+        Attribute attribute = CompositeAttributeImpl.builder()
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
