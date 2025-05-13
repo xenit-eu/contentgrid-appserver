@@ -3,6 +3,12 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.UUID;
@@ -74,5 +80,43 @@ public class JOOQUtils {
             case DATETIME -> SQLDataType.INSTANT;
         };
         return dataType.nullable(!required);
+    }
+
+    public static Table<?> resolveRelationTable(Relation relation) {
+        return switch (relation) {
+            case SourceOneToOneRelation ignored -> resolveTable(relation.getSourceEndPoint().getEntity());
+            case ManyToOneRelation ignored -> resolveTable(relation.getSourceEndPoint().getEntity());
+            case TargetOneToOneRelation ignored -> resolveTable(relation.getTargetEndPoint().getEntity());
+            case OneToManyRelation ignored -> resolveTable(relation.getTargetEndPoint().getEntity());
+            case ManyToManyRelation manyToManyRelation -> resolveTable(manyToManyRelation.getJoinTable());
+        };
+    }
+
+    public static Field<UUID> resolveRelationSourceRef(Relation relation) {
+        var sourceEntity = relation.getSourceEndPoint().getEntity();
+        return switch (relation) {
+            case SourceOneToOneRelation ignored -> resolvePrimaryKey(sourceEntity);
+            case ManyToOneRelation ignored -> resolvePrimaryKey(sourceEntity);
+            case TargetOneToOneRelation oneToOneRelation -> (Field<UUID>) resolveField(oneToOneRelation.getSourceReference(), sourceEntity.getPrimaryKey()
+                    .getType(), oneToOneRelation.getTargetEndPoint().isRequired());
+            case OneToManyRelation oneToManyRelation -> (Field<UUID>) resolveField(oneToManyRelation.getSourceReference(), sourceEntity.getPrimaryKey()
+                    .getType(), oneToManyRelation.getTargetEndPoint().isRequired());
+            case ManyToManyRelation manyToManyRelation -> (Field<UUID>) resolveField(manyToManyRelation.getSourceReference(), sourceEntity.getPrimaryKey()
+                    .getType(), true);
+        };
+    }
+
+    public static Field<UUID> resolveRelationTargetRef(Relation relation) {
+        var targetEntity = relation.getTargetEndPoint().getEntity();
+        return switch (relation) {
+            case SourceOneToOneRelation oneToOneRelation -> (Field<UUID>) resolveField(oneToOneRelation.getTargetReference(), targetEntity.getPrimaryKey()
+                    .getType(), oneToOneRelation.getSourceEndPoint().isRequired());
+            case ManyToOneRelation manyToOneRelation -> (Field<UUID>) resolveField(manyToOneRelation.getTargetReference(), targetEntity.getPrimaryKey()
+                    .getType(), manyToOneRelation.getSourceEndPoint().isRequired());
+            case TargetOneToOneRelation ignored -> resolvePrimaryKey(targetEntity);
+            case OneToManyRelation ignored -> resolvePrimaryKey(targetEntity);
+            case ManyToManyRelation manyToManyRelation -> (Field<UUID>) resolveField(manyToManyRelation.getTargetReference(), targetEntity.getPrimaryKey()
+                    .getType(), true);
+        };
     }
 }

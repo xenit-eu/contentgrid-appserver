@@ -270,178 +270,55 @@ public class JOOQQueryEngine implements QueryEngine {
     public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
             @NonNull EntityId targetId) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
 
-        return switch (relation) {
-            case SourceOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), oneToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
-                yield dslContext.fetchExists(DSL.selectOne()
-                        .from(table)
-                        .where(DSL.and(primaryKey.eq(sourceId.getValue()), field.eq(targetId.getValue())))
-                );
-            }
-            case ManyToOneRelation manyToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), manyToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
-                yield dslContext.fetchExists(DSL.selectOne()
-                        .from(table)
-                        .where(DSL.and(primaryKey.eq(sourceId.getValue()), field.eq(targetId.getValue())))
-                );
-            }
-            case TargetOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), oneToOneRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-
-                yield dslContext.fetchExists(DSL.selectOne()
-                        .from(table)
-                        .where(DSL.and(primaryKey.eq(targetId.getValue()), field.eq(sourceId.getValue())))
-                );
-            }
-            case OneToManyRelation oneToManyRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(),
-                        oneToManyRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-
-                yield dslContext.fetchExists(DSL.selectOne()
-                        .from(table)
-                        .where(DSL.and(primaryKey.eq(targetId.getValue()), field.eq(sourceId.getValue())))
-                );
-            }
-            case ManyToManyRelation manyToManyRelation -> {
-                var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), true);
-                var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), true);
-
-                yield dslContext.fetchExists(DSL.selectOne()
-                        .from(table)
-                        .where(DSL.and(sourceRef.eq(sourceId.getValue()), targetRef.eq(targetId.getValue())))
-                );
-            }
-        };
+        return dslContext.fetchExists(DSL.selectOne()
+                .from(table)
+                .where(DSL.and(sourceRef.eq(sourceId.getValue()), targetRef.eq(targetId.getValue()))));
     }
 
     @Override
     public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
         var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
 
-        return switch (relation) {
-            case SourceOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), oneToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            // *-to-many relation
+            var results = dslContext.select(targetRef)
+                    .from(table)
+                    .where(sourceRef.eq(id.getValue()))
+                    .fetch()
+                    .getValues(targetRef)
+                    .stream()
+                    .map(EntityId::of)
+                    .toList();
 
-                var result = dslContext.select(field)
-                        .from(table)
-                        .where(primaryKey.eq(id.getValue()))
-                        .fetchOne();
+            // TODO: paging or throw exception?
 
-                yield XToOneRelationData.builder()
-                        .entity(sourceEntity.getName())
-                        .name(relation.getSourceEndPoint().getName())
-                        .ref(result == null || result.value1() == null? null : EntityId.of(result.value1()))
-                        .build();
-            }
-            case ManyToOneRelation manyToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), manyToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
+            return XToManyRelationData.builder()
+                    .entity(sourceEntity.getName())
+                    .name(relation.getSourceEndPoint().getName())
+                    .refs(results)
+                    .build();
+        } else {
+            // *-to-one relation
+            var result = dslContext.select(targetRef)
+                    .from(table)
+                    .where(sourceRef.eq(id.getValue()))
+                    .fetchOne();
 
-                var result = dslContext.select(field)
-                        .from(table)
-                        .where(primaryKey.eq(id.getValue()))
-                        .fetchOne();
-
-                yield XToOneRelationData.builder()
-                        .entity(sourceEntity.getName())
-                        .name(relation.getSourceEndPoint().getName())
-                        .ref(result == null || result.value1() == null? null : EntityId.of(result.value1()))
-                        .build();
-            }
-            case TargetOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), oneToOneRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-
-                var result = dslContext.select(primaryKey)
-                        .from(table)
-                        .where(field.eq(id.getValue()))
-                        .fetchOne();
-
-                yield XToOneRelationData.builder()
-                        .entity(sourceEntity.getName())
-                        .name(relation.getSourceEndPoint().getName())
-                        .ref(result == null || result.value1() == null? null : EntityId.of(result.value1()))
-                        .build();
-            }
-            case OneToManyRelation oneToManyRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(),
-                        oneToManyRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-
-                var results = dslContext.select(primaryKey)
-                        .from(table)
-                        .where(field.eq(id.getValue()))
-                        .fetch()
-                        .getValues(primaryKey)
-                        .stream()
-                        .map(EntityId::of)
-                        .toList();
-
-                // TODO: paging or throw exception?
-
-                yield XToManyRelationData.builder()
-                        .entity(sourceEntity.getName())
-                        .name(relation.getSourceEndPoint().getName())
-                        .refs(results)
-                        .build();
-            }
-            case ManyToManyRelation manyToManyRelation -> {
-                var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), true);
-                var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), true);
-
-                var results = dslContext.select(targetRef)
-                        .from(table)
-                        .where(sourceRef.eq(id.getValue()))
-                        .fetch()
-                        .getValues(targetRef)
-                        .stream()
-                        .map(EntityId::of)
-                        .toList();
-
-                // TODO: paging or throw exception?
-
-                yield XToManyRelationData.builder()
-                        .entity(sourceEntity.getName())
-                        .name(relation.getSourceEndPoint().getName())
-                        .refs(results)
-                        .build();
-            }
-        };
+            return XToOneRelationData.builder()
+                    .entity(sourceEntity.getName())
+                    .name(relation.getSourceEndPoint().getName())
+                    .ref(result == null || result.value1() == null? null : EntityId.of(result.value1()))
+                    .build();
+        }
     }
 
     @Override
@@ -449,8 +326,9 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRelation(application, data);
-        var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
 
         switch (data) {
             case XToOneRelationData xToOneRelationData -> {
@@ -460,16 +338,11 @@ public class JOOQQueryEngine implements QueryEngine {
                     return;
                 }
                 switch (relation) {
-                    case SourceOneToOneRelation oneToOneRelation -> {
-                        var table = JOOQUtils.resolveTable(sourceEntity);
-                        var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                                targetEntity.getPrimaryKey().getType(), oneToOneRelation.getSourceEndPoint().isRequired());
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
+                    case SourceOneToOneRelation ignored -> {
                         try {
                             var updated = dslContext.update(table)
-                                    .set(field, xToOneRelationData.getRef().getValue())
-                                    .where(primaryKey.eq(id.getValue()))
+                                    .set(targetRef, xToOneRelationData.getRef().getValue())
+                                    .where(sourceRef.eq(id.getValue()))
                                     .execute();
 
                             if (updated == 0) {
@@ -482,16 +355,11 @@ public class JOOQQueryEngine implements QueryEngine {
                             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
                         }
                     }
-                    case ManyToOneRelation manyToOneRelation -> {
-                        var table = JOOQUtils.resolveTable(sourceEntity);
-                        var field = (Field<UUID>) JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                                targetEntity.getPrimaryKey().getType(), manyToOneRelation.getSourceEndPoint().isRequired());
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
+                    case ManyToOneRelation ignored -> {
                         try {
                             var updated = dslContext.update(table)
-                                    .set(field, xToOneRelationData.getRef().getValue())
-                                    .where(primaryKey.eq(id.getValue()))
+                                    .set(targetRef, xToOneRelationData.getRef().getValue())
+                                    .where(sourceRef.eq(id.getValue()))
                                     .execute();
 
                             if (updated == 0) {
@@ -502,16 +370,11 @@ public class JOOQQueryEngine implements QueryEngine {
                             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
                         }
                     }
-                    case TargetOneToOneRelation oneToOneRelation -> {
-                        var table = JOOQUtils.resolveTable(targetEntity);
-                        var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getSourceReference(),
-                                sourceEntity.getPrimaryKey().getType(), oneToOneRelation.getTargetEndPoint().isRequired());
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-
+                    case TargetOneToOneRelation ignored -> {
                         try {
                             var updated = dslContext.update(table)
-                                    .set(field, id.getValue())
-                                    .where(primaryKey.eq(xToOneRelationData.getRef().getValue()))
+                                    .set(sourceRef, id.getValue())
+                                    .where(targetRef.eq(xToOneRelationData.getRef().getValue()))
                                     .execute();
 
                             if (updated == 0) {
@@ -528,11 +391,6 @@ public class JOOQQueryEngine implements QueryEngine {
             case XToManyRelationData xToManyRelationData -> {
                 switch (relation) {
                     case OneToManyRelation oneToManyRelation -> {
-                        var table = JOOQUtils.resolveTable(targetEntity);
-                        var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                                sourceEntity.getPrimaryKey().getType(),
-                                oneToManyRelation.getTargetEndPoint().isRequired());
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
                         var refs = xToManyRelationData.getRefs().stream()
                                 .map(EntityId::getValue)
                                 .toList();
@@ -543,7 +401,7 @@ public class JOOQQueryEngine implements QueryEngine {
                             if (dslContext.fetchExists(
                                     DSL.selectOne()
                                             .from(table)
-                                            .where(DSL.and(field.eq(id.getValue()), primaryKey.notIn(refs)))
+                                            .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.notIn(refs)))
                             )) {
                                 throw new ConstraintViolationException(
                                         "Cannot remove links of one-to-many relation '%s' because inverse many-to-one relation is required"
@@ -552,15 +410,15 @@ public class JOOQQueryEngine implements QueryEngine {
                         } else {
                             // Delete existing links
                             dslContext.update(table)
-                                    .set(field, (UUID) null)
-                                    .where(field.eq(id.getValue()))
+                                    .set(sourceRef, (UUID) null)
+                                    .where(sourceRef.eq(id.getValue()))
                                     .execute();
                         }
 
                         try {
                             var updated = dslContext.update(table)
-                                    .set(field, id.getValue())
-                                    .where(primaryKey.in(refs))
+                                    .set(sourceRef, id.getValue())
+                                    .where(targetRef.in(refs))
                                     .execute();
 
                             if (updated < refs.size()) {
@@ -570,13 +428,7 @@ public class JOOQQueryEngine implements QueryEngine {
                             throw new ConstraintViolationException(e.getMessage(), e); // provided id could not exist
                         }
                     }
-                    case ManyToManyRelation manyToManyRelation -> {
-                        var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                        var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                                sourceEntity.getPrimaryKey().getType(), true);
-                        var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
-                                targetEntity.getPrimaryKey().getType(), true);
-
+                    case ManyToManyRelation ignored -> {
                         // Delete before insert
                         dslContext.deleteFrom(table)
                                 .where(sourceRef.eq(id.getValue()))
@@ -607,20 +459,17 @@ public class JOOQQueryEngine implements QueryEngine {
     public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
         var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
 
         switch (relation) {
-            case SourceOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), oneToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
+            case SourceOneToOneRelation ignored -> {
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, (UUID) null)
-                            .where(primaryKey.eq(id.getValue()))
+                            .set(targetRef, (UUID) null)
+                            .where(sourceRef.eq(id.getValue()))
                             .execute();
 
                     if (updated == 0) {
@@ -630,16 +479,11 @@ public class JOOQQueryEngine implements QueryEngine {
                     throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
                 }
             }
-            case ManyToOneRelation manyToOneRelation -> {
-                var table = JOOQUtils.resolveTable(sourceEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), manyToOneRelation.getSourceEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-
+            case ManyToOneRelation ignored -> {
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, (UUID) null)
-                            .where(primaryKey.eq(id.getValue()))
+                            .set(targetRef, (UUID) null)
+                            .where(sourceRef.eq(id.getValue()))
                             .execute();
 
                     if (updated == 0) {
@@ -649,15 +493,11 @@ public class JOOQQueryEngine implements QueryEngine {
                     throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
                 }
             }
-            case TargetOneToOneRelation oneToOneRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), oneToOneRelation.getTargetEndPoint().isRequired());
-
+            case TargetOneToOneRelation ignored -> {
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, (UUID) null)
-                            .where(field.eq(id.getValue()))
+                            .set(sourceRef, (UUID) null)
+                            .where(sourceRef.eq(id.getValue()))
                             .execute();
 
                     if (updated == 0) {
@@ -672,16 +512,11 @@ public class JOOQQueryEngine implements QueryEngine {
                     throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
                 }
             }
-            case OneToManyRelation oneToManyRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(),
-                        oneToManyRelation.getTargetEndPoint().isRequired());
-
+            case OneToManyRelation ignored -> {
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, (UUID) null)
-                            .where(field.eq(id.getValue()))
+                            .set(sourceRef, (UUID) null)
+                            .where(sourceRef.eq(id.getValue()))
                             .execute();
 
                     if (updated == 0) {
@@ -696,11 +531,7 @@ public class JOOQQueryEngine implements QueryEngine {
                     throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
                 }
             }
-            case ManyToManyRelation manyToManyRelation -> {
-                var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), true);
-
+            case ManyToManyRelation ignored -> {
                 var deleted = dslContext.deleteFrom(table)
                                 .where(sourceRef.eq(id.getValue()))
                                 .execute();
@@ -722,24 +553,19 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRelation(application, data);
-        var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
 
         switch (relation) {
-            case OneToManyRelation oneToManyRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(),
-                        oneToManyRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
+            case OneToManyRelation ignored -> {
                 var refs = data.getRefs().stream()
                         .map(EntityId::getValue)
                         .toList();
-
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, id.getValue())
-                            .where(primaryKey.in(refs))
+                            .set(sourceRef, id.getValue())
+                            .where(targetRef.in(refs))
                             .execute();
 
                     if (updated < refs.size()) {
@@ -749,13 +575,7 @@ public class JOOQQueryEngine implements QueryEngine {
                     throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
                 }
             }
-            case ManyToManyRelation manyToManyRelation -> {
-                var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), true);
-                var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), true);
-
+            case ManyToManyRelation ignored -> {
                 var step = dslContext.insertInto(table, sourceRef, targetRef);
 
                 for (var ref : data.getRefs()) {
@@ -771,7 +591,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 }
             }
             default -> throw new InvalidDataException("Relation '%s' of entity '%s' is not a one-to-many or many-to-many relation."
-                    .formatted(data.getName(), sourceEntity.getName()));
+                    .formatted(data.getName(), data.getEntity()));
         }
     }
 
@@ -780,30 +600,25 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRelation(application, data);
-        var sourceEntity = relation.getSourceEndPoint().getEntity();
-        var targetEntity = relation.getTargetEndPoint().getEntity();
+        var table = JOOQUtils.resolveRelationTable(relation);
+        var sourceRef = (Field<UUID>) JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = (Field<UUID>) JOOQUtils.resolveRelationTargetRef(relation);
+        var refs = data.getRefs().stream()
+                .map(EntityId::getValue)
+                .toList();
 
         switch (relation) {
-            case OneToManyRelation oneToManyRelation -> {
-                var table = JOOQUtils.resolveTable(targetEntity);
-                var field = (Field<UUID>) JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(),
-                        oneToManyRelation.getTargetEndPoint().isRequired());
-                var primaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
-                var refs = data.getRefs().stream()
-                        .map(EntityId::getValue)
-                        .toList();
-
+            case OneToManyRelation ignored -> {
                 try {
                     var updated = dslContext.update(table)
-                            .set(field, (UUID) null)
-                            .where(DSL.and(field.eq(id.getValue())), primaryKey.in(refs))
+                            .set(sourceRef, (UUID) null)
+                            .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
                             .execute();
 
                     if (updated < refs.size()) {
                         throw new EntityNotFoundException(
                                 "Not all target entities found with a relation to entity '%s' with primary key '%s'"
-                                        .formatted(sourceEntity.getName(), id));
+                                        .formatted(data.getEntity(), id));
                     }
                 } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
                     if (relation.getTargetEndPoint().isRequired()) {
@@ -815,16 +630,7 @@ public class JOOQQueryEngine implements QueryEngine {
                     }
                 }
             }
-            case ManyToManyRelation manyToManyRelation -> {
-                var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                var sourceRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getSourceReference(),
-                        sourceEntity.getPrimaryKey().getType(), true);
-                var targetRef = (Field<UUID>) JOOQUtils.resolveField(manyToManyRelation.getTargetReference(),
-                        targetEntity.getPrimaryKey().getType(), true);
-                var refs = data.getRefs().stream()
-                        .map(EntityId::getValue)
-                        .toList();
-
+            case ManyToManyRelation ignored -> {
                 var deleted = dslContext.deleteFrom(table)
                         .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
                         .execute();
@@ -835,7 +641,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 }
             }
             default -> throw new InvalidDataException("Relation '%s' of entity '%s' is not a one-to-many or many-to-many relation."
-                    .formatted(data.getName(), sourceEntity.getName()));
+                    .formatted(data.getName(), data.getEntity()));
         }
     }
 }

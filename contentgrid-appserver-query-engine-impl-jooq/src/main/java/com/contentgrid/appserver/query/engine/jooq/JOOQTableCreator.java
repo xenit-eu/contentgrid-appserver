@@ -49,10 +49,8 @@ public class JOOQTableCreator implements TableCreator {
                 case ManyToManyRelation manyToManyRelation -> {
                     // Create the join table
                     dslContext.createTable(manyToManyRelation.getJoinTable().getValue())
-                            .column(JOOQUtils.resolveField(manyToManyRelation.getSourceReference(), sourceEndPoint.getEntity().getPrimaryKey()
-                                    .getType(), true))
-                            .column(JOOQUtils.resolveField(manyToManyRelation.getTargetReference(), targetEndPoint.getEntity().getPrimaryKey()
-                                    .getType(), true))
+                            .column(JOOQUtils.resolveRelationSourceRef(manyToManyRelation))
+                            .column(JOOQUtils.resolveRelationTargetRef(manyToManyRelation))
                             .primaryKey(manyToManyRelation.getSourceReference().getValue(), manyToManyRelation.getTargetReference().getValue())
                             .constraint(DSL.foreignKey(manyToManyRelation.getSourceReference().getValue())
                                     .references(sourceEndPoint.getEntity().getTable().getValue(),

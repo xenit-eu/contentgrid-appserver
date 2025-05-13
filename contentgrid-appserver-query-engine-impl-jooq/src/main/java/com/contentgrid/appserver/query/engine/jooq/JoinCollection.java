@@ -13,6 +13,7 @@ import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.SourceCol
 import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.TargetColumnJoin;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -146,8 +147,8 @@ public class JoinCollection {
 
             @Override
             public Condition getCondition() {
-                return ((Field<Object>) JOOQUtils.resolveField(getTargetAlias(), sourceReference, sourcePrimaryKey.getType(), false))
-                        .eq((Field<Object>) JOOQUtils.resolveField(getSourceAlias(), sourcePrimaryKey.getColumn(), sourcePrimaryKey.getType(), true));
+                return ((Field<UUID>) JOOQUtils.resolveField(getTargetAlias(), sourceReference, sourcePrimaryKey.getType(), false))
+                        .eq(JOOQUtils.resolvePrimaryKey(getSourceAlias(), sourcePrimaryKey));
             }
         }
 
@@ -164,8 +165,8 @@ public class JoinCollection {
 
             @Override
             public Condition getCondition() {
-                return ((Field<Object>) JOOQUtils.resolveField(getTargetAlias(), targetPrimaryKey.getColumn(), targetPrimaryKey.getType(), true))
-                        .eq((Field<Object>) JOOQUtils.resolveField(getSourceAlias(), targetReference, targetPrimaryKey.getType(), false));
+                return JOOQUtils.resolvePrimaryKey(getTargetAlias(), targetPrimaryKey)
+                        .eq((Field<UUID>) JOOQUtils.resolveField(getSourceAlias(), targetReference, targetPrimaryKey.getType(), false));
             }
         }
     }
