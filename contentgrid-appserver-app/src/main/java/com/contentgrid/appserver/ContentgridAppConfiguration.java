@@ -10,8 +10,12 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.DummyQueryEngine;
-import com.contentgrid.appserver.query.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
+import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
+import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
@@ -21,6 +25,7 @@ import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfigurat
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -34,8 +39,18 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 public class ContentgridAppConfiguration {
 
     @Bean
-    QueryEngine queryEngine() {
-        return new DummyQueryEngine();
+    public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
+        return new AutowiredDSLContextResolver(dslContext);
+    }
+
+    @Bean
+    public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
+        return new JOOQTableCreator(dslContextResolver);
+    }
+
+    @Bean
+    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
+        return new JOOQQueryEngine(dslContextResolver);
     }
 
     @Bean

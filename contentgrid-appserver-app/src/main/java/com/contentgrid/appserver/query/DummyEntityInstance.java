@@ -1,7 +1,12 @@
 package com.contentgrid.appserver.query;
 
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +22,26 @@ public class DummyEntityInstance extends HashMap<String, Object> implements Enti
             res.put("id", UUID.randomUUID().toString());
         }
         return res;
+    }
+
+    static EntityData fromMap(Map<String, ?> map, Entity entity) {
+        var builder =
+                EntityData.builder()
+                        .name(entity.getName());
+
+        for (Attribute attr : entity.getAllAttributes()) {
+
+            if (map.containsKey(attr.getName().getValue())) {
+                if (attr instanceof SimpleAttribute) {
+                    builder.attribute(SimpleAttributeData.builder()
+                            .name(attr.getName())
+                            .value(map.get(attr.getName().getValue()))
+                            .build());
+                }
+            }
+        }
+
+        return builder.build();
     }
 
     private DummyEntityInstance(Map<String, ?> map, EntityName entityName) {

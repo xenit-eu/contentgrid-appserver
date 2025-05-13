@@ -5,16 +5,21 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.EntityInstance;
-import com.contentgrid.appserver.query.PageRequest;
-import com.contentgrid.appserver.query.QueryEngine;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.PageData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
+import com.contentgrid.thunx.predicates.model.Scalar;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties.Pageable;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.PagedModel;
@@ -52,14 +57,15 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        var results = queryEngine.query(entity, params, PageRequest.ofPage(page));
+        var results = queryEngine.findAll(application, entity, Scalar.of(true), defaultPageData());
+        // TODO filter on params
 
         var assembler = assemblerProvider.getAssemblerFor(application);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
-        var models = results.getResults().stream()
+        var models = results.getEntities().stream()
                 .map(res -> wrappers.wrap(assembler.toModel(res), LinkRelation.of("item")))
                 .toList();
-        return PagedModel.of(models, new PageMetadata(results.getPageSize(), page, results.getTotalItemCount().count()));
+        return PagedModel.of(models, fromPageInfo(results.getPageInfo()));
     }
 
     @GetMapping("/{entityName}/{instanceId}")
@@ -70,7 +76,7 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        var result = queryEngine.findById(entity, instanceId);
+        var result = queryEngine.findById(application, entity, instanceId);
 
         return result.map(res -> assemblerProvider.getAssemblerFor(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -91,12 +97,56 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        EntityInstance instance = queryEngine.createInstance(entity, data);
-        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(instance);
+        var converted = EntityDataValidator.validate(entity, data);
+        // Should this just be rolled into the EntityDataValidator? 🤔
+        var entityData = EntityData.builder().name(entity.getName()).attributes(converted.entrySet().stream()
+                .map(entry -> {
+                    var providedAttributeName = entry.getKey();
+                    var attributeData = entry.getValue();
+                    var attribute = entity.getAttributeByName(AttributeName.of(providedAttributeName)).orElseThrow();
 
+                    if (attribute instanceof SimpleAttribute simp) {
+                        return SimpleAttributeData.builder().name(simp.getName()).value(attributeData).build();
+                    }
+                    // POSTing CompositeAttributes is for when we support content
+                    return null;
+
+                }).toList()
+        ).build();
+
+        var id = queryEngine.create(application, entityData, List.of());
+        var result = queryEngine.findById(application, entity, id).orElseThrow();
+
+        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
         return ResponseEntity
                 .created(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), instance.getId())).toUri())
+                        .getEntity(application, entity.getPathSegment(), id.toString())).toUri())
                 .body(model);
+    }
+
+    // TODO: ACC-2048: support paging
+    private static PageData defaultPageData() {
+        return new PageData() {
+            @Override
+            public int getSize() {
+                return 20;
+            }
+
+            @Override
+            public int getPage() {
+                return 0;
+            }
+        };
+    }
+
+    // TODO: ACC-2048: support paging
+    private static PageMetadata fromPageInfo(PageInfo pageInfo) {
+        return new PageMetadata(
+                pageInfo.getSize() == null ? 20 : pageInfo.getSize(),
+                pageInfo.getStart() == null ? 0 : pageInfo.getStart(),
+                pageInfo.getExactCount() == null
+                        ? pageInfo.getEstimatedCount() == null ? 0 : pageInfo.getEstimatedCount()
+                        : pageInfo.getExactCount()
+        );
     }
 }
