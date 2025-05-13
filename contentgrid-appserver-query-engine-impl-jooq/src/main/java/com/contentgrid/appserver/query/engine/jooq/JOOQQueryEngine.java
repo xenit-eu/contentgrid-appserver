@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -29,6 +30,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -120,37 +122,36 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // add owning relations to step and keep track of relations owned by other entities
         var nonOwningRelations = new ArrayList<RelationData>();
+        var processedRelations = new HashSet<RelationName>();
 
         for (var relationData : relations) {
             if (!entity.getName().equals(relationData.getEntity())) {
                 throw new InvalidDataException("Entity '%s' from relation '%s' does not match entity '%s' from data"
                         .formatted(relationData.getEntity(), relationData.getName(), data.getName()));
             }
+            if (!processedRelations.add(relationData.getName())) {
+                throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
+                        .formatted(relationData.getName()));
+            }
             var relation = getRelation(application, relationData);
-            var targetEntity = relation.getTargetEndPoint().getEntity();
 
             switch (relationData) {
                 case XToOneRelationData xToOneRelationData -> {
-                    if (xToOneRelationData.getRef() == null) {
-                        continue; // skip empty relations, TODO: throw if *-to-many relation
-                    }
-                    switch (relation) {
-                        case SourceOneToOneRelation oneToOneRelation -> {
-                            var field = (Field<UUID>) JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                                    targetEntity.getPrimaryKey()
-                                            .getType(), oneToOneRelation.getSourceEndPoint().isRequired());
-                            step = step.set(field, xToOneRelationData.getRef().getValue());
+                    // add to step if owning relation, otherwise add to non-owning relations
+                    if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
+                        if (xToOneRelationData.getRef() == null) {
+                            continue; // skip empty relations
                         }
-                        case ManyToOneRelation manyToOneRelation -> {
-                            var field = (Field<UUID>) JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                                    targetEntity.getPrimaryKey()
-                                            .getType(), manyToOneRelation.getSourceEndPoint().isRequired());
-                            step = step.set(field, xToOneRelationData.getRef().getValue());
+                        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
+                        step = step.set(targetRef, xToOneRelationData.getRef().getValue());
+                    } else if (relation instanceof TargetOneToOneRelation) {
+                        if (xToOneRelationData.getRef() != null) {
+                            // only add non-empty relations
+                            nonOwningRelations.add(relationData);
                         }
-                        case TargetOneToOneRelation ignored -> nonOwningRelations.add(relationData);
-                        default -> throw new InvalidDataException(
-                                "Relation '%s' is not a one-to-one or many-to-one relation".formatted(
-                                        relationData.getName()));
+                    } else {
+                        throw new InvalidDataException("Relation '%s' is not a one-to-one or many-to-one relation"
+                                .formatted(relationData.getName()));
                     }
                 }
                 case XToManyRelationData ignored -> {
@@ -169,7 +170,7 @@ public class JOOQQueryEngine implements QueryEngine {
         } catch (DuplicateKeyException e) {
             throw new ConstraintViolationException("Provided value for unique field already exists. " + e.getMessage(), e);
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e);
+            throw new ConstraintViolationException(e.getMessage(), e); // null for required field or foreign key does not exist
         }
 
         // add relations owned by other entities
@@ -250,12 +251,10 @@ public class JOOQQueryEngine implements QueryEngine {
         // Delete foreign key references to this item first
         for (var relation : application.getRelationsForSourceEntity(entity)) {
             if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
-                // Skip relations on the same table, they will be deleted later
+                // Skip foreign key references on the same table row, they will be deleted when the row is deleted
                 continue;
             }
-            try {
-                unsetLink(application, relation, id);
-            } catch (EntityNotFoundException ignored) {}
+            unsetLink(application, relation, id);
         }
 
         var deleted = dslContext.deleteFrom(table)
@@ -277,6 +276,7 @@ public class JOOQQueryEngine implements QueryEngine {
             var relationTable = JOOQUtils.resolveRelationTable(relation);
             var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
             if (relation instanceof TargetOneToOneRelation || relation instanceof OneToManyRelation) {
+                // TODO: not necessary if target = source
                 try {
                     dslContext.update(relationTable)
                             .set(sourceRef, (UUID) null)
@@ -325,8 +325,6 @@ public class JOOQQueryEngine implements QueryEngine {
                     .stream()
                     .map(EntityId::of)
                     .toList();
-
-            // TODO: paging or throw exception?
 
             return XToManyRelationData.builder()
                     .entity(sourceEntity.getName())
@@ -469,8 +467,6 @@ public class JOOQQueryEngine implements QueryEngine {
 
                         try {
                             step.execute();
-                        } catch (DuplicateKeyException e) {
-                            throw new ConstraintViolationException("Duplicate reference provided", e);
                         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
                             throw new ConstraintViolationException(e.getMessage(), e); // provided id or ref could not exist
                         }

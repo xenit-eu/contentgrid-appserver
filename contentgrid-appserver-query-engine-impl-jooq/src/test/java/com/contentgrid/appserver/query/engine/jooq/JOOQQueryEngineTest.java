@@ -727,8 +727,12 @@ class JOOQQueryEngineTest {
                                         .entity(INVOICE.getName())
                                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                         .ref(null) // null for owning *-to-one relation
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName())
+                                        .ref(null) // null for non-owning *-to-one relation
                                         .build()
-                                // TODO: null for non-owning *-to-one relation
                         )),
                 // Empty CompositeAttributeData, empty XToManyRelationData
                 Arguments.of(
@@ -744,7 +748,7 @@ class JOOQQueryEngineTest {
                                         .build())
                                 .attribute(CompositeAttributeData.builder()
                                         .name(INVOICE_CONTENT.getName())
-                                        .build())
+                                        .build()) // empty
                                 .build(),
                         List.of(
                                 XToOneRelationData.builder()
@@ -755,7 +759,7 @@ class JOOQQueryEngineTest {
                                 XToManyRelationData.builder()
                                         .entity(INVOICE.getName())
                                         .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
-                                        .build()
+                                        .build() // empty
                         ))
         );
     }
@@ -771,26 +775,13 @@ class JOOQQueryEngineTest {
 
         for (var relationData : relations) {
             var relation = APPLICATION.getRelationForEntity(entity, relationData.getName()).orElseThrow();
-            switch (relationData) {
-                case XToOneRelationData xToOneRelationData when xToOneRelationData.getRef() != null -> {
-                    assertTrue(queryEngine.isLinked(APPLICATION, relation, id, xToOneRelationData.getRef()));
-                }
-                case XToManyRelationData xToManyRelationData -> {
-                    for (var ref : xToManyRelationData.getRefs()) {
-                        assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
-                    }
-                }
-                default -> {
-                    // Assert it is not linked
-                    var link = queryEngine.findLink(APPLICATION, relation, id);
-                    var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, link);
-                    assertNull(xToOneRelationData.getRef());
-                }
-            }
+            var actualRelationData = queryEngine.findLink(APPLICATION, relation, id);
+            assertRelationDataEquals(relationData, actualRelationData);
         }
     }
 
     private static void assertEntityDataEquals(EntityData expected, EntityData actual) {
+        assertEquals(expected.getName(), actual.getName());
         // assert the expected data is present in the actual data
         for (var expectedAttr : expected.getAttributes()) {
             var actualAttr = actual.getAttributeByName(expectedAttr.getName()).orElseThrow();
@@ -799,6 +790,7 @@ class JOOQQueryEngineTest {
     }
 
     private static void assertAttributeDataEquals(AttributeData expected, AttributeData actual) {
+        assertEquals(expected.getName(), actual.getName());
         // assert the expected data is present in the actual data
         switch (expected) {
             case SimpleAttributeData<?> expectedData -> {
@@ -811,6 +803,22 @@ class JOOQQueryEngineTest {
                     var actualAttr = actualData.getAttributeByName(expectedAttr.getName()).orElseThrow();
                     assertAttributeDataEquals(expectedAttr, actualAttr);
                 }
+            }
+        }
+    }
+
+    private static void assertRelationDataEquals(RelationData expected, RelationData actual) {
+        assertEquals(expected.getEntity(), actual.getEntity());
+        assertEquals(expected.getName(), actual.getName());
+        // assert the expected data is present in the actual data
+        switch (expected) {
+            case XToOneRelationData expectedData -> {
+                var actualData = assertInstanceOf(XToOneRelationData.class, actual);
+                assertEquals(expectedData.getRef(), actualData.getRef());
+            }
+            case XToManyRelationData expectedData -> {
+                XToManyRelationData actualData = assertInstanceOf(XToManyRelationData.class, actual);
+                assertTrue(actualData.getRefs().containsAll(expectedData.getRefs()));
             }
         }
     }
@@ -1187,6 +1195,31 @@ class JOOQQueryEngineTest {
                                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                         .ref(INVOICE1_ID) // is already linked with INVOICE2_ID
                                         .build()
+                        )),
+                // Duplicate relation provided
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(BOB_ID)
+                                        .build()
                         ))
         );
     }
@@ -1535,22 +1568,8 @@ class JOOQQueryEngineTest {
         queryEngine.setLink(APPLICATION, relationData, id);
 
         var relation = APPLICATION.getRelationForEntity(relationData.getEntity(), relationData.getName()).orElseThrow();
-        switch (relationData) {
-            case XToOneRelationData xToOneRelationData when xToOneRelationData.getRef() != null -> {
-                assertTrue(queryEngine.isLinked(APPLICATION, relation, id, xToOneRelationData.getRef()));
-            }
-            case XToManyRelationData xToManyRelationData -> {
-                for (var ref : xToManyRelationData.getRefs()) {
-                    assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
-                }
-            }
-            default -> {
-                // Assert it is not linked
-                var link = queryEngine.findLink(APPLICATION, relation, id);
-                var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, link);
-                assertNull(xToOneRelationData.getRef());
-            }
-        }
+        var actualRelationData = queryEngine.findLink(APPLICATION, relation, id);
+        assertRelationDataEquals(relationData, actualRelationData);
     }
 
     static Stream<Arguments> invalidSetRelationData() {
