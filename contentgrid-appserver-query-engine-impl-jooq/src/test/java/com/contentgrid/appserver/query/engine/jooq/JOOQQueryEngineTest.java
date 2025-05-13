@@ -1439,17 +1439,33 @@ class JOOQQueryEngineTest {
         assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, data));
     }
 
-    @Test
-    void deleteEntity() {
-        queryEngine.delete(APPLICATION, PERSON, JOHN_ID);
-        var maybePerson = queryEngine.findById(APPLICATION, PERSON, JOHN_ID);
-        assertTrue(maybePerson.isEmpty());
+    static Stream<Arguments> validDeleteData() {
+        return Stream.of(
+                Arguments.of(PERSON, JOHN_ID),
+                Arguments.of(INVOICE, INVOICE1_ID),
+                Arguments.of(PRODUCT, PRODUCT1_ID)
+        );
     }
 
-    @Test
-    void deleteEntityInvalidId() {
-        // INVOICE1_ID is not a person
-        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, PERSON, INVOICE1_ID));
+    @ParameterizedTest
+    @MethodSource("validDeleteData")
+    void deleteEntityValidId(Entity entity, EntityId id) {
+        queryEngine.delete(APPLICATION, entity, id);
+        var maybeData = queryEngine.findById(APPLICATION, entity, id);
+        assertTrue(maybeData.isEmpty());
+    }
+
+    static Stream<Arguments> invalidDeleteData() {
+        return Stream.of(
+                Arguments.of(INVOICE, ALICE_ID), // ALICE_ID is not an invoice
+                Arguments.of(PERSON, ALICE_ID) // ALICE_ID is present in required relation customer
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDeleteData")
+    void deleteEntityInvalidId(Entity entity, EntityId id) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, entity, id));
     }
 
     @Test
@@ -1457,6 +1473,17 @@ class JOOQQueryEngineTest {
         queryEngine.deleteAll(APPLICATION, INVOICE);
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
         assertTrue(slice.getEntities().isEmpty());
+
+        // now we can safely delete all persons (no invoices left with a required customer)
+        queryEngine.deleteAll(APPLICATION, PERSON);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null);
+        assertTrue(slice.getEntities().isEmpty());
+    }
+
+    @Test
+    void deleteAllInvalidEntity() {
+        // persons are present in required relation customer
+        assertThrows(QueryEngineException.class, () -> queryEngine.deleteAll(APPLICATION, PERSON));
     }
 
     static Stream<Arguments> validSetRelationData() {

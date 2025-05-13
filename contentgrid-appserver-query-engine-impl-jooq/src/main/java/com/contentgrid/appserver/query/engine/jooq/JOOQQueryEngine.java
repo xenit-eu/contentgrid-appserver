@@ -247,7 +247,16 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
-        // TODO: ACC-2059: Try deleting relations first?
+        // Delete foreign key references to this item first
+        for (var relation : application.getRelationsForSourceEntity(entity)) {
+            if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
+                // Skip relations on the same table, they will be deleted later
+                continue;
+            }
+            try {
+                unsetLink(application, relation, id);
+            } catch (EntityNotFoundException ignored) {}
+        }
 
         var deleted = dslContext.deleteFrom(table)
                 .where(primaryKey.eq(id.getValue()))
@@ -262,6 +271,24 @@ public class JOOQQueryEngine implements QueryEngine {
     public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var table = JOOQUtils.resolveTable(entity);
+
+        // Delete relations on other tables first
+        for (var relation : application.getRelationsForSourceEntity(entity)) {
+            var relationTable = JOOQUtils.resolveRelationTable(relation);
+            var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+            if (relation instanceof TargetOneToOneRelation || relation instanceof OneToManyRelation) {
+                try {
+                    dslContext.update(relationTable)
+                            .set(sourceRef, (UUID) null)
+                            .execute();
+                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
+                    throw new ConstraintViolationException(e.getMessage(), e); // inverse relation could be required.
+                }
+            } else if (relation instanceof ManyToManyRelation) {
+                // TODO: many-to-many relations are processed twice if source = target
+                dslContext.deleteFrom(relationTable).execute();
+            }
+        }
 
         dslContext.deleteFrom(table).execute();
     }
