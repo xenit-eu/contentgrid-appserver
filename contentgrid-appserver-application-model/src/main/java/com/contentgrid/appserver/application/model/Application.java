@@ -159,4 +159,48 @@ public class Application {
         return Optional.empty();
     }
 
+    /**
+     * Finds all relations with the given source entity.
+     * <p>
+     * If the source entity equals the target entity of a relation,
+     * both the relation and its inverse relation will be present.
+     *
+     * @param entity the source entity
+     * @return a Set containing all the relations where the entity is the source entity
+     */
+    public Set<Relation> getRelationsForSourceEntity(Entity entity) {
+        var results = new HashSet<Relation>();
+        for (var relation : relations) {
+            if (relation.getSourceEndPoint().getEntity().equals(entity)) {
+                results.add(relation);
+            }
+            if (relation.getTargetEndPoint().getEntity().equals(entity)) {
+                results.add(relation.inverse());
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Finds all relations with the given target entity.
+     * <p>
+     * If the source entity equals the target entity of a relation,
+     * both the relation and its inverse relation will be present.
+     *
+     * @param entity the target entity
+     * @return a Set containing all the relations where the entity is the target entity
+     */
+    public Set<Relation> getRelationsForTargetEntity(Entity entity) {
+        var results = new HashSet<Relation>();
+        for (var relation : relations) {
+            if (relation.getTargetEndPoint().getEntity().equals(entity)) {
+                results.add(relation);
+            }
+            if (relation.getSourceEndPoint().getEntity().equals(entity)) {
+                results.add(relation.inverse());
+            }
+        }
+        return results;
+    }
+
 }
