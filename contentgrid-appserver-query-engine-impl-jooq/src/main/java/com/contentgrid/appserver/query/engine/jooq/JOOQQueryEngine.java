@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.UpdateSetFirstStep;
@@ -100,11 +101,19 @@ public class JOOQQueryEngine implements QueryEngine {
                 .map(result -> EntityDataMapper.from(entity, result));
     }
 
+    private void assertEntityExists(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull EntityId id) {
+        var table = JOOQUtils.resolveTable(entity);
+        var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
+        if (!dslContext.fetchExists(table, primaryKey.eq(id.getValue()))) {
+            throw new EntityNotFoundException("Entity '%s' with primary key '%s' does not exist.".formatted(entity.getName(), id));
+        }
+    }
+
     @Override
     public EntityId create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getEntity(application, data.getName());
+        var entity = getRequiredEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
@@ -133,7 +142,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
                         .formatted(relationData.getName()));
             }
-            var relation = getRelation(application, relationData);
+            var relation = getRequiredRelation(application, relationData);
 
             switch (relationData) {
                 case XToOneRelationData xToOneRelationData -> {
@@ -181,13 +190,13 @@ public class JOOQQueryEngine implements QueryEngine {
         return id;
     }
 
-    private Entity getEntity(Application application, EntityName entityName) {
+    private Entity getRequiredEntity(Application application, EntityName entityName) {
         return application.getEntityByName(entityName)
                 .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
                         .formatted(entityName, application.getName())));
     }
 
-    private Relation getRelation(Application application, RelationData relationData) {
+    private Relation getRequiredRelation(Application application, RelationData relationData) {
         return application.getRelationForEntity(relationData.getEntity(), relationData.getName())
                 .orElseThrow(() -> new InvalidDataException("Relation '%s' of entity '%s' not found in application '%s'"
                         .formatted(relationData.getName(), relationData.getEntity(), application.getName())));
@@ -203,7 +212,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getEntity(application, data.getName());
+        var entity = getRequiredEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
@@ -350,7 +359,7 @@ public class JOOQQueryEngine implements QueryEngine {
     public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRelation(application, data);
+        var relation = getRequiredRelation(application, data);
         var table = JOOQUtils.resolveRelationTable(relation);
         var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
         var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
@@ -524,12 +533,7 @@ public class JOOQQueryEngine implements QueryEngine {
                             .execute();
 
                     if (updated == 0) {
-                        // assert referenced entity exists
-                        var sourceTable = JOOQUtils.resolveTable(sourceEntity);
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-                        if (!dslContext.fetchExists(DSL.selectOne().from(sourceTable).where(primaryKey.eq(id.getValue())))) {
-                            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-                        }
+                        assertEntityExists(dslContext, sourceEntity, id);
                     }
                 } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
                     throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
@@ -543,12 +547,7 @@ public class JOOQQueryEngine implements QueryEngine {
                             .execute();
 
                     if (updated == 0) {
-                        // assert referenced entity exists
-                        var sourceTable = JOOQUtils.resolveTable(sourceEntity);
-                        var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-                        if (!dslContext.fetchExists(DSL.selectOne().from(sourceTable).where(primaryKey.eq(id.getValue())))) {
-                            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-                        }
+                        assertEntityExists(dslContext, sourceEntity, id);
                     }
                 } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
                     throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
@@ -560,12 +559,7 @@ public class JOOQQueryEngine implements QueryEngine {
                                 .execute();
 
                 if (deleted == 0) {
-                    // assert referenced entity exists
-                    var sourceTable = JOOQUtils.resolveTable(sourceEntity);
-                    var primaryKey = JOOQUtils.resolvePrimaryKey(sourceEntity);
-                    if (!dslContext.fetchExists(DSL.selectOne().from(sourceTable).where(primaryKey.eq(id.getValue())))) {
-                        throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-                    }
+                    assertEntityExists(dslContext, sourceEntity, id);
                 }
             }
         }
@@ -575,7 +569,7 @@ public class JOOQQueryEngine implements QueryEngine {
     public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRelation(application, data);
+        var relation = getRequiredRelation(application, data);
         var table = JOOQUtils.resolveRelationTable(relation);
         var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
         var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
@@ -622,7 +616,7 @@ public class JOOQQueryEngine implements QueryEngine {
     public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRelation(application, data);
+        var relation = getRequiredRelation(application, data);
         var table = JOOQUtils.resolveRelationTable(relation);
         var sourceRef = (Field<UUID>) JOOQUtils.resolveRelationSourceRef(relation);
         var targetRef = (Field<UUID>) JOOQUtils.resolveRelationTargetRef(relation);
@@ -640,7 +634,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
                     if (updated < refs.size()) {
                         throw new EntityNotFoundException(
-                                "Not all target entities found with a relation to entity '%s' with primary key '%s'"
+                                "Entities provided that are not linked to entity '%s' with primary key '%s'"
                                         .formatted(data.getEntity(), id));
                     }
                 } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
