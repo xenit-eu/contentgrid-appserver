@@ -146,7 +146,7 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
@@ -157,6 +157,6 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
 }

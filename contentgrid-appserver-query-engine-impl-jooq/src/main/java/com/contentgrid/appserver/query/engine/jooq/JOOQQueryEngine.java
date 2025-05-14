@@ -233,13 +233,13 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id)
+    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id)
+    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }
