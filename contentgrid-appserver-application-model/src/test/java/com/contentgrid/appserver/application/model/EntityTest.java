@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
@@ -103,7 +104,7 @@ class EntityTest {
     @Test
     void entity_differentPrimaryKey() {
         var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.LONG).build();
-        var entity = Entity.builder()
+        var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
                 .table(TableName.of("table"))
@@ -111,10 +112,9 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
-                .searchFilter(FILTER2)
-                .build();
+                .searchFilter(FILTER2);
 
-        assertEquals(primaryKey, entity.getPrimaryKey());
+        assertThrows(InvalidAttributeTypeException.class, builder::build);
     }
 
     @Test
