@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query;
+package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
@@ -12,9 +12,7 @@ import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.appserver.rest.EntityDataValidator;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.query.ItemCountPage.ItemCount;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,33 +23,35 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.ConversionService;
 
 
 public class DummyQueryEngine implements QueryEngine {
-    private final Application application;
     private final ConversionService conversionService;
 
     protected final Map<String, List<EntityData>> entityInstances = new ConcurrentHashMap<>();
 
     public DummyQueryEngine(Application application, ConversionService conversionService) {
-        this.application = application;
         this.conversionService = conversionService;
-        entityInstances.put("person", new ArrayList<>(Stream.of(
-                Map.of(
-                        "id", UUID.fromString("12181b10-8af6-42f9-bde0-46b4c28cd0d9"),
-                        "first_name", "John",
-                        "last_name", "Doe",
-                        "birth_date", Instant.ofEpochSecond(876543210)
-                ),
-                Map.of(
-                        "id", UUID.fromString("34307d24-3109-42f4-abca-7007b92694a8"),
-                        "first_name", "Alice",
-                        "last_name", "Aaronson",
-                        "birth_date", Instant.ofEpochSecond(765432100)
-                )
-        ).map(m -> DummyEntityInstance.fromMap(m, application.getEntityByName(EntityName.of("person")).get())).toList()));
+
+        var personEntity = application.getEntityByName(EntityName.of("person"));
+        if (personEntity.isPresent()) {
+            entityInstances.put("person", new ArrayList<>(Stream.of(
+                            Map.of(
+                                    "id", UUID.fromString("12181b10-8af6-42f9-bde0-46b4c28cd0d9"),
+                                    "first_name", "John",
+                                    "last_name", "Doe",
+                                    "birth_date", Instant.ofEpochSecond(876543210)
+                            ),
+                            Map.of(
+                                    "id", UUID.fromString("34307d24-3109-42f4-abca-7007b92694a8"),
+                                    "first_name", "Alice",
+                                    "last_name", "Aaronson",
+                                    "birth_date", Instant.ofEpochSecond(765432100)
+                            )
+                    ).map(m -> DummyEntityInstance.fromMap(m, personEntity.get()))
+                    .toList()));
+        }
     }
 
 
@@ -74,7 +74,7 @@ public class DummyQueryEngine implements QueryEngine {
     @Override
     public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) {
         var idName = entity.getPrimaryKey().getName();
-        return entityInstances.get(entity.getName().getValue()).stream()
+        return entityInstances.getOrDefault(entity.getName().getValue(), List.of()).stream()
                 .filter(e -> e.getAttributeByName(idName)
                         .map(a -> ((SimpleAttributeData) a).getValue())
                         .map(a -> conversionService.convert(a, id.getClass()))
@@ -86,7 +86,14 @@ public class DummyQueryEngine implements QueryEngine {
     @Override
     public Object create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
-        return null;
+        var instances = entityInstances.getOrDefault(data.getName().getValue(), new ArrayList<>());
+        var entity = application.getEntityByName(data.getName());
+        if (entity.isEmpty()) {
+            return null;
+        }
+        instances.add(data);
+        entityInstances.put(data.getName().getValue(), instances);
+        return ((SimpleAttributeData) data.getAttributeByName(entity.get().getPrimaryKey().getName()).orElseThrow()).getValue();
     }
 
     @Override
