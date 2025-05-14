@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.UUID;
 import lombok.experimental.UtilityClass;
 import org.jooq.DataType;
 import org.jooq.Field;
@@ -47,20 +48,20 @@ public class JOOQUtils {
         return DSL.field(DSL.name(alias.getValue(), column.getValue()), resolveType(type, required));
     }
 
-    public static Field<?> resolvePrimaryKey(Entity entity) {
+    public static Field<UUID> resolvePrimaryKey(Entity entity) {
         return resolvePrimaryKey(entity.getPrimaryKey());
     }
 
-    public static Field<?> resolvePrimaryKey(SimpleAttribute primaryKey) {
-        return resolveField(primaryKey.getColumn(), primaryKey.getType(), true);
+    public static Field<UUID> resolvePrimaryKey(SimpleAttribute primaryKey) {
+        return (Field<UUID>) resolveField(primaryKey.getColumn(), primaryKey.getType(), true);
     }
 
-    public static Field<?> resolvePrimaryKey(TableName alias, Entity entity) {
+    public static Field<UUID> resolvePrimaryKey(TableName alias, Entity entity) {
         return resolvePrimaryKey(alias, entity.getPrimaryKey());
     }
 
-    public static Field<?> resolvePrimaryKey(TableName alias, SimpleAttribute primaryKey) {
-        return resolveField(alias, primaryKey.getColumn(), primaryKey.getType(), true);
+    public static Field<UUID> resolvePrimaryKey(TableName alias, SimpleAttribute primaryKey) {
+        return (Field<UUID>) resolveField(alias, primaryKey.getColumn(), primaryKey.getType(), true);
     }
 
     private static DataType<?> resolveType(SimpleAttribute.Type type, boolean required) {

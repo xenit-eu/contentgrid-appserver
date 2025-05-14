@@ -20,12 +20,15 @@ public class EntityData {
     @NonNull
     EntityName name;
 
+    EntityId id;
+
     @Getter(AccessLevel.NONE)
     Map<AttributeName, AttributeData> attributes = new HashMap<>();
 
     @Builder
-    EntityData(@NonNull EntityName name, @Singular List<AttributeData> attributes) {
+    EntityData(@NonNull EntityName name, EntityId id, @Singular List<AttributeData> attributes) {
         this.name = name;
+        this.id = id;
         for (var attribute : attributes) {
             var old = this.attributes.put(attribute.getName(), attribute);
             if (old != null) {

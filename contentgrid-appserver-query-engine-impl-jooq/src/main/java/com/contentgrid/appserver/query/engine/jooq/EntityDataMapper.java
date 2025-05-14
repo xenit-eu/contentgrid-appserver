@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,11 +21,19 @@ import lombok.experimental.UtilityClass;
 public class EntityDataMapper {
 
     public EntityData from(@NonNull Entity entity, Map<String, Object> data) {
-        var builder = EntityData.builder().name(entity.getName());
-        for (var attribute : entity.getAllAttributes()) {
+        var builder = EntityData.builder()
+                .name(entity.getName())
+                .id(getEntityId(entity, data));
+        for (var attribute : entity.getAttributes()) {
             builder.attribute(from(attribute, data));
         }
         return builder.build();
+    }
+
+    private EntityId getEntityId(@NonNull Entity entity, Map<String, Object> data) {
+        var primaryKey = entity.getPrimaryKey();
+        var id = (UUID) convert(primaryKey, data.get(primaryKey.getColumn().getValue()));
+        return EntityId.of(id);
     }
 
     public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {

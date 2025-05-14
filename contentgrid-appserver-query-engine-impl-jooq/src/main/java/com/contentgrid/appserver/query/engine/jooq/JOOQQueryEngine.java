@@ -2,11 +2,13 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
@@ -75,36 +77,36 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) {
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) {
         var dslContext = resolver.resolve(application);
         var alias = getRootAlias(entity);
         var table = JOOQUtils.resolveTable(entity, alias);
-        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(alias, entity);
+        var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         return dslContext.selectFrom(table)
-                .where(primaryKey.eq(id))
+                .where(primaryKey.eq(id.getValue()))
                 .fetchOptional()
                 .map(Record::intoMap)
                 .map(result -> EntityDataMapper.from(entity, result));
     }
 
     @Override
-    public Object create(@NonNull Application application, @NonNull EntityData data,
+    public EntityId create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
-        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+        var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
+        if (data.getId() != null) {
+            throw new InvalidDataException("Provided data contains primary key, which is auto-generated");
+        }
 
         var step = dslContext.insertInto(table)
-                .set(primaryKey, id);
+                .set(primaryKey, id.getValue());
 
         var list = EntityDataConverter.convert(data, entity);
         for (var entry : list) {
-            if (primaryKey.equals(entry.field())) {
-                throw new InvalidDataException("Provided data contains primary key, which is auto-generated");
-            }
             step = step.set(entry.field(), entry.value());
         }
 
@@ -129,12 +131,11 @@ public class JOOQQueryEngine implements QueryEngine {
                         .formatted(entityName, application.getName())));
     }
 
-    private Object generateId(Entity entity) {
-        return switch (entity.getPrimaryKey().getType()) {
-            case UUID -> uuidGenerator.generate();
-            case TEXT -> uuidGenerator.generate().toString();
-            default -> throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
-        };
+    private EntityId generateId(Entity entity) {
+        if (!Type.UUID.equals(entity.getPrimaryKey().getType())) {
+            throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
+        }
+        return EntityId.of(uuidGenerator.generate());
     }
 
     @Override
@@ -142,18 +143,18 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var entity = getEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
-        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+        var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
+        var id = data.getId();
+        if (id == null) {
+            throw new InvalidDataException("No entity id provided");
+        }
 
         UpdateSetFirstStep<?> update = dslContext.update(table);
         UpdateSetMoreStep<?> step = null;
-        Object id = null;
 
         var list = EntityDataConverter.convert(data, entity);
         for (var entry : list) {
-            if (primaryKey.equals(entry.field())) {
-                // Primary key ends up in the where clause.
-                id = entry.value();
-            } else if (step == null) {
+            if (step == null) {
                 step = update.set(entry.field(), entry.value());
             } else {
                 step = step.set(entry.field(), entry.value());
@@ -168,7 +169,7 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         try {
-            var updated = step.where(primaryKey.eq(id))
+            var updated = step.where(primaryKey.eq(id.getValue()))
                     .execute();
 
             if (updated == 0) {
@@ -182,16 +183,16 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id)
+    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var table = JOOQUtils.resolveTable(entity);
-        var primaryKey = (Field<Object>) JOOQUtils.resolvePrimaryKey(entity);
+        var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
         // TODO: ACC-2059: Try deleting relations first?
 
         var deleted = dslContext.deleteFrom(table)
-                .where(primaryKey.eq(id))
+                .where(primaryKey.eq(id.getValue()))
                 .execute();
 
         if (deleted == 0) {
@@ -208,37 +209,37 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId,
-            @NonNull Object targetId) throws QueryEngineException {
+    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+            @NonNull EntityId targetId) throws QueryEngineException {
         return false; // TODO: ACC-2059
     }
 
     @Override
-    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         return null; // TODO: ACC-2059
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id)
+    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id)
             throws QueryEngineException {
         // TODO: ACC-2059
     }

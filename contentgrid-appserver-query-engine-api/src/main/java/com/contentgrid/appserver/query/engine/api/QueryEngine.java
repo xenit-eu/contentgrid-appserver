@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
@@ -51,7 +52,7 @@ public interface QueryEngine {
      * @param id the primary key value of the entity to find
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id);
+    Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id);
 
     /**
      * Creates an entity with the given data and relations.
@@ -62,7 +63,7 @@ public interface QueryEngine {
      * @return the value of the primary key for the newly created entity
      * @throws QueryEngineException if an error occurs during the create operation
      */
-    Object create(@NonNull Application application, @NonNull EntityData data, @NonNull List<RelationData> relations) throws QueryEngineException;
+    EntityId create(@NonNull Application application, @NonNull EntityData data, @NonNull List<RelationData> relations) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
@@ -81,7 +82,7 @@ public interface QueryEngine {
      * @param id the primary key value of the entity to delete
      * @throws QueryEngineException if an error occurs during the delete operation
      */
-    void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) throws QueryEngineException;
+    void delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Deletes all entities of the specified type.
@@ -102,7 +103,7 @@ public interface QueryEngine {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId, @NonNull Object targetId) throws QueryEngineException;
+    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
 
     /**
      * Returns the target entity or entities that are linked with the entity having the given id.
@@ -113,7 +114,7 @@ public interface QueryEngine {
      * @return data representing the linked target entity or entities
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id) throws QueryEngineException;
+    RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Overwrites the link(s) from the entity with the given id with the link(s) provided in data.
@@ -124,7 +125,7 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -134,7 +135,7 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id) throws QueryEngineException;
+    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Adds the links provided in data to the entity with the given id.
@@ -145,7 +146,7 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
@@ -156,6 +157,6 @@ public interface QueryEngine {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull EntityId id) throws QueryEngineException;
 
 }
