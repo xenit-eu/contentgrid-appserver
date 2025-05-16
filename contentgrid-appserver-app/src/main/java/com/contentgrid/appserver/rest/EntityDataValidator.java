@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.rest.exception.AttributesValidationException;
 import com.contentgrid.appserver.rest.exception.InvalidEntityDataException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ public class EntityDataValidator {
             }
 
             if (value == null) {
+                // TODO check constraints ACC-2069
                 // For now, treat all attributes as optional
                 continue;
             }
@@ -131,24 +133,15 @@ public class EntityDataValidator {
     private static boolean validateBooleanAttributeValue(Object value) {
         if (value instanceof Boolean bool) {
             return bool;
-        } else if (value instanceof String str) {
-            if (str.equalsIgnoreCase("true") || str.equalsIgnoreCase("false")) {
-                return Boolean.parseBoolean(str);
-            }
-            throw new IllegalArgumentException("Invalid boolean value: " + str);
         }
         throw new IllegalArgumentException("Expected boolean value, got: " + value.getClass().getSimpleName());
     }
 
-    private static double validateDoubleAttributeValue(Object value) {
-        if (value instanceof Number number) {
+    private static Number validateDoubleAttributeValue(Object value) {
+        if (value instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
+        } else if (value instanceof Number number) {
             return number.doubleValue();
-        } else if (value instanceof String str) {
-            try {
-                return Double.parseDouble(str);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid decimal format: " + str);
-            }
         }
         throw new IllegalArgumentException("Expected decimal value, got: " + value.getClass().getSimpleName());
     }
@@ -156,12 +149,6 @@ public class EntityDataValidator {
     private static long validateLongAttributeValue(Object value) {
         if (value instanceof Number number) {
             return number.longValue();
-        } else if (value instanceof String str) {
-            try {
-                return Long.parseLong(str);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid number format: " + str);
-            }
         }
         throw new IllegalArgumentException("Expected numeric value, got: " + value.getClass().getSimpleName());
     }
@@ -206,7 +193,7 @@ public class EntityDataValidator {
                 }
             }
         } else {
-            // TODO add required check
+            // TODO add required check ACC-2069
             throw new IllegalArgumentException("Expected map, got: " + value.getClass().getSimpleName());
         }
 
@@ -240,7 +227,7 @@ public class EntityDataValidator {
 
             // User doesn't get to set id or length
         }
-        // TODO add required check
+        // TODO add required check ACC-2069
 
         if (!validationErrors.isEmpty()) {
             throw new AttributesValidationException(validationErrors);
@@ -249,39 +236,7 @@ public class EntityDataValidator {
     }
 
     private static Map<AttributeName, Object> validateUserAttributeValue(UserAttribute attribute, Object value) {
-        Map<AttributeName, Object> validatedData = new HashMap<>();
-        Map<String, String> validationErrors = new HashMap<>();
-
-        if (value instanceof Map map) {
-            // Id
-            try {
-                var id = map.get(attribute.getId().getName().getValue());
-                validatedData.put(attribute.getId().getName(), validateStringAttributeValue(id));
-            } catch(IllegalArgumentException e) {
-                validationErrors.put(attribute.getId().getName().getValue(), e.getMessage());
-            }
-
-            // Username
-            try {
-                var filename = map.get(attribute.getUsername().getName().getValue());
-                validatedData.put(attribute.getUsername().getName(), validateStringAttributeValue(filename));
-            } catch(IllegalArgumentException e) {
-                validationErrors.put(attribute.getUsername().getName().getValue(), e.getMessage());
-            }
-
-            // Namespace
-            try {
-                var namespace = map.get(attribute.getNamespace().getName().getValue());
-                validatedData.put(attribute.getNamespace().getName(), validateStringAttributeValue(namespace));
-            } catch(IllegalArgumentException e) {
-                validationErrors.put(attribute.getNamespace().getName().getValue(), e.getMessage());
-            }
-        }
-        // TODO add required check
-
-        if (!validationErrors.isEmpty()) {
-            throw new AttributesValidationException(validationErrors);
-        }
-        return validatedData;
+        // TODO check attribute flags for readonly/rest-ignored ACC-2070
+        return new HashMap<>();
     }
 }

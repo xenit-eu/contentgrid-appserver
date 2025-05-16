@@ -1,7 +1,9 @@
 package com.contentgrid.appserver;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -83,6 +85,34 @@ public class ContentgridAppConfiguration {
                                         .type(Type.DATETIME)
                                         .build()
                                 )
+                                .build())
+                        .entity(Entity.builder()
+                                .name(EntityName.of("invoice"))
+                                .table(TableName.of("invoice"))
+                                .pathSegment(PathSegmentName.of("invoices"))
+                                .attribute(SimpleAttribute.builder()
+                                        .name(AttributeName.of("number"))
+                                        .column(ColumnName.of("number"))
+                                        .type(Type.TEXT)
+                                        .constraint(Constraint.required())
+                                        .constraint(Constraint.unique())
+                                        .build()
+                                )
+                                .attribute(SimpleAttribute.builder()
+                                        .name(AttributeName.of("amount"))
+                                        .column(ColumnName.of("amount"))
+                                        .type(Type.DOUBLE)
+                                        .constraint(Constraint.required())
+                                        .build()
+                                )
+                                .attribute(ContentAttribute.builder()
+                                        .name(AttributeName.of("content"))
+                                        .pathSegment(PathSegmentName.of("content"))
+                                        .idColumn(ColumnName.of("content__id"))
+                                        .filenameColumn(ColumnName.of("content__filename"))
+                                        .mimetypeColumn(ColumnName.of("content__mimetype"))
+                                        .lengthColumn(ColumnName.of("content__length"))
+                                        .build())
                                 .build())
                         .build()
         );

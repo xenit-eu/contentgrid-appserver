@@ -54,7 +54,7 @@ public class ContentGridExceptionHandler {
     ResponseEntity<Problem> handleMappingException(InvalidEntityDataException exception) {
         var problem = problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_TYPE)
                 .withStatus(HttpStatus.BAD_REQUEST);
-        log.warn("Invalid request body type!");
+        log.warn("Invalid request body type:", exception);
 
         for (String attr : exception.getInvalidAttributes()) {
             problem = problem.withProperties(new FieldViolationProblemProperties(attr));
@@ -64,7 +64,7 @@ public class ContentGridExceptionHandler {
     }
 
     ResponseEntity<Problem> handleJsonParseException(JsonParseException exception) {
-        log.warn("Invalid request body json!");
+        log.warn("Invalid request body json:", exception);
         return createResponse(
                 problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_JSON)
                         .withStatus(HttpStatus.BAD_REQUEST)

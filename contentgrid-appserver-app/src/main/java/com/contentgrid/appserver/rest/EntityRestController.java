@@ -8,7 +8,6 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.query.EntityInstance;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -58,7 +57,7 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         var results = queryEngine.findAll(application, entity, Scalar.of(true), defaultPageData());
-        // TODO filter on params
+        // TODO ACC-2072: filter on params
 
         var assembler = assemblerProvider.getAssemblerFor(application);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
@@ -80,13 +79,6 @@ public class EntityRestController {
 
         return result.map(res -> assemblerProvider.getAssemblerFor(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-    }
-
-    static RepresentationModel<?> toRepresentationModel(Application application, Entity entity, EntityInstance inst) {
-        return RepresentationModel.of(inst)
-                .add(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), inst.getId())
-                ).withSelfRel());
     }
 
     @PostMapping("/{entityName}")

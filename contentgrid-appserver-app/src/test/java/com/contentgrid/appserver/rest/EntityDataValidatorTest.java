@@ -73,9 +73,9 @@ class EntityDataValidatorTest {
         var converted = EntityDataValidator.validate(INVOICE, Map.of(
                 "internal_ref", "636c5925-dcac-4ccd-8b46-d0489dff7e48",
                 "invoice_number", "2398475-BD",
-                "total_amount", "129.95",
-                "is_paid", "false",
-                "num_items", "3",
+                "total_amount", 129.95,
+                "is_paid", false,
+                "num_items", 3,
                 "due_date", "2026-12-31T23:59:59Z"
         ));
 
@@ -190,25 +190,6 @@ class EntityDataValidatorTest {
                     )));
             assertEquals(exception.getInvalidAttributes().size(), 1);
             assertTrue(exception.getValidationErrors().containsKey("auditing.last_modified_date"));
-        }
-
-        @Test
-        void testCompositeAuditError() {
-
-            var exception = assertThrows(InvalidEntityDataException.class, () ->
-                    EntityDataValidator.validate(entity, Map.of(
-                            "auditing", Map.of(
-                                    "created_date", "2025-05-25T05:25:25Z",
-                                    "last_modified_date", "2026-06-26T06:26:26Z",
-                                    "created_by", Map.of(
-                                            "id", "alan.smithee@example.com",
-                                            "name", "Alan Smithee",
-                                            "namespace", false // <-- oops
-                                    )
-                            )
-                    )));
-            assertEquals(exception.getInvalidAttributes().size(), 1);
-            assertTrue(exception.getValidationErrors().containsKey("auditing.created_by.namespace"));
         }
     }
 

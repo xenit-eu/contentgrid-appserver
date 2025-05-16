@@ -2,6 +2,8 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -49,11 +51,30 @@ public class DummyQueryEngine implements QueryEngine {
                                     "last_name", "Aaronson",
                                     "birth_date", Instant.ofEpochSecond(765432100)
                             )
-                    ).map(m -> DummyEntityInstance.fromMap(m, personEntity.get()))
+                    ).map(m -> fromMap(m, personEntity.get()))
                     .toList()));
         }
     }
 
+    static EntityData fromMap(Map<String, ?> map, Entity entity) {
+        var builder =
+                EntityData.builder()
+                        .name(entity.getName());
+
+        for (Attribute attr : entity.getAllAttributes()) {
+
+            if (map.containsKey(attr.getName().getValue())) {
+                if (attr instanceof SimpleAttribute) {
+                    builder.attribute(SimpleAttributeData.builder()
+                            .name(attr.getName())
+                            .value(map.get(attr.getName().getValue()))
+                            .build());
+                }
+            }
+        }
+
+        return builder.build();
+    }
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,

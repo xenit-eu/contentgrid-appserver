@@ -9,7 +9,7 @@ import java.util.Map;
 import lombok.Getter;
 
 /**
- * Exception thrown when validation fails for entity instance data.
+ * Exception thrown when validation fails for entity data input.
  */
 public class InvalidEntityDataException extends RuntimeException {
 
