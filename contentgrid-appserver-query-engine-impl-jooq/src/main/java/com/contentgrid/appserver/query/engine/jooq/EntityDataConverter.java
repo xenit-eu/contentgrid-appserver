@@ -26,6 +26,7 @@ public class EntityDataConverter {
         var result = new ArrayList<JOOQPair<Object>>();
         for (var attributeData : data.getAttributes()) {
             var attribute = entity.getAttributeByName(attributeData.getName())
+                    .filter(attr -> !entity.getPrimaryKey().getName().equals(attr.getName())) // filter out primary key
                     .orElseThrow(() -> new InvalidDataException("Attribute '%s' not found on entity '%s'"
                             .formatted(attributeData.getName(), entity.getName())));
             var converted = convert(attributeData, attribute);

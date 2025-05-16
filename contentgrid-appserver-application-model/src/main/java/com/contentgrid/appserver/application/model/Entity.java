@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -49,6 +50,7 @@ public class Entity {
      * @param searchFilters list of search filters for this entity
      * @throws DuplicateElementException if duplicate attributes or search filters are found
      * @throws InvalidArgumentModelException if a search filter references an invalid attribute
+     * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
     @Builder
     Entity(@NonNull EntityName name, @NonNull PathSegmentName pathSegment, String description, @NonNull TableName table,
@@ -57,7 +59,13 @@ public class Entity {
         this.pathSegment = pathSegment;
         this.description = description;
         this.table = table;
-        this.primaryKey = primaryKey == null ? SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build() : primaryKey;
+        if (primaryKey == null) {
+            this.primaryKey = SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build();
+        } else if (Type.UUID.equals(primaryKey.getType())) {
+            this.primaryKey = primaryKey;
+        } else {
+            throw new InvalidAttributeTypeException("Type %s is not supported for primary key".formatted(primaryKey.getType()));
+        }
 
         this.attributes.put(this.primaryKey.getName(), this.primaryKey);
         var columns = new HashSet<ColumnName>();
@@ -87,7 +95,7 @@ public class Entity {
                     if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter && !attributes.contains(
                             attributeSearchFilter.getAttribute())) {
                         throw new InvalidArgumentModelException(
-                                "AttributeSearchFilter %s is does not have a valid attribute".formatted(
+                                "AttributeSearchFilter %s does not have a valid attribute".formatted(
                                         attributeSearchFilter.getName()));
                     }
                 }

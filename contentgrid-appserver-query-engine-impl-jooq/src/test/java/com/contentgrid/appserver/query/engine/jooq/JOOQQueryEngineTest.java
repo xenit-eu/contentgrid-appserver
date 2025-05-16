@@ -38,6 +38,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -256,11 +257,11 @@ class JOOQQueryEngineTest {
 
     private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
 
-    private static final UUID ALICE_ID = UUID_GENERATOR.generate();
-    private static final UUID BOB_ID = UUID_GENERATOR.generate();
-    private static final UUID JOHN_ID = UUID_GENERATOR.generate();
-    private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
-    private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
+    private static final EntityId ALICE_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId BOB_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId JOHN_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId INVOICE1_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId INVOICE2_ID = EntityId.of(UUID_GENERATOR.generate());
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -296,22 +297,22 @@ class JOOQQueryEngineTest {
     void insertData() {
         var now = Instant.now();
         dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), ALICE_ID)
+                .set(DSL.field("id", UUID.class), ALICE_ID.getValue())
                 .set(DSL.field("name", String.class), "alice")
                 .set(DSL.field("vat", String.class), "vat_1")
                 .execute();
         dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), BOB_ID)
+                .set(DSL.field("id", UUID.class), BOB_ID.getValue())
                 .set(DSL.field("name", String.class), "bob")
                 .set(DSL.field("vat", String.class), "vat_2")
                 .execute();
         dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), JOHN_ID)
+                .set(DSL.field("id", UUID.class), JOHN_ID.getValue())
                 .set(DSL.field("name", String.class), "john")
                 .set(DSL.field("vat", String.class), "vat_3")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE1_ID)
+                .set(DSL.field("id", UUID.class), INVOICE1_ID.getValue())
                 .set(DSL.field("number", String.class), "invoice_1")
                 .set(DSL.field("amount", Double.class), 10.0)
                 .set(DSL.field("received", Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
@@ -325,10 +326,10 @@ class JOOQQueryEngineTest {
                 .set(DSL.field("audit_metadata__created_by_name", String.class), "bob")
                 .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
-                .set(DSL.field("customer", UUID.class), ALICE_ID)
+                .set(DSL.field("customer", UUID.class), ALICE_ID.getValue())
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE2_ID)
+                .set(DSL.field("id", UUID.class), INVOICE2_ID.getValue())
                 .set(DSL.field("number", String.class), "invoice_2")
                 .set(DSL.field("amount", Double.class), 20.0)
                 .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
@@ -339,12 +340,12 @@ class JOOQQueryEngineTest {
                 .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
                 .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
-                .set(DSL.field("customer", UUID.class), BOB_ID)
-                .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID)
+                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
+                .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID.getValue())
                 .execute();
         dslContext.insertInto(DSL.table("person__friends"))
-                .set(DSL.field("person_src_id", UUID.class), BOB_ID)
-                .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID)
+                .set(DSL.field("person_src_id", UUID.class), BOB_ID.getValue())
+                .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID.getValue())
                 .execute();
     }
 
@@ -456,9 +457,8 @@ class JOOQQueryEngineTest {
 
         assertEquals(1, results.size());
         var result = results.getFirst();
-        var primaryKey = result.getAttributeByName(INVOICE.getPrimaryKey().getName()).orElseThrow();
-        var primaryKeyData = assertInstanceOf(SimpleAttributeData.class, primaryKey);
-        assertEquals(INVOICE1_ID, primaryKeyData.getValue());
+        var primaryKey = result.getId();
+        assertEquals(INVOICE1_ID, primaryKey);
     }
 
     static Stream<ThunkExpression<Boolean>> invalidExpressions() {
@@ -709,6 +709,19 @@ class JOOQQueryEngineTest {
                 // Primary key provided
                 EntityData.builder()
                         .name(PERSON.getName())
+                        .id(EntityId.of(UUID_GENERATOR.generate()))
+                        .attribute(SimpleAttributeData.builder()
+                                .name(PERSON_NAME.getName())
+                                .value("random_name")
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(PERSON_VAT.getName())
+                                .value("random_vat")
+                                .build())
+                        .build(),
+                // Primary key provided as attribute
+                EntityData.builder()
+                        .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
                                 .value("random_name")
@@ -819,10 +832,7 @@ class JOOQQueryEngineTest {
                 // valid person
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
                                 .value("random_name")
@@ -835,10 +845,7 @@ class JOOQQueryEngineTest {
                 // all attributes provided
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_NUMBER.getName())
                                 .value("new_number")
@@ -883,10 +890,7 @@ class JOOQQueryEngineTest {
                 // only one attribute provided
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_AMOUNT.getName())
                                 .value(BigDecimal.valueOf(25.0))
@@ -895,10 +899,7 @@ class JOOQQueryEngineTest {
                 // null for non-required attribute
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_IS_PAID.getName())
                                 .value(null)
@@ -907,10 +908,7 @@ class JOOQQueryEngineTest {
                 // update inside CompositeAttributeData
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName())
                                 .attribute(SimpleAttributeData.builder()
@@ -927,8 +925,7 @@ class JOOQQueryEngineTest {
     void updateEntityValidData(EntityData data) {
         queryEngine.update(APPLICATION, data);
         var entity = APPLICATION.getEntityByName(data.getName()).orElseThrow();
-        var primaryKeyData = (SimpleAttributeData<?>) data.getAttributeByName(entity.getPrimaryKey().getName()).orElseThrow();
-        var id = primaryKeyData.getValue();
+        var id = data.getId();
         var actual = queryEngine.findById(APPLICATION, entity, id).orElseThrow();
 
         assertEntityDataEquals(data, actual);
@@ -939,10 +936,7 @@ class JOOQQueryEngineTest {
                 // Invalid entity name
                 EntityData.builder()
                         .name(EntityName.of("invalid_entity"))
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
                                 .value("random_name")
@@ -955,10 +949,7 @@ class JOOQQueryEngineTest {
                 // Invalid attribute name
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute"))
                                 .value("value")
@@ -971,10 +962,7 @@ class JOOQQueryEngineTest {
                 // Unknown primary key provided
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(UUID_GENERATOR.generate())
-                                .build())
+                        .id(EntityId.of(UUID_GENERATOR.generate()))
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
                                 .value("random_name")
@@ -996,12 +984,12 @@ class JOOQQueryEngineTest {
                                 .value("random_vat")
                                 .build())
                         .build(),
-                // Null for primary key provided
+                // Primary key provided as attribute
                 EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON.getPrimaryKey().getName())
-                                .value(null)
+                                .value(BOB_ID.getValue())
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -1027,10 +1015,7 @@ class JOOQQueryEngineTest {
                 // Duplicate unique attribute
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_VAT.getName())
                                 .value("vat_1") // vat of alice
@@ -1039,10 +1024,7 @@ class JOOQQueryEngineTest {
                 // CompositeAttributeData instead of SimpleAttributeData
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(PERSON_NAME.getName()) // no attributes
                                 .build())
@@ -1050,10 +1032,7 @@ class JOOQQueryEngineTest {
                 // Extra CompositeAttributeData attribute
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute")) // no sub-attributes
                                 .build())
@@ -1061,10 +1040,7 @@ class JOOQQueryEngineTest {
                 // Value of invalid type
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_IS_PAID.getName())
                                 .value("invalid_boolean") // String instead of boolean
@@ -1073,18 +1049,12 @@ class JOOQQueryEngineTest {
                 // Empty data
                 EntityData.builder()
                         .name(PERSON.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(PERSON.getPrimaryKey().getName())
-                                .value(BOB_ID)
-                                .build())
+                        .id(BOB_ID)
                         .build(),
                 // No SimpleAttributeData provided
                 EntityData.builder()
                         .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE.getPrimaryKey().getName())
-                                .value(INVOICE1_ID)
-                                .build())
+                        .id(INVOICE1_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName()) // No attributes
                                 .build())
@@ -1102,8 +1072,8 @@ class JOOQQueryEngineTest {
     @Test
     void deleteEntity() {
         queryEngine.delete(APPLICATION, PERSON, JOHN_ID);
-        var maybeBob = queryEngine.findById(APPLICATION, PERSON, JOHN_ID);
-        assertTrue(maybeBob.isEmpty());
+        var maybePerson = queryEngine.findById(APPLICATION, PERSON, JOHN_ID);
+        assertTrue(maybePerson.isEmpty());
     }
 
     @Test

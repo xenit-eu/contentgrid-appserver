@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
@@ -18,6 +19,8 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class EntityTest {
 
@@ -102,7 +105,7 @@ class EntityTest {
 
     @Test
     void entity_differentPrimaryKey() {
-        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.LONG).build();
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).build();
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
@@ -115,6 +118,23 @@ class EntityTest {
                 .build();
 
         assertEquals(primaryKey, entity.getPrimaryKey());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TEXT", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"})
+    void entity_invalidPrimaryKey(Type type) {
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(type).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .table(TableName.of("table"))
+                .primaryKey(primaryKey)
+                .attribute(ATTRIBUTE1)
+                .attribute(ATTRIBUTE2)
+                .searchFilter(FILTER1)
+                .searchFilter(FILTER2);
+
+        assertThrows(InvalidAttributeTypeException.class, builder::build);
     }
 
     @Test

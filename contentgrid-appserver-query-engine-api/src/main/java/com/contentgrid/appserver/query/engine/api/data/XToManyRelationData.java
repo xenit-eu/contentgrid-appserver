@@ -10,7 +10,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class XToManyRelationData<T> implements RelationData {
+public class XToManyRelationData implements RelationData {
 
     @NonNull
     EntityName entity;
@@ -19,5 +19,5 @@ public class XToManyRelationData<T> implements RelationData {
     RelationName name;
 
     @Singular
-    List<@NonNull T> refs;
+    List<@NonNull EntityId> refs;
 }
