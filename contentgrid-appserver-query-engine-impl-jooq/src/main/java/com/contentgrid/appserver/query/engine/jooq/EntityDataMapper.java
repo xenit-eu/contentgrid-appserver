@@ -32,8 +32,12 @@ public class EntityDataMapper {
 
     private EntityId getEntityId(@NonNull Entity entity, Map<String, Object> data) {
         var primaryKey = entity.getPrimaryKey();
-        var id = (UUID) convert(primaryKey, data.get(primaryKey.getColumn().getValue()));
-        return EntityId.of(id);
+        var id = convert(primaryKey, data.get(primaryKey.getColumn().getValue()));
+        if (id instanceof UUID uuid) {
+            return EntityId.of(uuid);
+        } else {
+            throw new IllegalStateException("Primary key column '%s' with value '%s' not supported".formatted(primaryKey.getColumn(), id));
+        }
     }
 
     public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {

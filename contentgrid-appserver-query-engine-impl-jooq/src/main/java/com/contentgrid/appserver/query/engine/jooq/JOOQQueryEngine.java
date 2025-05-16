@@ -99,7 +99,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
         if (data.getId() != null) {
-            throw new InvalidDataException("Provided data contains primary key, which is auto-generated");
+            throw new InvalidDataException("Provided data should not contain primary key, it is auto-generated");
         }
 
         var step = dslContext.insertInto(table)
@@ -161,10 +161,7 @@ public class JOOQQueryEngine implements QueryEngine {
             }
         }
 
-        if (id == null) {
-            throw new InvalidDataException("Provided data does not contain primary key attribute '%s'"
-                    .formatted(entity.getPrimaryKey().getName()));
-        } else if (step == null) {
+        if (step == null) {
             throw new InvalidDataException("Provided data is empty");
         }
 
