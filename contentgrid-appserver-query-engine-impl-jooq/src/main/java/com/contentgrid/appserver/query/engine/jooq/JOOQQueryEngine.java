@@ -618,8 +618,8 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = getRequiredRelation(application, data);
         var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = (Field<UUID>) JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = (Field<UUID>) JOOQUtils.resolveRelationTargetRef(relation);
+        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
+        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
         var refs = data.getRefs().stream()
                 .map(EntityId::getValue)
                 .toList();
