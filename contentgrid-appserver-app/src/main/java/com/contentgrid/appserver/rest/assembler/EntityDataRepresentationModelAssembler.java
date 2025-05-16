@@ -20,14 +20,12 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData) {
         Entity entity = application.getEntityByName(entityData.getName()).orElseThrow();
-        var id = entityData.getAttributeByName(entity.getPrimaryKey().getName()).map(SimpleAttributeData.class::cast);
+        var id = entityData.getId();
 
         var model = EntityDataRepresentationModel.from(entity, entityData);
-        if (id.isPresent()) {
-            model.add(linkTo(methodOn(EntityRestController.class)
-                            .getEntity(application, entity.getPathSegment(), id.get().getValue().toString())
-                    ).withSelfRel());
-        }
+        model.add(linkTo(methodOn(EntityRestController.class)
+                .getEntity(application, entity.getPathSegment(), id)
+        ).withSelfRel());
         return model;
     }
 }

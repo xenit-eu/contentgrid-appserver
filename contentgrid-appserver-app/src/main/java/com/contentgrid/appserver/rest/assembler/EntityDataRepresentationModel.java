@@ -35,6 +35,7 @@ public class EntityDataRepresentationModel extends RepresentationModel<EntityDat
             var value = entityData.getAttributeByName(attribute.getName()).map(v -> attributeValue(v));
             value.ifPresent(v -> data.put(attribute.getName().getValue(), v));
         }
+        data.put(entity.getPrimaryKey().getName().getValue(), entityData.getId().getValue());
         return new EntityDataRepresentationModel(data);
     }
 

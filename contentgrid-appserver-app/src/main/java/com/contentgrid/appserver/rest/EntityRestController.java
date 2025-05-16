@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
@@ -17,7 +18,9 @@ import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAss
 import com.contentgrid.thunx.predicates.model.Scalar;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.jooq.impl.QOM.Uuid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.LinkRelation;
@@ -71,7 +74,7 @@ public class EntityRestController {
     public RepresentationModel<?> getEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable String instanceId
+            @PathVariable EntityId instanceId
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -112,7 +115,7 @@ public class EntityRestController {
         RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
         return ResponseEntity
                 .created(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), id.toString())).toUri())
+                        .getEntity(application, entity.getPathSegment(), id)).toUri())
                 .body(model);
     }
 

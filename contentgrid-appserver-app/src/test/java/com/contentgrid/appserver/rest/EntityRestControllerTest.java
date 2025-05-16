@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -153,7 +154,6 @@ class EntityRestControllerTest {
     void testSuccessfullyRetrieveEntityInstance() throws Exception {
         // First create an entity
         Map<String, Object> product = new HashMap<>();
-        product.put("id", UUID.randomUUID());
         product.put("name", "Retrievable Product");
         product.put("price", 99.99);
         product.put("release_date", "2023-02-20T14:30:00Z");
@@ -221,14 +221,12 @@ class EntityRestControllerTest {
     void testListEntityInstances() throws Exception {
         // Create multiple products first
         Map<String, Object> product1 = new HashMap<>();
-        product1.put("id", UUID.randomUUID());
         product1.put("name", "First Product");
         product1.put("price", 19.99);
         product1.put("release_date", "2023-05-10T08:00:00Z");
         product1.put("in_stock", true);
 
         Map<String, Object> product2 = new HashMap<>();
-        product2.put("id", UUID.randomUUID());
         product2.put("name", "Second Product");
         product2.put("price", 49.99);
         product2.put("release_date", "2023-06-15T10:30:00Z");

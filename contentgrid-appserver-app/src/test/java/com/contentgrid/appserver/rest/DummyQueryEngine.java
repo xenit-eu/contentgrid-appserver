@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
@@ -93,28 +94,28 @@ public class DummyQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull Object id) {
-        var idName = entity.getPrimaryKey().getName();
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) {
         return entityInstances.getOrDefault(entity.getName().getValue(), List.of()).stream()
-                .filter(e -> e.getAttributeByName(idName)
-                        .map(a -> ((SimpleAttributeData) a).getValue())
-                        .map(a -> conversionService.convert(a, id.getClass()))
-                        .map(a -> a.equals(id))
-                        .orElse(false))
+                .filter(e -> e.getId().equals(id))
                 .findAny();
     }
 
     @Override
-    public Object create(@NonNull Application application, @NonNull EntityData data,
+    public EntityId create(@NonNull Application application, @NonNull EntityData data,
             @NonNull List<RelationData> relations) throws QueryEngineException {
         var instances = entityInstances.getOrDefault(data.getName().getValue(), new ArrayList<>());
         var entity = application.getEntityByName(data.getName());
         if (entity.isEmpty()) {
             return null;
         }
-        instances.add(data);
+        var dataWithId = EntityData.builder()
+                .name(data.getName())
+                .id(EntityId.of(UUID.randomUUID()))
+                .attributes(data.getAttributes())
+                .build();
+        instances.add(dataWithId);
         entityInstances.put(data.getName().getValue(), instances);
-        return ((SimpleAttributeData) data.getAttributeByName(entity.get().getPrimaryKey().getName()).orElseThrow()).getValue();
+        return dataWithId.getId();
     }
 
     @Override
@@ -123,7 +124,7 @@ public class DummyQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull Object id)
+    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
             throws QueryEngineException {
 
     }
@@ -134,37 +135,37 @@ public class DummyQueryEngine implements QueryEngine {
     }
 
     @Override
-    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull Object sourceId,
-            @NonNull Object targetId) throws QueryEngineException {
+    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+            @NonNull EntityId targetId) throws QueryEngineException {
         return false;
     }
 
     @Override
-    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         return null;
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull Object id)
+    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id)
             throws QueryEngineException {
 
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull Object id)
+    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
 
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
 
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData<?> data, @NonNull Object id)
+    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
 
     }
