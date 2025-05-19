@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.rest.exception;
 
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
