@@ -264,7 +264,8 @@
       "required": [
         "name",
         "type",
-        "class"
+        "class",
+        "columnName"
       ],
       "additionalProperties": false
     },
