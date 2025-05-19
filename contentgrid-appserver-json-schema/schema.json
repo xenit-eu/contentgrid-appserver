@@ -390,7 +390,7 @@
     },
     "contentAttribute": {
       "type": "object",
-      "description": "A content attribute that is a combination of other attributes.",
+      "description": "A content attribute that references a file object.",
       "properties": {
         "name": {
           "type": "string",
