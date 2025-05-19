@@ -446,7 +446,7 @@
     },
     "userAttribute": {
       "type": "object",
-      "description": "A user attribute that is a combination of other attributes.",
+      "description": "A user attribute that references an application user.",
       "properties": {
         "name": {
           "type": "string",
