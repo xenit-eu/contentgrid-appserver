@@ -1,0 +1,521 @@
+{
+  "$schema": "./schema.json",
+  "applicationName": "HR application",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "Department",
+      "description": "A department within the organization",
+      "table": "departments",
+      "pathSegment": "departments",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the department",
+        "type": "simple",
+        "columnName": "dept_id",
+        "dataType": "uuid",
+        "constraints": [
+          {
+            "type": "required"
+          },
+          {
+            "type": "unique"
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "description": "The name of the department",
+          "type": "simple",
+          "columnName": "dept_name",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ]
+        },
+        {
+          "name": "budget",
+          "description": "Annual budget for the department",
+          "type": "simple",
+          "columnName": "dept_budget",
+          "dataType": "double"
+        },
+        {
+          "name": "createdAt",
+          "description": "When the department was created",
+          "type": "simple",
+          "columnName": "created_at",
+          "dataType": "datetime",
+          "flags": [
+            "createdDate"
+          ]
+        },
+        {
+          "name": "modifiedAt",
+          "description": "When the department was last modified",
+          "type": "simple",
+          "columnName": "modified_at",
+          "dataType": "datetime",
+          "flags": [
+            "modifiedDate"
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "nameFilter",
+          "attributeName": "name",
+          "type": "prefix"
+        }
+      ]
+    },
+    {
+      "name": "Employee",
+      "description": "An employee of the organization",
+      "table": "employees",
+      "pathSegment": "employees",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the employee",
+        "type": "simple",
+        "columnName": "emp_id",
+        "dataType": "uuid"
+      },
+      "attributes": [
+        {
+          "name": "firstName",
+          "description": "Employee's first name",
+          "type": "simple",
+          "columnName": "first_name",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ]
+        },
+        {
+          "name": "lastName",
+          "description": "Employee's last name",
+          "type": "simple",
+          "columnName": "last_name",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "description": "Employee's email address",
+          "type": "simple",
+          "columnName": "email",
+          "dataType": "text"
+        },
+        {
+          "name": "hireDate",
+          "description": "Date when the employee was hired",
+          "type": "simple",
+          "columnName": "hire_date",
+          "dataType": "datetime"
+        },
+        {
+          "name": "salary",
+          "description": "Employee's salary",
+          "type": "simple",
+          "columnName": "salary",
+          "dataType": "double"
+        },
+        {
+          "name": "isManager",
+          "description": "Whether the employee is a manager",
+          "type": "simple",
+          "columnName": "is_manager",
+          "dataType": "boolean"
+        },
+        {
+          "name": "contactInfo",
+          "description": "Employee's contact information",
+          "type": "composite",
+          "attributes": [
+            {
+              "name": "phone",
+              "description": "Employee's phone number",
+              "type": "simple",
+              "columnName": "phone",
+              "dataType": "text"
+            },
+            {
+              "name": "address",
+              "description": "Employee's address",
+              "type": "simple",
+              "columnName": "address",
+              "dataType": "text"
+            }
+          ]
+        },
+        {
+          "name": "createdBy",
+          "description": "User who created the employee record",
+          "type": "user",
+          "idColumn": "creator_id",
+          "namespaceColumn": "creator_namespace",
+          "userNameColumn": "creator_username",
+          "flags": [
+            "creator"
+          ]
+        },
+        {
+          "name": "modifiedBy",
+          "description": "User who last modified the employee record",
+          "type": "user",
+          "idColumn": "modifier_id",
+          "namespaceColumn": "modifier_namespace",
+          "userNameColumn": "modifier_username",
+          "flags": [
+            "modifier"
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "lastNameFilter",
+          "attributeName": "lastName",
+          "type": "prefix"
+        },
+        {
+          "name": "emailFilter",
+          "attributeName": "email",
+          "type": "exact"
+        }
+      ]
+    },
+    {
+      "name": "Project",
+      "description": "A project within the organization",
+      "table": "projects",
+      "pathSegment": "projects",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the project",
+        "type": "simple",
+        "columnName": "proj_id",
+        "dataType": "uuid",
+        "constraints": [
+          {
+            "type": "required"
+          },
+          {
+            "type": "unique"
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "description": "The name of the project",
+          "type": "simple",
+          "columnName": "proj_name",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "description": "Description of the project",
+          "type": "simple",
+          "columnName": "proj_description",
+          "dataType": "text"
+        },
+        {
+          "name": "startDate",
+          "description": "When the project starts",
+          "type": "simple",
+          "columnName": "start_date",
+          "dataType": "datetime"
+        },
+        {
+          "name": "endDate",
+          "description": "When the project ends",
+          "type": "simple",
+          "columnName": "end_date",
+          "dataType": "datetime"
+        },
+        {
+          "name": "budget",
+          "description": "Budget allocated to the project",
+          "type": "simple",
+          "columnName": "budget",
+          "dataType": "double"
+        },
+        {
+          "name": "status",
+          "description": "Current status of the project",
+          "type": "simple",
+          "columnName": "status",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": [
+                "Not Started",
+                "In Progress",
+                "Completed",
+                "On Hold"
+              ]
+            }
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "nameFilter",
+          "attributeName": "name",
+          "type": "prefix"
+        },
+        {
+          "name": "statusFilter",
+          "attributeName": "status",
+          "type": "exact"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "description": "A document associated with a project",
+      "table": "documents",
+      "pathSegment": "documents",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the document",
+        "type": "simple",
+        "columnName": "doc_id",
+        "dataType": "uuid",
+        "constraints": [
+          {
+            "type": "required"
+          },
+          {
+            "type": "unique"
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "title",
+          "description": "Title of the document",
+          "type": "simple",
+          "columnName": "title",
+          "dataType": "text"
+        },
+        {
+          "name": "description",
+          "description": "Description of the document",
+          "type": "simple",
+          "columnName": "description",
+          "dataType": "text"
+        },
+        {
+          "name": "createdAt",
+          "description": "When the document was created",
+          "type": "simple",
+          "columnName": "created_at",
+          "dataType": "datetime",
+          "flags": [
+            "createdDate"
+          ]
+        },
+        {
+          "name": "file",
+          "description": "The document file",
+          "type": "content",
+          "pathSegment": "file",
+          "idColumn": "file_id",
+          "fileNameColumn": "file_name",
+          "mimeTypeColumn": "mime_type",
+          "lengthColumn": "file_size"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "titleFilter",
+          "attributeName": "title",
+          "type": "prefix"
+        }
+      ]
+    },
+    {
+      "name": "Skill",
+      "description": "Skills that employees may possess",
+      "table": "skills",
+      "pathSegment": "skills",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the skill",
+        "type": "simple",
+        "columnName": "skill_id",
+        "dataType": "uuid",
+        "constraints": [
+          {
+            "type": "required"
+          },
+          {
+            "type": "unique"
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "description": "Name of the skill",
+          "type": "simple",
+          "columnName": "skill_name",
+          "dataType": "text"
+        },
+        {
+          "name": "category",
+          "description": "Category of the skill",
+          "type": "simple",
+          "columnName": "category",
+          "dataType": "text"
+        },
+        {
+          "name": "description",
+          "description": "Description of the skill",
+          "type": "simple",
+          "columnName": "description",
+          "dataType": "text"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "nameFilter",
+          "attributeName": "name",
+          "type": "prefix"
+        },
+        {
+          "name": "categoryFilter",
+          "attributeName": "category",
+          "type": "exact"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "department",
+        "entityName": "Department",
+        "required": true
+      },
+      "targetEndpoint": {
+        "name": "employees",
+        "entityName": "Employee",
+        "required": false
+      },
+      "sourceReference": "dept_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "manager",
+        "entityName": "Employee",
+        "required": false
+      },
+      "targetEndpoint": {
+        "name": "subordinates",
+        "entityName": "Employee",
+        "required": false
+      },
+      "sourceReference": "manager_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "department",
+        "entityName": "Department",
+        "required": true
+      },
+      "targetEndpoint": {
+        "name": "projects",
+        "entityName": "Project",
+        "required": false
+      },
+      "sourceReference": "dept_id"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "manager",
+        "entityName": "Employee",
+        "required": true
+      },
+      "targetEndpoint": {
+        "name": "managedProject",
+        "entityName": "Project",
+        "required": false
+      },
+      "targetReference": "manager_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "project",
+        "entityName": "Project",
+        "required": true
+      },
+      "targetEndpoint": {
+        "name": "documents",
+        "entityName": "Document",
+        "required": false
+      },
+      "sourceReference": "proj_id"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "employees",
+        "entityName": "Employee",
+        "required": false
+      },
+      "targetEndpoint": {
+        "name": "projects",
+        "entityName": "Project",
+        "required": false
+      },
+      "joinTable": "employee_projects",
+      "sourceReference": "emp_id",
+      "targetReference": "proj_id"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "employees",
+        "entityName": "Employee",
+        "required": false
+      },
+      "targetEndpoint": {
+        "name": "skills",
+        "entityName": "Skill",
+        "required": false
+      },
+      "joinTable": "employee_skills",
+      "sourceReference": "emp_id",
+      "targetReference": "skill_id"
+    }
+  ]
+}

@@ -1,0 +1,495 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "https://contentgrid.com/schemas/application-schema.json",
+  "title": "ContentGrid Application Configuration",
+  "type": "object",
+  "properties": {
+    "applicationName": {
+      "type": "string",
+      "description": "The name of the application."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the application."
+    },
+    "entities": {
+      "type": "array",
+      "description": "A list of entities within the application.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the entity."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the entity."
+          },
+          "table": {
+            "type": "string",
+            "description": "The database table associated with the entity."
+          },
+          "pathSegment": {
+            "type": "string",
+            "description": "The path segment for the entity."
+          },
+          "primaryKey": {
+            "$ref": "#/$defs/simpleAttribute"
+          },
+          "attributes": {
+            "type": "array",
+            "description": "A list of attributes for the entity.",
+            "items": {
+              "$ref": "#/$defs/attribute"
+            }
+          },
+          "searchFilters": {
+            "type": "array",
+            "description": "A list of search filters for the entity.",
+            "items": {
+              "type": "object",
+              "description": "Filters for the entity.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the filter."
+                },
+                "attributeName": {
+                  "type": "string",
+                  "description": "The name of the attribute to filter on."
+                },
+                "type": {
+                  "type": "string",
+                  "description": "The type of filter.",
+                  "enum": [
+                    "exact",
+                    "prefix"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "name",
+          "table",
+          "pathSegment",
+          "primaryKey"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "relations": {
+      "type": "array",
+      "description": "A list of relations between entities in the application.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "one-to-one",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "targetReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the target entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "targetReference"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "one-to-many",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "sourceReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the source entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "sourceReference"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "sourceEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "targetEndpoint": {
+                "$ref": "#/$defs/relationEndPoint"
+              },
+              "type": {
+                "type": "string",
+                "const": "many-to-many",
+                "description": "The type of relation (e.g., one-to-one, one-to-many, many-to-many)."
+              },
+              "joinTable": {
+                "type": "string",
+                "description": "The name of the join table for the many-to-many relation."
+              },
+              "sourceReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the source entity"
+              },
+              "targetReference": {
+                "type": "string",
+                "description": "The column name for the foreign key to the target entity"
+              }
+            },
+            "required": [
+              "type",
+              "sourceEndpoint",
+              "targetEndpoint",
+              "sourceReference",
+              "targetReference",
+              "joinTable"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "applicationName",
+    "version",
+    "entities"
+  ],
+  "$defs": {
+    "relationEndPoint": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the relation."
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "The path segment for the source entity."
+        },
+        "entityName": {
+          "type": "string",
+          "description": "The name of the entity."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the relationEndPoint"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Indicates whether the relation is required for the entity"
+        }
+      },
+      "required": [
+        "entityName",
+        "required"
+      ]
+    },
+    "simpleAttribute": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the attribute."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the attribute."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the attribute.",
+          "const": "simple"
+        },
+        "columnName": {
+          "type": "string",
+          "description": "The name of the column in the database."
+        },
+        "flags": {
+          "type": "array",
+          "description": "A list of flags for the attribute.",
+          "items": {
+            "ref": "#/$defs/attributeFlag"
+          }
+        },
+        "dataType": {
+          "type": "string",
+          "description": "The data type of the attribute (e.g., string, integer, boolean).",
+          "enum": [
+            "long",
+            "double",
+            "boolean",
+            "text",
+            "datetime",
+            "uuid"
+          ]
+        },
+        "constraints": {
+          "type": "array",
+          "description": "A list of constraints for the attribute.",
+          "items": {
+            "$ref": "#/$defs/attributeConstraint"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "dataType",
+        "columnName"
+      ],
+      "additionalProperties": false
+    },
+    "attributeFlag": {
+      "type": "string",
+      "description": "A flag for the attribute, that is used to apply a specific behavior.",
+      "enum": [
+        "createdDate",
+        "creator",
+        "eTag",
+        "modifiedDate",
+        "modifier"
+      ]
+    },
+    "attributeConstraint": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "allowedValues",
+              "description": "The type of constraint (e.g., unique, foreign key, allowed values)."
+            },
+            "values": {
+              "type": "array",
+              "description": "A list of allowed values for the attribute.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "unique",
+              "description": "The type of constraint (e.g., unique, foreign key, allowed values)."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "required",
+              "description": "The type of constraint (e.g., unique, foreign key, allowed values)."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "attribute": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/simpleAttribute"
+        },
+        {
+          "$ref": "#/$defs/compositeAttribute"
+        },
+        {
+          "$ref": "#/$defs/contentAttribute"
+        },
+        {
+          "$ref": "#/$defs/userAttribute"
+        }
+      ]
+    },
+    "compositeAttribute": {
+      "type": "object",
+      "description": "A composite attribute that is a combination of other attributes.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the composite attribute"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the composite attribute"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the attribute.",
+          "const": "composite"
+        },
+        "attributes": {
+          "type": "array",
+          "description": "A list of attributes that make up the composite attribute.",
+          "items": {
+            "$ref": "#/$defs/attribute"
+          }
+        },
+        "flags": {
+          "type": "array",
+          "description": "A list of flags for the attribute.",
+          "items": {
+            "ref": "#/$defs/attributeFlag"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "attributes",
+        "type"
+      ]
+    },
+    "contentAttribute": {
+      "type": "object",
+      "description": "A content attribute that references a file object.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the content attribute"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the content attribute"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the attribute.",
+          "const": "content"
+        },
+        "flags": {
+          "type": "array",
+          "description": "A list of flags for the attribute.",
+          "items": {
+            "$ref": "#/$defs/attributeFlag"
+          }
+        },
+        "pathSegment": {
+          "type": "string",
+          "description": "The path segment for the content attribute."
+        },
+        "idColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the content ID."
+        },
+        "fileNameColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the file name."
+        },
+        "mimeTypeColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the MIME type."
+        },
+        "lengthColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the length."
+        }
+      },
+      "required": [
+        "name",
+        "pathSegment",
+        "idColumn",
+        "fileNameColumn",
+        "mimeTypeColumn",
+        "lengthColumn",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "userAttribute": {
+      "type": "object",
+      "description": "A user attribute that references an application user.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the user attribute"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the user attribute"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the attribute.",
+          "const": "user"
+        },
+        "flags": {
+          "type": "array",
+          "description": "A list of flags for the attribute.",
+          "items": {
+            "$ref": "#/$defs/attributeFlag"
+          }
+        },
+        "idColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the user ID."
+        },
+        "namespaceColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the user namespace."
+        },
+        "userNameColumn": {
+          "type": "string",
+          "description": "The name of the column in the database that stores the user name."
+        }
+      },
+      "required": [
+        "name",
+        "idColumn",
+        "namespaceColumn",
+        "userNameColumn",
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
