@@ -226,9 +226,9 @@
           "type": "string",
           "description": "A description of the attribute."
         },
-        "class": {
+        "type": {
           "type": "string",
-          "description": "The class of the attribute.",
+          "description": "The type of the attribute.",
           "const": "simple"
         },
         "columnName": {
@@ -242,7 +242,7 @@
             "ref": "#/$defs/attributeFlag"
           }
         },
-        "type": {
+        "dataType": {
           "type": "string",
           "description": "The data type of the attribute (e.g., string, integer, boolean).",
           "enum": [
@@ -265,7 +265,7 @@
       "required": [
         "name",
         "type",
-        "class",
+        "dataType",
         "columnName"
       ],
       "additionalProperties": false
@@ -363,9 +363,9 @@
           "type": "string",
           "description": "A description of the composite attribute"
         },
-        "class": {
+        "type": {
           "type": "string",
-          "description": "The class of the attribute.",
+          "description": "The type of the attribute.",
           "const": "composite"
         },
         "attributes": {
@@ -386,7 +386,7 @@
       "required": [
         "name",
         "attributes",
-        "class"
+        "type"
       ]
     },
     "contentAttribute": {
@@ -401,9 +401,9 @@
           "type": "string",
           "description": "A description of the content attribute"
         },
-        "class": {
+        "type": {
           "type": "string",
-          "description": "The class of the attribute.",
+          "description": "The type of the attribute.",
           "const": "content"
         },
         "flags": {
@@ -441,7 +441,7 @@
         "fileNameColumn",
         "mimeTypeColumn",
         "lengthColumn",
-        "class"
+        "type"
       ],
       "additionalProperties": false
     },
@@ -457,9 +457,9 @@
           "type": "string",
           "description": "A description of the user attribute"
         },
-        "class": {
+        "type": {
           "type": "string",
-          "description": "The class of the attribute.",
+          "description": "The type of the attribute.",
           "const": "user"
         },
         "flags": {
@@ -487,7 +487,7 @@
         "idColumn",
         "namespaceColumn",
         "userNameColumn",
-        "class"
+        "type"
       ],
       "additionalProperties": false
     }

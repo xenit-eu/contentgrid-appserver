@@ -11,9 +11,9 @@
       "primaryKey": {
         "name": "id",
         "description": "The unique identifier for the department",
-        "class": "simple",
+        "type": "simple",
         "columnName": "dept_id",
-        "type": "uuid",
+        "dataType": "uuid",
         "constraints": [
           {
             "type": "required"
@@ -27,9 +27,9 @@
         {
           "name": "name",
           "description": "The name of the department",
-          "class": "simple",
+          "type": "simple",
           "columnName": "dept_name",
-          "type": "text",
+          "dataType": "text",
           "constraints": [
             {
               "type": "required"
@@ -42,16 +42,16 @@
         {
           "name": "budget",
           "description": "Annual budget for the department",
-          "class": "simple",
+          "type": "simple",
           "columnName": "dept_budget",
-          "type": "double"
+          "dataType": "double"
         },
         {
           "name": "createdAt",
           "description": "When the department was created",
-          "class": "simple",
+          "type": "simple",
           "columnName": "created_at",
-          "type": "datetime",
+          "dataType": "datetime",
           "flags": [
             "createdDate"
           ]
@@ -59,9 +59,9 @@
         {
           "name": "modifiedAt",
           "description": "When the department was last modified",
-          "class": "simple",
+          "type": "simple",
           "columnName": "modified_at",
-          "type": "datetime",
+          "dataType": "datetime",
           "flags": [
             "modifiedDate"
           ]
@@ -83,17 +83,17 @@
       "primaryKey": {
         "name": "id",
         "description": "The unique identifier for the employee",
-        "class": "simple",
+        "type": "simple",
         "columnName": "emp_id",
-        "type": "uuid"
+        "dataType": "uuid"
       },
       "attributes": [
         {
           "name": "firstName",
           "description": "Employee's first name",
-          "class": "simple",
+          "type": "simple",
           "columnName": "first_name",
-          "type": "text",
+          "dataType": "text",
           "constraints": [
             {
               "type": "required"
@@ -103,9 +103,9 @@
         {
           "name": "lastName",
           "description": "Employee's last name",
-          "class": "simple",
+          "type": "simple",
           "columnName": "last_name",
-          "type": "text",
+          "dataType": "text",
           "constraints": [
             {
               "type": "required"
@@ -115,56 +115,56 @@
         {
           "name": "email",
           "description": "Employee's email address",
-          "class": "simple",
+          "type": "simple",
           "columnName": "email",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "hireDate",
           "description": "Date when the employee was hired",
-          "class": "simple",
+          "type": "simple",
           "columnName": "hire_date",
-          "type": "datetime"
+          "dataType": "datetime"
         },
         {
           "name": "salary",
           "description": "Employee's salary",
-          "class": "simple",
+          "type": "simple",
           "columnName": "salary",
-          "type": "double"
+          "dataType": "double"
         },
         {
           "name": "isManager",
           "description": "Whether the employee is a manager",
-          "class": "simple",
+          "type": "simple",
           "columnName": "is_manager",
-          "type": "boolean"
+          "dataType": "boolean"
         },
         {
           "name": "contactInfo",
           "description": "Employee's contact information",
-          "class": "composite",
+          "type": "composite",
           "attributes": [
             {
               "name": "phone",
               "description": "Employee's phone number",
-              "class": "simple",
+              "type": "simple",
               "columnName": "phone",
-              "type": "text"
+              "dataType": "text"
             },
             {
               "name": "address",
               "description": "Employee's address",
-              "class": "simple",
+              "type": "simple",
               "columnName": "address",
-              "type": "text"
+              "dataType": "text"
             }
           ]
         },
         {
           "name": "createdBy",
           "description": "User who created the employee record",
-          "class": "user",
+          "type": "user",
           "idColumn": "creator_id",
           "namespaceColumn": "creator_namespace",
           "userNameColumn": "creator_username",
@@ -175,7 +175,7 @@
         {
           "name": "modifiedBy",
           "description": "User who last modified the employee record",
-          "class": "user",
+          "type": "user",
           "idColumn": "modifier_id",
           "namespaceColumn": "modifier_namespace",
           "userNameColumn": "modifier_username",
@@ -205,9 +205,9 @@
       "primaryKey": {
         "name": "id",
         "description": "The unique identifier for the project",
-        "class": "simple",
+        "type": "simple",
         "columnName": "proj_id",
-        "type": "uuid",
+        "dataType": "uuid",
         "constraints": [
           {
             "type": "required"
@@ -221,9 +221,9 @@
         {
           "name": "name",
           "description": "The name of the project",
-          "class": "simple",
+          "type": "simple",
           "columnName": "proj_name",
-          "type": "text",
+          "dataType": "text",
           "constraints": [
             {
               "type": "required"
@@ -236,37 +236,37 @@
         {
           "name": "description",
           "description": "Description of the project",
-          "class": "simple",
+          "type": "simple",
           "columnName": "proj_description",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "startDate",
           "description": "When the project starts",
-          "class": "simple",
+          "type": "simple",
           "columnName": "start_date",
-          "type": "datetime"
+          "dataType": "datetime"
         },
         {
           "name": "endDate",
           "description": "When the project ends",
-          "class": "simple",
+          "type": "simple",
           "columnName": "end_date",
-          "type": "datetime"
+          "dataType": "datetime"
         },
         {
           "name": "budget",
           "description": "Budget allocated to the project",
-          "class": "simple",
+          "type": "simple",
           "columnName": "budget",
-          "type": "double"
+          "dataType": "double"
         },
         {
           "name": "status",
           "description": "Current status of the project",
-          "class": "simple",
+          "type": "simple",
           "columnName": "status",
-          "type": "text",
+          "dataType": "text",
           "constraints": [
             {
               "type": "allowedValues",
@@ -301,9 +301,9 @@
       "primaryKey": {
         "name": "id",
         "description": "The unique identifier for the document",
-        "class": "simple",
+        "type": "simple",
         "columnName": "doc_id",
-        "type": "uuid",
+        "dataType": "uuid",
         "constraints": [
           {
             "type": "required"
@@ -317,23 +317,23 @@
         {
           "name": "title",
           "description": "Title of the document",
-          "class": "simple",
+          "type": "simple",
           "columnName": "title",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "description",
           "description": "Description of the document",
-          "class": "simple",
+          "type": "simple",
           "columnName": "description",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "createdAt",
           "description": "When the document was created",
-          "class": "simple",
+          "type": "simple",
           "columnName": "created_at",
-          "type": "datetime",
+          "dataType": "datetime",
           "flags": [
             "createdDate"
           ]
@@ -341,7 +341,7 @@
         {
           "name": "file",
           "description": "The document file",
-          "class": "content",
+          "type": "content",
           "pathSegment": "file",
           "idColumn": "file_id",
           "fileNameColumn": "file_name",
@@ -365,9 +365,9 @@
       "primaryKey": {
         "name": "id",
         "description": "The unique identifier for the skill",
-        "class": "simple",
+        "type": "simple",
         "columnName": "skill_id",
-        "type": "uuid",
+        "dataType": "uuid",
         "constraints": [
           {
             "type": "required"
@@ -381,23 +381,23 @@
         {
           "name": "name",
           "description": "Name of the skill",
-          "class": "simple",
+          "type": "simple",
           "columnName": "skill_name",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "category",
           "description": "Category of the skill",
-          "class": "simple",
+          "type": "simple",
           "columnName": "category",
-          "type": "text"
+          "dataType": "text"
         },
         {
           "name": "description",
           "description": "Description of the skill",
-          "class": "simple",
+          "type": "simple",
           "columnName": "description",
-          "type": "text"
+          "dataType": "text"
         }
       ],
       "searchFilters": [
