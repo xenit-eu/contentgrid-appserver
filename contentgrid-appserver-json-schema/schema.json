@@ -225,6 +225,11 @@
           "type": "string",
           "description": "A description of the attribute."
         },
+        "class": {
+          "type": "string",
+          "description": "The class of the attribute.",
+          "const": "simple"
+        },
         "columnName": {
           "type": "string",
           "description": "The name of the column in the database."
@@ -247,11 +252,19 @@
             "datetime",
             "uuid"
           ]
+        },
+        "constraints": {
+          "type": "array",
+          "description": "A list of constraints for the attribute.",
+          "items": {
+            "$ref": "#/$defs/constraint"
+          }
         }
       },
       "required": [
         "name",
-        "type"
+        "type",
+        "class"
       ],
       "additionalProperties": false
     },
@@ -286,7 +299,7 @@
           },
           "required": [
             "type",
-            "attributes"
+            "values"
           ],
           "additionalProperties": false
         },
@@ -348,6 +361,11 @@
           "type": "string",
           "description": "A description of the composite attribute"
         },
+        "class": {
+          "type": "string",
+          "description": "The class of the attribute.",
+          "const": "composite"
+        },
         "attributes": {
           "type": "array",
           "description": "A list of attributes that make up the composite attribute.",
@@ -365,7 +383,8 @@
       },
       "required": [
         "name",
-        "attributes"
+        "attributes",
+        "class"
       ]
     },
     "contentAttribute": {
@@ -379,6 +398,11 @@
         "description": {
           "type": "string",
           "description": "A description of the content attribute"
+        },
+        "class": {
+          "type": "string",
+          "description": "The class of the attribute.",
+          "const": "content"
         },
         "flags": {
           "type": "array",
@@ -414,7 +438,8 @@
         "idColumn",
         "fileNameColumn",
         "mimeTypeColumn",
-        "lengthColumn"
+        "lengthColumn",
+        "class"
       ],
       "additionalProperties": false
     },
@@ -429,6 +454,11 @@
         "description": {
           "type": "string",
           "description": "A description of the user attribute"
+        },
+        "class": {
+          "type": "string",
+          "description": "The class of the attribute.",
+          "const": "user"
         },
         "flags": {
           "type": "array",
@@ -454,7 +484,8 @@
         "name",
         "idColumn",
         "namespaceColumn",
-        "userNameColumn"
+        "userNameColumn",
+        "class"
       ],
       "additionalProperties": false
     }
