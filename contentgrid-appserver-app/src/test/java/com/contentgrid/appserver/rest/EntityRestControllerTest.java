@@ -211,6 +211,16 @@ class EntityRestControllerTest {
     }
 
     @Test
+    void testGetNonExistentEntityType() throws Exception {
+        String nonExistentId = UUID.randomUUID().toString();
+
+        mockMvc.perform(get("/foobars/" + nonExistentId))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/foobars"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void testListEntityInstances() throws Exception {
         // Create multiple products first
         Map<String, Object> product1 = new HashMap<>();
