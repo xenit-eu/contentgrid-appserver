@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 
 class EntityDataValidatorTest {
 
-    private final static Entity INVOICE = Entity.builder()
+    private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("Invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
@@ -62,7 +62,7 @@ class EntityDataValidatorTest {
                     .type(Type.DATETIME).build())
             .build();
 
-    private final static Application application = Application.builder()
+    private static final Application application = Application.builder()
             .name(ApplicationName.of("EntityValidatorTestApp"))
             .entity(INVOICE)
             .build();
@@ -187,7 +187,7 @@ class EntityDataValidatorTest {
                                     "last_modified_date", "not a date"
                             )
                     )));
-            assertEquals(exception.getInvalidAttributes().size(), 1);
+            assertEquals(1, exception.getInvalidAttributes().size());
             assertTrue(exception.getValidationErrors().containsKey("auditing.last_modified_date"));
         }
     }
