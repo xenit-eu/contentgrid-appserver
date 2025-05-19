@@ -11,6 +11,7 @@ import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.ArrayList;
@@ -89,13 +90,13 @@ public class DummyQueryEngine implements QueryEngine {
     }
 
     @Override
-    public RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
+    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
-        return null;
+        return Optional.empty();
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id)
+    public void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
 
     }

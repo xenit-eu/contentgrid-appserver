@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,6 +21,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
@@ -700,7 +700,7 @@ class JOOQQueryEngineTest {
                                         .ref(ALICE_ID)
                                         .build()
                         )),
-                // Null for non-required attribute/relation
+                // Null for non-required attribute
                 Arguments.of(
                         EntityData.builder()
                                 .name(INVOICE.getName())
@@ -722,16 +722,6 @@ class JOOQQueryEngineTest {
                                         .entity(INVOICE.getName())
                                         .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
                                         .ref(ALICE_ID)
-                                        .build(),
-                                XToOneRelationData.builder()
-                                        .entity(INVOICE.getName())
-                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
-                                        .ref(null) // null for owning *-to-one relation
-                                        .build(),
-                                XToOneRelationData.builder()
-                                        .entity(INVOICE.getName())
-                                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName())
-                                        .ref(null) // null for non-owning *-to-one relation
                                         .build()
                         )),
                 // Empty CompositeAttributeData, empty XToManyRelationData
@@ -775,8 +765,15 @@ class JOOQQueryEngineTest {
 
         for (var relationData : relations) {
             var relation = APPLICATION.getRelationForEntity(entity, relationData.getName()).orElseThrow();
-            var actualRelationData = queryEngine.findLink(APPLICATION, relation, id);
-            assertRelationDataEquals(relationData, actualRelationData);
+            if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+                var xToManyRelationData = assertInstanceOf(XToManyRelationData.class, relationData);
+                for (var ref : xToManyRelationData.getRefs()) {
+                    assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
+                }
+            } else {
+                var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, relationData);
+                assertTrue(queryEngine.isLinked(APPLICATION, relation, id, xToOneRelationData.getRef()));
+            }
         }
     }
 
@@ -803,22 +800,6 @@ class JOOQQueryEngineTest {
                     var actualAttr = actualData.getAttributeByName(expectedAttr.getName()).orElseThrow();
                     assertAttributeDataEquals(expectedAttr, actualAttr);
                 }
-            }
-        }
-    }
-
-    private static void assertRelationDataEquals(RelationData expected, RelationData actual) {
-        assertEquals(expected.getEntity(), actual.getEntity());
-        assertEquals(expected.getName(), actual.getName());
-        // assert the expected data is present in the actual data
-        switch (expected) {
-            case XToOneRelationData expectedData -> {
-                var actualData = assertInstanceOf(XToOneRelationData.class, actual);
-                assertEquals(expectedData.getRef(), actualData.getRef());
-            }
-            case XToManyRelationData expectedData -> {
-                XToManyRelationData actualData = assertInstanceOf(XToManyRelationData.class, actual);
-                assertTrue(actualData.getRefs().containsAll(expectedData.getRefs()));
             }
         }
     }
@@ -975,26 +956,6 @@ class JOOQQueryEngineTest {
                                         .build())
                                 .build(),
                         List.of()), // customer is required
-                // Null for required relation
-                Arguments.of(
-                        EntityData.builder()
-                                .name(INVOICE.getName())
-                                .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_NUMBER.getName())
-                                        .value("random_number")
-                                        .build())
-                                .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_AMOUNT.getName())
-                                        .value(BigDecimal.valueOf(25.0))
-                                        .build())
-                                .build(),
-                        List.of(
-                                XToOneRelationData.builder()
-                                        .entity(INVOICE.getName())
-                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
-                                        .ref(null)
-                                        .build()
-                        )),
                 // Wrong entity in relation
                 Arguments.of(
                         EntityData.builder()
@@ -1538,48 +1499,26 @@ class JOOQQueryEngineTest {
                         .entity(INVOICE.getName())
                         .name(INVOICE_CUSTOMER.getSourceEndPoint().getName()) // customer
                         .ref(JOHN_ID) // originally ALICE_ID
-                        .build()),
-                // One-to-many
-                Arguments.of(JOHN_ID, XToManyRelationData.builder()
-                        .entity(PERSON.getName())
-                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // invoices
-                        .ref(INVOICE1_ID)
-                        .ref(INVOICE2_ID)
-                        .build()),
-                // Many-to-many
-                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
-                        .entity(INVOICE.getName())
-                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName()) // products
-                        .ref(PRODUCT2_ID) // originally PRODUCT1_ID and PRODUCT2_ID
-                        .ref(PRODUCT3_ID)
-                        .build()),
-                // Null for *-to-one relation
-                Arguments.of(INVOICE2_ID, XToOneRelationData.builder()
-                        .entity(INVOICE.getName())
-                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
-                        .ref(null)
                         .build())
         );
     }
 
     @ParameterizedTest
     @MethodSource("validSetRelationData")
-    void setRelationValidData(EntityId id, RelationData relationData) {
+    void setRelationValidData(EntityId id, XToOneRelationData relationData) {
         queryEngine.setLink(APPLICATION, relationData, id);
 
         var relation = APPLICATION.getRelationForEntity(relationData.getEntity(), relationData.getName()).orElseThrow();
-        var actualRelationData = queryEngine.findLink(APPLICATION, relation, id);
-        assertRelationDataEquals(relationData, actualRelationData);
+        assertTrue(queryEngine.isLinked(APPLICATION, relation, id, relationData.getRef()));
     }
 
     static Stream<Arguments> invalidSetRelationData() {
         return Stream.of(
                 // Non-existing relation
-                Arguments.of(ALICE_ID, XToManyRelationData.builder()
+                Arguments.of(ALICE_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // invoices
                         .ref(INVOICE1_ID)
-                        .ref(INVOICE2_ID)
                         .build()),
                 // Non-existing source id
                 Arguments.of(ALICE_ID, XToOneRelationData.builder() // alice is not an invoice
@@ -1599,37 +1538,11 @@ class JOOQQueryEngineTest {
                         .name(INVOICE_PREVIOUS.getTargetEndPoint().getName()) // next_invoice
                         .ref(ALICE_ID) // alice is not an invoice
                         .build()),
-                // Non-existing target in *-to-many relation
-                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
-                        .entity(INVOICE.getName())
-                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName()) // products
-                        .ref(PRODUCT2_ID)
-                        .ref(ALICE_ID) // alice is not a product
-                        .ref(PRODUCT3_ID)
-                        .build()),
-                // Null for required relation
-                Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
-                        .entity(INVOICE.getName())
-                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName()) // customer
-                        .ref(null)
-                        .build()),
-                // Missing value that is required from other side
-                Arguments.of(ALICE_ID, XToManyRelationData.builder()
-                        .entity(PERSON.getName())
-                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // invoices
-                        .ref(INVOICE2_ID) // customer of INVOICE1_ID will no longer contain ALICE_ID
-                        .build()),
                 // Duplicate value for a one-to-one relation
                 Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
                         .entity(INVOICE.getName())
                         .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
                         .ref(INVOICE1_ID) // previous_invoice of INVOICE2_ID already contains INVOICE1_ID
-                        .build()),
-                // XToManyRelationData for *-to-one relation
-                Arguments.of(INVOICE1_ID, XToManyRelationData.builder() // should be XToOneRelationData
-                        .entity(INVOICE.getName())
-                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
-                        .ref(INVOICE2_ID)
                         .build()),
                 // XToOneRelationData for *-to-many relation
                 Arguments.of(INVOICE1_ID, XToOneRelationData.builder() // should be XToManyRelationData
@@ -1642,7 +1555,7 @@ class JOOQQueryEngineTest {
 
     @ParameterizedTest
     @MethodSource("invalidSetRelationData")
-    void setRelationInvalidData(EntityId id, RelationData relationData) {
+    void setRelationInvalidData(EntityId id, XToOneRelationData relationData) {
         assertThrows(QueryEngineException.class, () -> queryEngine.setLink(APPLICATION, relationData, id));
     }
 
@@ -1668,10 +1581,40 @@ class JOOQQueryEngineTest {
     void unsetRelationValidData(EntityId id, Relation relation) {
         queryEngine.unsetLink(APPLICATION, relation, id);
 
-        var relationData = queryEngine.findLink(APPLICATION, relation, id);
-        switch (relationData) {
-            case XToOneRelationData xToOneRelationData -> assertNull(xToOneRelationData.getRef());
-            case XToManyRelationData xToManyRelationData -> assertTrue(xToManyRelationData.getRefs().isEmpty());
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            if (relation.getTargetEndPoint().getName() != null) {
+                ThunkExpression<Boolean> expression;
+                // entity.<targetEndpointName>.id = sourceId
+                if (relation instanceof OneToManyRelation) {
+                    expression = Comparison.areEqual(
+                            SymbolicReference.of(ENTITY_VAR,
+                                    SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
+                                    SymbolicReference.path(
+                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                                    .getValue())),
+                            Scalar.of(id.getValue())
+                    );
+                } else {
+                    expression = Comparison.areEqual(
+                            SymbolicReference.of(ENTITY_VAR,
+                                    SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
+                                    SymbolicReference.pathVar("x"),
+                                    SymbolicReference.path(
+                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                                    .getValue())),
+                            Scalar.of(id.getValue())
+                    );
+                }
+                var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
+                        null);
+                assertTrue(slice.getEntities().isEmpty());
+            } else {
+                // TODO: How do we validate this?
+                throw new AssertionError("Unidirectional relations not supported");
+            }
+        } else {
+            var maybeRelationData = queryEngine.findLink(APPLICATION, relation, id);
+            assertTrue(maybeRelationData.isEmpty());
         }
     }
 

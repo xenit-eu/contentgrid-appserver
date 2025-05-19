@@ -16,5 +16,6 @@ public class XToOneRelationData implements RelationData {
     @NonNull
     RelationName name;
 
+    @NonNull
     EntityId ref;
 }
