@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.exception;
 
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;

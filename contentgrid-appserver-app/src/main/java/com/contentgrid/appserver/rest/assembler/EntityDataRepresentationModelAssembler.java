@@ -6,7 +6,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.rest.EntityRestController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.server.RepresentationModelAssembler;

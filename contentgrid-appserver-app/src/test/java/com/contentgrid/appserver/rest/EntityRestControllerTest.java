@@ -17,7 +17,6 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -35,8 +34,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -89,7 +86,7 @@ class EntityRestControllerTest {
                     .build())
             .build();
 
-    static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine(APPLICATION, new DefaultConversionService());
+    static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine();
 
     @TestConfiguration
     static class TestConfig {
@@ -114,10 +111,6 @@ class EntityRestControllerTest {
     }
 
     static class TestQueryEngine extends DummyQueryEngine {
-        public TestQueryEngine(Application application, ConversionService conversionService) {
-            super(application, conversionService);
-        }
-
         public void reset() {
             super.entityInstances.clear();
         }
