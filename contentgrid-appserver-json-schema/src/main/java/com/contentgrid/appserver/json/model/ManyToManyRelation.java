@@ -7,10 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ManyToManyRelation implements Relation {
-    private String type; // always "many-to-many"
-    private RelationEndPoint sourceEndpoint;
-    private RelationEndPoint targetEndpoint;
+public class ManyToManyRelation extends Relation {
     private String joinTable;
     private String sourceReference;
     private String targetReference;

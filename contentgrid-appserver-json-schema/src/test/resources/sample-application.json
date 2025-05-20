@@ -418,12 +418,12 @@
     {
       "type": "one-to-many",
       "sourceEndpoint": {
-        "name": "department",
         "entityName": "Department",
-        "required": true
+        "required": false
       },
       "targetEndpoint": {
         "name": "employees",
+        "pathSegment": "employees",
         "entityName": "Employee",
         "required": false
       },
@@ -433,11 +433,13 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "name": "manager",
+        "pathSegment": "manager",
         "entityName": "Employee",
         "required": false
       },
       "targetEndpoint": {
         "name": "subordinates",
+        "pathSegment": "subordinates",
         "entityName": "Employee",
         "required": false
       },
@@ -446,54 +448,56 @@
     {
       "type": "one-to-many",
       "sourceEndpoint": {
-        "name": "department",
+        "name": "projects",
+        "pathSegment": "projects",
         "entityName": "Department",
-        "required": true
+        "required": false
       },
       "targetEndpoint": {
-        "name": "projects",
         "entityName": "Project",
         "required": false
       },
       "sourceReference": "dept_id"
     },
     {
-      "type": "one-to-one",
+      "type": "one-to-many",
       "sourceEndpoint": {
-        "name": "manager",
         "entityName": "Employee",
-        "required": true
-      },
-      "targetEndpoint": {
-        "name": "managedProject",
-        "entityName": "Project",
         "required": false
       },
-      "targetReference": "manager_id"
+      "targetEndpoint": {
+        "name": "manager",
+        "pathSegment": "manager",
+        "entityName": "Project",
+        "required": true
+      },
+      "sourceReference": "manager_id"
     },
     {
       "type": "one-to-many",
       "sourceEndpoint": {
-        "name": "project",
         "entityName": "Project",
-        "required": true
+        "required": false
       },
       "targetEndpoint": {
-        "name": "documents",
+        "name": "project",
+        "pathSegment": "project",
         "entityName": "Document",
-        "required": false
+        "required": true
       },
       "sourceReference": "proj_id"
     },
     {
       "type": "many-to-many",
       "sourceEndpoint": {
-        "name": "employees",
+        "name": "projects",
+        "pathSegment": "projects",
         "entityName": "Employee",
         "required": false
       },
       "targetEndpoint": {
-        "name": "projects",
+        "name": "employees",
+        "pathSegment": "employees",
         "entityName": "Project",
         "required": false
       },
@@ -504,12 +508,14 @@
     {
       "type": "many-to-many",
       "sourceEndpoint": {
-        "name": "employees",
+        "name": "skills",
+        "pathSegment": "skills",
         "entityName": "Employee",
         "required": false
       },
       "targetEndpoint": {
-        "name": "skills",
+        "name": "employees",
+        "pathSegment": "employees",
         "entityName": "Skill",
         "required": false
       },

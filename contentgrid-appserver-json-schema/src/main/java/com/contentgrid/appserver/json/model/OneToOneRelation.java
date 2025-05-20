@@ -7,9 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class OneToOneRelation implements Relation {
-    private String type; // always "one-to-one"
-    private RelationEndPoint sourceEndpoint;
-    private RelationEndPoint targetEndpoint;
+public class OneToOneRelation extends Relation {
     private String targetReference;
 }
