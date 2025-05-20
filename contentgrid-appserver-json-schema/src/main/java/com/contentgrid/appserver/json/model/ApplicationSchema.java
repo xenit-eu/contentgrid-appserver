@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.json.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,4 +15,7 @@ public class ApplicationSchema {
     private String version;
     private List<Entity> entities;
     private List<Relation> relations;
+
+    @JsonAlias("$schema")
+    private String schema;
 }
