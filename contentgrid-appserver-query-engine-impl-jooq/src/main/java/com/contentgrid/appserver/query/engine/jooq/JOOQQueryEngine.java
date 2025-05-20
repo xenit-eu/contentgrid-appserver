@@ -26,6 +26,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
@@ -33,10 +34,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.UpdateSetFirstStep;
@@ -99,14 +98,6 @@ public class JOOQQueryEngine implements QueryEngine {
                 .fetchOptional()
                 .map(Record::intoMap)
                 .map(result -> EntityDataMapper.from(entity, result));
-    }
-
-    private void assertEntityExists(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull EntityId id) {
-        var table = JOOQUtils.resolveTable(entity);
-        var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
-        if (!dslContext.fetchExists(table, primaryKey.eq(id.getValue()))) {
-            throw new EntityNotFoundException("Entity '%s' with primary key '%s' does not exist.".formatted(entity.getName(), id));
-        }
     }
 
     @Override
@@ -279,21 +270,13 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // Delete relations on other tables first
         for (var relation : application.getRelationsForSourceEntity(entity)) {
-            var relationTable = JOOQUtils.resolveRelationTable(relation);
-            var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-            if (relation instanceof TargetOneToOneRelation || relation instanceof OneToManyRelation) {
-                // TODO: not necessary if target = source
-                try {
-                    dslContext.update(relationTable)
-                            .set(sourceRef, (UUID) null)
-                            .execute();
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // inverse relation could be required.
-                }
-            } else if (relation instanceof ManyToManyRelation) {
-                // TODO: many-to-many relations are processed twice if source = target
-                dslContext.deleteFrom(relationTable).execute();
+            if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
+                // Skip foreign key references on the same table, they will be deleted when the table is deleted
+                continue;
             }
+            // TODO: not necessary or clearing twice if source = target
+            var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+            strategy.deleteAll(dslContext, relation);
         }
 
         dslContext.deleteFrom(table).execute();
@@ -303,38 +286,16 @@ public class JOOQQueryEngine implements QueryEngine {
     public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
             @NonNull EntityId targetId) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-
-        return dslContext.fetchExists(DSL.selectOne()
-                .from(table)
-                .where(DSL.and(sourceRef.eq(sourceId.getValue()), targetRef.eq(targetId.getValue()))));
+        var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+        return strategy.isLinked(dslContext, relation, sourceId, targetId);
     }
 
     @Override
     public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-
-        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-            throw new InvalidDataException("Relation '%s' is not a one-to-one or many-to-one relation".formatted(relation.getSourceEndPoint().getName()));
-        } else {
-            // *-to-one relation
-            var result = dslContext.select(targetRef)
-                    .from(table)
-                    .where(sourceRef.eq(id.getValue()))
-                    .fetchOne();
-
-            if (result == null || result.value1() == null) {
-                return Optional.empty();
-            } else {
-                return Optional.of(EntityId.of(result.value1()));
-            }
-        }
+        var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
+        return strategy.findTarget(dslContext, relation, id);
     }
 
     @Override
@@ -342,138 +303,16 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRequiredRelation(application, data);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-
-        switch (relation) {
-            case SourceOneToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(targetRef, data.getRef().getValue())
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        throw new EntityNotFoundException(
-                                "Entity with primary key '%s' not found".formatted(id));
-                    }
-                } catch (DuplicateKeyException e) {
-                    throw new ConstraintViolationException("Target %s already linked".formatted(data.getRef()), e);
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
-                }
-            }
-            case ManyToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(targetRef, data.getRef().getValue())
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        throw new EntityNotFoundException(
-                                "Entity with primary key '%s' not found".formatted(id));
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
-                }
-            }
-            case TargetOneToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(sourceRef, id.getValue())
-                            .where(targetRef.eq(data.getRef().getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(
-                                data.getRef()));
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // provided id could not exist
-                }
-            }
-            default -> throw new InvalidDataException("Relation '%s' is not a one-to-one or many-to-one relation".formatted(data.getName()));
-        }
+        var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
+        strategy.create(dslContext, relation, id, data);
     }
 
     @Override
     public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-        var sourceEntity = relation.getSourceEndPoint().getEntity();
-
-        switch (relation) {
-            case SourceOneToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(targetRef, (UUID) null)
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
-                }
-            }
-            case ManyToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(targetRef, (UUID) null)
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
-                }
-            }
-            case TargetOneToOneRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(sourceRef, (UUID) null)
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        assertEntityExists(dslContext, sourceEntity, id);
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
-                }
-            }
-            case OneToManyRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(sourceRef, (UUID) null)
-                            .where(sourceRef.eq(id.getValue()))
-                            .execute();
-
-                    if (updated == 0) {
-                        assertEntityExists(dslContext, sourceEntity, id);
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
-                }
-            }
-            case ManyToManyRelation ignored -> {
-                var deleted = dslContext.deleteFrom(table)
-                                .where(sourceRef.eq(id.getValue()))
-                                .execute();
-
-                if (deleted == 0) {
-                    assertEntityExists(dslContext, sourceEntity, id);
-                }
-            }
-        }
+        var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+        strategy.delete(dslContext, relation, id);
     }
 
     @Override
@@ -481,46 +320,8 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRequiredRelation(application, data);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-
-        switch (relation) {
-            case OneToManyRelation ignored -> {
-                var refs = data.getRefs().stream()
-                        .map(EntityId::getValue)
-                        .toList();
-                try {
-                    var updated = dslContext.update(table)
-                            .set(sourceRef, id.getValue())
-                            .where(targetRef.in(refs))
-                            .execute();
-
-                    if (updated < refs.size()) {
-                        throw new EntityNotFoundException("Some entities from provided data not found");
-                    }
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
-                }
-            }
-            case ManyToManyRelation ignored -> {
-                var step = dslContext.insertInto(table, sourceRef, targetRef);
-
-                for (var ref : data.getRefs()) {
-                    step = step.values(id.getValue(), ref.getValue());
-                }
-
-                try {
-                    step.execute();
-                } catch (DuplicateKeyException e) {
-                    throw new ConstraintViolationException("One of the provided references already linked with provided id", e);
-                } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-                    throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
-                }
-            }
-            default -> throw new InvalidDataException("Relation '%s' of entity '%s' is not a one-to-many or many-to-many relation."
-                    .formatted(data.getName(), data.getEntity()));
-        }
+        var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
+        strategy.add(dslContext, relation, id, data);
     }
 
     @Override
@@ -528,48 +329,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var relation = getRequiredRelation(application, data);
-        var table = JOOQUtils.resolveRelationTable(relation);
-        var sourceRef = JOOQUtils.resolveRelationSourceRef(relation);
-        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
-        var refs = data.getRefs().stream()
-                .map(EntityId::getValue)
-                .toList();
-
-        switch (relation) {
-            case OneToManyRelation ignored -> {
-                try {
-                    var updated = dslContext.update(table)
-                            .set(sourceRef, (UUID) null)
-                            .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
-                            .execute();
-
-                    if (updated < refs.size()) {
-                        throw new EntityNotFoundException(
-                                "Entities provided that are not linked to entity '%s' with primary key '%s'"
-                                        .formatted(data.getEntity(), id));
-                    }
-                } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
-                    if (relation.getTargetEndPoint().isRequired()) {
-                        throw new ConstraintViolationException(
-                                "Cannot remove references from relation '%s' because inverse many-to-one relation is required"
-                                        .formatted(relation.getSourceEndPoint().getName()), e);
-                    } else {
-                        throw new ConstraintViolationException(e.getMessage(), e);
-                    }
-                }
-            }
-            case ManyToManyRelation ignored -> {
-                var deleted = dslContext.deleteFrom(table)
-                        .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
-                        .execute();
-
-                if (deleted < refs.size()) {
-                    throw new EntityNotFoundException("Some provided target entities of relation '%s' not found"
-                            .formatted(data.getName()));
-                }
-            }
-            default -> throw new InvalidDataException("Relation '%s' of entity '%s' is not a one-to-many or many-to-many relation."
-                    .formatted(data.getName(), data.getEntity()));
-        }
+        var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
+        strategy.remove(dslContext, relation, id, data);
     }
 }

@@ -82,16 +82,6 @@ public class JOOQUtils {
         return dataType.nullable(!required);
     }
 
-    public static Table<?> resolveRelationTable(Relation relation) {
-        return switch (relation) {
-            case SourceOneToOneRelation ignored -> resolveTable(relation.getSourceEndPoint().getEntity());
-            case ManyToOneRelation ignored -> resolveTable(relation.getSourceEndPoint().getEntity());
-            case TargetOneToOneRelation ignored -> resolveTable(relation.getTargetEndPoint().getEntity());
-            case OneToManyRelation ignored -> resolveTable(relation.getTargetEndPoint().getEntity());
-            case ManyToManyRelation manyToManyRelation -> resolveTable(manyToManyRelation.getJoinTable());
-        };
-    }
-
     public static Field<UUID> resolveRelationSourceRef(Relation relation) {
         var sourceEntity = relation.getSourceEndPoint().getEntity();
         return switch (relation) {
