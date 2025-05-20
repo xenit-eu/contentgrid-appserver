@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -178,19 +179,23 @@ public class JOOQQueryEngine implements QueryEngine {
         return id;
     }
 
-    private Entity getRequiredEntity(Application application, EntityName entityName) {
-        return application.getEntityByName(entityName)
-                .orElseThrow(() -> new InvalidDataException("Entity '%s' not found in application '%s'"
-                        .formatted(entityName, application.getName())));
+    private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
+        try {
+            return application.getRequiredEntityByName(entityName);
+        } catch (com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException e) {
+            throw new InvalidDataException(e.getMessage(), e);
+        }
     }
 
-    private Relation getRequiredRelation(Application application, RelationData relationData) {
-        return application.getRelationForEntity(relationData.getEntity(), relationData.getName())
-                .orElseThrow(() -> new InvalidDataException("Relation '%s' of entity '%s' not found in application '%s'"
-                        .formatted(relationData.getName(), relationData.getEntity(), application.getName())));
+    private Relation getRequiredRelation(Application application, RelationData relationData) throws InvalidDataException {
+        try {
+            return application.getRequiredRelationForEntity(relationData.getEntity(), relationData.getName());
+        } catch (RelationNotFoundException e) {
+            throw new InvalidDataException(e.getMessage(), e);
+        }
     }
 
-    private EntityId generateId(Entity entity) {
+    private EntityId generateId(Entity entity) throws InvalidDataException {
         if (!Type.UUID.equals(entity.getPrimaryKey().getType())) {
             throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
         }
