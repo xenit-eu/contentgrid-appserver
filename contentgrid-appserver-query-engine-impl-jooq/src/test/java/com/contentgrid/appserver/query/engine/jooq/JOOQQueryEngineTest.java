@@ -1436,8 +1436,8 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> validDeleteData() {
         return Stream.of(
                 Arguments.of(PERSON, JOHN_ID),
-                Arguments.of(INVOICE, INVOICE1_ID),
-                Arguments.of(PRODUCT, PRODUCT1_ID)
+                Arguments.of(INVOICE, INVOICE2_ID),
+                Arguments.of(PRODUCT, PRODUCT3_ID)
         );
     }
 
@@ -1452,7 +1452,9 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> invalidDeleteData() {
         return Stream.of(
                 Arguments.of(INVOICE, ALICE_ID), // ALICE_ID is not an invoice
-                Arguments.of(PERSON, ALICE_ID) // ALICE_ID is present in required relation customer
+                Arguments.of(PERSON, ALICE_ID), // ALICE_ID is present in required relation customer
+                Arguments.of(INVOICE, INVOICE1_ID), // INVOICE1_ID is still present in join-table of relation products
+                Arguments.of(PRODUCT, PRODUCT1_ID) // PRODUCT1_ID is still present in join-table of relation invoices
         );
     }
 
@@ -1464,9 +1466,18 @@ class JOOQQueryEngineTest {
 
     @Test
     void deleteAll() {
+        // unlink relations for invoice first
+        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID);
+        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE2_ID);
+
+        // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
         assertTrue(slice.getEntities().isEmpty());
+
+        // unlink relations for person
+        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, ALICE_ID);
+        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, BOB_ID);
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
@@ -1474,10 +1485,16 @@ class JOOQQueryEngineTest {
         assertTrue(slice.getEntities().isEmpty());
     }
 
-    @Test
-    void deleteAllInvalidEntity() {
+    static Stream<Entity> invalidDeleteAllData() {
+        // each table contains entities that are still referenced by other tables
+        return Stream.of(PERSON, INVOICE, PRODUCT);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDeleteAllData")
+    void deleteAllInvalidEntity(Entity entity) {
         // persons are present in required relation customer
-        assertThrows(QueryEngineException.class, () -> queryEngine.deleteAll(APPLICATION, PERSON));
+        assertThrows(QueryEngineException.class, () -> queryEngine.deleteAll(APPLICATION, entity));
     }
 
     static Stream<Arguments> validSetRelationData() {

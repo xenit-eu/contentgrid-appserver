@@ -250,21 +250,16 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
-        // Delete foreign key references to this item first
-        for (var relation : application.getRelationsForSourceEntity(entity)) {
-            if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
-                // Skip foreign key references on the same table row, they will be deleted when the row is deleted
-                continue;
+        try {
+            var deleted = dslContext.deleteFrom(table)
+                    .where(primaryKey.eq(id.getValue()))
+                    .execute();
+
+            if (deleted == 0) {
+                throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
             }
-            unsetLink(application, relation, id);
-        }
-
-        var deleted = dslContext.deleteFrom(table)
-                .where(primaryKey.eq(id.getValue()))
-                .execute();
-
-        if (deleted == 0) {
-            throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
+        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
+            throw new ConstraintViolationException(e.getMessage(), e);
         }
     }
 
@@ -273,18 +268,11 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var table = JOOQUtils.resolveTable(entity);
 
-        // Delete relations on other tables first
-        for (var relation : application.getRelationsForSourceEntity(entity)) {
-            if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
-                // Skip foreign key references on the same table, they will be deleted when the table is deleted
-                continue;
-            }
-            // TODO: not necessary or clearing twice if source = target
-            var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-            strategy.deleteAll(dslContext, relation);
+        try {
+            dslContext.deleteFrom(table).execute();
+        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
+            throw new ConstraintViolationException(e.getMessage(), e);
         }
-
-        dslContext.deleteFrom(table).execute();
     }
 
     @Override
