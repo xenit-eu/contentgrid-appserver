@@ -5,6 +5,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -14,6 +15,7 @@ import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -34,6 +36,38 @@ public class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<
     protected Field<UUID> getTargetRef(ManyToManyRelation relation) {
         return (Field<UUID>) JOOQUtils.resolveField(relation.getTargetReference(), relation.getTargetEndPoint().getEntity().getPrimaryKey()
                 .getType(), true);
+    }
+
+    @Override
+    public void make(DSLContext dslContext, ManyToManyRelation relation) {
+        var joinTable = getTable(relation);
+        var sourceRef = getSourceRef(relation);
+        var targetRef = getTargetRef(relation);
+        var sourceTable = JOOQUtils.resolveTable(relation.getSourceEndPoint().getEntity());
+        var targetTable = JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
+        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getSourceEndPoint().getEntity());
+        var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
+
+        try {
+            dslContext.createTable(joinTable)
+                    .columns(sourceRef, targetRef)
+                    .primaryKey(sourceRef, targetRef)
+                    .constraint(DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
+                    .constraint(DSL.foreignKey(targetRef).references(targetTable, targetPrimaryKey))
+                    .execute();
+        } catch (BadSqlGrammarException e) {
+            throw new InvalidSqlException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void destroy(DSLContext dslContext, ManyToManyRelation relation) {
+        var table = getTable(relation);
+        try {
+            dslContext.dropTable(table).execute();
+        } catch (BadSqlGrammarException e) {
+            throw new InvalidSqlException(e.getMessage(), e);
+        }
     }
 
     @Override

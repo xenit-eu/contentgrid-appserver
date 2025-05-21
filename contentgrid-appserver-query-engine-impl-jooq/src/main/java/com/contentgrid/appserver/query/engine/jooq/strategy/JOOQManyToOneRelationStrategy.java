@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
@@ -41,6 +42,11 @@ public class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<Ma
     protected Field<UUID> getForeignKey(ManyToOneRelation relation) {
         return (Field<UUID>) JOOQUtils.resolveField(relation.getTargetReference(), relation.getTargetEndPoint().getEntity().getPrimaryKey()
                 .getType(), relation.getSourceEndPoint().isRequired());
+    }
+
+    @Override
+    protected Entity getForeignEntity(ManyToOneRelation relation) {
+        return relation.getTargetEndPoint().getEntity();
     }
 
     @Override

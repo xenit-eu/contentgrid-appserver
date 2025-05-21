@@ -34,6 +34,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -56,7 +57,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Propagation;
@@ -505,13 +505,13 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
+        assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
         assertTrue(getTables("public").isEmpty());
 
         // Drop tables should fail too
-        assertThrows(BadSqlGrammarException.class, () -> tableCreator.dropTables(application));
+        assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
     }
 

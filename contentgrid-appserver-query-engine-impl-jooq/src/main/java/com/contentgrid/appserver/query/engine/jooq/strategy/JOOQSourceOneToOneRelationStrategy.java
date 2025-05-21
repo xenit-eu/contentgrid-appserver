@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
@@ -11,6 +12,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
 import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +44,21 @@ public class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrate
     protected Field<UUID> getForeignKey(SourceOneToOneRelation relation) {
         return (Field<UUID>) JOOQUtils.resolveField(relation.getTargetReference(), relation.getTargetEndPoint().getEntity().getPrimaryKey()
                 .getType(), relation.getSourceEndPoint().isRequired());
+    }
+
+    @Override
+    protected Entity getForeignEntity(SourceOneToOneRelation relation) {
+        return relation.getTargetEndPoint().getEntity();
+    }
+
+    @Override
+    public void make(DSLContext dslContext, SourceOneToOneRelation relation) {
+        super.make(dslContext, relation);
+
+        // Make column unique
+        dslContext.alterTable(getTable(relation))
+                .add(DSL.unique(getForeignKey(relation)))
+                .execute();
     }
 
     @Override

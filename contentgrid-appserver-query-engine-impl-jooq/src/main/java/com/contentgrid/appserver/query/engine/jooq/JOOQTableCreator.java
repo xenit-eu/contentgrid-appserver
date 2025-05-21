@@ -6,19 +6,15 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
-import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
-import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
-import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
-import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import lombok.RequiredArgsConstructor;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
@@ -35,45 +31,8 @@ public class JOOQTableCreator implements TableCreator {
         }
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
-            var sourceEndPoint = relation.getSourceEndPoint();
-            var targetEndPoint = relation.getTargetEndPoint();
-            switch (relation) {
-                case SourceOneToOneRelation oneToOneRelation ->
-                        createRelation(dslContext, sourceEndPoint, targetEndPoint, oneToOneRelation.getTargetReference(), true);
-                case ManyToOneRelation manyToOneRelation ->
-                        createRelation(dslContext, sourceEndPoint, targetEndPoint, manyToOneRelation.getTargetReference(), false);
-                case TargetOneToOneRelation oneToOneRelation ->
-                        createRelation(dslContext, targetEndPoint, sourceEndPoint, oneToOneRelation.getSourceReference(), true);
-                case OneToManyRelation oneToManyRelation ->
-                        createRelation(dslContext, targetEndPoint, sourceEndPoint, oneToManyRelation.getSourceReference(), false);
-                case ManyToManyRelation manyToManyRelation -> {
-                    // Create the join table
-                    dslContext.createTable(manyToManyRelation.getJoinTable().getValue())
-                            .column(JOOQUtils.resolveRelationSourceRef(manyToManyRelation))
-                            .column(JOOQUtils.resolveRelationTargetRef(manyToManyRelation))
-                            .primaryKey(manyToManyRelation.getSourceReference().getValue(), manyToManyRelation.getTargetReference().getValue())
-                            .constraint(DSL.foreignKey(manyToManyRelation.getSourceReference().getValue())
-                                    .references(sourceEndPoint.getEntity().getTable().getValue(),
-                                            sourceEndPoint.getEntity().getPrimaryKey().getColumn().getValue()))
-                            .constraint(DSL.foreignKey(manyToManyRelation.getTargetReference().getValue())
-                                    .references(targetEndPoint.getEntity().getTable().getValue(),
-                                            targetEndPoint.getEntity().getPrimaryKey().getColumn().getValue()))
-                            .execute();
-                }
-            }
-        }
-    }
-
-    private void createRelation(DSLContext dslContext, RelationEndPoint owningEndPoint, RelationEndPoint otherEndPoint, ColumnName reference, boolean unique) {
-        dslContext.alterTable(owningEndPoint.getEntity().getTable().getValue())
-                .add(JOOQUtils.resolveField(reference, otherEndPoint.getEntity().getPrimaryKey().getType(), owningEndPoint.isRequired()),
-                        DSL.foreignKey(reference.getValue()).references(otherEndPoint.getEntity().getTable().getValue(),
-                                otherEndPoint.getEntity().getPrimaryKey().getColumn().getValue()))
-                .execute();
-        if (unique) {
-            dslContext.alterTable(owningEndPoint.getEntity().getTable().getValue())
-                    .add(DSL.unique(reference.getValue()))
-                    .execute();
+            var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+            strategy.make(dslContext, relation);
         }
     }
 
@@ -84,7 +43,11 @@ public class JOOQTableCreator implements TableCreator {
         for (var attribute : entity.getAttributes()) {
             step = createColumnsForAttribute(step, attribute);
         }
-        step.execute();
+        try {
+            step.execute();
+        } catch (BadSqlGrammarException e) {
+            throw new InvalidSqlException(e.getMessage(), e);
+        }
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {
@@ -111,52 +74,18 @@ public class JOOQTableCreator implements TableCreator {
 
         // drop relations first
         for (var relation : application.getRelations()) {
-            var sourceEndPoint = relation.getSourceEndPoint();
-            var targetEndPoint = relation.getTargetEndPoint();
-            switch (relation) {
-                case SourceOneToOneRelation oneToOneRelation -> {
-                    var table = JOOQUtils.resolveTable(sourceEndPoint.getEntity());
-                    var foreignKey = JOOQUtils.resolveField(oneToOneRelation.getTargetReference(),
-                            targetEndPoint.getEntity().getPrimaryKey().getType(), sourceEndPoint.isRequired());
-                    dslContext.alterTable(table)
-                            .dropColumnIfExists(foreignKey)
-                            .execute();
-                }
-                case ManyToOneRelation manyToOneRelation -> {
-                    var table = JOOQUtils.resolveTable(sourceEndPoint.getEntity());
-                    var foreignKey = JOOQUtils.resolveField(manyToOneRelation.getTargetReference(),
-                            targetEndPoint.getEntity().getPrimaryKey().getType(), sourceEndPoint.isRequired());
-                    dslContext.alterTable(table)
-                            .dropColumnIfExists(foreignKey)
-                            .execute();
-                }
-                case TargetOneToOneRelation oneToOneRelation -> {
-                    var table = JOOQUtils.resolveTable(targetEndPoint.getEntity());
-                    var foreignKey = JOOQUtils.resolveField(oneToOneRelation.getSourceReference(),
-                            sourceEndPoint.getEntity().getPrimaryKey().getType(), targetEndPoint.isRequired());
-                    dslContext.alterTable(table)
-                            .dropColumnIfExists(foreignKey)
-                            .execute();
-                }
-                case OneToManyRelation oneToManyRelation -> {
-                    var table = JOOQUtils.resolveTable(targetEndPoint.getEntity());
-                    var foreignKey = JOOQUtils.resolveField(oneToManyRelation.getSourceReference(),
-                            sourceEndPoint.getEntity().getPrimaryKey().getType(), targetEndPoint.isRequired());
-                    dslContext.alterTable(table)
-                            .dropColumnIfExists(foreignKey)
-                            .execute();
-                }
-                case ManyToManyRelation manyToManyRelation -> {
-                    var table = JOOQUtils.resolveTable(manyToManyRelation.getJoinTable());
-                    dslContext.dropTable(table).execute();
-                }
-            }
+            var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+            strategy.destroy(dslContext, relation);
         }
 
         // Drop entity tables after relations are dropped
         for (var entity : application.getEntities()) {
             var table = JOOQUtils.resolveTable(entity);
-            dslContext.dropTable(table).execute();
+            try {
+                dslContext.dropTable(table).execute();
+            } catch (BadSqlGrammarException e) {
+                throw new InvalidSqlException(e.getMessage(), e);
+            }
         }
     }
 

@@ -29,6 +29,10 @@ public abstract class JOOQRelationStrategy<R extends Relation> {
         }
     }
 
+    public abstract void make(DSLContext dslContext, R relation);
+
+    public abstract void destroy(DSLContext dslContext, R relation);
+
     public abstract boolean isLinked(DSLContext dslContext, R relation, EntityId sourceId, EntityId targetId);
 
     public abstract void delete(DSLContext dslContext, R relation, EntityId id);

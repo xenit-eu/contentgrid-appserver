@@ -5,6 +5,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.Collection;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import org.jooq.Table;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
@@ -27,12 +29,39 @@ public class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<O
     @Override
     protected Field<UUID> getSourceRef(OneToManyRelation relation) {
         return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), relation.getSourceEndPoint().getEntity().getPrimaryKey()
-                .getType(), relation.getSourceEndPoint().isRequired());
+                .getType(), relation.getTargetEndPoint().isRequired());
     }
 
     @Override
     protected Field<UUID> getTargetRef(OneToManyRelation relation) {
         return JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
+    }
+
+    @Override
+    public void make(DSLContext dslContext, OneToManyRelation relation) {
+        var targetTable = getTable(relation);
+        var sourceRef = getSourceRef(relation);
+        var sourceTable = JOOQUtils.resolveTable(relation.getSourceEndPoint().getEntity());
+        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getSourceEndPoint().getEntity());
+
+        try {
+            dslContext.alterTable(targetTable)
+                    .add(sourceRef, DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
+                    .execute();
+        } catch (BadSqlGrammarException e) {
+            throw new InvalidSqlException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void destroy(DSLContext dslContext, OneToManyRelation relation) {
+        var table = getTable(relation);
+        var sourceRef = getSourceRef(relation);
+        try {
+            dslContext.alterTable(table).dropColumnIfExists(sourceRef).execute();
+        } catch (BadSqlGrammarException e) {
+            throw new InvalidSqlException(e.getMessage(), e); // table could not exist
+        }
     }
 
     private Collection<UUID> getRefs(XToManyRelationData data) {
