@@ -9,11 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ContentAttribute implements Attribute {
-    private String name;
-    private String description;
-    private String type; // always "content"
-    private List<String> flags;
+public class ContentAttribute extends Attribute {
     private String pathSegment;
     private String idColumn;
     private String fileNameColumn;

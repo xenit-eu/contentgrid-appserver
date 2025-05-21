@@ -9,12 +9,8 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SimpleAttribute implements Attribute {
-    private String name;
-    private String description;
-    private String type; // always "simple"
+public class SimpleAttribute extends Attribute {
     private String columnName;
-    private List<String> flags;
     private String dataType;
     private List<AttributeConstraint> constraints;
 }

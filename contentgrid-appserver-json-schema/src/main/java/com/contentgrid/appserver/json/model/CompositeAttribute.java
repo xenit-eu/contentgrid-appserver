@@ -9,10 +9,6 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CompositeAttribute implements Attribute {
-    private String name;
-    private String description;
-    private String type; // always "composite"
+public class CompositeAttribute extends Attribute {
     private List<Attribute> attributes;
-    private List<String> flags;
 }

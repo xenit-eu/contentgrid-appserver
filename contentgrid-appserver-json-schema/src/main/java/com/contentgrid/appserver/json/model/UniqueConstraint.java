@@ -8,5 +8,4 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UniqueConstraint implements AttributeConstraint {
-    private String type; // always "unique"
 }

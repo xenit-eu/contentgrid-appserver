@@ -8,8 +8,7 @@ import lombok.Setter;
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.EXISTING_PROPERTY,
-        property = "type",
-        visible = false
+        property = "type"
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = OneToOneRelation.class, name = "one-to-one"),

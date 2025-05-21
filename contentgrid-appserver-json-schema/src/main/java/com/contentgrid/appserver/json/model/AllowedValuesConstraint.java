@@ -9,6 +9,5 @@ import java.util.List;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AllowedValuesConstraint implements AttributeConstraint {
-    private String type; // always "allowedValues"
     private List<String> values;
 }
