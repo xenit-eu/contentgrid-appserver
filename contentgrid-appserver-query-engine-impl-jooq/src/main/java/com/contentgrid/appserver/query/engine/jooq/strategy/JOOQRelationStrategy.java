@@ -13,13 +13,14 @@ import org.jooq.Table;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public abstract class JOOQRelationStrategy<R extends Relation> {
+public abstract sealed class JOOQRelationStrategy<R extends Relation>
+        permits JOOQXToOneRelationStrategy, JOOQXToManyRelationStrategy {
 
-    protected abstract Table<?> getTable(R relation);
+    public abstract Table<?> getTable(R relation);
 
-    protected abstract Field<UUID> getSourceRef(R relation);
+    public abstract Field<UUID> getSourceRef(R relation);
 
-    protected abstract Field<UUID> getTargetRef(R relation);
+    public abstract Field<UUID> getTargetRef(R relation);
 
     protected void assertEntityExists(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull EntityId id) {
         var table = JOOQUtils.resolveTable(entity);

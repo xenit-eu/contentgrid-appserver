@@ -19,21 +19,21 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
+public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
 
     @Override
-    protected Table<?> getTable(OneToManyRelation relation) {
+    public Table<?> getTable(OneToManyRelation relation) {
         return JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
     }
 
     @Override
-    protected Field<UUID> getSourceRef(OneToManyRelation relation) {
+    public Field<UUID> getSourceRef(OneToManyRelation relation) {
         return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), relation.getSourceEndPoint().getEntity().getPrimaryKey()
                 .getType(), relation.getTargetEndPoint().isRequired());
     }
 
     @Override
-    protected Field<UUID> getTargetRef(OneToManyRelation relation) {
+    public Field<UUID> getTargetRef(OneToManyRelation relation) {
         return JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
     }
 

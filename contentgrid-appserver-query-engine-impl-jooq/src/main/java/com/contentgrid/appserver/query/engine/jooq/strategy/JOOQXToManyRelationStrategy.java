@@ -8,7 +8,8 @@ import org.jooq.impl.DSL;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public abstract class JOOQXToManyRelationStrategy<R extends Relation> extends JOOQRelationStrategy<R> {
+public abstract sealed class JOOQXToManyRelationStrategy<R extends Relation> extends JOOQRelationStrategy<R>
+        permits JOOQOneToManyRelationStrategy, JOOQManyToManyRelationStrategy {
 
     @Override
     public boolean isLinked(DSLContext dslContext, R relation, EntityId sourceId, EntityId targetId) {

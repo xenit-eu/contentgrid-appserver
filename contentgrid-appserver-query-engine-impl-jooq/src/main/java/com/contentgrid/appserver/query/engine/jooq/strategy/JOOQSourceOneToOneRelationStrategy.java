@@ -18,20 +18,20 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<SourceOneToOneRelation> {
+public final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<SourceOneToOneRelation> {
 
     @Override
-    protected Table<?> getTable(SourceOneToOneRelation relation) {
+    public Table<?> getTable(SourceOneToOneRelation relation) {
         return JOOQUtils.resolveTable(relation.getSourceEndPoint().getEntity());
     }
 
     @Override
-    protected Field<UUID> getSourceRef(SourceOneToOneRelation relation) {
+    public Field<UUID> getSourceRef(SourceOneToOneRelation relation) {
         return getPrimaryKey(relation);
     }
 
     @Override
-    protected Field<UUID> getTargetRef(SourceOneToOneRelation relation) {
+    public Field<UUID> getTargetRef(SourceOneToOneRelation relation) {
         return getForeignKey(relation);
     }
 

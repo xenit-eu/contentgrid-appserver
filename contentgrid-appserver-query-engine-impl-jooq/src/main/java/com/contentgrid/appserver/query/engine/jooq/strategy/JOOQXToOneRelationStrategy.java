@@ -2,7 +2,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
@@ -19,7 +18,8 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public abstract class JOOQXToOneRelationStrategy<R extends Relation> extends JOOQRelationStrategy<R> {
+public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> extends JOOQRelationStrategy<R>
+        permits JOOQSourceOneToOneRelationStrategy, JOOQManyToOneRelationStrategy, JOOQTargetOneToOneRelationStrategy {
 
     protected abstract Field<UUID> getPrimaryKey(R relation);
 

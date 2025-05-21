@@ -140,7 +140,8 @@ public class JOOQQueryEngine implements QueryEngine {
                 case XToOneRelationData xToOneRelationData -> {
                     // add to step if owning relation, otherwise add to non-owning relations
                     if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
-                        var targetRef = JOOQUtils.resolveRelationTargetRef(relation);
+                        var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
+                        var targetRef = strategy.getTargetRef(relation);
                         step = step.set(targetRef, xToOneRelationData.getRef().getValue());
                     } else if (relation instanceof TargetOneToOneRelation) {
                         nonOwningRelations.add(relationData);

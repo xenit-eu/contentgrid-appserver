@@ -17,20 +17,20 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<TargetOneToOneRelation> {
+public final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<TargetOneToOneRelation> {
 
     @Override
-    protected Table<?> getTable(TargetOneToOneRelation relation) {
+    public Table<?> getTable(TargetOneToOneRelation relation) {
         return JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
     }
 
     @Override
-    protected Field<UUID> getSourceRef(TargetOneToOneRelation relation) {
+    public Field<UUID> getSourceRef(TargetOneToOneRelation relation) {
         return getForeignKey(relation);
     }
 
     @Override
-    protected Field<UUID> getTargetRef(TargetOneToOneRelation relation) {
+    public Field<UUID> getTargetRef(TargetOneToOneRelation relation) {
         return getPrimaryKey(relation);
     }
 
