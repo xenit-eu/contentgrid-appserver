@@ -412,6 +412,51 @@
           "type": "exact"
         }
       ]
+    },
+    {
+      "name": "SecretInformation",
+      "description": "Sensitive information for an employee",
+      "table": "secret_information",
+      "pathSegment": "secret-information",
+      "primaryKey": {
+        "name": "id",
+        "description": "The unique identifier for the secret information",
+        "type": "simple",
+        "columnName": "secret_id",
+        "dataType": "uuid",
+        "constraints": [
+          {
+            "type": "required"
+          },
+          {
+            "type": "unique"
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "ssn",
+          "description": "Social Security Number",
+          "type": "simple",
+          "columnName": "ssn",
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "ssnFilter",
+          "attributeName": "ssn",
+          "type": "exact"
+        }
+      ]
     }
   ],
   "relations": [
@@ -522,6 +567,22 @@
       "joinTable": "employee_skills",
       "sourceReference": "emp_id",
       "targetReference": "skill_id"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "secretInformation",
+        "pathSegment": "secret-information",
+        "entityName": "Employee",
+        "required": true
+      },
+      "targetEndpoint": {
+        "name": "employee",
+        "pathSegment": "employee",
+        "entityName": "SecretInformation",
+        "required": false
+      },
+      "targetReference": "secret_information_id"
     }
   ]
 }
