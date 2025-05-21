@@ -48,7 +48,6 @@ import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineRollbackTest.T
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.math.BigDecimal;
@@ -58,6 +57,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -308,10 +308,6 @@ public class JOOQQueryEngineRollbackTest {
     private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
 
-    private static final Variable ENTITY_VAR = Variable.named("entity");
-
-    private static boolean tablesCreated = false;
-
     @Autowired
     private DSLContext dslContext;
 
@@ -323,12 +319,13 @@ public class JOOQQueryEngineRollbackTest {
 
     @BeforeEach
     void setup() {
-        if (!tablesCreated) {
-            // Only create tables and insert data once, all tests should rollback automatically to this state
-            tableCreator.createTables(APPLICATION);
-            insertData();
-            tablesCreated = true;
-        }
+        tableCreator.createTables(APPLICATION);
+        insertData();
+    }
+
+    @AfterEach
+    void cleanup() {
+        tableCreator.dropTables(APPLICATION);
     }
 
     void insertData() {

@@ -6,4 +6,6 @@ public interface TableCreator {
 
     void createTables(Application application);
 
+    void dropTables(Application application);
+
 }
