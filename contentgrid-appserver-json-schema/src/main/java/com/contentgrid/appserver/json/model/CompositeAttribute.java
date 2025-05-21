@@ -9,6 +9,6 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CompositeAttribute extends Attribute {
+public final class CompositeAttribute extends Attribute {
     private List<Attribute> attributes;
 }

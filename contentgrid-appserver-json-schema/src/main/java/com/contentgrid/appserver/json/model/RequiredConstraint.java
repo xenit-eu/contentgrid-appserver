@@ -7,5 +7,5 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RequiredConstraint implements AttributeConstraint {
+public final class RequiredConstraint implements AttributeConstraint {
 }

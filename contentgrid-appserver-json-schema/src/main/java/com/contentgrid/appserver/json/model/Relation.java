@@ -17,7 +17,7 @@ import lombok.Setter;
 })
 @Getter
 @Setter
-public abstract class Relation {
+public sealed abstract class Relation permits OneToOneRelation, OneToManyRelation, ManyToManyRelation {
     private RelationEndPoint sourceEndpoint;
     private RelationEndPoint targetEndpoint;
 }

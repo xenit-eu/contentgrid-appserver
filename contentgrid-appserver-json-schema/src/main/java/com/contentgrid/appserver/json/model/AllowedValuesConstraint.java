@@ -8,6 +8,6 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AllowedValuesConstraint implements AttributeConstraint {
+public final class AllowedValuesConstraint implements AttributeConstraint {
     private List<String> values;
 }

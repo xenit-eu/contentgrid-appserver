@@ -7,5 +7,5 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UniqueConstraint implements AttributeConstraint {
+public final class UniqueConstraint implements AttributeConstraint {
 }

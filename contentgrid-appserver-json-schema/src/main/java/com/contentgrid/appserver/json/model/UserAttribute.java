@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UserAttribute extends Attribute {
+public final class UserAttribute extends Attribute {
     private String idColumn;
     private String namespaceColumn;
     private String userNameColumn;

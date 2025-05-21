@@ -13,5 +13,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = UniqueConstraint.class, name = "unique"),
         @JsonSubTypes.Type(value = RequiredConstraint.class, name = "required")
 })
-public interface AttributeConstraint {
+public sealed interface AttributeConstraint permits AllowedValuesConstraint, UniqueConstraint, RequiredConstraint {
 }
