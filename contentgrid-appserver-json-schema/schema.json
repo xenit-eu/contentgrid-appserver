@@ -87,6 +87,7 @@
         "anyOf": [
           {
             "type": "object",
+            "description": "A one-to-one relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The targetEndpoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -114,6 +115,7 @@
           },
           {
             "type": "object",
+            "description": "A one-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The targetEndpoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -141,6 +143,7 @@
           },
           {
             "type": "object",
+            "description": "A many-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. Both sourceEndpoint and targetEndpoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -191,11 +194,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "The name of the relation."
+          "description": "The name of the relation. This is a reference to the other side of the relation. \"name\" and \"pathSegment\" have to be both absent or present together."
         },
         "pathSegment": {
           "type": "string",
-          "description": "The path segment for the source entity."
+          "description": "The path segment for the source entity, referencing the target entity. \"name\" and \"pathSegment\" have to be both absent or present together."
         },
         "entityName": {
           "type": "string",
