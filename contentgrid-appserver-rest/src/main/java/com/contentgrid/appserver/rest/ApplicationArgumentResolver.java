@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public class ApplicationArgumentResolver implements HandlerMethodArgumentResolver {
 
     private final ApplicationResolver resolver;
+    private final ApplicationNameExtractor extractor;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -25,6 +27,6 @@ public class ApplicationArgumentResolver implements HandlerMethodArgumentResolve
             NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest servletRequest = webRequest.getNativeRequest(HttpServletRequest.class);
 
-        return resolver.resolve(servletRequest);
+        return resolver.resolve(extractor.extract(servletRequest));
     }
 }
