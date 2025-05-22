@@ -44,6 +44,11 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public void update(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data) throws QueryEngineException {
-        queryEngine.update(application, data);
+        var dataWithId = EntityData.builder()
+                .id(id)
+                .name(data.getName())
+                .attributes(data.getAttributes())
+                .build();
+        queryEngine.update(application, dataWithId);
     }
 }

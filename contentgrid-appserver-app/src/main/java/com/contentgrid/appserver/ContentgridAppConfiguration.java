@@ -20,7 +20,6 @@ import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
-import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
