@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.contentgrid.appserver.ContentgridAppConfiguration;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -17,6 +18,9 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -26,12 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
@@ -90,6 +96,12 @@ class EntityRestControllerTest {
 
     @TestConfiguration
     static class TestConfig {
+        @Bean
+        @Primary
+        public DatamodelApi dmapi(DummyQueryEngine queryEngine) {
+            return new DatamodelApiImpl(queryEngine);
+        }
+
         @Bean
         @Primary
         public ApplicationResolver singleApplicationResolver() {

@@ -1,11 +1,9 @@
 plugins {
     id 'java-library'
     id 'io.freefair.lombok'
-    id 'org.springframework.boot' version '3.4.6'
+    id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
 }
-
-apply from: "${rootProject.projectDir}/gradle/jacoco.gradle"
 
 java {
     toolchain {
@@ -14,21 +12,21 @@ java {
 }
 
 dependencies {
-
     api project(':contentgrid-appserver-application-model')
-    api project(':contentgrid-appserver-query-engine-api')
-    api project(':contentgrid-appserver-query-engine-impl-jooq')
-    api project(':contentgrid-appserver-rest')
+//    api project(':contentgrid-appserver-query-engine-api')
+    api project(':contentgrid-appserver-domain')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 
     annotationProcessor 'org.projectlombok:lombok'
 
+    testImplementation project(':contentgrid-appserver-query-engine-api')
+    testImplementation project(':contentgrid-appserver-app')
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.hamcrest:hamcrest:3.0'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
 }
 
 tasks.named('test') {
