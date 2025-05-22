@@ -15,8 +15,9 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.5')
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation(group: 'com.networknt', name: 'json-schema-validator', version: '1.5.6')
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.2'
+testImplementation 'org.junit.jupiter:junit-jupiter-api:5.12.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.12.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.12.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'

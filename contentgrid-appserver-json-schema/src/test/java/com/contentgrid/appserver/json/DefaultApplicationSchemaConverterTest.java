@@ -12,11 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class DefaultApplicationSchemaConverterTest {
     @Test
     void testConvertSampleApplicationJson() throws Exception {
-        ObjectMapper mapper = ApplicationSchemaObjectMapperFactory.createObjectMapper();
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
-            assertNotNull(is, "sample-application.json should be on the classpath");
-            ApplicationSchema schema = mapper.readValue(is, ApplicationSchema.class);
-            Application app = new DefaultApplicationSchemaConverter().convert(schema);
+            Application app = new DefaultApplicationSchemaConverter().convert(is);
             assertNotNull(app);
             assertEquals("HR application", app.getName().getValue());
             assertFalse(app.getEntities().isEmpty());

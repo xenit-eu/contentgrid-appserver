@@ -25,14 +25,21 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.model.ApplicationSchema;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
 
+    private final ObjectMapper mapper = ApplicationSchemaObjectMapperFactory.createObjectMapper();
+
     @Override
-    public Application convert(ApplicationSchema schema) {
+    public Application convert(InputStream json) {
+        var schema = getApplicationSchema(json);
         Set<Entity> entities = schema.getEntities().stream()
                 .map(this::convertEntity)
                 .collect(Collectors.toSet());
@@ -45,6 +52,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .entities(entities)
                 .relations(relations)
                 .build();
+    }
+
+    private ApplicationSchema getApplicationSchema(InputStream json) {
+        try {
+            var jsonString = new String(json.readAllBytes(), StandardCharsets.UTF_8);
+            return mapper.readValue(jsonString, ApplicationSchema.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private com.contentgrid.appserver.application.model.Entity convertEntity(
