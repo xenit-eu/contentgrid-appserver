@@ -21,4 +21,20 @@ class DefaultApplicationSchemaConverterTest {
             // Optionally, add more assertions for entities, attributes, and relations
         }
     }
+
+
+    @Test
+    void testToJsonWritesOutput() throws Exception {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
+            DefaultApplicationSchemaConverter converter = new DefaultApplicationSchemaConverter();
+            Application app = converter.convert(is);
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            converter.toJson(app, out);
+            String json = out.toString(java.nio.charset.StandardCharsets.UTF_8);
+            assertNotNull(json);
+            assertTrue(json.contains("HR application")); // basic check for content
+            assertTrue(json.contains("entities"));
+            assertTrue(json.contains("relations"));
+        }
+    }
 }

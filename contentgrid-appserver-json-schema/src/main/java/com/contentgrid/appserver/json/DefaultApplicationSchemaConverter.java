@@ -2,12 +2,16 @@ package com.contentgrid.appserver.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
+import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
@@ -16,18 +20,28 @@ import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.model.ApplicationSchema;
+import com.contentgrid.appserver.json.model.AttributeConstraint;
+import com.contentgrid.appserver.json.model.ManyToManyRelation;
+import com.contentgrid.appserver.json.model.OneToManyRelation;
+import com.contentgrid.appserver.json.model.OneToOneRelation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +61,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .map(rel -> convertRelation(rel, entities))
                 .collect(Collectors.toSet());
         return Application.builder()
-                .name(com.contentgrid.appserver.application.model.values.ApplicationName.of(
+                .name(ApplicationName.of(
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
@@ -63,7 +77,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         }
     }
 
-    private com.contentgrid.appserver.application.model.Entity convertEntity(
+    private Entity convertEntity(
             com.contentgrid.appserver.json.model.Entity jsonEntity) {
         SimpleAttribute primaryKey = convertSimpleAttribute(jsonEntity.getPrimaryKey());
         List<Attribute> attributes =
@@ -107,7 +121,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .name(AttributeName.of(jsonAttr.getName()))
                 .description(jsonAttr.getDescription())
                 .column(ColumnName.of(jsonAttr.getColumnName()))
-                .type(SimpleAttribute.Type.valueOf(jsonAttr.getDataType().toUpperCase()))
+                .type(Type.valueOf(jsonAttr.getDataType().toUpperCase()))
                 .flags(convertFlags(jsonAttr.getFlags()))
                 .constraints(constraints)
                 .build();
@@ -163,7 +177,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         };
     }
 
-    private Constraint convertConstraint(com.contentgrid.appserver.json.model.AttributeConstraint constraint) {
+    private Constraint convertConstraint(AttributeConstraint constraint) {
         if (constraint instanceof com.contentgrid.appserver.json.model.AllowedValuesConstraint avc) {
             return Constraint.allowedValues(avc.getValues());
         } else if (constraint instanceof com.contentgrid.appserver.json.model.UniqueConstraint) {
@@ -178,7 +192,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             List<Attribute> attributes, SimpleAttribute primaryKey) {
         String type = jsonFilter.getType();
         String attrName = jsonFilter.getAttributeName();
-        com.contentgrid.appserver.application.model.values.FilterName filterName = com.contentgrid.appserver.application.model.values.FilterName.of(
+        FilterName filterName = FilterName.of(
                 jsonFilter.getName());
         SimpleAttribute attribute = (SimpleAttribute) attributes.stream()
                 .filter(a -> a instanceof SimpleAttribute && ((SimpleAttribute) a).getName().getValue()
@@ -201,7 +215,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .orElseThrow(() -> new IllegalArgumentException("Entity not found: " + name));
     }
 
-    private com.contentgrid.appserver.application.model.relations.Relation convertRelation(
+    private Relation convertRelation(
             com.contentgrid.appserver.json.model.Relation jsonRelation,
             Set<Entity> entities) {
         var sourceEp = jsonRelation.getSourceEndpoint();
@@ -209,27 +223,27 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var sourceEntity = findEntity(sourceEp.getEntityName(), entities);
         var targetEntity = findEntity(targetEp.getEntityName(), entities);
         var sourceName =
-                sourceEp.getName() != null ? com.contentgrid.appserver.application.model.values.RelationName.of(
+                sourceEp.getName() != null ? RelationName.of(
                         sourceEp.getName()) : null;
         var targetName =
-                targetEp.getName() != null ? com.contentgrid.appserver.application.model.values.RelationName.of(
+                targetEp.getName() != null ? RelationName.of(
                         targetEp.getName()) : null;
         var sourcePath = sourceEp.getPathSegment() != null
-                ? com.contentgrid.appserver.application.model.values.PathSegmentName.of(sourceEp.getPathSegment())
+                ? PathSegmentName.of(sourceEp.getPathSegment())
                 : null;
         var targetPath = targetEp.getPathSegment() != null
-                ? com.contentgrid.appserver.application.model.values.PathSegmentName.of(targetEp.getPathSegment())
+                ? PathSegmentName.of(targetEp.getPathSegment())
                 : null;
         var sourceRequired = sourceEp.isRequired();
         var targetRequired = targetEp.isRequired();
-        var sourceEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
+        var sourceEndPoint = RelationEndPoint.builder()
                 .entity(sourceEntity)
                 .name(sourceName)
                 .pathSegment(sourcePath)
                 .required(sourceRequired)
                 .description(sourceEp.getDescription())
                 .build();
-        var targetEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
+        var targetEndPoint = RelationEndPoint.builder()
                 .entity(targetEntity)
                 .name(targetName)
                 .pathSegment(targetPath)
@@ -238,19 +252,19 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
 
         return switch (jsonRelation) {
-            case com.contentgrid.appserver.json.model.OneToOneRelation oto ->
-                    com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation.builder()
+            case OneToOneRelation oto ->
+                    SourceOneToOneRelation.builder()
                             .sourceEndPoint(sourceEndPoint)
                             .targetEndPoint(targetEndPoint)
                             .targetReference(ColumnName.of(oto.getTargetReference()))
                             .build();
-            case com.contentgrid.appserver.json.model.OneToManyRelation otm ->
+            case OneToManyRelation otm ->
                     com.contentgrid.appserver.application.model.relations.OneToManyRelation.builder()
                             .sourceEndPoint(sourceEndPoint)
                             .targetEndPoint(targetEndPoint)
                             .sourceReference(ColumnName.of(otm.getSourceReference()))
                             .build();
-            case com.contentgrid.appserver.json.model.ManyToManyRelation mtm ->
+            case ManyToManyRelation mtm ->
                     com.contentgrid.appserver.application.model.relations.ManyToManyRelation.builder()
                             .sourceEndPoint(sourceEndPoint)
                             .targetEndPoint(targetEndPoint)
@@ -259,5 +273,188 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                             .targetReference(ColumnName.of(mtm.getTargetReference()))
                             .build();
         };
+    }
+
+    /**
+     * Converts an Application to its JSON representation and writes it to the given OutputStream.
+     * @param app the Application to convert
+     * @param out the OutputStream to write the JSON to
+     */
+    public void toJson(Application app, OutputStream out) {
+        try {
+            var schema = toJsonSchema(app);
+            mapper.writeValue(out, schema);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Reverse operation: Application -> ApplicationSchema
+    private ApplicationSchema toJsonSchema(Application app) {
+        var entities = app.getEntities().stream()
+                .map(this::toJsonEntity)
+                .toList();
+        var relations = app.getRelations().stream()
+                .map(this::toJsonRelation)
+                .toList();
+        var schema = new ApplicationSchema();
+        schema.setApplicationName(app.getName().getValue());
+        schema.setEntities(entities);
+        schema.setRelations(relations);
+        return schema;
+    }
+
+    private com.contentgrid.appserver.json.model.Entity toJsonEntity(Entity entity) {
+        var jsonEntity = new com.contentgrid.appserver.json.model.Entity();
+        jsonEntity.setName(entity.getName().getValue());
+        jsonEntity.setPathSegment(entity.getPathSegment().getValue());
+        jsonEntity.setDescription(entity.getDescription());
+        jsonEntity.setTable(entity.getTable().getValue());
+        jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
+        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
+        jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
+        return jsonEntity;
+    }
+
+    private com.contentgrid.appserver.json.model.Attribute toJsonAttribute(Attribute attr) {
+        if (attr instanceof SimpleAttribute sa) {
+            return toJsonSimpleAttribute(sa);
+        } else if (attr instanceof CompositeAttributeImpl ca) {
+            return toJsonCompositeAttribute(ca);
+        } else if (attr instanceof ContentAttribute ca) {
+            return toJsonContentAttribute(ca);
+        } else if (attr instanceof UserAttribute ua) {
+            return toJsonUserAttribute(ua);
+        }
+        throw new IllegalArgumentException("Unknown attribute type: " + attr.getClass());
+    }
+
+    private com.contentgrid.appserver.json.model.SimpleAttribute toJsonSimpleAttribute(SimpleAttribute attr) {
+        var jsonAttr = new com.contentgrid.appserver.json.model.SimpleAttribute();
+        jsonAttr.setName(attr.getName().getValue());
+        jsonAttr.setDescription(attr.getDescription());
+        jsonAttr.setColumnName(attr.getColumn().getValue());
+        jsonAttr.setDataType(attr.getType().name().toLowerCase());
+        jsonAttr.setFlags(attr.getFlags().stream().map(this::convertFlag).toList());
+        jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
+        return jsonAttr;
+    }
+
+    private String convertFlag(AttributeFlag flag) {
+        return switch (flag) {
+            case CreatedDateFlag ignored -> "createdDate";
+            case CreatorFlag ignored -> "creator";
+            case ETagFlag ignored -> "eTag";
+            case ModifiedDateFlag ignored -> "modifiedDate";
+            case ModifierFlag ignored -> "modifier";
+            default -> throw new IllegalArgumentException("Unknown flag: " + flag);
+        };
+    }
+
+    private com.contentgrid.appserver.json.model.CompositeAttribute toJsonCompositeAttribute(CompositeAttributeImpl ca) {
+        var jsonAttr = new com.contentgrid.appserver.json.model.CompositeAttribute();
+        jsonAttr.setName(ca.getName().getValue());
+        jsonAttr.setDescription(ca.getDescription());
+        jsonAttr.setFlags(ca.getFlags().stream().map(this::convertFlag).toList());
+        jsonAttr.setAttributes(ca.getAttributes().stream().map(this::toJsonAttribute).toList());
+        return jsonAttr;
+    }
+
+    private com.contentgrid.appserver.json.model.ContentAttribute toJsonContentAttribute(ContentAttribute ca) {
+        var jsonAttr = new com.contentgrid.appserver.json.model.ContentAttribute();
+        jsonAttr.setName(ca.getName().getValue());
+        jsonAttr.setDescription(ca.getDescription());
+        jsonAttr.setFlags(ca.getFlags().stream().map(this::convertFlag).toList());
+        jsonAttr.setPathSegment(ca.getPathSegment().getValue());
+        jsonAttr.setIdColumn(ca.getId().getColumn().getValue());
+        jsonAttr.setFileNameColumn(ca.getFilename().getColumn().getValue());
+        jsonAttr.setMimeTypeColumn(ca.getMimetype().getColumn().getValue());
+        jsonAttr.setLengthColumn(ca.getLength().getColumn().getValue());
+        return jsonAttr;
+    }
+
+    private com.contentgrid.appserver.json.model.UserAttribute toJsonUserAttribute(UserAttribute ua) {
+        var jsonAttr = new com.contentgrid.appserver.json.model.UserAttribute();
+        jsonAttr.setName(ua.getName().getValue());
+        jsonAttr.setDescription(ua.getDescription());
+        jsonAttr.setFlags(ua.getFlags().stream().map(this::convertFlag).toList());
+        jsonAttr.setIdColumn(ua.getId().getColumn().getValue());
+        jsonAttr.setNamespaceColumn(ua.getNamespace().getColumn().getValue());
+        jsonAttr.setUserNameColumn(ua.getUsername().getColumn().getValue());
+        return jsonAttr;
+    }
+
+    private AttributeConstraint toJsonConstraint(Constraint constraint) {
+        return switch (constraint) {
+            case AllowedValuesConstraint allowedValuesConstraint -> {
+                var avc = new com.contentgrid.appserver.json.model.AllowedValuesConstraint();
+                avc.setValues(allowedValuesConstraint.getValues());
+                yield avc;
+            }
+            case UniqueConstraint ignored -> new com.contentgrid.appserver.json.model.UniqueConstraint();
+            case RequiredConstraint ignored -> new com.contentgrid.appserver.json.model.RequiredConstraint();
+        };
+    }
+
+    private com.contentgrid.appserver.json.model.SearchFilter toJsonSearchFilter(SearchFilter filter) {
+        var jsonFilter = new com.contentgrid.appserver.json.model.SearchFilter();
+        jsonFilter.setName(filter.getName().getValue());
+        switch (filter) {
+            case PrefixSearchFilter prefixFilter -> {
+                jsonFilter.setAttributeName(prefixFilter.getAttribute().getName().getValue());
+                jsonFilter.setType("prefix");
+            }
+            case ExactSearchFilter exactFilter -> {
+                jsonFilter.setAttributeName(exactFilter.getAttribute().getName().getValue());
+                jsonFilter.setType("exact");
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + filter);
+        }
+        return jsonFilter;
+    }
+
+    private com.contentgrid.appserver.json.model.Relation toJsonRelation(Relation relation) {
+        return switch (relation) {
+            case SourceOneToOneRelation oto -> {
+                var json = new OneToOneRelation();
+                setRelationEndpoints(json, oto.getSourceEndPoint(), oto.getTargetEndPoint());
+                json.setTargetReference(oto.getTargetReference().getValue());
+                yield json;
+            }
+            case com.contentgrid.appserver.application.model.relations.OneToManyRelation otm -> {
+                var json = new OneToManyRelation();
+                setRelationEndpoints(json, otm.getSourceEndPoint(), otm.getTargetEndPoint());
+                json.setSourceReference(otm.getSourceReference().getValue());
+                yield json;
+            }
+            case com.contentgrid.appserver.application.model.relations.ManyToManyRelation mtm -> {
+                var json = new ManyToManyRelation();
+                setRelationEndpoints(json, mtm.getSourceEndPoint(), mtm.getTargetEndPoint());
+                json.setJoinTable(mtm.getJoinTable().getValue());
+                json.setSourceReference(mtm.getSourceReference().getValue());
+                json.setTargetReference(mtm.getTargetReference().getValue());
+                yield json;
+            }
+            default -> throw new IllegalArgumentException("Unknown relation type: " + relation.getClass());
+        };
+    }
+
+    private void setRelationEndpoints(com.contentgrid.appserver.json.model.Relation json,
+                                      RelationEndPoint source,
+                                      RelationEndPoint target) {
+        var sourceEp = convertRelationEndPoint(source);
+        var targetEp = convertRelationEndPoint(target);
+        json.setSourceEndpoint(sourceEp);
+        json.setTargetEndpoint(targetEp);
+    }
+
+    private com.contentgrid.appserver.json.model.RelationEndPoint convertRelationEndPoint(RelationEndPoint relationEndPoint) {
+        var rep = new com.contentgrid.appserver.json.model.RelationEndPoint();
+        rep.setEntityName(relationEndPoint.getEntity().getName().getValue());
+        rep.setName(relationEndPoint.getName() != null ? relationEndPoint.getName().getValue() : null);
+        rep.setPathSegment(relationEndPoint.getPathSegment() != null ? relationEndPoint.getPathSegment().getValue() : null);
+        rep.setRequired(relationEndPoint.isRequired());
+        rep.setDescription(relationEndPoint.getDescription());
+        return rep;
     }
 }
