@@ -23,7 +23,7 @@ import java.util.List;
         @JsonSubTypes.Type(value = ContentAttribute.class, name = "content"),
         @JsonSubTypes.Type(value = UserAttribute.class, name = "user")
 })
-public sealed abstract class Attribute permits SimpleAttribute, CompositeAttribute, ContentAttribute, UserAttribute {
+public abstract sealed class Attribute permits SimpleAttribute, CompositeAttribute, ContentAttribute, UserAttribute {
     protected String name;
     protected String description;
 

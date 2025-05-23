@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.json.validation;
 
-import com.contentgrid.appserver.json.exceptions.InValidJsonException;
 import com.contentgrid.appserver.json.exceptions.SchemaValidationException;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.JsonSchema;
@@ -11,9 +10,9 @@ import java.util.stream.Collectors;
 
 public class ApplicationSchemaValidator {
 
-    private final JsonSchema schema = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> {
-        builder.schemaMappers(schemaMappers -> schemaMappers.mapPrefix("https://contentgrid.com/schemas/", "classpath:/schemas/"));
-    }).getSchema(SchemaLocation.of("https://contentgrid.com/schemas/application-schema.json"));
+    private final JsonSchema schema = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder.schemaMappers(
+                    schemaMappers -> schemaMappers.mapPrefix("https://contentgrid.com/schemas/", "classpath:/schemas/")))
+            .getSchema(SchemaLocation.of("https://contentgrid.com/schemas/application-schema.json"));
 
 
     public void validate(String json) throws SchemaValidationException {
