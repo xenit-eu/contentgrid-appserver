@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -267,5 +268,42 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()));
+    }
+
+    @Test
+    void testUpdateEntityInstance() throws Exception {
+        // Initial values
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Initial Product");
+        product.put("price", 777.00);
+        product.put("release_date", "2001-02-03T04:05:06Z");
+        product.put("in_stock", true);
+
+        String responseContent = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String id = objectMapper.readTree(responseContent).get("id").asText();
+
+        // New values
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("name", "Updated Product");
+        updated.put("price", 999.00);
+        // leave release_date absent → it should not reuse existing value, unlike with PATCH
+        updated.put("in_stock", true);
+
+        // Update with PUT
+        mockMvc.perform(put("/products/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(id)))
+                .andExpect(jsonPath("$.name", is("Updated Product")))
+                .andExpect(jsonPath("$.price", is(999.00)))
+                .andExpect(jsonPath("$.release_date").doesNotExist())
+                .andExpect(jsonPath("$.in_stock", is(true)))
+                .andExpect(jsonPath("$._links.self.href", notNullValue()));
     }
 }
