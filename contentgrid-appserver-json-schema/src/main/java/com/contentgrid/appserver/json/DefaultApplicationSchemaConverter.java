@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -309,8 +310,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .toList();
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
-        schema.setEntities(entities);
-        schema.setRelations(relations);
+        schema.setEntities(entities.stream().sorted(Comparator.comparing(Entity::getName)).toList());
+        schema.setRelations(relations.stream()
+                .sorted(Comparator.comparing(relation -> relation.getSourceEndpoint().getEntityName())).toList());
         return schema;
     }
 
@@ -321,7 +323,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setDescription(entity.getDescription());
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
-        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
+        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute)
+                .sorted(Comparator.comparing(Attribute::getName)).toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
         return jsonEntity;
     }

@@ -1,13 +1,17 @@
 package com.contentgrid.appserver.json;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static uk.co.datumedge.hamcrest.json.SameJSONAs.sameJSONAs;
+
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.json.model.ApplicationSchema;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.Test;
 
 class DefaultApplicationSchemaConverterTest {
     @Test
@@ -26,15 +30,19 @@ class DefaultApplicationSchemaConverterTest {
     @Test
     void testToJsonWritesOutput() throws Exception {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
+            assertNotNull(is);
+            var jsonSource = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             DefaultApplicationSchemaConverter converter = new DefaultApplicationSchemaConverter();
-            Application app = converter.convert(is);
+            Application app = converter.convert(new ByteArrayInputStream(jsonSource.getBytes(StandardCharsets.UTF_8)));
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             converter.toJson(app, out);
-            String json = out.toString(java.nio.charset.StandardCharsets.UTF_8);
-            assertNotNull(json);
-            assertTrue(json.contains("HR application")); // basic check for content
-            assertTrue(json.contains("entities"));
-            assertTrue(json.contains("relations"));
+            String jsonTarget = out.toString(java.nio.charset.StandardCharsets.UTF_8);
+            assertNotNull(jsonTarget);
+            assertTrue(jsonTarget.contains("HR application")); // basic check for content
+            assertTrue(jsonTarget.contains("entities"));
+            assertTrue(jsonTarget.contains("relations"));
+
+            assertThat(jsonTarget, sameJSONAs(jsonSource).allowingAnyArrayOrdering());
         }
     }
 }

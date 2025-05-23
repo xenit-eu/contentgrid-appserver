@@ -1,7 +1,10 @@
 package com.contentgrid.appserver.json.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +14,7 @@ import java.util.List;
 @Setter
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
+        include = As.PROPERTY,
         property = "type"
 )
 @JsonSubTypes({
@@ -23,5 +26,7 @@ import java.util.List;
 public sealed abstract class Attribute permits SimpleAttribute, CompositeAttribute, ContentAttribute, UserAttribute {
     protected String name;
     protected String description;
+
+    @JsonInclude(Include.NON_EMPTY)
     protected List<String> flags;
 }
