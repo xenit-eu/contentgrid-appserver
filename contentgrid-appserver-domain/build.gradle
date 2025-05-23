@@ -15,8 +15,6 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
 
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation platform('org.junit:junit-bom:5.10.0')

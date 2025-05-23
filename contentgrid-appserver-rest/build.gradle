@@ -13,7 +13,6 @@ java {
 
 dependencies {
     api project(':contentgrid-appserver-application-model')
-//    api project(':contentgrid-appserver-query-engine-api')
     api project(':contentgrid-appserver-domain')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
