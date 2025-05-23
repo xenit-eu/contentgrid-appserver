@@ -8,19 +8,16 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
-import com.contentgrid.thunx.predicates.model.Scalar;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.jooq.impl.QOM.Uuid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.LinkRelation;
@@ -33,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,7 +40,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class EntityRestController {
 
-    private final QueryEngine queryEngine;
+    private final DatamodelApi datamodelApi;
     private final EntityDataRepresentationModelAssemblerProvider assemblerProvider;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
@@ -59,8 +57,7 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        var results = queryEngine.findAll(application, entity, Scalar.of(true), defaultPageData());
-        // TODO ACC-2072: filter on params
+        var results = datamodelApi.findAll(application, entity, params, defaultPageData());
 
         var assembler = assemblerProvider.getAssemblerFor(application);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
@@ -78,7 +75,7 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        var result = queryEngine.findById(application, entity, instanceId);
+        var result = datamodelApi.findById(application, entity, instanceId);
 
         return result.map(res -> assemblerProvider.getAssemblerFor(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -93,8 +90,45 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         var converted = EntityDataValidator.validate(entity, data);
+        var entityData = createEntityData(converted, entity);
+
+        var id = datamodelApi.create(application, entityData, List.of());
+        var result = datamodelApi.findById(application, entity, id).orElseThrow();
+
+        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
+        return ResponseEntity
+                .created(linkTo(methodOn(EntityRestController.class)
+                        .getEntity(application, entity.getPathSegment(), id)).toUri())
+                .body(model);
+    }
+
+    @PutMapping("/{entityName}/{id}")
+    public ResponseEntity<?> update(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @RequestBody Map<String, Object> data
+    ) {
+        var entity = getEntityOrThrow(application, entityName);
+
+        var converted = EntityDataValidator.validate(entity, data);
+        var entityData = createEntityData(converted, entity);
+
+        datamodelApi.update(application, id, entityData);
+        var result = datamodelApi.findById(application, entity, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
+        return ResponseEntity
+                .ok()
+                .location(linkTo(methodOn(EntityRestController.class)
+                        .getEntity(application, entity.getPathSegment(), id)).toUri())
+                .body(model);
+    }
+
+    private static EntityData createEntityData(Map<String, Object> data, Entity entity) {
         // Should this just be rolled into the EntityDataValidator? 🤔
-        var entityData = EntityData.builder().name(entity.getName()).attributes(converted.entrySet().stream()
+        return EntityData.builder().name(entity.getName()).attributes(data.entrySet().stream()
                 .map(entry -> {
                     var providedAttributeName = entry.getKey();
                     var attributeData = entry.getValue();
@@ -108,15 +142,6 @@ public class EntityRestController {
 
                 }).toList()
         ).build();
-
-        var id = queryEngine.create(application, entityData, List.of());
-        var result = queryEngine.findById(application, entity, id).orElseThrow();
-
-        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
-        return ResponseEntity
-                .created(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), id)).toUri())
-                .body(model);
     }
 
     // TODO: ACC-2048: support paging

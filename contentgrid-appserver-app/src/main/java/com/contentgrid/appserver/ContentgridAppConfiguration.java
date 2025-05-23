@@ -12,6 +12,8 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
@@ -39,6 +41,11 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 @EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
 @Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class})
 public class ContentgridAppConfiguration {
+
+    @Bean
+    public DatamodelApi api(QueryEngine queryEngine) {
+        return new DatamodelApiImpl(queryEngine);
+    }
 
     @Bean
     public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {

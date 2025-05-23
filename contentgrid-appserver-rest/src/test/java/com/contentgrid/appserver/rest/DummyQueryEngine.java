@@ -69,7 +69,9 @@ public class DummyQueryEngine implements QueryEngine {
 
     @Override
     public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
-
+        var instances = entityInstances.get(data.getName().getValue());
+        instances.replaceAll(d -> d.getId().equals(data.getId()) ? data : d);
+        entityInstances.put(data.getName().getValue(), instances);
     }
 
     @Override

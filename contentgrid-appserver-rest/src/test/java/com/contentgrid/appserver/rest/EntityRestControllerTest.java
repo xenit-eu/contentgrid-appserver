@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +18,8 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -90,6 +93,12 @@ class EntityRestControllerTest {
 
     @TestConfiguration
     static class TestConfig {
+        @Bean
+        @Primary
+        public DatamodelApi dmapi(DummyQueryEngine queryEngine) {
+            return new DatamodelApiImpl(queryEngine);
+        }
+
         @Bean
         @Primary
         public ApplicationResolver singleApplicationResolver() {
@@ -221,6 +230,18 @@ class EntityRestControllerTest {
     }
 
     @Test
+    void testCreateNonExistentEntityType() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("name", "fake");
+        payload.put("value", 123);
+
+        mockMvc.perform(post("/foobars")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void testListEntityInstances() throws Exception {
         // Create multiple products first
         Map<String, Object> product1 = new HashMap<>();
@@ -260,4 +281,99 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()));
     }
+
+    @Test
+    void testUpdateEntityInstance() throws Exception {
+        // Initial values
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Initial Product");
+        product.put("price", 777.00);
+        product.put("release_date", "2001-02-03T04:05:06Z");
+        product.put("in_stock", true);
+
+        String responseContent = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String id = objectMapper.readTree(responseContent).get("id").asText();
+
+        // New values
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("name", "Updated Product");
+        updated.put("price", 999.00);
+        // leave release_date absent → it should not reuse existing value, unlike with PATCH
+        updated.put("in_stock", true);
+
+        // Update with PUT
+        mockMvc.perform(put("/products/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(id)))
+                .andExpect(jsonPath("$.name", is("Updated Product")))
+                .andExpect(jsonPath("$.price", is(999.00)))
+                .andExpect(jsonPath("$.release_date").doesNotExist())
+                .andExpect(jsonPath("$.in_stock", is(true)))
+                .andExpect(jsonPath("$._links.self.href", notNullValue()));
+    }
+
+    @Test
+    void testUpdateNonExistentEntityType() throws Exception {
+        // Initial values
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Initial Product");
+        product.put("price", 777.00);
+        product.put("release_date", "2001-02-03T04:05:06Z");
+        product.put("in_stock", true);
+
+        String responseContent = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String id = objectMapper.readTree(responseContent).get("id").asText();
+
+        // New values
+        Map<String, Object> updated = new HashMap<>();
+        updated.put("name", "Updated Product");
+        updated.put("price", 999.00);
+        updated.put("in_stock", true);
+
+        // Update with PUT (correct id but wrong path)
+        mockMvc.perform(put("/foobars/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testUpdateWithWrongId() throws Exception {
+        // Create valid product
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Initial Product");
+        product.put("price", 99.99);
+        product.put("release_date", "2023-01-01T00:00:00Z");
+        product.put("in_stock", true);
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated());
+
+        // Now try to PUT to a non-existent ID
+        String nonExistentId = UUID.randomUUID().toString();
+        Map<String, Object> updatedProduct = new HashMap<>();
+        updatedProduct.put("name", "Updated Product");
+        updatedProduct.put("price", 199.99);
+        updatedProduct.put("in_stock", false);
+
+        mockMvc.perform(put("/products/" + nonExistentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updatedProduct)))
+                .andExpect(status().isNotFound());
+    }
+
 }

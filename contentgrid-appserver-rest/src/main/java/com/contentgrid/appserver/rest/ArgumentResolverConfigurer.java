@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
@@ -20,7 +21,7 @@ public class ArgumentResolverConfigurer implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new ApplicationArgumentResolver(applicationResolver));
+        resolvers.add(new ApplicationArgumentResolver(applicationResolver, new DefaultApplicationNameExtractor()));
     }
 
     @Override

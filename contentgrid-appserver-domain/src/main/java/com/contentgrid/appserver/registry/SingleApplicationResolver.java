@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.registry;
 
 import com.contentgrid.appserver.application.model.Application;
-import jakarta.servlet.http.HttpServletRequest;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +12,8 @@ public class SingleApplicationResolver implements ApplicationResolver {
     private final Application application;
 
     @Override
-    public Application resolve(HttpServletRequest request) {
+    public Application resolve(ApplicationName name) {
+        // Apps are single-tenant for now
         return application;
     }
 }
