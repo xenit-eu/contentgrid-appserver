@@ -102,16 +102,12 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.attributes.Attribute convertAttribute(Attribute jsonAttr) {
-        if (jsonAttr instanceof SimpleAttribute sa) {
-            return convertSimpleAttribute(sa);
-        } else if (jsonAttr instanceof CompositeAttribute ca) {
-            return convertCompositeAttribute(ca);
-        } else if (jsonAttr instanceof ContentAttribute ca) {
-            return convertContentAttribute(ca);
-        } else if (jsonAttr instanceof UserAttribute ua) {
-            return convertUserAttribute(ua);
-        }
-        throw new IllegalArgumentException("Unknown attribute type: " + jsonAttr.getClass());
+        return switch (jsonAttr) {
+            case SimpleAttribute sa -> convertSimpleAttribute(sa);
+            case CompositeAttribute ca -> convertCompositeAttribute(ca);
+            case ContentAttribute ca -> convertContentAttribute(ca);
+            case UserAttribute ua -> convertUserAttribute(ua);
+        };
     }
 
     private com.contentgrid.appserver.application.model.attributes.SimpleAttribute convertSimpleAttribute(
@@ -185,27 +181,23 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private Constraint convertConstraint(AttributeConstraint constraint) {
-        if (constraint instanceof AllowedValuesConstraint avc) {
-            return Constraint.allowedValues(avc.getValues());
-        } else if (constraint instanceof UniqueConstraint) {
-            return Constraint.unique();
-        } else if (constraint instanceof RequiredConstraint) {
-            return Constraint.required();
-        }
-        throw new IllegalArgumentException("Unknown constraint type: " + constraint.getClass());
+        return switch (constraint) {
+            case AllowedValuesConstraint avc -> Constraint.allowedValues(avc.getValues());
+            case UniqueConstraint ignored -> Constraint.unique();
+            case RequiredConstraint ignored -> Constraint.required();
+        };
     }
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter convertSearchFilter(
             SearchFilter jsonFilter,
             List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes,
             com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey) {
-        String type = jsonFilter.getType();
-        String attrName = jsonFilter.getAttributeName();
-        FilterName filterName = FilterName.of(
+        var type = jsonFilter.getType();
+        var attrName = jsonFilter.getAttributeName();
+        var filterName = FilterName.of(
                 jsonFilter.getName());
-        com.contentgrid.appserver.application.model.attributes.SimpleAttribute attribute = (com.contentgrid.appserver.application.model.attributes.SimpleAttribute) attributes.stream()
-                .filter(a -> a instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute
-                        && ((com.contentgrid.appserver.application.model.attributes.SimpleAttribute) a).getName()
+        com.contentgrid.appserver.application.model.attributes.Attribute attribute = attributes.stream()
+                .filter(a -> a.getName()
                         .getValue()
                         .equals(attrName))
                 .findFirst()
@@ -213,11 +205,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         if (attribute == null) {
             throw new IllegalArgumentException("Attribute for filter not found: " + attrName);
         }
-        return switch (type) {
-            case "prefix" -> PrefixSearchFilter.builder().name(filterName).attribute(attribute).build();
-            case "exact" -> ExactSearchFilter.builder().name(filterName).attribute(attribute).build();
-            default -> throw new IllegalArgumentException("Unknown filter type: " + type);
-        };
+        if (!(attribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute)) {
+            throw new IllegalArgumentException("Attribute for filter is not a simple attribute: " + attrName);
+        } else {
+            var simpleAttribute = (com.contentgrid.appserver.application.model.attributes.SimpleAttribute) attribute;
+            return switch (type) {
+                case "prefix" -> PrefixSearchFilter.builder().name(filterName).attribute(simpleAttribute).build();
+                case "exact" -> ExactSearchFilter.builder().name(filterName).attribute(simpleAttribute).build();
+                default -> throw new IllegalArgumentException("Unknown filter type: " + type);
+            };
+        }
     }
 
     private com.contentgrid.appserver.application.model.Entity findEntity(String name,
@@ -330,16 +327,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private Attribute toJsonAttribute(com.contentgrid.appserver.application.model.attributes.Attribute attr) {
-        if (attr instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute sa) {
-            return toJsonSimpleAttribute(sa);
-        } else if (attr instanceof CompositeAttributeImpl ca) {
-            return toJsonCompositeAttribute(ca);
-        } else if (attr instanceof com.contentgrid.appserver.application.model.attributes.ContentAttribute ca) {
-            return toJsonContentAttribute(ca);
-        } else if (attr instanceof com.contentgrid.appserver.application.model.attributes.UserAttribute ua) {
-            return toJsonUserAttribute(ua);
-        }
-        throw new IllegalArgumentException("Unknown attribute type: " + attr.getClass());
+        return switch (attr) {
+            case com.contentgrid.appserver.application.model.attributes.SimpleAttribute sa -> toJsonSimpleAttribute(sa);
+            case CompositeAttributeImpl ca -> toJsonCompositeAttribute(ca);
+            case com.contentgrid.appserver.application.model.attributes.ContentAttribute ca ->
+                    toJsonContentAttribute(ca);
+            case com.contentgrid.appserver.application.model.attributes.UserAttribute ua -> toJsonUserAttribute(ua);
+        };
     }
 
     private SimpleAttribute toJsonSimpleAttribute(
