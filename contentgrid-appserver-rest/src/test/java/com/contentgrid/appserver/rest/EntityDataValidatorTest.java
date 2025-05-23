@@ -20,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.rest.exception.InvalidEntityDataException;
@@ -35,6 +36,8 @@ class EntityDataValidatorTest {
             .name(EntityName.of("Invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
+            .collectionLinkRel(LinkRel.parse("d:invoices"))
+            .itemLinkRel(LinkRel.parse("d:invoice"))
             .attribute(SimpleAttribute.builder().name(AttributeName.of("internal_ref"))
                     .column(ColumnName.of("internal_ref"))
                     .type(Type.UUID).build())
@@ -49,6 +52,7 @@ class EntityDataValidatorTest {
                     .type(Type.BOOLEAN).build())
             .attribute(ContentAttribute.builder().name(AttributeName.of("content"))
                     .pathSegment(PathSegmentName.of("content"))
+                    .linkRel(LinkRel.parse("d:content"))
                     .idColumn(ColumnName.of("content__id"))
                     .filenameColumn(ColumnName.of("content__filename"))
                     .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -157,6 +161,8 @@ class EntityDataValidatorTest {
         Entity entity = Entity.builder()
                 .name(EntityName.of("thing"))
                 .pathSegment(PathSegmentName.of("thing"))
+                .collectionLinkRel(LinkRel.parse("thing-collection"))
+                .itemLinkRel(LinkRel.parse("thing-item"))
                 .table(TableName.of("thing"))
                 .attribute(attribute)
                 .build();

@@ -33,6 +33,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -108,6 +109,8 @@ class JOOQQueryEngineTest {
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
+            .collectionLinkRel(LinkRel.parse("d:persons"))
+            .itemLinkRel(LinkRel.parse("d:person"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(ExactSearchFilter.builder()
@@ -156,6 +159,7 @@ class JOOQQueryEngineTest {
     private static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
+            .linkRel(LinkRel.parse("d:content"))
             .idColumn(ColumnName.of("content__id"))
             .filenameColumn(ColumnName.of("content__filename"))
             .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -196,6 +200,8 @@ class JOOQQueryEngineTest {
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
+            .collectionLinkRel(LinkRel.parse("d:invoices"))
+            .itemLinkRel(LinkRel.parse("d:invoice"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -228,6 +234,8 @@ class JOOQQueryEngineTest {
             .name(EntityName.of("product"))
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
+            .collectionLinkRel(LinkRel.parse("d:products"))
+            .itemLinkRel(LinkRel.parse("d:product"))
             .attribute(PRODUCT_CODE)
             .attribute(PRODUCT_DESCRIPTION)
             .searchFilter(ExactSearchFilter.builder()
@@ -241,12 +249,14 @@ class JOOQQueryEngineTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
+                    .linkRel(LinkRel.parse("d:customer"))
                     .required(true)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkRel(LinkRel.parse("d:invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -256,6 +266,7 @@ class JOOQQueryEngineTest {
                     .entity(PERSON)
                     .name(RelationName.of("friends"))
                     .pathSegment(PathSegmentName.of("friends"))
+                    .linkRel(LinkRel.parse("d:friends"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -270,11 +281,13 @@ class JOOQQueryEngineTest {
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
+                    .linkRel(LinkRel.parse("d:previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
+                    .linkRel(LinkRel.parse("d:next_invoice"))
                     .build())
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
@@ -284,11 +297,13 @@ class JOOQQueryEngineTest {
                     .entity(INVOICE)
                     .name(RelationName.of("products"))
                     .pathSegment(PathSegmentName.of("products"))
+                    .linkRel(LinkRel.parse("d:products"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PRODUCT)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkRel(LinkRel.parse("d:invoices"))
                     .build())
             .joinTable(TableName.of("invoice__products"))
             .sourceReference(ColumnName.of("invoice_id"))
@@ -1684,11 +1699,13 @@ class JOOQQueryEngineTest {
                                 .entity(INVOICE)
                                 .name(RelationName.of("supplier"))
                                 .pathSegment(PathSegmentName.of("supplier"))
+                                .linkRel(LinkRel.parse("d:supplier"))
                                 .build())
                         .targetEndPoint(RelationEndPoint.builder()
                                 .entity(PERSON)
                                 .name(RelationName.of("non_existing"))
                                 .pathSegment(PathSegmentName.of("non-existing"))
+                                .linkRel(LinkRel.parse("d:non_existing"))
                                 .build())
                         .targetReference(ColumnName.of("customer")) // Sneaky provide existing column
                         .build()),

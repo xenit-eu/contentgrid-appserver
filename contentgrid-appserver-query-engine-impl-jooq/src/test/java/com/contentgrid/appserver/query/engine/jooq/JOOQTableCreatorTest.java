@@ -31,6 +31,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -88,7 +89,9 @@ class JOOQTableCreatorTest {
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
-            .pathSegment(PathSegmentName.of("person"))
+            .pathSegment(PathSegmentName.of("persons"))
+            .collectionLinkRel(LinkRel.parse("d:persons"))
+            .itemLinkRel(LinkRel.parse("d:person"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(ExactSearchFilter.builder()
@@ -137,6 +140,7 @@ class JOOQTableCreatorTest {
     private static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
+            .linkRel(LinkRel.parse("d:content"))
             .idColumn(ColumnName.of("content__id"))
             .filenameColumn(ColumnName.of("content__filename"))
             .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -176,7 +180,9 @@ class JOOQTableCreatorTest {
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
-            .pathSegment(PathSegmentName.of("invoice"))
+            .pathSegment(PathSegmentName.of("invoices"))
+            .collectionLinkRel(LinkRel.parse("d:invoices"))
+            .itemLinkRel(LinkRel.parse("d:invoice"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -195,12 +201,14 @@ class JOOQTableCreatorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
+                    .linkRel(LinkRel.parse("d:customer"))
                     .required(true)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkRel(LinkRel.parse("d:invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -210,6 +218,7 @@ class JOOQTableCreatorTest {
                     .entity(PERSON)
                     .name(RelationName.of("friends"))
                     .pathSegment(PathSegmentName.of("friends"))
+                    .linkRel(LinkRel.parse("d:friends"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -224,11 +233,13 @@ class JOOQTableCreatorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
+                    .linkRel(LinkRel.parse("d:next_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
+                    .linkRel(LinkRel.parse("d:previous_invoice"))
                     .build())
             .targetReference(ColumnName.of("next_invoice"))
             .build();
@@ -496,11 +507,15 @@ class JOOQTableCreatorTest {
                 .entity(Entity.builder()
                         .name(EntityName.of("foo"))
                         .pathSegment(PathSegmentName.of("foo"))
+                        .collectionLinkRel(LinkRel.parse("foo"))
+                        .itemLinkRel(LinkRel.parse("foo"))
                         .table(TableName.of("a_very_long_database_table_name_that_should_be_longer_than_the_postgres_limit"))
                         .build())
                 .entity(Entity.builder()
                         .name(EntityName.of("bar"))
                         .pathSegment(PathSegmentName.of("bar"))
+                        .collectionLinkRel(LinkRel.parse("bar"))
+                        .itemLinkRel(LinkRel.parse("bar"))
                         .table(TableName.of("a_very_long_database_table_name_that_should_be_longer_than_the_postgres_limit_too"))
                         .build())
                 .build();

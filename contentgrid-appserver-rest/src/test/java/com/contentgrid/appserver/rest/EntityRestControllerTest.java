@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -58,6 +59,8 @@ class EntityRestControllerTest {
                     .name(EntityName.of("product"))
                     .table(TableName.of("product"))
                     .pathSegment(PathSegmentName.of("products"))
+                    .collectionLinkRel(LinkRel.parse("d:products"))
+                    .itemLinkRel(LinkRel.parse("d:product"))
                     .attribute(SimpleAttribute.builder()
                             .name(AttributeName.of("name"))
                             .description("Product name")

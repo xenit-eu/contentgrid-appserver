@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -71,6 +72,8 @@ public class ContentgridAppConfiguration {
                                 .name(EntityName.of("person"))
                                 .table(TableName.of("person"))
                                 .pathSegment(PathSegmentName.of("persons"))
+                                .collectionLinkRel(LinkRel.parse("d:persons"))
+                                .itemLinkRel(LinkRel.parse("d:person"))
                                 .attribute(SimpleAttribute.builder()
                                         .name(AttributeName.of("first_name"))
                                         .description("First name")
@@ -97,6 +100,8 @@ public class ContentgridAppConfiguration {
                                 .name(EntityName.of("invoice"))
                                 .table(TableName.of("invoice"))
                                 .pathSegment(PathSegmentName.of("invoices"))
+                                .collectionLinkRel(LinkRel.parse("d:invoices"))
+                                .itemLinkRel(LinkRel.parse("d:invoice"))
                                 .attribute(SimpleAttribute.builder()
                                         .name(AttributeName.of("number"))
                                         .column(ColumnName.of("number"))
@@ -115,6 +120,7 @@ public class ContentgridAppConfiguration {
                                 .attribute(ContentAttribute.builder()
                                         .name(AttributeName.of("content"))
                                         .pathSegment(PathSegmentName.of("content"))
+                                        .linkRel(LinkRel.parse("d:content"))
                                         .idColumn(ColumnName.of("content__id"))
                                         .filenameColumn(ColumnName.of("content__filename"))
                                         .mimetypeColumn(ColumnName.of("content__mimetype"))
