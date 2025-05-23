@@ -15,6 +15,9 @@ public class Entity {
     private String table;
     private String pathSegment;
     private SimpleAttribute primaryKey;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<Attribute> attributes;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<SearchFilter> searchFilters;
 }

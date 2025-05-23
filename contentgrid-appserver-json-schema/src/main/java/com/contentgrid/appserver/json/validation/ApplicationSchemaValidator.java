@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.json.validation;
 
+import com.contentgrid.appserver.json.exceptions.InValidJsonException;
+import com.contentgrid.appserver.json.exceptions.SchemaValidationException;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -14,13 +16,13 @@ public class ApplicationSchemaValidator {
     }).getSchema(SchemaLocation.of("https://contentgrid.com/schemas/application-schema.json"));
 
 
-    public void validate(String json) throws InValidJsonException {
+    public void validate(String json) throws SchemaValidationException {
         var validationResult = schema.validate(json, InputFormat.JSON);
         if (!validationResult.isEmpty()) {
             String errorMessage = validationResult.stream()
                     .map(error -> String.format("Error at %s: %s", error.getInstanceLocation(), error.getMessage()))
                     .collect(Collectors.joining(", "));
-            throw new InValidJsonException("Invalid JSON schema: " + errorMessage);
+            throw new SchemaValidationException("Invalid JSON schema: " + errorMessage);
         }
     }
 
