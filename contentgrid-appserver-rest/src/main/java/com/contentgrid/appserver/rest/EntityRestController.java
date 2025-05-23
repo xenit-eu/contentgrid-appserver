@@ -115,7 +115,8 @@ public class EntityRestController {
         var entityData = createEntityData(converted, entity);
 
         datamodelApi.update(application, id, entityData);
-        var result = datamodelApi.findById(application, entity, id).orElseThrow();
+        var result = datamodelApi.findById(application, entity, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
         return ResponseEntity
