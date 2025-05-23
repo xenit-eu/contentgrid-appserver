@@ -9,6 +9,7 @@ import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
@@ -106,26 +107,46 @@ public interface QueryEngine {
     boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
 
     /**
-     * Returns the target entity or entities that are linked with the entity having the given id.
+     * Returns the target entity id that is linked with the entity having the given id.
+     * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param relation the relation type to query
+     * @param relation the *-to-one relation to query
      * @param id the primary key of the source entity
-     * @return data representing the linked target entity or entities
+     * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    RelationData findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
-     * Overwrites the link(s) from the entity with the given id with the link(s) provided in data.
-     * Any existing links not included in the data will be removed.
+     * Returns the target entity id that is linked with the entity having the given id.
+     * This operation can only be used for many-to-one or one-to-one relationships.
+     *
+     * @param application the application context
+     * @param relation the *-to-one relation to query
+     * @param id the primary key of the source entity
+     * @return optional with the linked target entity, empty otherwise
+     * @throws QueryEngineException if an error occurs during the query operation
+     */
+    default Optional<XToOneRelationData> findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException {
+        return findTarget(application, relation, id)
+                .map(targetId -> XToOneRelationData.builder()
+                        .entity(relation.getSourceEndPoint().getEntity().getName())
+                        .name(relation.getSourceEndPoint().getName())
+                        .ref(targetId)
+                        .build());
+    }
+
+    /**
+     * Link the target entity id provided in data with the given source id.
+     * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
      * @param data the relation data containing the links to set
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull RelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -139,7 +160,7 @@ public interface QueryEngine {
 
     /**
      * Adds the links provided in data to the entity with the given id.
-     * This operation is typically used for many-to-many or one-to-many relationships.
+     * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
      * @param data the relation data containing the links to add
@@ -150,7 +171,7 @@ public interface QueryEngine {
 
     /**
      * Removes the links provided in data from the entity with the given id.
-     * This operation is typically used for many-to-many or one-to-many relationships.
+     * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
      * @param data the relation data containing the links to remove

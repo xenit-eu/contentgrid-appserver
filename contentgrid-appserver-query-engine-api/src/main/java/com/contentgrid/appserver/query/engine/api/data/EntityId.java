@@ -9,4 +9,9 @@ public class EntityId {
 
     @NonNull
     UUID value;
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

@@ -34,6 +34,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -56,7 +57,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Propagation;
@@ -329,6 +329,10 @@ class JOOQTableCreatorTest {
         assertEquals("uuid", columnInfo.get("id"));
         assertEquals("text", columnInfo.get("vat"));
         assertEquals("text", columnInfo.get("name"));
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
     }
 
     @Test
@@ -362,6 +366,10 @@ class JOOQTableCreatorTest {
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_id"));
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_ns"));
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_name"));
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
     }
 
     // Decimal and numeric are synonyms in PostgreSQL
@@ -410,6 +418,10 @@ class JOOQTableCreatorTest {
 
         assertEquals(1, invoiceForeignKeys.size());
         assertEquals("person", invoiceForeignKeys.get("customer"));
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
     }
 
     @Test
@@ -435,6 +447,10 @@ class JOOQTableCreatorTest {
         assertEquals(2, joinTableForeignKeys.size());
         assertEquals("person", joinTableForeignKeys.get("person_src_id"));
         assertEquals("person", joinTableForeignKeys.get("person_tgt_id"));
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
     }
 
     static Stream<Relation> oneToOneRelations() {
@@ -462,6 +478,10 @@ class JOOQTableCreatorTest {
 
         assertEquals(1, foreignKeys.size());
         assertEquals("invoice", foreignKeys.get("next_invoice"));
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
     }
 
     @Test
@@ -485,9 +505,13 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(BadSqlGrammarException.class, () -> tableCreator.createTables(application));
+        assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
+        assertTrue(getTables("public").isEmpty());
+
+        // Drop tables should fail too
+        assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
     }
 

@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,7 +21,9 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
@@ -39,7 +42,10 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
@@ -63,9 +69,11 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -73,14 +81,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
-@Transactional
 class JOOQQueryEngineTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -101,7 +107,7 @@ class JOOQQueryEngineTest {
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
-            .pathSegment(PathSegmentName.of("person"))
+            .pathSegment(PathSegmentName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(ExactSearchFilter.builder()
@@ -189,7 +195,7 @@ class JOOQQueryEngineTest {
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
-            .pathSegment(PathSegmentName.of("invoice"))
+            .pathSegment(PathSegmentName.of("invoices"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -203,12 +209,39 @@ class JOOQQueryEngineTest {
                     .build())
             .build();
 
+    private static final SimpleAttribute PRODUCT_CODE = SimpleAttribute.builder()
+            .name(AttributeName.of("code"))
+            .column(ColumnName.of("code"))
+            .type(Type.TEXT)
+            .constraint(Constraint.required())
+            .constraint(Constraint.unique())
+            .build();
+
+    private static final SimpleAttribute PRODUCT_DESCRIPTION = SimpleAttribute.builder()
+            .name(AttributeName.of("description"))
+            .column(ColumnName.of("description"))
+            .type(Type.TEXT)
+            .build();
+
+
+    private static final Entity PRODUCT = Entity.builder()
+            .name(EntityName.of("product"))
+            .table(TableName.of("product"))
+            .pathSegment(PathSegmentName.of("products"))
+            .attribute(PRODUCT_CODE)
+            .attribute(PRODUCT_DESCRIPTION)
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("code"))
+                    .attribute(PRODUCT_CODE)
+                    .build())
+            .build();
+
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
-//                    .required(true) // TODO: ACC-2059: enable
+                    .required(true)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -246,13 +279,31 @@ class JOOQQueryEngineTest {
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
 
+    private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(INVOICE)
+                    .name(RelationName.of("products"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(PRODUCT)
+                    .name(RelationName.of("invoices"))
+                    .pathSegment(PathSegmentName.of("invoices"))
+                    .build())
+            .joinTable(TableName.of("invoice__products"))
+            .sourceReference(ColumnName.of("invoice_id"))
+            .targetReference(ColumnName.of("product_id"))
+            .build();
+
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("invoicing-application"))
             .entity(INVOICE)
             .entity(PERSON)
+            .entity(PRODUCT)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
+            .relation(INVOICE_PRODUCTS)
             .build();
 
     private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
@@ -262,6 +313,9 @@ class JOOQQueryEngineTest {
     private static final EntityId JOHN_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId INVOICE1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId INVOICE2_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId PRODUCT1_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -276,16 +330,21 @@ class JOOQQueryEngineTest {
 
     @BeforeEach
     void setup() {
-        // no AfterEach needed, because setup() is called in the same transaction of a test.
         createCGPrefixSearchNormalize();
         tableCreator.createTables(APPLICATION);
         insertData();
     }
 
+    @AfterEach
+    void cleanup() {
+        tableCreator.dropTables(APPLICATION);
+        dropCGPrefixSearchNormalize();
+    }
+
     void createCGPrefixSearchNormalize() {
         var schema = DSL.schema("extensions");
         dslContext.createSchemaIfNotExists(schema).execute();
-        dslContext.execute(DSL.sql("CREATE EXTENSION unaccent SCHEMA ?;", schema));
+        dslContext.execute(DSL.sql("CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ?;", schema));
         dslContext.execute(DSL.sql("""
                 CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
                   RETURNS text
@@ -294,22 +353,20 @@ class JOOQQueryEngineTest {
                 """, schema, schema));
     }
 
+    void dropCGPrefixSearchNormalize() {
+        var schema = DSL.schema("extensions");
+        dslContext.execute(DSL.sql("DROP FUNCTION ?.contentgrid_prefix_search_normalize(text);", schema));
+        dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
+        dslContext.dropSchemaIfExists(schema).execute();
+    }
+
     void insertData() {
         var now = Instant.now();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), ALICE_ID.getValue())
-                .set(DSL.field("name", String.class), "alice")
-                .set(DSL.field("vat", String.class), "vat_1")
-                .execute();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), BOB_ID.getValue())
-                .set(DSL.field("name", String.class), "bob")
-                .set(DSL.field("vat", String.class), "vat_2")
-                .execute();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), JOHN_ID.getValue())
-                .set(DSL.field("name", String.class), "john")
-                .set(DSL.field("vat", String.class), "vat_3")
+        dslContext.insertInto(DSL.table("person"),
+                        DSL.field("id", UUID.class), DSL.field("name", String.class), DSL.field("vat", String.class))
+                .values(ALICE_ID.getValue(), "alice", "vat_1")
+                .values(BOB_ID.getValue(), "bob", "vat_2")
+                .values(JOHN_ID.getValue(), "john", "vat_3")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE1_ID.getValue())
@@ -347,6 +404,42 @@ class JOOQQueryEngineTest {
                 .set(DSL.field("person_src_id", UUID.class), BOB_ID.getValue())
                 .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID.getValue())
                 .execute();
+        dslContext.insertInto(DSL.table("product"),
+                        DSL.field("id", UUID.class), DSL.field("code", String.class), DSL.field("description", String.class))
+                .values(PRODUCT1_ID.getValue(), "code_1", "test description")
+                .values(PRODUCT2_ID.getValue(), "code_2", "")
+                .values(PRODUCT3_ID.getValue(), "code_3", null)
+                .execute();
+        dslContext.insertInto(DSL.table("invoice__products"),
+                        DSL.field("invoice_id", UUID.class), DSL.field("product_id", UUID.class))
+                .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
+                .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
+                .execute();
+    }
+
+    void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
+        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null);
+        var resultList = results.getEntities().stream().map(EntityData::getId).toList();
+        assertEquals(expected.size(), resultList.size());
+        assertTrue(resultList.containsAll(expected));
+    }
+
+    void assertNothingChanged() {
+        assertEntitiesUnchanged(PERSON, List.of(ALICE_ID, BOB_ID, JOHN_ID));
+        assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID));
+        assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
+
+        assertTrue(queryEngine.isLinked(APPLICATION, PERSON_FRIENDS, BOB_ID, ALICE_ID));
+        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE1_ID, ALICE_ID));
+        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE2_ID, BOB_ID));
+        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE2_ID, INVOICE1_ID));
+        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT1_ID));
+        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT2_ID));
+
+        // These are tried in invalidSetRelationData and invalidAddRelationData
+        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE1_ID));
+        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE2_ID));
+        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT3_ID));
     }
 
     static Stream<ThunkExpression<Boolean>> validExpressions() {
@@ -541,10 +634,10 @@ class JOOQQueryEngineTest {
         assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null));
     }
 
-    static Stream<EntityData> validCreateData() {
+    static Stream<Arguments> validCreateData() {
         return Stream.of(
-                // valid person
-                EntityData.builder()
+                // Valid person
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -554,108 +647,174 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // all attributes provided
-                EntityData.builder()
-                        .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_RECEIVED.getName())
-                                .value(Instant.parse("2025-01-01T00:00:00Z"))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_PAY_BEFORE.getName())
-                                .value(Instant.parse("2025-02-01T00:00:00Z"))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_IS_PAID.getName())
-                                .value(true)
-                                .build())
-                        .attribute(CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName())
+                        .build(), List.of()),
+                // All attributes and relations provided
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
                                 .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_CONTENT.getId().getName())
-                                        .value("random_id") // id comes from object storage
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
                                         .build())
                                 .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_CONTENT.getFilename().getName())
-                                        .value("random_filename")
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
                                         .build())
                                 .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_CONTENT.getMimetype().getName())
-                                        .value("random_mimetype")
+                                        .name(INVOICE_RECEIVED.getName())
+                                        .value(Instant.parse("2025-01-01T00:00:00Z"))
                                         .build())
                                 .attribute(SimpleAttributeData.builder()
-                                        .name(INVOICE_CONTENT.getLength().getName())
-                                        .value(100L)
+                                        .name(INVOICE_PAY_BEFORE.getName())
+                                        .value(Instant.parse("2025-02-01T00:00:00Z"))
                                         .build())
-                                .build())
-                        // audit_metadata not provided (readonly)
-                        .build(),
-                // only required attributes provided
-                EntityData.builder()
-                        .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .build(),
-                // null for non-required attribute
-                EntityData.builder()
-                        .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_IS_PAID.getName())
-                                .value(null)
-                                .build())
-                        .build(),
-                // empty CompositeAttributeData
-                EntityData.builder()
-                        .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .attribute(CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName())
-                                .build())
-                        .build()
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_IS_PAID.getName())
+                                        .value(true)
+                                        .build())
+                                .attribute(CompositeAttributeData.builder()
+                                        .name(INVOICE_CONTENT.getName())
+                                        .attribute(SimpleAttributeData.builder()
+                                                .name(INVOICE_CONTENT.getId().getName())
+                                                .value("random_id") // id comes from object storage
+                                                .build())
+                                        .attribute(SimpleAttributeData.builder()
+                                                .name(INVOICE_CONTENT.getFilename().getName())
+                                                .value("random_filename")
+                                                .build())
+                                        .attribute(SimpleAttributeData.builder()
+                                                .name(INVOICE_CONTENT.getMimetype().getName())
+                                                .value("random_mimetype")
+                                                .build())
+                                        .attribute(SimpleAttributeData.builder()
+                                                .name(INVOICE_CONTENT.getLength().getName())
+                                                .value(100L)
+                                                .build())
+                                        .build())
+                                // audit_metadata not provided (readonly)
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                                        .ref(INVOICE2_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName()) // next_invoice
+                                        .ref(INVOICE1_ID)
+                                        .build(),
+                                XToManyRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                                        .ref(PRODUCT1_ID)
+                                        .ref(PRODUCT2_ID)
+                                        .build()
+                        )),
+                // Only required attributes/relations provided
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build()
+                        )),
+                // Null for non-required attribute
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_IS_PAID.getName())
+                                        .value(null) // null for attribute
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build()
+                        )),
+                // Empty CompositeAttributeData, empty XToManyRelationData
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .attribute(CompositeAttributeData.builder()
+                                        .name(INVOICE_CONTENT.getName())
+                                        .build()) // empty
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToManyRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                                        .build() // empty
+                        ))
         );
     }
 
     @ParameterizedTest
     @MethodSource("validCreateData")
-    void createEntityValidData(EntityData data) {
-        var id = queryEngine.create(APPLICATION, data, List.of());
+    void createEntityValidData(EntityData data, List<RelationData> relations) {
+        var id = queryEngine.create(APPLICATION, data, relations);
         var entity = APPLICATION.getEntityByName(data.getName()).orElseThrow();
         var actual = queryEngine.findById(APPLICATION, entity, id).orElseThrow();
 
         assertEntityDataEquals(data, actual);
+
+        for (var relationData : relations) {
+            var relation = APPLICATION.getRelationForEntity(entity, relationData.getName()).orElseThrow();
+            if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+                var xToManyRelationData = assertInstanceOf(XToManyRelationData.class, relationData);
+                for (var ref : xToManyRelationData.getRefs()) {
+                    assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
+                }
+            } else {
+                var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, relationData);
+                assertTrue(queryEngine.isLinked(APPLICATION, relation, id, xToOneRelationData.getRef()));
+            }
+        }
     }
 
     private static void assertEntityDataEquals(EntityData expected, EntityData actual) {
+        assertEquals(expected.getName(), actual.getName());
         // assert the expected data is present in the actual data
         for (var expectedAttr : expected.getAttributes()) {
             var actualAttr = actual.getAttributeByName(expectedAttr.getName()).orElseThrow();
@@ -664,6 +823,7 @@ class JOOQQueryEngineTest {
     }
 
     private static void assertAttributeDataEquals(AttributeData expected, AttributeData actual) {
+        assertEquals(expected.getName(), actual.getName());
         // assert the expected data is present in the actual data
         switch (expected) {
             case SimpleAttributeData<?> expectedData -> {
@@ -680,10 +840,10 @@ class JOOQQueryEngineTest {
         }
     }
 
-    static Stream<EntityData> invalidCreateData() {
+    static Stream<Arguments> invalidCreateData() {
         return Stream.of(
                 // Invalid entity name
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(EntityName.of("invalid_entity"))
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -693,9 +853,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Invalid attribute name
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute"))
@@ -705,9 +865,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Primary key provided
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .id(EntityId.of(UUID_GENERATOR.generate()))
                         .attribute(SimpleAttributeData.builder()
@@ -718,9 +878,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Primary key provided as attribute
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -734,17 +894,17 @@ class JOOQQueryEngineTest {
                                 .name(PERSON.getPrimaryKey().getName())
                                 .value(UUID_GENERATOR.generate())
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Missing required attribute
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Null for required value
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -754,9 +914,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Duplicate unique attribute
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -766,9 +926,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("vat_1") // vat of alice
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // CompositeAttributeData instead of SimpleAttributeData
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(CompositeAttributeData.builder()
                                 .name(PERSON_NAME.getName()) // no attributes
@@ -777,9 +937,9 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Extra CompositeAttributeData attribute
-                EntityData.builder()
+                Arguments.of(EntityData.builder()
                         .name(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_NAME.getName())
@@ -792,44 +952,285 @@ class JOOQQueryEngineTest {
                         .attribute(CompositeAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute")) // no sub-attributes
                                 .build())
-                        .build(),
+                        .build(), List.of()),
                 // Value of invalid type
-                EntityData.builder()
-                        .name(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_RECEIVED.getName())
-                                .value(Instant.parse("2025-01-01T00:00:00Z"))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_PAY_BEFORE.getName())
-                                .value(Instant.parse("2025-02-01T00:00:00Z"))
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_IS_PAID.getName())
-                                .value("invalid_boolean") // String instead of boolean
-                                .build())
-                        .build()
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_IS_PAID.getName())
+                                        .value("invalid_boolean") // String instead of boolean
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build()
+                        )),
                 // TODO: ACC-2051: provide audit_metadata/readonly attribute
+                // Missing required relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of()), // customer is required
+                // Wrong entity in relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(PERSON.getName()) // Should be invoice entity
+                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                                        .ref(INVOICE2_ID)
+                                        .build()
+                        )),
+                // Non-existing relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToManyRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // person -> invoices
+                                        .ref(INVOICE2_ID)
+                                        .build()
+                        )),
+                // Non-existing target in owning *-to-one relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID) // Should be id of invoice
+                                        .build()
+                        )),
+                // Non-existing target in non-owning *-to-one relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName())
+                                        .ref(ALICE_ID) // Should be id of invoice
+                                        .build()
+                        )),
+                // Non-existing target in *-to-many relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToManyRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                                        .ref(PRODUCT3_ID)
+                                        .ref(ALICE_ID) // should be id of product
+                                        .build()
+                        )),
+                // XToManyRelationData for *-to-one relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToManyRelationData.builder() // should be XToOneRelationData
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                                        .ref(INVOICE2_ID)
+                                        .build()
+                        )),
+                // XToOneRelationData for *-to-many relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder() // should be XToManyRelationData
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                                        .ref(PRODUCT3_ID)
+                                        .build()
+                        )),
+                // Duplicate value in one-to-one relation
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                                        .ref(INVOICE1_ID) // is already linked with INVOICE2_ID
+                                        .build()
+                        )),
+                // Duplicate relation provided
+                Arguments.of(
+                        EntityData.builder()
+                                .name(INVOICE.getName())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_NUMBER.getName())
+                                        .value("random_number")
+                                        .build())
+                                .attribute(SimpleAttributeData.builder()
+                                        .name(INVOICE_AMOUNT.getName())
+                                        .value(BigDecimal.valueOf(25.0))
+                                        .build())
+                                .build(),
+                        List.of(
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(ALICE_ID)
+                                        .build(),
+                                XToOneRelationData.builder()
+                                        .entity(INVOICE.getName())
+                                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                        .ref(BOB_ID)
+                                        .build()
+                        ))
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidCreateData")
-    void createEntityInvalidData(EntityData data) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.create(APPLICATION, data, List.of()));
+    void createEntityInvalidData(EntityData data, List<RelationData> relations) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.create(APPLICATION, data, relations));
+        assertNothingChanged();
     }
 
     static Stream<EntityData> validUpdateData() {
         return Stream.of(
-                // valid person
+                // Valid person
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
@@ -842,7 +1243,7 @@ class JOOQQueryEngineTest {
                                 .value("random_vat")
                                 .build())
                         .build(),
-                // all attributes provided
+                // All attributes provided
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -887,7 +1288,7 @@ class JOOQQueryEngineTest {
                                 .build())
                         // audit_metadata not provided (readonly)
                         .build(),
-                // only one attribute provided
+                // Only one attribute provided
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -896,7 +1297,7 @@ class JOOQQueryEngineTest {
                                 .value(BigDecimal.valueOf(25.0))
                                 .build())
                         .build(),
-                // null for non-required attribute
+                // Null for non-required attribute
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -905,7 +1306,7 @@ class JOOQQueryEngineTest {
                                 .value(null)
                                 .build())
                         .build(),
-                // update inside CompositeAttributeData
+                // Update inside CompositeAttributeData
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1067,32 +1468,408 @@ class JOOQQueryEngineTest {
     @MethodSource("invalidUpdateData")
     void updateEntityInvalidData(EntityData data) {
         assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, data));
+        assertNothingChanged();
     }
 
-    @Test
-    void deleteEntity() {
-        queryEngine.delete(APPLICATION, PERSON, JOHN_ID);
-        var maybePerson = queryEngine.findById(APPLICATION, PERSON, JOHN_ID);
-        assertTrue(maybePerson.isEmpty());
+    static Stream<Arguments> validDeleteData() {
+        return Stream.of(
+                Arguments.of(PERSON, JOHN_ID),
+                Arguments.of(INVOICE, INVOICE2_ID),
+                Arguments.of(PRODUCT, PRODUCT3_ID)
+        );
     }
 
-    @Test
-    void deleteEntityInvalidId() {
-        // INVOICE1_ID is not a person
-        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, PERSON, INVOICE1_ID));
+    @ParameterizedTest
+    @MethodSource("validDeleteData")
+    void deleteEntityValidId(Entity entity, EntityId id) {
+        queryEngine.delete(APPLICATION, entity, id);
+        var maybeData = queryEngine.findById(APPLICATION, entity, id);
+        assertTrue(maybeData.isEmpty());
+    }
+
+    static Stream<Arguments> invalidDeleteData() {
+        return Stream.of(
+                Arguments.of(INVOICE, ALICE_ID), // ALICE_ID is not an invoice
+                Arguments.of(PERSON, ALICE_ID), // ALICE_ID is present in required relation customer
+                Arguments.of(INVOICE, INVOICE1_ID), // INVOICE1_ID is still present in join-table of relation products
+                Arguments.of(PRODUCT, PRODUCT1_ID) // PRODUCT1_ID is still present in join-table of relation invoices
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDeleteData")
+    void deleteEntityInvalidId(Entity entity, EntityId id) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, entity, id));
+        assertNothingChanged();
     }
 
     @Test
     void deleteAll() {
+        // unlink relations for invoice first
+        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID);
+        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE2_ID);
+
+        // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
         assertTrue(slice.getEntities().isEmpty());
+
+        // unlink relations for person
+        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, ALICE_ID);
+        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, BOB_ID);
+
+        // now we can safely delete all persons (no invoices left with a required customer)
+        queryEngine.deleteAll(APPLICATION, PERSON);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null);
+        assertTrue(slice.getEntities().isEmpty());
+    }
+
+    static Stream<Entity> invalidDeleteAllData() {
+        // each table contains entities that are still referenced by other tables
+        return Stream.of(PERSON, INVOICE, PRODUCT);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDeleteAllData")
+    void deleteAllInvalidEntity(Entity entity) {
+        // persons are present in required relation customer
+        assertThrows(QueryEngineException.class, () -> queryEngine.deleteAll(APPLICATION, entity));
+        assertNothingChanged();
+    }
+
+    static Stream<Arguments> validSetRelationData() {
+        return Stream.of(
+                // Owning one-to-one
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // Non-owning one-to-one
+                Arguments.of(INVOICE2_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName()) // next_invoice
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // Many-to-one
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_CUSTOMER.getSourceEndPoint().getName()) // customer
+                        .ref(JOHN_ID) // originally ALICE_ID
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validSetRelationData")
+    void setRelationValidData(EntityId id, XToOneRelationData relationData) {
+        queryEngine.setLink(APPLICATION, relationData, id);
+
+        var relation = APPLICATION.getRelationForEntity(relationData.getEntity(), relationData.getName()).orElseThrow();
+        assertTrue(queryEngine.isLinked(APPLICATION, relation, id, relationData.getRef()));
+    }
+
+    static Stream<Arguments> invalidSetRelationData() {
+        return Stream.of(
+                // Non-existing relation
+                Arguments.of(ALICE_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // invoices
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // Non-existing source id
+                Arguments.of(ALICE_ID, XToOneRelationData.builder() // alice is not an invoice
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // Non-existing target in owning *-to-one relation
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
+                        .ref(ALICE_ID) // alice is not an invoice
+                        .build()),
+                // Non-existing target in non-owning *-to-one relation
+                Arguments.of(INVOICE2_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getTargetEndPoint().getName()) // next_invoice
+                        .ref(ALICE_ID) // alice is not an invoice
+                        .build()),
+                // Duplicate value for a one-to-one relation
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName()) // previous_invoice
+                        .ref(INVOICE1_ID) // previous_invoice of INVOICE2_ID already contains INVOICE1_ID
+                        .build()),
+                // XToOneRelationData for *-to-many relation
+                Arguments.of(INVOICE1_ID, XToOneRelationData.builder() // should be XToManyRelationData
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT3_ID)
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSetRelationData")
+    void setRelationInvalidData(EntityId id, XToOneRelationData relationData) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.setLink(APPLICATION, relationData, id));
+        assertNothingChanged();
+    }
+
+    static Stream<Arguments> validUnsetRelationData() {
+        return Stream.of(
+                // Non-empty owning *-to-one relation
+                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS),
+                // Empty owning *-to-one relation
+                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS),
+                // Non-empty non-owning *-to-one relation
+                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse()),
+                // Empty non-owning *-to-one relation
+                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
+                // Non-empty *-to-many relation
+                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS),
+                // Empty *-to-many relation
+                Arguments.of(JOHN_ID, INVOICE_CUSTOMER.inverse())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validUnsetRelationData")
+    void unsetRelationValidData(EntityId id, Relation relation) {
+        queryEngine.unsetLink(APPLICATION, relation, id);
+
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            if (relation.getTargetEndPoint().getName() != null) {
+                ThunkExpression<Boolean> expression;
+                // entity.<targetEndpointName>.id = sourceId
+                if (relation instanceof OneToManyRelation) {
+                    expression = Comparison.areEqual(
+                            SymbolicReference.of(ENTITY_VAR,
+                                    SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
+                                    SymbolicReference.path(
+                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                                    .getValue())),
+                            Scalar.of(id.getValue())
+                    );
+                } else {
+                    expression = Comparison.areEqual(
+                            SymbolicReference.of(ENTITY_VAR,
+                                    SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
+                                    SymbolicReference.pathVar("x"),
+                                    SymbolicReference.path(
+                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                                    .getValue())),
+                            Scalar.of(id.getValue())
+                    );
+                }
+                var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
+                        null);
+                assertTrue(slice.getEntities().isEmpty());
+            } else {
+                // TODO: How do we validate this?
+                throw new AssertionError("Unidirectional relations not supported");
+            }
+        } else {
+            var maybeRelationData = queryEngine.findLink(APPLICATION, relation, id);
+            assertTrue(maybeRelationData.isEmpty());
+        }
+    }
+
+    static Stream<Arguments> invalidUnsetRelationData() {
+        return Stream.of(
+                // Non-existing relation
+                Arguments.of(INVOICE2_ID, ManyToOneRelation.builder()
+                        .sourceEndPoint(RelationEndPoint.builder()
+                                .entity(INVOICE)
+                                .name(RelationName.of("supplier"))
+                                .pathSegment(PathSegmentName.of("supplier"))
+                                .build())
+                        .targetEndPoint(RelationEndPoint.builder()
+                                .entity(PERSON)
+                                .name(RelationName.of("non_existing"))
+                                .pathSegment(PathSegmentName.of("non-existing"))
+                                .build())
+                        .targetReference(ColumnName.of("customer")) // Sneaky provide existing column
+                        .build()),
+                // Non-existing source id of an owning *-to-one relation
+                Arguments.of(ALICE_ID, INVOICE_PREVIOUS),
+                // Non-existing source id of a non-owning *-to-one relation
+                Arguments.of(ALICE_ID, INVOICE_PREVIOUS.inverse()),
+                // Non-existing source id of a *-to-many relation
+                Arguments.of(ALICE_ID, INVOICE_PRODUCTS),
+                // Required *-to-one relation
+                Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER),
+                // Inverse required one-to-* relation
+                Arguments.of(ALICE_ID, INVOICE_CUSTOMER.inverse())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidUnsetRelationData")
+    void unsetRelationInvalidData(EntityId id, Relation relation) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.unsetLink(APPLICATION, relation, id));
+        assertNothingChanged();
+    }
+
+    static Stream<Arguments> validAddRelationData() {
+        return Stream.of(
+                // One-to-many: new values
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // Many-to-many: new values
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // One-to-many: already linked values
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // One-to-many: empty list
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .build()),
+                // Many-to-many: empty list
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validAddRelationData")
+    void addRelationValidData(EntityId id, XToManyRelationData data) {
+        queryEngine.addLinks(APPLICATION, data, id);
+        var relation = APPLICATION.getRelationForEntity(data.getEntity(), data.getName()).orElseThrow();
+
+        for (var ref : data.getRefs()) {
+            assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
+        }
+    }
+
+    static Stream<Arguments> invalidAddRelationData() {
+        return Stream.of(
+                // One-to-many: non-existing source ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build()),
+                // One-to-many: non-existing target ref
+                Arguments.of(BOB_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(ALICE_ID) // should be an invoice
+                        .build()),
+                // Many-to-many: non-existing source ref
+                Arguments.of(ALICE_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Many-to-many: non-existing target ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(ALICE_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Many-to-many: already linked values
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // *-to-one relation
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                        .ref(INVOICE2_ID)
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidAddRelationData")
+    void addRelationInvalidData(EntityId id, XToManyRelationData data) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.addLinks(APPLICATION, data, id));
+        assertNothingChanged();
+    }
+
+    static Stream<Arguments> invalidRemoveRelationData() {
+        return Stream.of(
+                // Non-existing source ref
+                Arguments.of(ALICE_ID, XToManyRelationData.builder() // not an invoice
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Non-existing target ref
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(ALICE_ID) // not a product
+                        .ref(PRODUCT3_ID)
+                        .build()),
+                // Invalid target value
+                Arguments.of(INVOICE1_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                        .ref(PRODUCT1_ID)
+                        .ref(PRODUCT3_ID) // not linked with INVOICE1_ID
+                        .build()),
+                // Inverse of one-to-many required
+                Arguments.of(ALICE_ID, XToManyRelationData.builder()
+                        .entity(PERSON.getName())
+                        .name(INVOICE_CUSTOMER.getTargetEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build()),
+                // *-to-one relation
+                Arguments.of(INVOICE2_ID, XToManyRelationData.builder()
+                        .entity(INVOICE.getName())
+                        .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
+                        .ref(INVOICE1_ID)
+                        .build())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRemoveRelationData")
+    void removeRelationInvalidData(EntityId id, XToManyRelationData data) {
+        assertThrows(QueryEngineException.class, () -> queryEngine.removeLinks(APPLICATION, data, id));
+        assertNothingChanged();
+    }
+
+    @Test
+    void removeRelationValidData() {
+        var data = XToManyRelationData.builder()
+                .entity(INVOICE.getName())
+                .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
+                .ref(PRODUCT1_ID)
+                .build();
+        queryEngine.removeLinks(APPLICATION, data, INVOICE1_ID);
+
+        var relation = APPLICATION.getRelationForEntity(data.getEntity(), data.getName()).orElseThrow();
+        assertFalse(queryEngine.isLinked(APPLICATION, relation, INVOICE1_ID, PRODUCT1_ID));
     }
 
     @SpringBootApplication
     static class TestApplication {
         public static void main(String[] args) {
-            SpringApplication.run(JOOQThunkExpressionVisitorTest.TestApplication.class, args);
+            SpringApplication.run(TestApplication.class, args);
         }
 
         @Bean

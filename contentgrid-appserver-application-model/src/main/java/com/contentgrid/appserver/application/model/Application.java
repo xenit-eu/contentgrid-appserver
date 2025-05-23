@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -113,6 +114,11 @@ public class Application {
         return Optional.ofNullable(entities.get(entityName));
     }
 
+    public Entity getRequiredEntityByName(EntityName entityName) throws EntityNotFoundException {
+        return getEntityByName(entityName).orElseThrow(() ->
+                new EntityNotFoundException("Entity %s not found".formatted(entityName)));
+    }
+
     public Optional<Entity> getEntityByPathSegment(PathSegmentName pathSegment) {
         return Optional.ofNullable(pathSegmentEntities.get(pathSegment));
     }
@@ -146,6 +152,16 @@ public class Application {
      */
     public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
         return getEntityByName(entityName).flatMap(entity -> getRelationForEntity(entity, name));
+    }
+
+    public Relation getRequiredRelationForEntity(Entity entity, RelationName name) {
+        return getRelationForEntity(entity, name).orElseThrow(() ->
+                new RelationNotFoundException("Relation %s not found on entity %s".formatted(name, entity.getName())));
+    }
+
+    public Relation getRequiredRelationForEntity(EntityName entityName, RelationName name) {
+        return getRelationForEntity(entityName, name).orElseThrow(() ->
+                new RelationNotFoundException("Relation %s not found on entity %s".formatted(name, entityName)));
     }
 
     public Optional<Relation> getRelationForPath(PathSegmentName entitySegment, PathSegmentName relationSegment) {
