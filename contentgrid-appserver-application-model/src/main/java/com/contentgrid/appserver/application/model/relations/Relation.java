@@ -27,17 +27,8 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getName() == null && targetEndPoint.getName() == null) {
             throw new InvalidRelationException("At least one endpoint must have a name");
         }
-        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
-                && Objects.equals(sourceEndPoint.getName(), targetEndPoint.getName())) {
-            throw new InvalidRelationException("Source and target endpoints must have a different name when on the same entity");
-        }
-        if (sourceEndPoint.getEntity().getPathSegment().equals(targetEndPoint.getEntity().getPathSegment())
-                && Objects.equals(sourceEndPoint.getPathSegment(), targetEndPoint.getPathSegment())) {
-            throw new InvalidRelationException("Source and target endpoints must have a different path segment when on the same entity");
-        }
-        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
-                && Objects.equals(sourceEndPoint.getLinkRel(), targetEndPoint.getLinkRel())) {
-            throw new InvalidRelationException("Source and target endpoints must have a different link relation name when on the same entity");
+        if (sourceEndPoint.collides(targetEndPoint)) {
+            throw new InvalidRelationException("Source and target endpoints must not collide when on the same entity");
         }
         if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
             // Chicken and egg problem
@@ -46,7 +37,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
                 && (sourceEndPoint.isRequired() || targetEndPoint.isRequired())) {
             // Chicken and egg problem
-            throw new InvalidRelationException("Source and target endpoints can not be required when on the same entity");
+            throw new InvalidRelationException("Source or target endpoint can not be required when on the same entity");
         }
         this.sourceEndPoint = sourceEndPoint;
         this.targetEndPoint = targetEndPoint;
@@ -120,6 +111,18 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             this.description = description;
             this.required = required;
         }
+
+        /**
+         * Returns whether this relation endpoint collides with the other relation endpoint.
+         *
+         * @param other The relation endpoint to check
+         * @return whether this relation endpoint collides with the other relation endpoint.
+         */
+        public boolean collides(RelationEndPoint other) {
+            return (this.name != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.name, other.name))
+                    || (this.pathSegment != null && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment()) && Objects.equals(this.pathSegment, other.getPathSegment()))
+                    || (this.linkRel != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.linkRel, other.linkRel));
+        }
     }
 
     public abstract Relation inverse();
@@ -131,79 +134,10 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * @return whether this relation collides with the other relation.
      */
     public boolean collides(Relation other) {
-        return collidesName(other) || collidesSegment(other) || collidesLinkRel(other);
-    }
-
-    private boolean collidesName(Relation other) {
-        var sourceName = this.getSourceEndPoint().getName();
-        var sourceEntity = this.getSourceEndPoint().getEntity().getName();
-        var targetName = this.getTargetEndPoint().getName();
-        var targetEntity = this.getTargetEndPoint().getEntity().getName();
-
-        var otherSourceName = other.getSourceEndPoint().getName();
-        var otherSourceEntity = other.getSourceEndPoint().getEntity().getName();
-        var otherTargetName = other.getTargetEndPoint().getName();
-        var otherTargetEntity = other.getTargetEndPoint().getEntity().getName();
-
-        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
-                ||
-                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
-    }
-
-    /**
-     * Returns whether the url path segment of this relation collides with the segment of the other relation.
-     *
-     * @param other The relation to check
-     * @return whether the url path segment of this relation collides with the segment of the other relation.
-     */
-    private boolean collidesSegment(Relation other) {
-        var sourceName = this.getSourceEndPoint().getPathSegment();
-        var sourceEntity = this.getSourceEndPoint().getEntity().getPathSegment();
-        var targetName = this.getTargetEndPoint().getPathSegment();
-        var targetEntity = this.getTargetEndPoint().getEntity().getPathSegment();
-
-        var otherSourceName = other.getSourceEndPoint().getPathSegment();
-        var otherSourceEntity = other.getSourceEndPoint().getEntity().getPathSegment();
-        var otherTargetName = other.getTargetEndPoint().getPathSegment();
-        var otherTargetEntity = other.getTargetEndPoint().getEntity().getPathSegment();
-
-        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
-                ||
-                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
-    }
-
-    /**
-     * Returns whether the link relation name of this relation collides with the link relation name of the other relation.
-     *
-     * @param other The relation to check
-     * @return whether the link relation name of this relation collides with the link relation name of the other relation.
-     */
-    private boolean collidesLinkRel(Relation other) {
-        var sourceRel = this.getSourceEndPoint().getLinkRel();
-        var sourceEntity = this.getSourceEndPoint().getEntity().getName();
-        var targetRel = this.getTargetEndPoint().getLinkRel();
-        var targetEntity = this.getTargetEndPoint().getEntity().getName();
-
-        var otherSourceRel = other.getSourceEndPoint().getLinkRel();
-        var otherSourceEntity = other.getSourceEndPoint().getEntity().getName();
-        var otherTargetRel = other.getTargetEndPoint().getLinkRel();
-        var otherTargetEntity = other.getTargetEndPoint().getEntity().getName();
-
-        return (sourceRel != null && Objects.equals(sourceRel, otherSourceRel) && Objects.equals(sourceEntity, otherSourceEntity))
-                ||
-                (targetRel != null && Objects.equals(targetRel, otherTargetRel) && Objects.equals(targetEntity, otherTargetEntity))
-                ||
-                (sourceRel != null && Objects.equals(sourceRel, otherTargetRel) && Objects.equals(sourceEntity, otherTargetEntity))
-                ||
-                (targetRel != null && Objects.equals(targetRel, otherSourceRel) && Objects.equals(targetEntity, otherSourceEntity));
+        return this.getSourceEndPoint().collides(other.getSourceEndPoint())
+                || this.getSourceEndPoint().collides(other.getTargetEndPoint())
+                || this.getTargetEndPoint().collides(other.getSourceEndPoint())
+                || this.getTargetEndPoint().collides(other.getTargetEndPoint());
     }
 
 }
