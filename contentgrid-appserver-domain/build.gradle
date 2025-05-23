@@ -19,7 +19,7 @@ dependencies {
 
     annotationProcessor 'org.projectlombok:lombok'
 
-    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation platform('org.junit:junit-bom:5.12.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
