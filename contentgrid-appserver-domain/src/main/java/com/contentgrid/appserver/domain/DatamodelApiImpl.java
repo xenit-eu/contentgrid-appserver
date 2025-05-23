@@ -11,7 +11,7 @@ import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,8 +26,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull Map<String, String> params, PageData pageData)
             throws EntityNotFoundException, InvalidThunkExpressionException {
-        // TODO ACC-2072: filter on params
-        return queryEngine.findAll(application, entity, Scalar.of(true), pageData);
+        ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(entity, params);
+        return queryEngine.findAll(application, entity, filter, pageData);
     }
 
     @Override
