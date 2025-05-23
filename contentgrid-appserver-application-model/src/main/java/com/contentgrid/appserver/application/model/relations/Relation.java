@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
@@ -33,6 +34,10 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getEntity().getPathSegment().equals(targetEndPoint.getEntity().getPathSegment())
                 && Objects.equals(sourceEndPoint.getPathSegment(), targetEndPoint.getPathSegment())) {
             throw new InvalidRelationException("Source and target endpoints must have a different path segment when on the same entity");
+        }
+        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
+                && Objects.equals(sourceEndPoint.getLinkRel(), targetEndPoint.getLinkRel())) {
+            throw new InvalidRelationException("Source and target endpoints must have a different link relation name when on the same entity");
         }
         if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
             // Chicken and egg problem
@@ -73,6 +78,11 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
 
         PathSegmentName pathSegment;
 
+        /**
+         * The link relation name of this relation endpoint.
+         */
+        LinkRel linkRel;
+
         String description;
 
         /**
@@ -84,7 +94,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         boolean required;
 
         @Builder
-        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, String description, boolean required) {
+        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, LinkRel linkRel, String description, boolean required) {
             if (name != null && pathSegment == null) {
                 throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
             }
@@ -97,9 +107,16 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             if (name == null && required) {
                 throw new InvalidRelationException("Relation endpoint can not be required without name");
             }
+            if (pathSegment == null && linkRel != null) {
+                throw new InvalidRelationException("Relation endpoint with linkRel %s does not have a pathSegment".formatted(linkRel));
+            }
+            if (pathSegment != null && linkRel == null) {
+                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a linkRel".formatted(pathSegment));
+            }
             this.entity = entity;
             this.name = name;
             this.pathSegment = pathSegment;
+            this.linkRel = linkRel;
             this.description = description;
             this.required = required;
         }
@@ -114,7 +131,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * @return whether this relation collides with the other relation.
      */
     public boolean collides(Relation other) {
-        return collidesName(other) || collidesSegment(other);
+        return collidesName(other) || collidesSegment(other) || collidesLinkRel(other);
     }
 
     private boolean collidesName(Relation other) {
@@ -163,5 +180,30 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                 (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
     }
 
+    /**
+     * Returns whether the link relation name of this relation collides with the link relation name of the other relation.
+     *
+     * @param other The relation to check
+     * @return whether the link relation name of this relation collides with the link relation name of the other relation.
+     */
+    private boolean collidesLinkRel(Relation other) {
+        var sourceRel = this.getSourceEndPoint().getLinkRel();
+        var sourceEntity = this.getSourceEndPoint().getEntity().getName();
+        var targetRel = this.getTargetEndPoint().getLinkRel();
+        var targetEntity = this.getTargetEndPoint().getEntity().getName();
+
+        var otherSourceRel = other.getSourceEndPoint().getLinkRel();
+        var otherSourceEntity = other.getSourceEndPoint().getEntity().getName();
+        var otherTargetRel = other.getTargetEndPoint().getLinkRel();
+        var otherTargetEntity = other.getTargetEndPoint().getEntity().getName();
+
+        return (sourceRel != null && Objects.equals(sourceRel, otherSourceRel) && Objects.equals(sourceEntity, otherSourceEntity))
+                ||
+                (targetRel != null && Objects.equals(targetRel, otherTargetRel) && Objects.equals(targetEntity, otherTargetEntity))
+                ||
+                (sourceRel != null && Objects.equals(sourceRel, otherTargetRel) && Objects.equals(sourceEntity, otherTargetEntity))
+                ||
+                (targetRel != null && Objects.equals(targetRel, otherSourceRel) && Objects.equals(targetEntity, otherSourceEntity));
+    }
 
 }

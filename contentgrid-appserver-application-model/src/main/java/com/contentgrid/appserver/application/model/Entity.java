@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
@@ -53,12 +54,23 @@ public class Entity {
      * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
     @Builder
-    Entity(@NonNull EntityName name, @NonNull PathSegmentName pathSegment, String description, @NonNull TableName table,
-            @Singular List<Attribute> attributes, SimpleAttribute primaryKey, @Singular List<SearchFilter> searchFilters) {
+    Entity(
+            @NonNull EntityName name,
+            @NonNull PathSegmentName pathSegment,
+            String description,
+            @NonNull TableName table,
+            @NonNull LinkRel collectionLinkRel,
+            @NonNull LinkRel itemLinkRel,
+            @Singular List<Attribute> attributes,
+            SimpleAttribute primaryKey,
+            @Singular List<SearchFilter> searchFilters
+    ) {
         this.name = name;
         this.pathSegment = pathSegment;
         this.description = description;
         this.table = table;
+        this.collectionLinkRel = collectionLinkRel;
+        this.itemLinkRel = itemLinkRel;
         if (primaryKey == null) {
             this.primaryKey = SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build();
         } else if (Type.UUID.equals(primaryKey.getType())) {
@@ -119,6 +131,12 @@ public class Entity {
      */
     @NonNull
     TableName table;
+
+    @NonNull
+    LinkRel collectionLinkRel;
+
+    @NonNull
+    LinkRel itemLinkRel;
 
     /**
      * The primary key attribute of this entity.

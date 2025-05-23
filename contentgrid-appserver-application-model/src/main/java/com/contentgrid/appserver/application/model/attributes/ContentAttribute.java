@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +26,9 @@ public class ContentAttribute implements CompositeAttribute {
     @NonNull
     PathSegmentName pathSegment;
 
+    @NonNull
+    LinkRel linkRel;
+
     Set<AttributeFlag> flags;
 
     @NonNull
@@ -40,13 +44,22 @@ public class ContentAttribute implements CompositeAttribute {
     SimpleAttribute length;
 
     @Builder
-    ContentAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
-            @NonNull PathSegmentName pathSegment, @NonNull ColumnName idColumn, @NonNull ColumnName filenameColumn,
-            @NonNull ColumnName mimetypeColumn, @NonNull ColumnName lengthColumn) {
+    ContentAttribute(
+            @NonNull AttributeName name,
+            String description,
+            @Singular Set<AttributeFlag> flags,
+            @NonNull PathSegmentName pathSegment,
+            @NonNull LinkRel linkRel,
+            @NonNull ColumnName idColumn,
+            @NonNull ColumnName filenameColumn,
+            @NonNull ColumnName mimetypeColumn,
+            @NonNull ColumnName lengthColumn
+    ) {
         this.name = name;
         this.description = description;
         this.flags = flags;
         this.pathSegment = pathSegment;
+        this.linkRel = linkRel;
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
                 .type(Type.TEXT).build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
