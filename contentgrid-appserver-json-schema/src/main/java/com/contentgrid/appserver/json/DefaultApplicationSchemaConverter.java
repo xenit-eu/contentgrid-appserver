@@ -465,24 +465,14 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 json.setTargetReference(oto.getTargetReference().getValue());
                 yield json;
             }
-            case TargetOneToOneRelation toto -> {
-                var json = new OneToOneRelation();
-                setRelationEndpoints(json, toto.getTargetEndPoint(), toto.getSourceEndPoint());
-                json.setTargetReference(toto.getSourceReference().getValue());
-                yield json;
-            }
+            case TargetOneToOneRelation toto -> toJsonRelation(toto.inverse());
             case com.contentgrid.appserver.application.model.relations.OneToManyRelation otm -> {
                 var json = new OneToManyRelation();
                 setRelationEndpoints(json, otm.getSourceEndPoint(), otm.getTargetEndPoint());
                 json.setSourceReference(otm.getSourceReference().getValue());
                 yield json;
             }
-            case ManyToOneRelation mto -> {
-                var json = new OneToManyRelation();
-                setRelationEndpoints(json, mto.getTargetEndPoint(), mto.getSourceEndPoint());
-                json.setSourceReference(mto.getTargetReference().getValue());
-                yield json;
-            }
+            case ManyToOneRelation mto -> toJsonRelation(mto.inverse());
             case com.contentgrid.appserver.application.model.relations.ManyToManyRelation mtm -> {
                 var json = new ManyToManyRelation();
                 setRelationEndpoints(json, mtm.getSourceEndPoint(), mtm.getTargetEndPoint());
