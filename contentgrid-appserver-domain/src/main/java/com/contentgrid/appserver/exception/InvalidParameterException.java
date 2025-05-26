@@ -23,7 +23,7 @@ public class InvalidParameterException extends IllegalArgumentException {
             @NonNull String value, Throwable cause) {
         super(entityName == null
                 ? templateWithoutEntity.formatted(attributeName, value, type)
-                : fullTemplate.formatted(entityName, attributeName, value, type),
+                : fullTemplate.formatted(attributeName, entityName, value, type),
                 cause
         );
         this.entityName = entityName;
