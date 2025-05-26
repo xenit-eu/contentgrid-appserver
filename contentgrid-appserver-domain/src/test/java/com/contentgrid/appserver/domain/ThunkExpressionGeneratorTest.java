@@ -2,10 +2,11 @@ package com.contentgrid.appserver.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -18,13 +19,14 @@ import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ThunkExpressionGeneratorTest {
@@ -65,6 +67,30 @@ class ThunkExpressionGeneratorTest {
             .type(Type.UUID)
             .build();
 
+    private static final CompositeAttribute COMP_ATTR = CompositeAttributeImpl.builder()
+            .name(AttributeName.of("audit"))
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("modified_at"))
+                    .column(ColumnName.of("audit__modified_at"))
+                    .type(Type.DATETIME)
+                    .build())
+            .attribute(CompositeAttributeImpl.builder()
+                    .name(AttributeName.of("modified_by"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("name"))
+                            .column(ColumnName.of("audit__modified_by__name"))
+                            .type(Type.TEXT)
+                            .build()
+                    )
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("id"))
+                            .column(ColumnName.of("audit__modified_by__id"))
+                            .type(Type.UUID)
+                            .build()
+                    )
+                    .build())
+            .build();
+
     private static final Entity testEntity = Entity.builder()
                 .name(EntityName.of("testEntity"))
                 .table(TableName.of("test_entity"))
@@ -75,6 +101,7 @@ class ThunkExpressionGeneratorTest {
                 .attribute(BOOLEAN_ATTR)
                 .attribute(TEXT_ATTR)
                 .attribute(DATETIME_ATTR)
+                .attribute(COMP_ATTR)
                 .build();
 
     @Test
@@ -268,5 +295,25 @@ class ThunkExpressionGeneratorTest {
         Comparison comparison = (Comparison) result;
         assertInstanceOf(Scalar.class, comparison.getRightTerm());
         assertEquals("", ((Scalar<?>) comparison.getRightTerm()).getValue());
+    }
+
+    @Test
+    void compositeAttributeShouldParseCorrectly() {
+        Map<String, String> params = Map.of("audit.modified_by.name", "Alice Aaronson");
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("audit"),
+                        SymbolicReference.path("modified_by"),
+                        SymbolicReference.path("name")
+                ),
+                comparison.getLeftTerm()
+        );
     }
 }
