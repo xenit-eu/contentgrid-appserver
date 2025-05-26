@@ -332,6 +332,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
      * @param app the Application to convert
      * @param out the OutputStream to write the JSON to
      */
+    @Override
     public void toJson(Application app, OutputStream out) {
         try {
             var schema = toJsonSchema(app);
