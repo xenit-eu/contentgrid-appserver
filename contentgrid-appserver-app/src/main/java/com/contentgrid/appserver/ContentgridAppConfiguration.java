@@ -24,11 +24,7 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
@@ -129,17 +125,5 @@ public class ContentgridAppConfiguration {
                                 .build())
                         .build()
         );
-    }
-
-    @Bean
-    EntityDataRepresentationModelAssemblerProvider entityDataRepresentationModelAssemblerProvider() {
-        return new EntityDataRepresentationModelAssemblerProvider() {
-            final Map<ApplicationName, EntityDataRepresentationModelAssembler> assemblers = new HashMap<>();
-            @Override
-            public EntityDataRepresentationModelAssembler getAssemblerFor(Application application) {
-                return assemblers.computeIfAbsent(application.getName(),
-                        (_a) -> new EntityDataRepresentationModelAssembler(application));
-            }
-        };
     }
 }

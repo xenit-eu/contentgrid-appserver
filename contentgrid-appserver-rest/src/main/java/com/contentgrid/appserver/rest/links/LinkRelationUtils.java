@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler;
+package com.contentgrid.appserver.rest.links;
 
 import com.contentgrid.appserver.application.model.values.LinkRel;
 import lombok.experimental.UtilityClass;

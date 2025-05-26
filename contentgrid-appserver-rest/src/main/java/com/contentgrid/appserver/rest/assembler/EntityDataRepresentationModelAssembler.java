@@ -7,17 +7,15 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.rest.EntityRestController;
-import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.server.RepresentationModelAssembler;
+import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
-public class EntityDataRepresentationModelAssembler implements RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> {
-
-    private final Application application;
+@Component
+public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, Application> {
 
     @Override
-    public EntityDataRepresentationModel toModel(@NonNull EntityData entityData) {
+    public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull Application application) {
         Entity entity = application.getEntityByName(entityData.getName()).orElseThrow();
         var id = entityData.getId();
 

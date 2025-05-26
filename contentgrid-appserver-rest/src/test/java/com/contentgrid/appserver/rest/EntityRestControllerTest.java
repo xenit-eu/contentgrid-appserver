@@ -23,8 +23,6 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
@@ -106,12 +104,6 @@ class EntityRestControllerTest {
         @Primary
         public ApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(APPLICATION);
-        }
-
-        @Bean
-        @Primary
-        EntityDataRepresentationModelAssemblerProvider assemblerProvider() {
-            return application -> new EntityDataRepresentationModelAssembler(APPLICATION);
         }
 
         @Bean
