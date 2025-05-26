@@ -1,0 +1,79 @@
+package com.contentgrid.appserver.rest;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.registry.ApplicationResolver;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest
+@AutoConfigureMockMvc(printOnlyOnFailure = false)
+class RootRestControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoSpyBean
+    private ApplicationResolver resolver;
+
+    @Test
+    void getRoot() throws Exception {
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(Application.builder()
+                        .name(ApplicationName.of("test-application"))
+                        .entity(Entity.builder()
+                                .name(EntityName.of("person"))
+                                .table(TableName.of("person"))
+                                .pathSegment(PathSegmentName.of("persons"))
+                                .collectionLinkRel(LinkRel.parse("d:persons"))
+                                .itemLinkRel(LinkRel.parse("d:person"))
+                                .build())
+                        .entity(Entity.builder()
+                                .name(EntityName.of("invoice"))
+                                .table(TableName.of("invoice"))
+                                .pathSegment(PathSegmentName.of("invoices"))
+                                .collectionLinkRel(LinkRel.parse("d:invoices"))
+                                .itemLinkRel(LinkRel.parse("d:invoice"))
+                                .build())
+                        .entity(Entity.builder()
+                                .name(EntityName.of("invoice-item"))
+                                .table(TableName.of("invoice_item"))
+                                .pathSegment(PathSegmentName.of("invoice-items"))
+                                .collectionLinkRel(LinkRel.parse("d:invoice-items"))
+                                .itemLinkRel(LinkRel.parse("d:invoice-item"))
+                                .build())
+                        .build());
+        mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.d:persons.href").value("http://localhost/persons?page=0"))
+                .andExpect(jsonPath("$._links.d:invoices.href").value("http://localhost/invoices?page=0"))
+                .andExpect(jsonPath("$._links.d:invoice-items.href").value("http://localhost/invoice-items?page=0")); // TODO: remove query parameter?
+    }
+
+    @Test
+    void getRootNoEntities() throws Exception {
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(Application.builder()
+                        .name(ApplicationName.of("test-application"))
+                        .build());
+        mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links").doesNotExist());
+    }
+
+}
