@@ -9,7 +9,6 @@ import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -43,8 +42,7 @@ public class EntityDataRepresentationModel extends RepresentationModel<EntityDat
         return switch (data) {
             case SimpleAttributeData simple -> simple.getValue();
             case CompositeAttributeData composite -> composite.getAttributes().stream()
-                    .map(sub -> Map.entry(sub.getName(), attributeValue(sub)))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(HashMap::new, (map, sub) -> map.put(sub.getName(), attributeValue(sub)), HashMap::putAll);
         };
     }
 }
