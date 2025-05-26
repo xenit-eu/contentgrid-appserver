@@ -121,7 +121,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
                 .description(jsonEntity.getDescription())
                 .table(TableName.of(jsonEntity.getTable()))
-                .primaryKey(fromJsonSimpleAttribute(jsonEntity.getPrimaryKey()))
+                .primaryKey(primaryKey)
                 .attributes(attributes)
                 .searchFilters(searchFilters)
                 .build();
