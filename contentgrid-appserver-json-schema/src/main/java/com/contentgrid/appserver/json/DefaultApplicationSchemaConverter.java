@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -23,7 +24,10 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.json.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.json.exceptions.InValidJsonException;
+import com.contentgrid.appserver.json.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.json.model.AllowedValuesConstraint;
 import com.contentgrid.appserver.json.model.ApplicationSchema;
@@ -90,7 +94,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         }
     }
 
-    private com.contentgrid.appserver.application.model.Entity convertEntity (
+    private com.contentgrid.appserver.application.model.Entity convertEntity(
             Entity jsonEntity) throws InValidJsonException {
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = convertSimpleAttribute(
                 jsonEntity.getPrimaryKey());
@@ -100,12 +104,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } else {
             attributes = convertAttributeList(jsonEntity.getAttributes());
         }
-        List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> searchFilters =
-                jsonEntity.getSearchFilters() == null
-                        ? List.of()
-                        : jsonEntity.getSearchFilters().stream()
-                                .map(sf -> convertSearchFilter(sf, attributes, primaryKey))
-                                .collect(Collectors.toList());
+        List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> searchFilters;
+        if (jsonEntity.getSearchFilters() == null) {
+            searchFilters = List.of();
+        } else {
+            List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> list = new ArrayList<>();
+            for (SearchFilter sf : jsonEntity.getSearchFilters()) {
+                com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = convertSearchFilter(
+                        sf, attributes, primaryKey);
+                list.add(searchFilter);
+            }
+            searchFilters = list;
+        }
         return com.contentgrid.appserver.application.model.Entity.builder()
                 .name(EntityName.of(jsonEntity.getName()))
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
@@ -221,10 +231,10 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         };
     }
 
-    private com.contentgrid.appserver.application.model.searchfilters.SearchFilter convertSearchFilter(
+    private com.contentgrid.appserver.application.model.searchfilters.SearchFilter convertSearchFilter (
             SearchFilter jsonFilter,
             List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes,
-            com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey) {
+            com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey) throws InValidJsonException {
         var type = jsonFilter.getType();
         var attrName = jsonFilter.getAttributeName();
         var filterName = FilterName.of(
@@ -236,15 +246,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .findFirst()
                 .orElse(primaryKey.getName().getValue().equals(attrName) ? primaryKey : null);
         if (attribute == null) {
-            throw new IllegalArgumentException("Attribute for filter not found: " + attrName);
+            throw new AttributeNotFoundException("Attribute for filter not found: " + attrName);
         }
         if (!(attribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute simpleAttribute)) {
-            throw new IllegalArgumentException("Attribute for filter is not a simple attribute: " + attrName);
+            throw new InvalidAttributeTypeException("Attribute for filter is not a simple attribute: " + attrName);
         } else {
             return switch (type) {
                 case "prefix" -> PrefixSearchFilter.builder().name(filterName).attribute(simpleAttribute).build();
                 case "exact" -> ExactSearchFilter.builder().name(filterName).attribute(simpleAttribute).build();
-                default -> throw new IllegalArgumentException("Unknown filter type: " + type);
+                default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
             };
         }
     }
@@ -254,7 +264,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return entities.stream()
                 .filter(e -> e.getName().getValue().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Entity not found: " + name));
+                .orElseThrow(() -> new EntityNotFoundException("Entity not found: " + name));
     }
 
     private com.contentgrid.appserver.application.model.relations.Relation convertRelation(
