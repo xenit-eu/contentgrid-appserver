@@ -34,8 +34,12 @@ public class LinkRel {
         return of(curie, rel);
     }
 
+    public boolean isCuried() {
+        return curie != null;
+    }
+
     public String getValue() {
-        if (curie != null) {
+        if (isCuried()) {
             return getCurie() + ":" + getRel();
         } else {
             return getRel();
