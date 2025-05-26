@@ -115,7 +115,7 @@
           },
           {
             "type": "object",
-            "description": "A one-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The targetEndpoint cannot be required.",
+            "description": "A one-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The sourceEndPoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
