@@ -101,9 +101,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             attributes = convertAttributeList(jsonEntity.getAttributes());
         }
         List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> searchFilters =
-                jsonEntity.getSearchFilters() == null ? List.of() : jsonEntity.getSearchFilters().stream()
-                        .map(sf -> convertSearchFilter(sf, attributes, primaryKey))
-                        .collect(Collectors.toList());
+                jsonEntity.getSearchFilters() == null
+                        ? List.of()
+                        : jsonEntity.getSearchFilters().stream()
+                                .map(sf -> convertSearchFilter(sf, attributes, primaryKey))
+                                .collect(Collectors.toList());
         return com.contentgrid.appserver.application.model.Entity.builder()
                 .name(EntityName.of(jsonEntity.getName()))
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
