@@ -15,7 +15,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
@@ -37,8 +37,7 @@ class EntityTest {
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .description("entity description")
                 .primaryKey(PRIMARY_KEY)
@@ -50,8 +49,7 @@ class EntityTest {
 
         assertEquals(EntityName.of("entity"), entity.getName());
         assertEquals(PathSegmentName.of("segment"), entity.getPathSegment());
-        assertEquals(LinkRel.parse("d:collection"), entity.getCollectionLinkRel());
-        assertEquals(LinkRel.parse("d:item"), entity.getItemLinkRel());
+        assertEquals(LinkName.of("link"), entity.getLinkName());
         assertEquals(TableName.of("table"), entity.getTable());
         assertEquals("entity description", entity.getDescription());
 
@@ -98,8 +96,7 @@ class EntityTest {
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
@@ -116,8 +113,7 @@ class EntityTest {
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .primaryKey(primaryKey)
                 .attribute(ATTRIBUTE1)
@@ -136,8 +132,7 @@ class EntityTest {
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .primaryKey(primaryKey)
                 .attribute(ATTRIBUTE1)
@@ -155,8 +150,7 @@ class EntityTest {
         var builder1 = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
@@ -168,8 +162,7 @@ class EntityTest {
         var builder2 = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
@@ -184,8 +177,7 @@ class EntityTest {
         var builder1 = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
@@ -197,8 +189,7 @@ class EntityTest {
         var builder2 = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
@@ -212,8 +203,7 @@ class EntityTest {
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
@@ -227,8 +217,7 @@ class EntityTest {
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
-                .collectionLinkRel(LinkRel.parse("d:collection"))
-                .itemLinkRel(LinkRel.parse("d:item"))
+                .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .searchFilter(FILTER1)

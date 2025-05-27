@@ -28,7 +28,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -92,8 +92,7 @@ class JOOQThunkExpressionVisitorTest {
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
-            .collectionLinkRel(LinkRel.parse("d:persons"))
-            .itemLinkRel(LinkRel.parse("d:person"))
+            .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(ExactSearchFilter.builder()
@@ -142,7 +141,7 @@ class JOOQThunkExpressionVisitorTest {
     private static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
-            .linkRel(LinkRel.parse("d:content"))
+            .linkName(LinkName.of("content"))
             .idColumn(ColumnName.of("content__id"))
             .filenameColumn(ColumnName.of("content__filename"))
             .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -183,8 +182,7 @@ class JOOQThunkExpressionVisitorTest {
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
-            .collectionLinkRel(LinkRel.parse("d:invoices"))
-            .itemLinkRel(LinkRel.parse("d:invoice"))
+            .linkName(LinkName.of("invoices"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -203,14 +201,14 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
-                    .linkRel(LinkRel.parse("d:customer"))
+                    .linkName(LinkName.of("customer"))
                     .required(true)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
-                    .linkRel(LinkRel.parse("d:invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -220,7 +218,7 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(PERSON)
                     .name(RelationName.of("friends"))
                     .pathSegment(PathSegmentName.of("friends"))
-                    .linkRel(LinkRel.parse("d:friends"))
+                    .linkName(LinkName.of("friends"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -235,13 +233,13 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
-                    .linkRel(LinkRel.parse("d:previous_invoice"))
+                    .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
-                    .linkRel(LinkRel.parse("d:next_invoice"))
+                    .linkName(LinkName.of("next_invoice"))
                     .build())
             .targetReference(ColumnName.of("previous_invoice"))
             .build();

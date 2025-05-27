@@ -12,7 +12,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
@@ -46,6 +46,7 @@ public class Entity {
      * @param pathSegment the url path segment
      * @param description the description for this entity
      * @param table the database table name
+     * @param linkName the link name used in link relation 'cg:entity'
      * @param attributes list of attributes for this entity (excluding primary key attribute)
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
      * @param searchFilters list of search filters for this entity
@@ -59,8 +60,7 @@ public class Entity {
             @NonNull PathSegmentName pathSegment,
             String description,
             @NonNull TableName table,
-            @NonNull LinkRel collectionLinkRel,
-            @NonNull LinkRel itemLinkRel,
+            @NonNull LinkName linkName,
             @Singular List<Attribute> attributes,
             SimpleAttribute primaryKey,
             @Singular List<SearchFilter> searchFilters
@@ -69,8 +69,7 @@ public class Entity {
         this.pathSegment = pathSegment;
         this.description = description;
         this.table = table;
-        this.collectionLinkRel = collectionLinkRel;
-        this.itemLinkRel = itemLinkRel;
+        this.linkName = linkName;
         if (primaryKey == null) {
             this.primaryKey = SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build();
         } else if (Type.UUID.equals(primaryKey.getType())) {
@@ -133,10 +132,7 @@ public class Entity {
     TableName table;
 
     @NonNull
-    LinkRel collectionLinkRel;
-
-    @NonNull
-    LinkRel itemLinkRel;
+    LinkName linkName;
 
     /**
      * The primary key attribute of this entity.

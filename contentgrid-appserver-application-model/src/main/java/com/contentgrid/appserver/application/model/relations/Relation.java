@@ -2,7 +2,7 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
@@ -70,9 +70,10 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         PathSegmentName pathSegment;
 
         /**
-         * The link relation name of this relation endpoint.
+         * The link name of this relation endpoint.
+         * This value is used as the name property in the 'cg:relation' link relation.
          */
-        LinkRel linkRel;
+        LinkName linkName;
 
         String description;
 
@@ -85,7 +86,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         boolean required;
 
         @Builder
-        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, LinkRel linkRel, String description, boolean required) {
+        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, LinkName linkName, String description, boolean required) {
             if (name != null && pathSegment == null) {
                 throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
             }
@@ -98,16 +99,17 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             if (name == null && required) {
                 throw new InvalidRelationException("Relation endpoint can not be required without name");
             }
-            if (pathSegment == null && linkRel != null) {
-                throw new InvalidRelationException("Relation endpoint with linkRel %s does not have a pathSegment".formatted(linkRel));
+            if (pathSegment == null && linkName != null) {
+                throw new InvalidRelationException("Relation endpoint with linkName %s does not have a pathSegment".formatted(
+                        linkName));
             }
-            if (pathSegment != null && linkRel == null) {
-                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a linkRel".formatted(pathSegment));
+            if (pathSegment != null && linkName == null) {
+                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a linkName".formatted(pathSegment));
             }
             this.entity = entity;
             this.name = name;
             this.pathSegment = pathSegment;
-            this.linkRel = linkRel;
+            this.linkName = linkName;
             this.description = description;
             this.required = required;
         }
@@ -121,7 +123,8 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         public boolean collides(RelationEndPoint other) {
             return (this.name != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.name, other.name))
                     || (this.pathSegment != null && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment()) && Objects.equals(this.pathSegment, other.getPathSegment()))
-                    || (this.linkRel != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.linkRel, other.linkRel));
+                    || (this.linkName
+                    != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.linkName, other.linkName));
         }
     }
 

@@ -10,7 +10,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -28,16 +28,14 @@ class RelationTest {
             .name(EntityName.of("Source"))
             .table(TableName.of("source"))
             .pathSegment(PathSegmentName.of("sources"))
-            .collectionLinkRel(LinkRel.parse("d:sources"))
-            .itemLinkRel(LinkRel.parse("d:source"))
+            .linkName(LinkName.of("sources"))
             .attribute(ATTRIBUTE1)
             .build();
     private static final Entity TARGET = Entity.builder()
             .name(EntityName.of("Target"))
             .table(TableName.of("target"))
             .pathSegment(PathSegmentName.of("targets"))
-            .collectionLinkRel(LinkRel.parse("d:targets"))
-            .itemLinkRel(LinkRel.parse("d:target"))
+            .linkName(LinkName.of("targets"))
             .attribute(ATTRIBUTE2)
             .build();
 
@@ -46,10 +44,10 @@ class RelationTest {
 
     static Stream<RelationEndPoint.RelationEndPointBuilder> invalidRelationEndPoints() {
         return Stream.of(
-                RelationEndPoint.builder().entity(SOURCE).pathSegment(PathSegmentName.of("target")).linkRel(LinkRel.parse("d:target")),
-                RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).linkRel(LinkRel.parse("d:target")),
+                RelationEndPoint.builder().entity(SOURCE).pathSegment(PathSegmentName.of("target")).linkName(LinkName.of("target")),
+                RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).linkName(LinkName.of("target")),
                 RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")),
-                RelationEndPoint.builder().entity(SOURCE).linkRel(LinkRel.parse("d:target")),
+                RelationEndPoint.builder().entity(SOURCE).linkName(LinkName.of("target")),
                 RelationEndPoint.builder().entity(SOURCE).required(true),
                 RelationEndPoint.builder().entity(SOURCE).description(SOURCE_DESCRIPTION)
         );
@@ -68,7 +66,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
@@ -78,10 +76,10 @@ class RelationTest {
         assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:target"), oneToOneRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("target"), oneToOneRelation.getSourceEndPoint().getLinkName());
         assertNull(oneToOneRelation.getTargetEndPoint().getName());
         assertNull(oneToOneRelation.getTargetEndPoint().getPathSegment());
-        assertNull(oneToOneRelation.getTargetEndPoint().getLinkRel());
+        assertNull(oneToOneRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSourceEndPoint().getDescription());
         assertFalse(oneToOneRelation.getSourceEndPoint().isRequired());
@@ -101,7 +99,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -109,7 +107,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .targetReference(ColumnName.of("target"))
@@ -118,10 +116,10 @@ class RelationTest {
         assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:target"), oneToOneRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("target"), oneToOneRelation.getSourceEndPoint().getLinkName());
         assertEquals(RelationName.of("source"), oneToOneRelation.getTargetEndPoint().getName());
         assertEquals(PathSegmentName.of("source"), oneToOneRelation.getTargetEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:source"), oneToOneRelation.getTargetEndPoint().getLinkRel());
+        assertEquals(LinkName.of("source"), oneToOneRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("target"), oneToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, oneToOneRelation.getSourceEndPoint().getDescription());
         assertEquals(TARGET_DESCRIPTION, oneToOneRelation.getTargetEndPoint().getDescription());
@@ -142,13 +140,13 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("other"))
-                        .linkRel(LinkRel.parse("d:other"))
+                        .linkName(LinkName.of("other"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
@@ -161,32 +159,32 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:other"))
+                        .linkName(LinkName.of("other"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
     }
 
     @Test
-    void oneToOne_reflexive_duplicateLinkRel() {
+    void oneToOne_reflexive_duplicateLinkName() {
         var builder = SourceOneToOneRelation.builder()
                 .sourceEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("other"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
@@ -199,7 +197,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -207,7 +205,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .required(true)
                         .build())
@@ -222,14 +220,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .required(true)
                         .build())
@@ -243,7 +241,7 @@ class RelationTest {
                 .sourceEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE).name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -251,7 +249,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .sourceReference(ColumnName.of("source"));
@@ -265,14 +263,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("other"))
-                        .linkRel(LinkRel.parse("d:other"))
+                        .linkName(LinkName.of("other"))
                         .required(true)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("source"));
         assertThrows(InvalidRelationException.class, builder::build);
@@ -285,13 +283,13 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("other"))
-                        .linkRel(LinkRel.parse("d:other"))
+                        .linkName(LinkName.of("other"))
                         .required(true)
                         .build())
                 .sourceReference(ColumnName.of("source"));
@@ -304,7 +302,7 @@ class RelationTest {
                 .sourceEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE).name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
@@ -314,10 +312,10 @@ class RelationTest {
         assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:target"), manyToOneRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("target"), manyToOneRelation.getSourceEndPoint().getLinkName());
         assertNull(manyToOneRelation.getTargetEndPoint().getName());
         assertNull(manyToOneRelation.getTargetEndPoint().getPathSegment());
-        assertNull(manyToOneRelation.getTargetEndPoint().getLinkRel());
+        assertNull(manyToOneRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSourceEndPoint().getDescription());
         assertFalse(manyToOneRelation.getSourceEndPoint().isRequired());
@@ -336,7 +334,7 @@ class RelationTest {
                 .sourceEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE).name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -344,7 +342,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .targetReference(ColumnName.of("target"))
@@ -353,10 +351,10 @@ class RelationTest {
         assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:target"), manyToOneRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("target"), manyToOneRelation.getSourceEndPoint().getLinkName());
         assertEquals(RelationName.of("sources"), manyToOneRelation.getTargetEndPoint().getName());
         assertEquals(PathSegmentName.of("sources"), manyToOneRelation.getTargetEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:sources"), manyToOneRelation.getTargetEndPoint().getLinkRel());
+        assertEquals(LinkName.of("sources"), manyToOneRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("target"), manyToOneRelation.getTargetReference());
         assertEquals(SOURCE_DESCRIPTION, manyToOneRelation.getSourceEndPoint().getDescription());
         assertEquals(TARGET_DESCRIPTION, manyToOneRelation.getTargetEndPoint().getDescription());
@@ -377,14 +375,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
-                        .linkRel(LinkRel.parse("d:target"))
+                        .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
                         .required(true)
                         .build())
@@ -399,7 +397,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
@@ -409,10 +407,10 @@ class RelationTest {
         assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:targets"), oneToManyRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("targets"), oneToManyRelation.getSourceEndPoint().getLinkName());
         assertNull(oneToManyRelation.getTargetEndPoint().getName());
         assertNull(oneToManyRelation.getTargetEndPoint().getPathSegment());
-        assertNull(oneToManyRelation.getTargetEndPoint().getLinkRel());
+        assertNull(oneToManyRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
         assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSourceEndPoint().getDescription());
         assertFalse(oneToManyRelation.getSourceEndPoint().isRequired());
@@ -432,14 +430,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .required(true)
                         .build())
@@ -449,10 +447,10 @@ class RelationTest {
         assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:targets"), oneToManyRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("targets"), oneToManyRelation.getSourceEndPoint().getLinkName());
         assertEquals(RelationName.of("source"), oneToManyRelation.getTargetEndPoint().getName());
         assertEquals(PathSegmentName.of("source"), oneToManyRelation.getTargetEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:source"), oneToManyRelation.getTargetEndPoint().getLinkRel());
+        assertEquals(LinkName.of("source"), oneToManyRelation.getTargetEndPoint().getLinkName());
         assertEquals(ColumnName.of("_source_id__targets"), oneToManyRelation.getSourceReference());
         assertEquals(SOURCE_DESCRIPTION, oneToManyRelation.getSourceEndPoint().getDescription());
         assertEquals(TARGET_DESCRIPTION, oneToManyRelation.getTargetEndPoint().getDescription());
@@ -473,7 +471,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -481,7 +479,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
-                        .linkRel(LinkRel.parse("d:source"))
+                        .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .sourceReference(ColumnName.of("_source_id__targets"));
@@ -495,7 +493,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
@@ -507,10 +505,10 @@ class RelationTest {
         assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:targets"), manyToManyRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("targets"), manyToManyRelation.getSourceEndPoint().getLinkName());
         assertNull(manyToManyRelation.getTargetEndPoint().getName());
         assertNull(manyToManyRelation.getTargetEndPoint().getPathSegment());
-        assertNull(manyToManyRelation.getTargetEndPoint().getLinkRel());
+        assertNull(manyToManyRelation.getTargetEndPoint().getLinkName());
         assertEquals(TableName.of("source__targets"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
@@ -532,14 +530,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .joinTable(TableName.of("source__targets"))
@@ -550,10 +548,10 @@ class RelationTest {
         assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:targets"), manyToManyRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("targets"), manyToManyRelation.getSourceEndPoint().getLinkName());
         assertEquals(RelationName.of("sources"), manyToManyRelation.getTargetEndPoint().getName());
         assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getTargetEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:sources"), manyToManyRelation.getTargetEndPoint().getLinkRel());
+        assertEquals(LinkName.of("sources"), manyToManyRelation.getTargetEndPoint().getLinkName());
         assertEquals(TableName.of("source__targets"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("target_id"), manyToManyRelation.getTargetReference());
@@ -576,13 +574,13 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("others"))
                         .pathSegment(PathSegmentName.of("others"))
-                        .linkRel(LinkRel.parse("d:others"))
+                        .linkName(LinkName.of("others"))
                         .build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_src_id"))
@@ -592,10 +590,10 @@ class RelationTest {
         assertEquals(SOURCE, manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("sources"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getSourceEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:sources"), manyToManyRelation.getSourceEndPoint().getLinkRel());
+        assertEquals(LinkName.of("sources"), manyToManyRelation.getSourceEndPoint().getLinkName());
         assertEquals(RelationName.of("others"), manyToManyRelation.getTargetEndPoint().getName());
         assertEquals(PathSegmentName.of("others"), manyToManyRelation.getTargetEndPoint().getPathSegment());
-        assertEquals(LinkRel.parse("d:others"), manyToManyRelation.getTargetEndPoint().getLinkRel());
+        assertEquals(LinkName.of("others"), manyToManyRelation.getTargetEndPoint().getLinkName());
         assertEquals(TableName.of("source__sources"), manyToManyRelation.getJoinTable());
         assertEquals(ColumnName.of("source_src_id"), manyToManyRelation.getSourceReference());
         assertEquals(ColumnName.of("source_tgt_id"), manyToManyRelation.getTargetReference());
@@ -610,13 +608,13 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("others"))
-                        .linkRel(LinkRel.parse("d:others"))
+                        .linkName(LinkName.of("others"))
                         .build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_src_id"))
@@ -631,13 +629,13 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
                         .name(RelationName.of("others"))
                         .pathSegment(PathSegmentName.of("others"))
-                        .linkRel(LinkRel.parse("d:others"))
+                        .linkName(LinkName.of("others"))
                         .build())
                 .joinTable(TableName.of("source__sources"))
                 .sourceReference(ColumnName.of("source_id"))
@@ -652,7 +650,7 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .required(true)
                         .build())
@@ -660,7 +658,7 @@ class RelationTest {
                         .entity(TARGET)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
                         .build())
                 .joinTable(TableName.of("source__targets"))
@@ -676,14 +674,14 @@ class RelationTest {
                         .entity(SOURCE)
                         .name(RelationName.of("targets"))
                         .pathSegment(PathSegmentName.of("targets"))
-                        .linkRel(LinkRel.parse("d:targets"))
+                        .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
                         .name(RelationName.of("sources"))
                         .pathSegment(PathSegmentName.of("sources"))
-                        .linkRel(LinkRel.parse("d:sources"))
+                        .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
                         .required(true)
                         .build())

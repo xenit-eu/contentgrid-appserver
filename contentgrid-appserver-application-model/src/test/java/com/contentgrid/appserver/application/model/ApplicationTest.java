@@ -28,7 +28,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -41,8 +41,7 @@ class ApplicationTest {
             .name(EntityName.of("Invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
-            .collectionLinkRel(LinkRel.parse("d:invoices"))
-            .itemLinkRel(LinkRel.parse("d:invoice"))
+            .linkName(LinkName.of("invoices"))
             .attribute(SimpleAttribute.builder().name(AttributeName.of("invoiceNumber"))
                     .column(ColumnName.of("invoice_number")).type(Type.TEXT).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("amount")).column(ColumnName.of("amount"))
@@ -51,7 +50,7 @@ class ApplicationTest {
                     .type(Type.BOOLEAN).build())
             .attribute(ContentAttribute.builder().name(AttributeName.of("content"))
                     .pathSegment(PathSegmentName.of("content"))
-                    .linkRel(LinkRel.parse("d:content"))
+                    .linkName(LinkName.of("content"))
                     .idColumn(ColumnName.of("content__id"))
                     .filenameColumn(ColumnName.of("content__filename"))
                     .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -63,8 +62,7 @@ class ApplicationTest {
             .name(EntityName.of("Customer"))
             .table(TableName.of("customer"))
             .pathSegment(PathSegmentName.of("customers"))
-            .collectionLinkRel(LinkRel.parse("d:customers"))
-            .itemLinkRel(LinkRel.parse("d:customer"))
+            .linkName(LinkName.of("customers"))
             .attribute(SimpleAttribute.builder().name(AttributeName.of("name")).column(ColumnName.of("name"))
                     .description("The name of the customer").type(Type.TEXT).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email"))
@@ -73,10 +71,10 @@ class ApplicationTest {
 
     private static final Relation MANY_TO_ONE = ManyToOneRelation.builder()
             .sourceEndPoint(Relation.RelationEndPoint.builder().name(RelationName.of("customer")).entity(INVOICE)
-                    .pathSegment(PathSegmentName.of("customer")).linkRel(LinkRel.parse("d:customer"))
+                    .pathSegment(PathSegmentName.of("customer")).linkName(LinkName.of("customer"))
                     .description("The customer of the invoice").build())
             .targetEndPoint(Relation.RelationEndPoint.builder().name(RelationName.of("invoices")).entity(CUSTOMER)
-                    .pathSegment(PathSegmentName.of("invoices")).linkRel(LinkRel.parse("d:invoices"))
+                    .pathSegment(PathSegmentName.of("invoices")).linkName(LinkName.of("invoices"))
                     .description("The invoices of the customer").build())
             .targetReference(ColumnName.of("customer_id"))
             .build();
@@ -111,8 +109,7 @@ class ApplicationTest {
                         .name(INVOICE.getName())
                         .table(TableName.of("other_table"))
                         .pathSegment(PathSegmentName.of("other-segment"))
-                        .collectionLinkRel(LinkRel.parse("other-collection"))
-                        .itemLinkRel(LinkRel.parse("other-item"))
+                        .linkName(LinkName.of("other-link"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -126,8 +123,7 @@ class ApplicationTest {
                         .name(EntityName.of("other-entity"))
                         .table(INVOICE.getTable())
                         .pathSegment(PathSegmentName.of("other-segment"))
-                        .collectionLinkRel(LinkRel.parse("other-collection"))
-                        .itemLinkRel(LinkRel.parse("other-item"))
+                        .linkName(LinkName.of("other-link"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -157,38 +153,21 @@ class ApplicationTest {
                         .name(EntityName.of("other-entity"))
                         .table(TableName.of("other_table"))
                         .pathSegment(INVOICE.getPathSegment())
-                        .collectionLinkRel(LinkRel.parse("other-collection"))
-                        .itemLinkRel(LinkRel.parse("other-item"))
+                        .linkName(LinkName.of("other-link"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
-    void application_duplicateCollectionLinkRel() {
+    void application_duplicateLinkName() {
         var builder = Application.builder()
-                .name(ApplicationName.of("duplicateCollectionLinkRelApplication"))
+                .name(ApplicationName.of("duplicateLinkNameApplication"))
                 .entity(INVOICE)
                 .entity(Entity.builder()
                         .name(EntityName.of("other-entity"))
                         .table(TableName.of("other_table"))
                         .pathSegment(PathSegmentName.of("other-segment"))
-                        .collectionLinkRel(INVOICE.getCollectionLinkRel())
-                        .itemLinkRel(LinkRel.parse("other-item"))
-                        .build());
-        assertThrows(DuplicateElementException.class, builder::build);
-    }
-
-    @Test
-    void application_duplicateItemLinkRel() {
-        var builder = Application.builder()
-                .name(ApplicationName.of("duplicateItemLinkRelApplication"))
-                .entity(INVOICE)
-                .entity(Entity.builder()
-                        .name(EntityName.of("other-entity"))
-                        .table(TableName.of("other_table"))
-                        .pathSegment(PathSegmentName.of("other-segment"))
-                        .collectionLinkRel(LinkRel.parse("other-collection"))
-                        .itemLinkRel(INVOICE.getItemLinkRel())
+                        .linkName(INVOICE.getLinkName())
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -207,7 +186,7 @@ class ApplicationTest {
                                 .entity(CUSTOMER)
                                 .name(RelationName.of("name_on_target"))
                                 .pathSegment(PathSegmentName.of("segment-on-target"))
-                                .linkRel(LinkRel.parse("rel_on_target"))
+                                .linkName(LinkName.of("rel_on_target"))
                                 .build())
                         .joinTable(TableName.of("join_table"))
                         .sourceReference(ColumnName.of("ref_on_source"))
@@ -229,7 +208,7 @@ class ApplicationTest {
                                 .entity(INVOICE)
                                 .name(RelationName.of("name_on_source"))
                                 .pathSegment(PathSegmentName.of("segment-on-source"))
-                                .linkRel(LinkRel.parse("rel_on_source"))
+                                .linkName(LinkName.of("rel_on_source"))
                                 .build())
                         .targetEndPoint(MANY_TO_ONE.getTargetEndPoint())
                         .targetReference(ColumnName.of("ref_on_target"))
@@ -250,7 +229,7 @@ class ApplicationTest {
                                 .entity(CUSTOMER)
                                 .name(RelationName.of("name_on_source"))
                                 .pathSegment(PathSegmentName.of("segment-on-source"))
-                                .linkRel(LinkRel.parse("rel_on_source"))
+                                .linkName(LinkName.of("rel_on_source"))
                                 .build())
                         .targetEndPoint(MANY_TO_ONE.getSourceEndPoint())
                         .sourceReference(ColumnName.of("ref_on_source"))
@@ -270,18 +249,17 @@ class ApplicationTest {
                                         .name(EntityName.of("Non-existing"))
                                         .table(TableName.of("non_existing"))
                                         .pathSegment(PathSegmentName.of("non-existings"))
-                                        .collectionLinkRel(LinkRel.parse("non-existings"))
-                                        .itemLinkRel(LinkRel.parse("non-existing"))
+                                        .linkName(LinkName.of("non-existings"))
                                         .build())
                                 .name(RelationName.of("name_on_source"))
                                 .pathSegment(PathSegmentName.of("segment-on-source"))
-                                .linkRel(LinkRel.parse("rel_on_source"))
+                                .linkName(LinkName.of("rel_on_source"))
                                 .build())
                         .targetEndPoint(RelationEndPoint.builder()
                                 .entity(INVOICE)
                                 .name(RelationName.of("name_on_target"))
                                 .pathSegment(PathSegmentName.of("segment-on-target"))
-                                .linkRel(LinkRel.parse("rel_on_target"))
+                                .linkName(LinkName.of("rel_on_target"))
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
@@ -299,19 +277,18 @@ class ApplicationTest {
                                 .entity(INVOICE)
                                 .name(RelationName.of("name_on_source"))
                                 .pathSegment(PathSegmentName.of("segment-on-source"))
-                                .linkRel(LinkRel.parse("rel_on_source"))
+                                .linkName(LinkName.of("rel_on_source"))
                                 .build())
                         .targetEndPoint(RelationEndPoint.builder()
                                 .entity(Entity.builder()
                                         .name(EntityName.of("Non-existing"))
                                         .table(TableName.of("non_existing"))
                                         .pathSegment(PathSegmentName.of("non-existings"))
-                                        .collectionLinkRel(LinkRel.parse("non-existings"))
-                                        .itemLinkRel(LinkRel.parse("non-existing"))
+                                        .linkName(LinkName.of("non-existings"))
                                         .build())
                                 .name(RelationName.of("name_on_target"))
                                 .pathSegment(PathSegmentName.of("segment-on-target"))
-                                .linkRel(LinkRel.parse("rel_on_target"))
+                                .linkName(LinkName.of("rel_on_target"))
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
@@ -348,8 +325,7 @@ class ApplicationTest {
                 .name(EntityName.of("customer"))
                 .table(TableName.of("customer"))
                 .pathSegment(PathSegmentName.of("customers"))
-                .collectionLinkRel(LinkRel.parse("d:customers"))
-                .itemLinkRel(LinkRel.parse("d:customer"))
+                .linkName(LinkName.of("customers"))
                 .primaryKey(customerId)
                 .attribute(customerName)
                 .searchFilter(
@@ -374,7 +350,7 @@ class ApplicationTest {
 
         var orderDocument = ContentAttribute.builder().name(AttributeName.of("document"))
                 .pathSegment(PathSegmentName.of("document"))
-                .linkRel(LinkRel.parse("d:document"))
+                .linkName(LinkName.of("document"))
                 .description("A file attachment representing the document associated with the order.")
                 .idColumn(ColumnName.of("document__id"))
                 .filenameColumn(ColumnName.of("document__filename"))
@@ -417,8 +393,7 @@ class ApplicationTest {
                 .description("Represents an order placed by a customer, consisting of various products.")
                 .table(TableName.of("order"))
                 .pathSegment(PathSegmentName.of("orders"))
-                .collectionLinkRel(LinkRel.parse("d:orders"))
-                .itemLinkRel(LinkRel.parse("d:order"))
+                .linkName(LinkName.of("orders"))
                 .primaryKey(orderId)
                 .attribute(orderNumber)
                 .searchFilter(
@@ -450,8 +425,7 @@ class ApplicationTest {
                 .name(EntityName.of("product"))
                 .table(TableName.of("product"))
                 .pathSegment(PathSegmentName.of("products"))
-                .collectionLinkRel(LinkRel.parse("d:products"))
-                .itemLinkRel(LinkRel.parse("d:product"))
+                .linkName(LinkName.of("products"))
                 .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id")).build())
                 .attribute(productName)
                 .searchFilter(PrefixSearchFilter.builder().attribute(productName).name(FilterName.of("name")).build())
@@ -469,7 +443,7 @@ class ApplicationTest {
                         OneToManyRelation.builder()
                                 .sourceEndPoint(RelationEndPoint.builder().entity(customer).name(RelationName.of("orders"))
                                         .pathSegment(PathSegmentName.of("orders"))
-                                        .linkRel(LinkRel.parse("d:orders"))
+                                        .linkName(LinkName.of("orders"))
                                         .description("Represents the orders placed by a customer.")
                                         .build())
                                 .targetEndPoint(RelationEndPoint.builder().entity(order).build())
@@ -481,7 +455,7 @@ class ApplicationTest {
                         ManyToManyRelation.builder()
                                 .sourceEndPoint(RelationEndPoint.builder().entity(order).name(RelationName.of("products"))
                                         .pathSegment(PathSegmentName.of("products"))
-                                        .linkRel(LinkRel.parse("d:products"))
+                                        .linkName(LinkName.of("products"))
                                         .description("Represents the products in an order.")
                                         .build())
                                 .targetEndPoint(RelationEndPoint.builder().entity(product).build())

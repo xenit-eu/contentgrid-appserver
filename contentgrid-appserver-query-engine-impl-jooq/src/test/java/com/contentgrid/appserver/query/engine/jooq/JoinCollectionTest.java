@@ -13,7 +13,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -34,24 +34,21 @@ class JoinCollectionTest {
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
-            .collectionLinkRel(LinkRel.parse("d:persons"))
-            .itemLinkRel(LinkRel.parse("d:person"))
+            .linkName(LinkName.of("persons"))
             .build();
 
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
-            .collectionLinkRel(LinkRel.parse("d:invoices"))
-            .itemLinkRel(LinkRel.parse("d:invoice"))
+            .linkName(LinkName.of("invoices"))
             .build();
 
     private static final Entity PRODUCT = Entity.builder()
             .name(EntityName.of("product"))
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
-            .collectionLinkRel(LinkRel.parse("d:products"))
-            .itemLinkRel(LinkRel.parse("d:product"))
+            .linkName(LinkName.of("products"))
             .build();
 
     private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
@@ -59,13 +56,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
-                    .linkRel(LinkRel.parse("d:previous_invoice"))
+                    .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
-                    .linkRel(LinkRel.parse("d:next_invoice"))
+                    .linkName(LinkName.of("next_invoice"))
                     .build())
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
@@ -77,13 +74,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
-                    .linkRel(LinkRel.parse("d:customer"))
+                    .linkName(LinkName.of("customer"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
-                    .linkRel(LinkRel.parse("d:invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -95,13 +92,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("products"))
                     .pathSegment(PathSegmentName.of("products"))
-                    .linkRel(LinkRel.parse("d:products"))
+                    .linkName(LinkName.of("products"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PRODUCT)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
-                    .linkRel(LinkRel.parse("d:invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .joinTable(TableName.of("invoice__products"))
             .sourceReference(ColumnName.of("invoice_id"))

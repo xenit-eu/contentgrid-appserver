@@ -8,7 +8,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkRel;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -40,29 +40,26 @@ class RootRestControllerTest {
                                 .name(EntityName.of("person"))
                                 .table(TableName.of("person"))
                                 .pathSegment(PathSegmentName.of("persons"))
-                                .collectionLinkRel(LinkRel.parse("d:persons"))
-                                .itemLinkRel(LinkRel.parse("d:person"))
+                                .linkName(LinkName.of("persons"))
                                 .build())
                         .entity(Entity.builder()
                                 .name(EntityName.of("invoice"))
                                 .table(TableName.of("invoice"))
                                 .pathSegment(PathSegmentName.of("invoices"))
-                                .collectionLinkRel(LinkRel.parse("d:invoices"))
-                                .itemLinkRel(LinkRel.parse("d:invoice"))
+                                .linkName(LinkName.of("invoices"))
                                 .build())
                         .entity(Entity.builder()
                                 .name(EntityName.of("invoice-item"))
                                 .table(TableName.of("invoice_item"))
                                 .pathSegment(PathSegmentName.of("invoice-items"))
-                                .collectionLinkRel(LinkRel.parse("d:invoice-items"))
-                                .itemLinkRel(LinkRel.parse("d:invoice-item"))
+                                .linkName(LinkName.of("invoice-items"))
                                 .build())
                         .build());
         mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._links.d:persons.href").value("http://localhost/persons?page=0"))
-                .andExpect(jsonPath("$._links.d:invoices.href").value("http://localhost/invoices?page=0"))
-                .andExpect(jsonPath("$._links.d:invoice-items.href").value("http://localhost/invoice-items?page=0")); // TODO: remove query parameter?
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/persons?page=0"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/invoices?page=0"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items?page=0")); // TODO: remove query parameter?
     }
 
     @Test
