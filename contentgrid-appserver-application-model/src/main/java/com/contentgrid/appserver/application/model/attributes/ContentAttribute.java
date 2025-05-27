@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.NonNull;
@@ -27,16 +28,16 @@ public class ContentAttribute implements CompositeAttribute {
     Set<AttributeFlag> flags;
 
     @NonNull
-    Attribute id;
+    SimpleAttribute id;
 
     @NonNull
-    Attribute filename;
+    SimpleAttribute filename;
 
     @NonNull
-    Attribute mimetype;
+    SimpleAttribute mimetype;
 
     @NonNull
-    Attribute length;
+    SimpleAttribute length;
 
     @Builder
     ContentAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
@@ -62,6 +63,6 @@ public class ContentAttribute implements CompositeAttribute {
 
     @Override
     public List<Attribute> getAttributes() {
-        return Stream.of(id, filename, mimetype, length).toList();
+        return Stream.of(id, filename, mimetype, length).collect(Collectors.toUnmodifiableList());
     }
 }

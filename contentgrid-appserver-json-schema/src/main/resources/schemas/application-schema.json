@@ -67,7 +67,12 @@
                     "prefix"
                   ]
                 }
-              }
+              },
+              "required": [
+                "name",
+                "attributeName",
+                "type"
+              ]
             }
           }
         },
@@ -87,6 +92,7 @@
         "anyOf": [
           {
             "type": "object",
+            "description": "A one-to-one relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The targetEndpoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -114,6 +120,7 @@
           },
           {
             "type": "object",
+            "description": "A one-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. The sourceEndPoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -141,6 +148,7 @@
           },
           {
             "type": "object",
+            "description": "A many-to-many relation between two entities. At least one of sourceEndpoint or targetEndpoint needs both a name and pathSegment. Both sourceEndpoint and targetEndpoint cannot be required.",
             "properties": {
               "sourceEndpoint": {
                 "$ref": "#/$defs/relationEndPoint"
@@ -191,11 +199,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "The name of the relation."
+          "description": "The name used by this endpoint's entity (entityName) to refer to the related entity on the other side. For instance, an 'Invoice' entity might use 'supplier' to refer to its related 'Supplier'. This name and pathSegment must either both be defined or both be absent."
         },
         "pathSegment": {
           "type": "string",
-          "description": "The path segment for the source entity."
+          "description": "The URL path segment used to navigate from this endpoint's entity (entityName) to the related entity or entities. For example, if an 'Invoice' entity links to its 'Supplier', this pathSegment could be 'supplier'. This pathSegment and the name property must either both be defined or both be absent."
         },
         "entityName": {
           "type": "string",

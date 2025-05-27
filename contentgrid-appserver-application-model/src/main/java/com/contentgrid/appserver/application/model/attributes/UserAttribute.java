@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.NonNull;
@@ -23,13 +24,13 @@ public class UserAttribute implements CompositeAttribute {
     Set<AttributeFlag> flags;
 
     @NonNull
-    Attribute id;
+    SimpleAttribute id;
 
     @NonNull
-    Attribute namespace;
+    SimpleAttribute namespace;
 
     @NonNull
-    Attribute username;
+    SimpleAttribute username;
 
     @Builder
     UserAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
@@ -51,6 +52,6 @@ public class UserAttribute implements CompositeAttribute {
 
     @Override
     public List<Attribute> getAttributes() {
-        return Stream.of(id, namespace, username).toList();
+        return Stream.of(id, namespace, username).collect(Collectors.toUnmodifiableList());
     }
 }
