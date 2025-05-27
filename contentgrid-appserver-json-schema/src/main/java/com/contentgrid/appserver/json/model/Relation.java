@@ -3,6 +3,7 @@ package com.contentgrid.appserver.json.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 @JsonTypeInfo(
@@ -18,6 +19,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public abstract sealed class Relation permits OneToOneRelation, OneToManyRelation, ManyToManyRelation {
+
+    @NonNull
     private RelationEndPoint sourceEndpoint;
+
+    @NonNull
     private RelationEndPoint targetEndpoint;
 }

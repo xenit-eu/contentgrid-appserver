@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.List;
         @JsonSubTypes.Type(value = UserAttribute.class, name = "user")
 })
 public abstract sealed class Attribute permits SimpleAttribute, CompositeAttribute, ContentAttribute, UserAttribute {
+    @NonNull
     protected String name;
     protected String description;
 

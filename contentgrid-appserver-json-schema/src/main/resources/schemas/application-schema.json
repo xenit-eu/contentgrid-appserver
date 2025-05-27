@@ -67,7 +67,12 @@
                     "prefix"
                   ]
                 }
-              }
+              },
+              "required": [
+                "name",
+                "attributeName",
+                "type"
+              ]
             }
           }
         },
