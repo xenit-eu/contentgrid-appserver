@@ -24,6 +24,7 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
+import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -36,7 +37,7 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 @Slf4j
 @Configuration
 @EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
-@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class})
+@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class, ContentGridLinksConfiguration.class})
 public class ContentgridAppConfiguration {
 
     @Bean

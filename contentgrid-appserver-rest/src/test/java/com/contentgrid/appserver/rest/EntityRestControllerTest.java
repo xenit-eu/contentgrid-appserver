@@ -8,17 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.ColumnName;
-import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkName;
-import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -51,44 +40,6 @@ class EntityRestControllerTest {
     private ObjectMapper objectMapper;
 
 
-    static final Application APPLICATION = Application.builder()
-            .name(ApplicationName.of("testapp"))
-            .entity(Entity.builder()
-                    .name(EntityName.of("product"))
-                    .table(TableName.of("product"))
-                    .pathSegment(PathSegmentName.of("products"))
-                    .linkName(LinkName.of("products"))
-                    .attribute(SimpleAttribute.builder()
-                            .name(AttributeName.of("name"))
-                            .description("Product name")
-                            .column(ColumnName.of("name"))
-                            .type(Type.TEXT)
-                            .build()
-                    )
-                    .attribute(SimpleAttribute.builder()
-                            .name(AttributeName.of("price"))
-                            .description("Product price")
-                            .column(ColumnName.of("price"))
-                            .type(Type.DOUBLE)
-                            .build()
-                    )
-                    .attribute(SimpleAttribute.builder()
-                            .name(AttributeName.of("release_date"))
-                            .description("Product release date")
-                            .column(ColumnName.of("release_date"))
-                            .type(Type.DATETIME)
-                            .build()
-                    )
-                    .attribute(SimpleAttribute.builder()
-                            .name(AttributeName.of("in_stock"))
-                            .description("Is product in stock")
-                            .column(ColumnName.of("in_stock"))
-                            .type(Type.BOOLEAN)
-                            .build()
-                    )
-                    .build())
-            .build();
-
     static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine();
 
     @TestConfiguration
@@ -102,7 +53,7 @@ class EntityRestControllerTest {
         @Bean
         @Primary
         public ApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
+            return new SingleApplicationResolver(TestApplication.getApplication());
         }
 
         @Bean
@@ -171,7 +122,11 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.name", is("Retrievable Product")))
                 .andExpect(jsonPath("$.price", is(99.99)))
                 .andExpect(jsonPath("$.in_stock", is(true)))
-                .andExpect(jsonPath("$._links.self.href", notNullValue()));
+                .andExpect(jsonPath("$._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
+                .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
+                .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist());
     }
 
     @Test
