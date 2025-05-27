@@ -22,6 +22,9 @@ public class Entity {
     private String pathSegment;
 
     @NonNull
+    private String linkName;
+
+    @NonNull
     private SimpleAttribute primaryKey;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

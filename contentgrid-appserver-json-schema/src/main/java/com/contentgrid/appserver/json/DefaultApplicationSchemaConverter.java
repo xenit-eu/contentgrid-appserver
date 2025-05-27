@@ -21,6 +21,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -119,6 +120,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return com.contentgrid.appserver.application.model.Entity.builder()
                 .name(EntityName.of(jsonEntity.getName()))
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
+                .linkName(LinkName.of(jsonEntity.getLinkName()))
                 .description(jsonEntity.getDescription())
                 .table(TableName.of(jsonEntity.getTable()))
                 .primaryKey(primaryKey)
@@ -181,6 +183,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .description(ca.getDescription())
                 .flags(fromJsonFlags(ca.getFlags()))
                 .pathSegment(PathSegmentName.of(ca.getPathSegment()))
+                .linkName(LinkName.of(ca.getLinkName()))
                 .idColumn(ColumnName.of(ca.getIdColumn()))
                 .filenameColumn(ColumnName.of(ca.getFileNameColumn()))
                 .mimetypeColumn(ColumnName.of(ca.getMimeTypeColumn()))
@@ -286,12 +289,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var targetPath = targetEp.getPathSegment() != null
                 ? PathSegmentName.of(targetEp.getPathSegment())
                 : null;
+        var sourceLink = sourceEp.getLinkName() != null ? LinkName.of(sourceEp.getLinkName()) : null;
+        var targetLink = targetEp.getLinkName() != null ? LinkName.of(targetEp.getLinkName()) : null;
         var sourceRequired = sourceEp.isRequired();
         var targetRequired = targetEp.isRequired();
         var sourceEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
                 .entity(sourceEntity)
                 .name(sourceName)
                 .pathSegment(sourcePath)
+                .linkName(sourceLink)
                 .required(sourceRequired)
                 .description(sourceEp.getDescription())
                 .build();
@@ -299,6 +305,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .entity(targetEntity)
                 .name(targetName)
                 .pathSegment(targetPath)
+                .linkName(targetLink)
                 .required(targetRequired)
                 .description(targetEp.getDescription())
                 .build();
@@ -362,6 +369,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var jsonEntity = new Entity();
         jsonEntity.setName(entity.getName().getValue());
         jsonEntity.setPathSegment(entity.getPathSegment().getValue());
+        jsonEntity.setLinkName(entity.getLinkName().getValue());
         jsonEntity.setDescription(entity.getDescription());
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
@@ -420,6 +428,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonAttr.setDescription(ca.getDescription());
         jsonAttr.setFlags(ca.getFlags().stream().map(this::toJsonAttribute).toList());
         jsonAttr.setPathSegment(ca.getPathSegment().getValue());
+        jsonAttr.setLinkName(ca.getLinkName().getValue());
         jsonAttr.setIdColumn(ca.getId().getColumn().getValue());
         jsonAttr.setFileNameColumn(ca.getFilename().getColumn().getValue());
         jsonAttr.setMimeTypeColumn(ca.getMimetype().getColumn().getValue());
@@ -513,6 +522,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         rep.setName(relationEndPoint.getName() != null ? relationEndPoint.getName().getValue() : null);
         rep.setPathSegment(
                 relationEndPoint.getPathSegment() != null ? relationEndPoint.getPathSegment().getValue() : null);
+        rep.setLinkName(relationEndPoint.getLinkName() != null ? relationEndPoint.getLinkName().getValue() : null);
         rep.setRequired(relationEndPoint.isRequired());
         rep.setDescription(relationEndPoint.getDescription());
         return rep;
