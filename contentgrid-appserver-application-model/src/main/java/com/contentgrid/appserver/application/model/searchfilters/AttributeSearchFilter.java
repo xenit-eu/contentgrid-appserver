@@ -1,9 +1,10 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -23,24 +24,37 @@ public abstract class AttributeSearchFilter implements SearchFilter {
     FilterName name;
 
     /**
-     * The attribute this search filter operates on.
+     * The path to the attribute this search filter operates on.
+     * For simple attributes, this will be a single-element list.
+     * For composite attributes, this will be a multi-element list representing the path.
      */
     @NonNull
-    SimpleAttribute attribute;
+    List<AttributeName> attributePath;
+
+    /**
+     * The type of the target attribute.
+     */
+    @NonNull
+    Type attributeType;
 
     /**
      * Constructs an AttributeSearchFilter with the specified parameters.
      *
      * @param name the name of the search filter
-     * @param attribute the attribute to apply the filter on
+     * @param attributePath the path to the attribute to apply the filter on
+     * @param attributeType the type of the target attribute
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) {
-        if (!supports(attribute.getType())) {
-            throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attribute.getType()));
+    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull List<AttributeName> attributePath, @NonNull Type attributeType) {
+        if (!supports(attributeType)) {
+            throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attributeType));
+        }
+        if (attributePath.isEmpty()) {
+            throw new InvalidSearchFilterException("Can't make an attribute search filter with an empty path. Path must lead to an attribute.");
         }
         this.name = name;
-        this.attribute = attribute;
+        this.attributePath = List.copyOf(attributePath);
+        this.attributeType = attributeType;
     }
 
     /**

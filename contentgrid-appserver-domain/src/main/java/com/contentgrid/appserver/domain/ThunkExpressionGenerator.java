@@ -1,10 +1,11 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 public class ThunkExpressionGenerator {
@@ -28,54 +28,31 @@ public class ThunkExpressionGenerator {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
 
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            String attributePath = entry.getKey();
-            String[] pathSegments = attributePath.split("\\.");
+            String filterName = entry.getKey();
 
-            if (pathSegments.length == 1) {
-                // Simple attribute case
-                var maybeAttribute = entity.getAttributeByName(AttributeName.of(pathSegments[0]));
-                if (maybeAttribute.isEmpty()) {
-                    // ignore unknown attributes
-                    continue;
-                }
-                var attribute = maybeAttribute.get();
+            var maybeSearchFilter = entity.getFilterByName(FilterName.of(filterName));
+            if (maybeSearchFilter.isEmpty()) {
+                // ignore unknown filters
+                continue;
+            }
 
-                if (attribute instanceof SimpleAttribute simpleAttribute) {
-                    try {
-                        Scalar<?> parsedValue = parseValueToScalar(simpleAttribute.getType(), entry.getValue());
-                        ThunkExpression<Boolean> expression = createEqualityExpression(
-                                pathSegments,
-                                parsedValue
-                        );
-                        expressions.add(expression);
-                    } catch (Exception e) {
-                        throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                                simpleAttribute.getType(), entry.getValue(), e);
-                    }
-                }
-            } else {
-                // Composite attribute case
-                var maybeRootAttribute = entity.getAttributeByName(AttributeName.of(pathSegments[0]));
-                if (maybeRootAttribute.isEmpty()) {
-                    // ignore unknown attributes
-                    continue;
-                }
+            SearchFilter searchFilter = maybeSearchFilter.get();
 
-                Attribute attribute = maybeRootAttribute.get();
-                SimpleAttribute leafAttribute = findLeafAttribute(attribute, pathSegments, 1);
-
-                if (leafAttribute != null) {
-                    try {
-                        Scalar<?> parsedValue = parseValueToScalar(leafAttribute.getType(), entry.getValue());
-                        ThunkExpression<Boolean> expression = createEqualityExpression(
-                                pathSegments,
-                                parsedValue
-                        );
-                        expressions.add(expression);
-                    } catch (Exception e) {
-                        throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                                leafAttribute.getType(), entry.getValue(), e);
-                    }
+            // currently only handle exact search TODO support prefix, case insensitive, ...
+            if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
+                try {
+                    Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
+                    String[] pathSegments = exactSearchFilter.getAttributePath().stream()
+                            .map(AttributeName::getValue)
+                            .toArray(String[]::new);
+                    ThunkExpression<Boolean> expression = createEqualityExpression(
+                            pathSegments,
+                            parsedValue
+                    );
+                    expressions.add(expression);
+                } catch (Exception e) {
+                    throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                            exactSearchFilter.getAttributeType(), entry.getValue(), e);
                 }
             }
         }
@@ -94,24 +71,6 @@ public class ThunkExpressionGenerator {
         return LogicalOperation.conjunction(expressions.stream());
     }
 
-    // Find SimpleAttribute in a CompositeAttribute given a path
-    private static SimpleAttribute findLeafAttribute(Attribute attribute, String[] pathSegments, int currentIndex) {
-        if (currentIndex >= pathSegments.length) {
-            return attribute instanceof SimpleAttribute ? (SimpleAttribute) attribute : null;
-        }
-
-        if (attribute instanceof CompositeAttribute compositeAttribute) {
-            Optional<Attribute> childAttribute = compositeAttribute.getAttributeByName(
-                    AttributeName.of(pathSegments[currentIndex])
-            );
-
-            if (childAttribute.isPresent()) {
-                return findLeafAttribute(childAttribute.get(), pathSegments, currentIndex + 1);
-            }
-        }
-
-        return null;
-    }
 
     private static Scalar<?> parseValueToScalar(SimpleAttribute.Type type, String value) {
         if (value == null) {

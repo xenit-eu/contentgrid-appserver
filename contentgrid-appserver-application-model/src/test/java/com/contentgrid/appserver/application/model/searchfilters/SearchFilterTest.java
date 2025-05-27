@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilte
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +28,17 @@ class SearchFilterTest {
         var exactSearchFilter = ExactSearchFilter.builder()
                 .name(FilterName.of("filter")).attribute(getAttribute(type)).build();
         assertEquals(FilterName.of("filter"), exactSearchFilter.getName());
+        assertEquals(List.of(AttributeName.of("name")), exactSearchFilter.getAttributePath());
+        assertEquals(type, exactSearchFilter.getAttributeType());
+    }
+
+    @Test
+    void searchFilterWithPath() {
+        var exactSearchFilter = ExactSearchFilter.builder()
+                .name(FilterName.of("filter")).attributePath(List.of(AttributeName.of("foo"), AttributeName.of("bar")))
+                .attributeType(Type.TEXT).build();
+        assertEquals(FilterName.of("filter"), exactSearchFilter.getName());
+        assertEquals(List.of(AttributeName.of("foo"), AttributeName.of("bar")), exactSearchFilter.getAttributePath());
     }
 
     @ParameterizedTest
@@ -42,6 +54,7 @@ class SearchFilterTest {
         var prefixSearchFilter = PrefixSearchFilter.builder()
                 .name(FilterName.of("filter~prefix")).attribute(getAttribute(Type.TEXT)).build();
         assertEquals(FilterName.of("filter~prefix"), prefixSearchFilter.getName());
+        assertEquals(List.of(AttributeName.of("name")), prefixSearchFilter.getAttributePath());
     }
 
     @ParameterizedTest

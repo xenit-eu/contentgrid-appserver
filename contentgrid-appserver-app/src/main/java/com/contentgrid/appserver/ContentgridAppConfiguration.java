@@ -3,14 +3,18 @@ package com.contentgrid.appserver;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -26,6 +30,9 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
@@ -91,6 +98,73 @@ public class ContentgridAppConfiguration {
                                         .type(Type.DATETIME)
                                         .build()
                                 )
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("first_name"))
+                                        .attributePath(List.of(AttributeName.of("first_name")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("last_name"))
+                                        .attributePath(List.of(AttributeName.of("last_name")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .build())
+                        .entity(Entity.builder()
+                                .name(EntityName.of("shipment"))
+                                .table(TableName.of("shipment"))
+                                .pathSegment(PathSegmentName.of("shipments"))
+                                .linkName(LinkName.of("shipments"))
+                                .attribute(SimpleAttribute.builder()
+                                        .name(AttributeName.of("shipped_date"))
+                                        .column(ColumnName.of("shipped_date"))
+                                        .type(Type.DATETIME)
+                                        .build())
+                                .attribute(CompositeAttributeImpl.builder() // Note: POSTing composite attributes is not possible
+                                        .name(AttributeName.of("address"))
+                                        .attribute(SimpleAttribute.builder()
+                                                .name(AttributeName.of("city"))
+                                                .column(ColumnName.of("address__city"))
+                                                .type(Type.TEXT)
+                                                .build())
+                                        .attribute(SimpleAttribute.builder()
+                                                .name(AttributeName.of("country"))
+                                                .column(ColumnName.of("address__country"))
+                                                .type(Type.TEXT)
+                                                .build())
+                                        .attribute(CompositeAttributeImpl.builder()
+                                                .name(AttributeName.of("residence"))
+                                                .attribute(SimpleAttribute.builder()
+                                                        .name(AttributeName.of("street"))
+                                                        .column(ColumnName.of("address__residence__street"))
+                                                        .type(Type.TEXT)
+                                                        .build())
+                                                .attribute(SimpleAttribute.builder()
+                                                        .name(AttributeName.of("number"))
+                                                        .column(ColumnName.of("address__residence__number"))
+                                                        .type(Type.TEXT)
+                                                        .build())
+                                                .build())
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("address.city"))
+                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("city")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("address.country"))
+                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("country")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("address.residence.street"))
+                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("street")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("address.residence.number"))
+                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("number")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
                                 .build())
                         .entity(Entity.builder()
                                 .name(EntityName.of("invoice"))
@@ -120,6 +194,16 @@ public class ContentgridAppConfiguration {
                                         .filenameColumn(ColumnName.of("content__filename"))
                                         .mimetypeColumn(ColumnName.of("content__mimetype"))
                                         .lengthColumn(ColumnName.of("content__length"))
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("number"))
+                                        .attributePath(List.of(AttributeName.of("number")))
+                                        .attributeType(Type.TEXT)
+                                        .build())
+                                .searchFilter(ExactSearchFilter.builder()
+                                        .name(FilterName.of("amount"))
+                                        .attributePath(List.of(AttributeName.of("amount")))
+                                        .attributeType(Type.DOUBLE)
                                         .build())
                                 .build())
                         .build()

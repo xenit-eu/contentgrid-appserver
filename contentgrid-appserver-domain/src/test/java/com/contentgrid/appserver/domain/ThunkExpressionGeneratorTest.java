@@ -9,10 +9,12 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
@@ -26,6 +28,7 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -63,8 +66,8 @@ class ThunkExpressionGeneratorTest {
             .build();
 
     private static final SimpleAttribute UUID_ATTR = SimpleAttribute.builder()
-            .name(AttributeName.of("id"))
-            .column(ColumnName.of("id"))
+            .name(AttributeName.of("invoice_id"))
+            .column(ColumnName.of("invoiced_id"))
             .type(Type.UUID)
             .build();
 
@@ -104,6 +107,35 @@ class ThunkExpressionGeneratorTest {
             .attribute(TEXT_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("count"))
+                    .attribute(LONG_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("price"))
+                    .attribute(DOUBLE_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("in_stock"))
+                    .attribute(BOOLEAN_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("description"))
+                    .attribute(TEXT_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("arrival_date"))
+                    .attribute(DATETIME_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("id"))
+                    .attribute(UUID_ATTR)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("audit.modified_by.name"))
+                    .attributePath(List.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
+                    .attributeType(Type.TEXT)
+                    .build())
             .build();
 
     @Test
@@ -116,9 +148,9 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void unknownAttributeShouldBeIgnored() {
+    void unknownFilterShouldBeIgnored() {
         Map<String, String> params = new HashMap<>();
-        params.put("nonExistentAttr", "value");
+        params.put("nonExistentFilter", "value");
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
 
@@ -300,7 +332,7 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void compositeAttributeShouldParseCorrectly() {
+    void compositeAttributeShouldBeFoundCorrectly() {
         Map<String, String> params = Map.of("audit.modified_by.name", "Alice Aaronson");
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);

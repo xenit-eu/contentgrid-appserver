@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
@@ -90,8 +91,9 @@ class EntityTest {
         var filter = entity.getFilterByName(FilterName.of("filter1")).orElseThrow();
         assertEquals(FilterName.of("filter1"), filter.getName());
         var prefixFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
-        assertEquals(AttributeName.of("attribute1"), prefixFilter.getAttribute().getName());
-        assertEquals(ColumnName.of("column1"), prefixFilter.getAttribute().getColumn());
+        assertInstanceOf(PrefixSearchFilter.class, filter);
+        assertEquals(AttributeName.of("attribute1"), ((AttributeSearchFilter) filter).getAttributePath().getFirst());
+        assertEquals(Type.TEXT, ((AttributeSearchFilter) filter).getAttributeType());
 
         // getContentByPathSegment
         var content = entity.getContentByPathSegment(PathSegmentName.of("content2")).orElseThrow();

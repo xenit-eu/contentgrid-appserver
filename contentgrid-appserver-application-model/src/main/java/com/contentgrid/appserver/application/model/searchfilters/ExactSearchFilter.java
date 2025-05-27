@@ -3,7 +3,9 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import java.util.List;
 import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -24,16 +26,25 @@ public class ExactSearchFilter extends AttributeSearchFilter {
      * Constructs an ExactSearchFilter with the specified parameters.
      *
      * @param name the name of the search filter
-     * @param attribute the attribute to apply the filter on (must be a native type)
+     * @param attributePath the path to the attribute to apply the filter on
+     * @param attributeType the type of the target attribute (must be a native type)
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    ExactSearchFilter(@NonNull FilterName name, @NonNull SimpleAttribute attribute) throws InvalidSearchFilterException {
-        super(name, attribute);
+    ExactSearchFilter(@NonNull FilterName name, @NonNull List<AttributeName> attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
+        super(name, attributePath, attributeType);
     }
 
     @Override
     protected boolean supports(Type type) {
         return Set.of(Type.values()).contains(type);
+    }
+
+    public static class ExactSearchFilterBuilder {
+        public ExactSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = List.of(attribute.getName());
+            this.attributeType = attribute.getType();
+            return this;
+        }
     }
 }

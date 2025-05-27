@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -117,11 +119,13 @@ public class Entity {
                         throw new DuplicateElementException(
                                 "Duplicate search filter named %s".formatted(searchFilter.getName()));
                     }
-                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter && !attributes.contains(
-                            attributeSearchFilter.getAttribute())) {
-                        throw new InvalidArgumentModelException(
-                                "AttributeSearchFilter %s does not have a valid attribute".formatted(
-                                        attributeSearchFilter.getName()));
+                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                        try {
+                            resolveAttributePath(attributeSearchFilter.getAttributePath());
+                        } catch (IllegalArgumentException e) {
+                            throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
+                                    .formatted(attributeSearchFilter.getName()), e);
+                        }
                     }
                 }
         );
@@ -255,4 +259,40 @@ public class Entity {
         return result;
     }
 
+    /**
+     * Resolves an attribute path to its target SimpleAttribute.
+     *
+     * @param attributePath the path to resolve
+     * @return the SimpleAttribute at the end of the path
+     * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
+     */
+    public SimpleAttribute resolveAttributePath(List<AttributeName> attributePath) {
+
+        var first = getAttributeByName(attributePath.getFirst())
+                .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + attributePath.getFirst()));
+
+        if (attributePath.size() == 1 && first instanceof SimpleAttribute simpleAttribute) {
+            return simpleAttribute;
+        }
+
+        return resolveAttributePath(first, attributePath, 1);
+    }
+
+    private SimpleAttribute resolveAttributePath(Attribute attribute, List<AttributeName> path, int i) {
+        if (i == path.size()) {
+            if (attribute instanceof SimpleAttribute simpleAttribute) {
+                return simpleAttribute;
+            }
+            throw new IllegalArgumentException("Path did not end in SimpleAttribute: " + path.stream()
+                    .map(AttributeName::getValue).collect(Collectors.joining(".")));
+        } else if (attribute instanceof CompositeAttribute composite) {
+            var child = composite.getAttributeByName(path.get(i))
+                    .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(i)));
+            return resolveAttributePath(child, path, i + 1);
+        } else {
+            throw new IllegalArgumentException("Cannot proceed on path %s: Not a composite attribute (%s)"
+                    .formatted(path.stream().map(AttributeName::getValue).collect(Collectors.joining(".")),
+                            attribute.getName()));
+        }
+    }
 }
