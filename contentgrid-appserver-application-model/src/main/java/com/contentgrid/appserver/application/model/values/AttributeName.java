@@ -4,7 +4,7 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class AttributeName {
+public class AttributeName implements PropertyName {
 
     @NonNull
     String value;

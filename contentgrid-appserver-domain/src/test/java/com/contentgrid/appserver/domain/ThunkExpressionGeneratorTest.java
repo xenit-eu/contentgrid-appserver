@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -133,7 +134,7 @@ class ThunkExpressionGeneratorTest {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("audit.modified_by.name"))
-                    .attributePath(List.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
+                    .attributePath(PropertyPath.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
                     .attributeType(Type.TEXT)
                     .build())
             .build();

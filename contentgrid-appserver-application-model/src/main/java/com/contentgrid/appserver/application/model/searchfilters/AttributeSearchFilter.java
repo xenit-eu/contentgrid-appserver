@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
@@ -29,7 +30,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * For composite attributes, this will be a multi-element list representing the path.
      */
     @NonNull
-    List<AttributeName> attributePath;
+    PropertyPath attributePath;
 
     /**
      * The type of the target attribute.
@@ -45,7 +46,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * @param attributeType the type of the target attribute
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull List<AttributeName> attributePath, @NonNull Type attributeType) {
+    protected AttributeSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType) {
         if (!supports(attributeType)) {
             throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attributeType));
         }
@@ -53,7 +54,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
             throw new InvalidSearchFilterException("Can't make an attribute search filter with an empty path. Path must lead to an attribute.");
         }
         this.name = name;
-        this.attributePath = List.copyOf(attributePath);
+        this.attributePath = attributePath;
         this.attributeType = attributeType;
     }
 

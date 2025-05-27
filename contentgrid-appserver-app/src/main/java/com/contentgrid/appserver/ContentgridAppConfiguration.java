@@ -3,7 +3,6 @@ package com.contentgrid.appserver;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -16,6 +15,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
@@ -100,12 +100,12 @@ public class ContentgridAppConfiguration {
                                 )
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("first_name"))
-                                        .attributePath(List.of(AttributeName.of("first_name")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("first_name")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("last_name"))
-                                        .attributePath(List.of(AttributeName.of("last_name")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("last_name")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .build())
@@ -147,22 +147,22 @@ public class ContentgridAppConfiguration {
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("address.city"))
-                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("city")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("city")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("address.country"))
-                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("country")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("country")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("address.residence.street"))
-                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("street")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("street")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("address.residence.number"))
-                                        .attributePath(List.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("number")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("number")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .build())
@@ -197,12 +197,12 @@ public class ContentgridAppConfiguration {
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("number"))
-                                        .attributePath(List.of(AttributeName.of("number")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("number")))
                                         .attributeType(Type.TEXT)
                                         .build())
                                 .searchFilter(ExactSearchFilter.builder()
                                         .name(FilterName.of("amount"))
-                                        .attributePath(List.of(AttributeName.of("amount")))
+                                        .attributePath(PropertyPath.of(AttributeName.of("amount")))
                                         .attributeType(Type.DOUBLE)
                                         .build())
                                 .build())

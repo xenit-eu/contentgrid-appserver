@@ -17,6 +17,8 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -266,9 +268,9 @@ public class Entity {
      * @return the SimpleAttribute at the end of the path
      * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
      */
-    public SimpleAttribute resolveAttributePath(List<AttributeName> attributePath) {
+    public SimpleAttribute resolveAttributePath(PropertyPath attributePath) {
 
-        var first = getAttributeByName(attributePath.getFirst())
+        var first = getAttributeByName((AttributeName) attributePath.getFirst())
                 .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + attributePath.getFirst()));
 
         if (attributePath.size() == 1 && first instanceof SimpleAttribute simpleAttribute) {
@@ -278,20 +280,20 @@ public class Entity {
         return resolveAttributePath(first, attributePath, 1);
     }
 
-    private SimpleAttribute resolveAttributePath(Attribute attribute, List<AttributeName> path, int i) {
+    private SimpleAttribute resolveAttributePath(Attribute attribute, PropertyPath path, int i) {
         if (i == path.size()) {
             if (attribute instanceof SimpleAttribute simpleAttribute) {
                 return simpleAttribute;
             }
             throw new IllegalArgumentException("Path did not end in SimpleAttribute: " + path.stream()
-                    .map(AttributeName::getValue).collect(Collectors.joining(".")));
+                    .map(PropertyName::getValue).collect(Collectors.joining(".")));
         } else if (attribute instanceof CompositeAttribute composite) {
-            var child = composite.getAttributeByName(path.get(i))
+            var child = composite.getAttributeByName((AttributeName) path.get(i))
                     .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(i)));
             return resolveAttributePath(child, path, i + 1);
         } else {
             throw new IllegalArgumentException("Cannot proceed on path %s: Not a composite attribute (%s)"
-                    .formatted(path.stream().map(AttributeName::getValue).collect(Collectors.joining(".")),
+                    .formatted(path.stream().map(PropertyName::getValue).collect(Collectors.joining(".")),
                             attribute.getName()));
         }
     }

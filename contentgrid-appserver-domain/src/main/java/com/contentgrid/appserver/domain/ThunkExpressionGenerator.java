@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilt
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -43,7 +44,7 @@ public class ThunkExpressionGenerator {
                 try {
                     Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
                     String[] pathSegments = exactSearchFilter.getAttributePath().stream()
-                            .map(AttributeName::getValue)
+                            .map(PropertyName::getValue)
                             .toArray(String[]::new);
                     ThunkExpression<Boolean> expression = createEqualityExpression(
                             pathSegments,

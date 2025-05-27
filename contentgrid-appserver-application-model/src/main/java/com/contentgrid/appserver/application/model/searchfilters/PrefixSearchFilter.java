@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.List;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -30,7 +31,7 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    PrefixSearchFilter(@NonNull FilterName name, @NonNull List<AttributeName> attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
+    PrefixSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
         super(name, attributePath, attributeType);
     }
 
@@ -41,7 +42,7 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
 
     public static class PrefixSearchFilterBuilder {
         public PrefixSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
-            this.attributePath = List.of(attribute.getName());
+            this.attributePath = PropertyPath.of(attribute.getName());
             this.attributeType = attribute.getType();
             return this;
         }

@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.List;
 import java.util.Set;
 import lombok.Builder;
@@ -31,7 +32,7 @@ public class ExactSearchFilter extends AttributeSearchFilter {
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    ExactSearchFilter(@NonNull FilterName name, @NonNull List<AttributeName> attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
+    ExactSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
         super(name, attributePath, attributeType);
     }
 
@@ -42,7 +43,7 @@ public class ExactSearchFilter extends AttributeSearchFilter {
 
     public static class ExactSearchFilterBuilder {
         public ExactSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
-            this.attributePath = List.of(attribute.getName());
+            this.attributePath = PropertyPath.of(attribute.getName());
             this.attributeType = attribute.getType();
             return this;
         }

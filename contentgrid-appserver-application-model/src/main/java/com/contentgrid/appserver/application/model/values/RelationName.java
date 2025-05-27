@@ -4,7 +4,7 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class RelationName {
+public class RelationName implements PropertyName {
 
     @NonNull
     String value;
