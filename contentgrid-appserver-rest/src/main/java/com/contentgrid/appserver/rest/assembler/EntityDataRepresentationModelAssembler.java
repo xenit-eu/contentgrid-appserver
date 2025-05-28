@@ -14,9 +14,7 @@ import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Component;
 
-@Component
 public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, Application> {
 
     @Override

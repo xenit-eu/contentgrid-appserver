@@ -38,7 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class EntityRestController {
 
     private final DatamodelApi datamodelApi;
-    private final EntityDataRepresentationModelAssembler assembler;
+    private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
