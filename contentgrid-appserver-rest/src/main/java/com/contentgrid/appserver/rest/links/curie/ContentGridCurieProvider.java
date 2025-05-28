@@ -64,9 +64,9 @@ class ContentGridCurieProvider implements CurieProvider, CurieProviderBuilder {
         if(IanaUriSchemes.isIanaUriScheme(prefix)) {
             throw new IllegalArgumentException("CURIE prefix '%s' can not be an IANA-registered URI scheme.".formatted(prefix));
         }
-        var curies = new HashMap<>(this.curies);
-        curies.put(prefix, template);
-        return new ContentGridCurieProvider(curies);
+        var newCuries = new HashMap<>(this.curies);
+        newCuries.put(prefix, template);
+        return new ContentGridCurieProvider(newCuries);
     }
 
     @Override
