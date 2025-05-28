@@ -90,10 +90,9 @@ class EntityTest {
         // getFilterByName
         var filter = entity.getFilterByName(FilterName.of("filter1")).orElseThrow();
         assertEquals(FilterName.of("filter1"), filter.getName());
-        var prefixFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
-        assertInstanceOf(PrefixSearchFilter.class, filter);
-        assertEquals(AttributeName.of("attribute1"), ((AttributeSearchFilter) filter).getAttributePath().getFirst());
-        assertEquals(Type.TEXT, ((AttributeSearchFilter) filter).getAttributeType());
+        var attrSearchFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
+        assertEquals(AttributeName.of("attribute1"), attrSearchFilter.getAttributePath().getFirst());
+        assertEquals(Type.TEXT, attrSearchFilter.getAttributeType());
 
         // getContentByPathSegment
         var content = entity.getContentByPathSegment(PathSegmentName.of("content2")).orElseThrow();

@@ -273,24 +273,20 @@ public class Entity {
         var first = getAttributeByName((AttributeName) attributePath.getFirst())
                 .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + attributePath.getFirst()));
 
-        if (attributePath.size() == 1 && first instanceof SimpleAttribute simpleAttribute) {
-            return simpleAttribute;
-        }
-
         return resolveAttributePath(first, attributePath, 1);
     }
 
-    private SimpleAttribute resolveAttributePath(Attribute attribute, PropertyPath path, int i) {
-        if (i == path.size()) {
+    private SimpleAttribute resolveAttributePath(Attribute attribute, PropertyPath path, int index) {
+        if (index == path.size()) {
             if (attribute instanceof SimpleAttribute simpleAttribute) {
                 return simpleAttribute;
             }
             throw new IllegalArgumentException("Path did not end in SimpleAttribute: " + path.stream()
                     .map(PropertyName::getValue).collect(Collectors.joining(".")));
         } else if (attribute instanceof CompositeAttribute composite) {
-            var child = composite.getAttributeByName((AttributeName) path.get(i))
-                    .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(i)));
-            return resolveAttributePath(child, path, i + 1);
+            var child = composite.getAttributeByName((AttributeName) path.get(index))
+                    .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(index)));
+            return resolveAttributePath(child, path, index + 1);
         } else {
             throw new IllegalArgumentException("Cannot proceed on path %s: Not a composite attribute (%s)"
                     .formatted(path.stream().map(PropertyName::getValue).collect(Collectors.joining(".")),
