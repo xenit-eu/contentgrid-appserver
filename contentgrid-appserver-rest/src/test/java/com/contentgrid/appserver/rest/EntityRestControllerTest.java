@@ -94,7 +94,8 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.price", is(29.99)))
                 .andExpect(jsonPath("$.release_date", notNullValue()))
                 .andExpect(jsonPath("$.in_stock", is(true)))
-                .andExpect(jsonPath("$._links.self.href", notNullValue()));
+                .andExpect(jsonPath("$._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.curies").isArray());
     }
 
     @Test
@@ -126,7 +127,8 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
                 .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
                 .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
-                .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist());
+                .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.curies").isArray());
     }
 
     @Test
@@ -228,7 +230,8 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')].price", is(List.of(19.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
-                .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()));
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.curies").isArray());
     }
 
     @Test

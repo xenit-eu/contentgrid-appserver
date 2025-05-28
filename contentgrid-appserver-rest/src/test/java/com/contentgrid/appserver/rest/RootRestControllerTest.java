@@ -59,7 +59,8 @@ class RootRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/persons?page=0"))
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/invoices?page=0"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items?page=0")); // TODO: remove query parameter?
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items?page=0")) // TODO: remove query parameter?
+                .andExpect(jsonPath("$._links.curies").isArray());
     }
 
     @Test
@@ -70,7 +71,7 @@ class RootRestControllerTest {
                         .build());
         mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._links").doesNotExist());
+                .andExpect(jsonPath("$._links").doesNotExist()); // no curies, because there is no link with a curie prefix
     }
 
 }

@@ -7,6 +7,8 @@ import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
 
 /**
  * Copied from contentgrid-spring.
+ *
+ * @see <a href="https://github.com/xenit-eu/contentgrid-spring/blob/6a6d35ad5ca692a96a31aab764c4b74929db07ca/contentgrid-spring-data-rest/src/main/java/com/contentgrid/spring/data/rest/links/ContentGridLinkRelations.java">ContentGridLinkRelations</a>
  */
 @UtilityClass
 public class ContentGridLinkRelations {
