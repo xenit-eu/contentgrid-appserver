@@ -196,6 +196,11 @@
           "name": "emailFilter",
           "attributePath": ["email"],
           "type": "exact"
+        },
+        {
+          "name": "phoneFilter",
+          "attributePath": ["contactInfo", "phone"],
+          "type": "exact"
         }
       ]
     },
