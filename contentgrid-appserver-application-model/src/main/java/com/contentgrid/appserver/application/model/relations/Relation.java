@@ -121,11 +121,24 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          * @return whether this relation endpoint collides with the other relation endpoint.
          */
         public boolean collides(RelationEndPoint other) {
-            return (this.name != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.name, other.name))
-                    || (this.pathSegment != null && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment()) && Objects.equals(this.pathSegment, other.getPathSegment()))
-                    || (this.linkName
-                    != null && Objects.equals(this.entity.getName(), other.entity.getName()) && Objects.equals(this.linkName, other.linkName));
+            return (
+                    // Check name
+                    this.name != null
+                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.name, other.name)
+            ) || (
+                    // Check pathSegment
+                    this.pathSegment != null
+                            && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment())
+                            && Objects.equals(this.pathSegment, other.pathSegment)
+            ) || (
+                    // Check linkName
+                    this.linkName != null
+                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.linkName, other.linkName)
+            );
         }
+
     }
 
     public abstract Relation inverse();
