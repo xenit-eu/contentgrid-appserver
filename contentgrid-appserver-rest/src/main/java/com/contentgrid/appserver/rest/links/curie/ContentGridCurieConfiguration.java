@@ -4,7 +4,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
 import org.springframework.hateoas.mediatype.hal.CurieProvider;
+import org.springframework.hateoas.mediatype.hal.HalConfiguration;
+import org.springframework.hateoas.mediatype.hal.HalConfiguration.RenderSingleLinks;
+import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
 import org.springframework.hateoas.server.LinkRelationProvider;
 import org.springframework.hateoas.server.RepresentationModelProcessor;
 
@@ -15,6 +19,12 @@ import org.springframework.hateoas.server.RepresentationModelProcessor;
  */
 @Configuration(proxyBeanMethods = false)
 public class ContentGridCurieConfiguration {
+
+    @Bean
+    MediaTypeConfigurationCustomizer<HalConfiguration> contentGridCuriesMediaTypeConfigurationCustomizer() {
+        return halConfiguration -> halConfiguration
+                .withRenderSingleLinksFor(HalLinkRelation.CURIES, RenderSingleLinks.AS_ARRAY);
+    }
 
     @Bean
     CurieProvider contentGridCurieProvider(ObjectProvider<CurieProviderCustomizer> customizers) {
