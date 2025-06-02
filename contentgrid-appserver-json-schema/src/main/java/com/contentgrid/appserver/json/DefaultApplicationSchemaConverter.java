@@ -115,7 +115,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> list = new ArrayList<>();
             for (SearchFilter sf : jsonEntity.getSearchFilters()) {
                 com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(
-                        sf, attributes, primaryKey);
+                        sf, attributes);
                 list.add(searchFilter);
             }
             searchFilters = list;
@@ -239,8 +239,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonSearchFilter(
             SearchFilter jsonFilter,
-            List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes,
-            com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey) throws InValidJsonException {
+            List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes) throws InValidJsonException {
         var type = jsonFilter.getType();
         List<PropertyName> attrPath = List.copyOf(jsonFilter.getAttributePath().stream().map(AttributeName::of).toList());
         var propertyPath = PropertyPath.of(attrPath);

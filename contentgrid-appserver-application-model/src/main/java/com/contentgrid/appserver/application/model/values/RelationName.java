@@ -1,20 +1,12 @@
 package com.contentgrid.appserver.application.model.values;
 
-import lombok.EqualsAndHashCode;
-import lombok.NonNull;
+import lombok.Value;
 
-@EqualsAndHashCode(callSuper = true)
-public class RelationName extends PropertyName {
+@Value(staticConstructor = "of")
+public class RelationName implements PropertyName {
+    String value;
 
-    private RelationName(@NonNull String value) {
-        super(value);
-    }
-
-    public static RelationName of(@NonNull String value) {
-        return new RelationName(value);
-    }
-
-    public static RelationName from(@NonNull PropertyName property) {
+    public static RelationName from(PropertyName property) {
         return new RelationName(property.getValue());
     }
 }
