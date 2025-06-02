@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -23,11 +24,8 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
+import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +37,7 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 @Slf4j
 @Configuration
 @EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
-@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class})
+@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class, ContentGridLinksConfiguration.class})
 public class ContentgridAppConfiguration {
 
     @Bean
@@ -71,6 +69,7 @@ public class ContentgridAppConfiguration {
                                 .name(EntityName.of("person"))
                                 .table(TableName.of("person"))
                                 .pathSegment(PathSegmentName.of("persons"))
+                                .linkName(LinkName.of("persons"))
                                 .attribute(SimpleAttribute.builder()
                                         .name(AttributeName.of("first_name"))
                                         .description("First name")
@@ -97,6 +96,7 @@ public class ContentgridAppConfiguration {
                                 .name(EntityName.of("invoice"))
                                 .table(TableName.of("invoice"))
                                 .pathSegment(PathSegmentName.of("invoices"))
+                                .linkName(LinkName.of("invoices"))
                                 .attribute(SimpleAttribute.builder()
                                         .name(AttributeName.of("number"))
                                         .column(ColumnName.of("number"))
@@ -115,6 +115,7 @@ public class ContentgridAppConfiguration {
                                 .attribute(ContentAttribute.builder()
                                         .name(AttributeName.of("content"))
                                         .pathSegment(PathSegmentName.of("content"))
+                                        .linkName(LinkName.of("content"))
                                         .idColumn(ColumnName.of("content__id"))
                                         .filenameColumn(ColumnName.of("content__filename"))
                                         .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -123,17 +124,5 @@ public class ContentgridAppConfiguration {
                                 .build())
                         .build()
         );
-    }
-
-    @Bean
-    EntityDataRepresentationModelAssemblerProvider entityDataRepresentationModelAssemblerProvider() {
-        return new EntityDataRepresentationModelAssemblerProvider() {
-            final Map<ApplicationName, EntityDataRepresentationModelAssembler> assemblers = new HashMap<>();
-            @Override
-            public EntityDataRepresentationModelAssembler getAssemblerFor(Application application) {
-                return assemblers.computeIfAbsent(application.getName(),
-                        (_a) -> new EntityDataRepresentationModelAssembler(application));
-            }
-        };
     }
 }

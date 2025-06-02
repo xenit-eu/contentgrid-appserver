@@ -20,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -88,6 +89,7 @@ class DefaultApplicationSchemaConverterTest {
                             "description": "An employee of the company",
                             "table": "employees",
                             "pathSegment": "employee",
+                            "linkName": "employee",
                             "primaryKey":
                                 {
                                     "name": "id",
@@ -121,6 +123,7 @@ class DefaultApplicationSchemaConverterTest {
                         .entity(targetEntity)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .sourceReference(ColumnName.of("source_ref"))
                 .build();
@@ -148,6 +151,7 @@ class DefaultApplicationSchemaConverterTest {
                             "description": "source entity",
                             "table": "source_table",
                             "pathSegment": "source",
+                            "linkName": "source",
                             "primaryKey":
                                 {
                                     "name": "id",
@@ -170,6 +174,7 @@ class DefaultApplicationSchemaConverterTest {
                             "description": "target entity",
                             "table": "target_table",
                             "pathSegment": "target",
+                            "linkName": "target",
                             "primaryKey":
                                 {
                                     "name": "id",
@@ -196,6 +201,7 @@ class DefaultApplicationSchemaConverterTest {
                                     "entityName": "target",
                                     "name": "source",
                                     "pathSegment": "source",
+                                    "linkName": "source",
                                     "required": false
                                 },
                             "targetEndpoint":
@@ -224,6 +230,7 @@ class DefaultApplicationSchemaConverterTest {
                         .entity(targetEntity)
                         .name(RelationName.of("source"))
                         .pathSegment(PathSegmentName.of("source"))
+                        .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("target_ref"))
                 .build();
@@ -251,6 +258,7 @@ class DefaultApplicationSchemaConverterTest {
                             "description": "source entity",
                             "table": "source_table",
                             "pathSegment": "source",
+                            "linkName": "source",
                             "primaryKey":
                                 {
                                     "name": "id",
@@ -273,6 +281,7 @@ class DefaultApplicationSchemaConverterTest {
                             "description": "target entity",
                             "table": "target_table",
                             "pathSegment": "target",
+                            "linkName": "target",
                             "primaryKey":
                                 {
                                     "name": "id",
@@ -299,6 +308,7 @@ class DefaultApplicationSchemaConverterTest {
                                     "entityName": "target",
                                     "name": "source",
                                     "pathSegment": "source",
+                                    "linkName": "source",
                                     "required": false
                                 },
                             "targetEndpoint":
@@ -319,6 +329,7 @@ class DefaultApplicationSchemaConverterTest {
                 .description(description)
                 .table(TableName.of(table))
                 .pathSegment(PathSegmentName.of(name))
+                .linkName(LinkName.of(name))
                 .primaryKey(
                         getPrimaryKey()
                 )

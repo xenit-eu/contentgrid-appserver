@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Objects;
@@ -26,13 +27,8 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getName() == null && targetEndPoint.getName() == null) {
             throw new InvalidRelationException("At least one endpoint must have a name");
         }
-        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
-                && Objects.equals(sourceEndPoint.getName(), targetEndPoint.getName())) {
-            throw new InvalidRelationException("Source and target endpoints must have a different name when on the same entity");
-        }
-        if (sourceEndPoint.getEntity().getPathSegment().equals(targetEndPoint.getEntity().getPathSegment())
-                && Objects.equals(sourceEndPoint.getPathSegment(), targetEndPoint.getPathSegment())) {
-            throw new InvalidRelationException("Source and target endpoints must have a different path segment when on the same entity");
+        if (sourceEndPoint.collides(targetEndPoint)) {
+            throw new InvalidRelationException("Source and target endpoints must not collide when on the same entity");
         }
         if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
             // Chicken and egg problem
@@ -41,7 +37,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
                 && (sourceEndPoint.isRequired() || targetEndPoint.isRequired())) {
             // Chicken and egg problem
-            throw new InvalidRelationException("Source and target endpoints can not be required when on the same entity");
+            throw new InvalidRelationException("Source or target endpoint can not be required when on the same entity");
         }
         this.sourceEndPoint = sourceEndPoint;
         this.targetEndPoint = targetEndPoint;
@@ -73,6 +69,12 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
 
         PathSegmentName pathSegment;
 
+        /**
+         * The link name of this relation endpoint.
+         * This value is used as the name property in the 'cg:relation' link relation.
+         */
+        LinkName linkName;
+
         String description;
 
         /**
@@ -84,7 +86,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         boolean required;
 
         @Builder
-        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, String description, boolean required) {
+        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, LinkName linkName, String description, boolean required) {
             if (name != null && pathSegment == null) {
                 throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
             }
@@ -97,12 +99,46 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             if (name == null && required) {
                 throw new InvalidRelationException("Relation endpoint can not be required without name");
             }
+            if (pathSegment == null && linkName != null) {
+                throw new InvalidRelationException("Relation endpoint with linkName %s does not have a pathSegment".formatted(
+                        linkName));
+            }
+            if (pathSegment != null && linkName == null) {
+                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a linkName".formatted(pathSegment));
+            }
             this.entity = entity;
             this.name = name;
             this.pathSegment = pathSegment;
+            this.linkName = linkName;
             this.description = description;
             this.required = required;
         }
+
+        /**
+         * Returns whether this relation endpoint collides with the other relation endpoint.
+         *
+         * @param other The relation endpoint to check
+         * @return whether this relation endpoint collides with the other relation endpoint.
+         */
+        public boolean collides(RelationEndPoint other) {
+            return (
+                    // Check name
+                    this.name != null
+                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.name, other.name)
+            ) || (
+                    // Check pathSegment
+                    this.pathSegment != null
+                            && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment())
+                            && Objects.equals(this.pathSegment, other.pathSegment)
+            ) || (
+                    // Check linkName
+                    this.linkName != null
+                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.linkName, other.linkName)
+            );
+        }
+
     }
 
     public abstract Relation inverse();
@@ -114,54 +150,10 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * @return whether this relation collides with the other relation.
      */
     public boolean collides(Relation other) {
-        return collidesName(other) || collidesSegment(other);
+        return this.getSourceEndPoint().collides(other.getSourceEndPoint())
+                || this.getSourceEndPoint().collides(other.getTargetEndPoint())
+                || this.getTargetEndPoint().collides(other.getSourceEndPoint())
+                || this.getTargetEndPoint().collides(other.getTargetEndPoint());
     }
-
-    private boolean collidesName(Relation other) {
-        var sourceName = this.getSourceEndPoint().getName();
-        var sourceEntity = this.getSourceEndPoint().getEntity().getName();
-        var targetName = this.getTargetEndPoint().getName();
-        var targetEntity = this.getTargetEndPoint().getEntity().getName();
-
-        var otherSourceName = other.getSourceEndPoint().getName();
-        var otherSourceEntity = other.getSourceEndPoint().getEntity().getName();
-        var otherTargetName = other.getTargetEndPoint().getName();
-        var otherTargetEntity = other.getTargetEndPoint().getEntity().getName();
-
-        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
-                ||
-                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
-    }
-
-    /**
-     * Returns whether the url path segment of this relation collides with the segment of the other relation.
-     *
-     * @param other The relation to check
-     * @return whether the url path segment of this relation collides with the segment of the other relation.
-     */
-    private boolean collidesSegment(Relation other) {
-        var sourceName = this.getSourceEndPoint().getPathSegment();
-        var sourceEntity = this.getSourceEndPoint().getEntity().getPathSegment();
-        var targetName = this.getTargetEndPoint().getPathSegment();
-        var targetEntity = this.getTargetEndPoint().getEntity().getPathSegment();
-
-        var otherSourceName = other.getSourceEndPoint().getPathSegment();
-        var otherSourceEntity = other.getSourceEndPoint().getEntity().getPathSegment();
-        var otherTargetName = other.getTargetEndPoint().getPathSegment();
-        var otherTargetEntity = other.getTargetEndPoint().getEntity().getPathSegment();
-
-        return (sourceName != null && Objects.equals(sourceName, otherSourceName) && Objects.equals(sourceEntity, otherSourceEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherTargetName) && Objects.equals(targetEntity, otherTargetEntity))
-                ||
-                (sourceName != null && Objects.equals(sourceName, otherTargetName) && Objects.equals(sourceEntity, otherTargetEntity))
-                ||
-                (targetName != null && Objects.equals(targetName, otherSourceName) && Objects.equals(targetEntity, otherSourceEntity));
-    }
-
 
 }

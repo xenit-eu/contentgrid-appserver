@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
@@ -92,17 +93,18 @@ class ThunkExpressionGeneratorTest {
             .build();
 
     private static final Entity testEntity = Entity.builder()
-                .name(EntityName.of("testEntity"))
-                .table(TableName.of("test_entity"))
-                .pathSegment(PathSegmentName.of("test-entities"))
-                .primaryKey(UUID_ATTR)
-                .attribute(LONG_ATTR)
-                .attribute(DOUBLE_ATTR)
-                .attribute(BOOLEAN_ATTR)
-                .attribute(TEXT_ATTR)
-                .attribute(DATETIME_ATTR)
-                .attribute(COMP_ATTR)
-                .build();
+            .name(EntityName.of("testEntity"))
+            .table(TableName.of("test_entity"))
+            .pathSegment(PathSegmentName.of("test-entities"))
+            .linkName(LinkName.of("test-entities"))
+            .primaryKey(UUID_ATTR)
+            .attribute(LONG_ATTR)
+            .attribute(DOUBLE_ATTR)
+            .attribute(BOOLEAN_ATTR)
+            .attribute(TEXT_ATTR)
+            .attribute(DATETIME_ATTR)
+            .attribute(COMP_ATTR)
+            .build();
 
     @Test
     void emptyParamsShouldReturnTrueExpression() {

@@ -1,8 +1,5 @@
 package com.contentgrid.appserver.rest;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -14,13 +11,13 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssemblerProvider;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.LinkRelation;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.hateoas.RepresentationModel;
@@ -41,7 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class EntityRestController {
 
     private final DatamodelApi datamodelApi;
-    private final EntityDataRepresentationModelAssemblerProvider assemblerProvider;
+    private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -59,10 +56,9 @@ public class EntityRestController {
 
         var results = datamodelApi.findAll(application, entity, params, defaultPageData());
 
-        var assembler = assemblerProvider.getAssemblerFor(application);
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.getEntities().stream()
-                .map(res -> wrappers.wrap(assembler.toModel(res), LinkRelation.of("item")))
+                .map(res -> wrappers.wrap(assembler.withContext(application).toModel(res), IanaLinkRelations.ITEM))
                 .toList();
         return PagedModel.of(models, fromPageInfo(results.getPageInfo()));
     }
@@ -77,7 +73,7 @@ public class EntityRestController {
 
         var result = datamodelApi.findById(application, entity, instanceId);
 
-        return result.map(res -> assemblerProvider.getAssemblerFor(application).toModel(res))
+        return result.map(res -> assembler.withContext(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
@@ -95,10 +91,9 @@ public class EntityRestController {
         var id = datamodelApi.create(application, entityData, List.of());
         var result = datamodelApi.findById(application, entity, id).orElseThrow();
 
-        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
+        RepresentationModel<?> model = assembler.withContext(application).toModel(result);
         return ResponseEntity
-                .created(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), id)).toUri())
+                .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(model);
     }
 
@@ -118,11 +113,10 @@ public class EntityRestController {
         var result = datamodelApi.findById(application, entity, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        RepresentationModel<?> model = assemblerProvider.getAssemblerFor(application).toModel(result);
+        RepresentationModel<?> model = assembler.withContext(application).toModel(result);
         return ResponseEntity
                 .ok()
-                .location(linkTo(methodOn(EntityRestController.class)
-                        .getEntity(application, entity.getPathSegment(), id)).toUri())
+                .location(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(model);
     }
 

@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -90,7 +91,8 @@ class JOOQThunkExpressionVisitorTest {
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
-            .pathSegment(PathSegmentName.of("person"))
+            .pathSegment(PathSegmentName.of("persons"))
+            .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(ExactSearchFilter.builder()
@@ -139,6 +141,7 @@ class JOOQThunkExpressionVisitorTest {
     private static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
+            .linkName(LinkName.of("content"))
             .idColumn(ColumnName.of("content__id"))
             .filenameColumn(ColumnName.of("content__filename"))
             .mimetypeColumn(ColumnName.of("content__mimetype"))
@@ -178,7 +181,8 @@ class JOOQThunkExpressionVisitorTest {
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
-            .pathSegment(PathSegmentName.of("invoice"))
+            .pathSegment(PathSegmentName.of("invoices"))
+            .linkName(LinkName.of("invoices"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -197,12 +201,14 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
+                    .linkName(LinkName.of("customer"))
                     .required(true)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -212,6 +218,7 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(PERSON)
                     .name(RelationName.of("friends"))
                     .pathSegment(PathSegmentName.of("friends"))
+                    .linkName(LinkName.of("friends"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -226,11 +233,13 @@ class JOOQThunkExpressionVisitorTest {
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
+                    .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
+                    .linkName(LinkName.of("next_invoice"))
                     .build())
             .targetReference(ColumnName.of("previous_invoice"))
             .build();

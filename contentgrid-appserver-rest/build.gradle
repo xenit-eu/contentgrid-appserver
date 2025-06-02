@@ -19,6 +19,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+    implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.1'
 
     annotationProcessor 'org.projectlombok:lombok'
 

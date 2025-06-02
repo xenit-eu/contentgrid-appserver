@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -48,6 +49,7 @@ public class Application {
         this.name = name;
         this.relations = relations;
         var tables = new HashSet<TableName>();
+        var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
             if (this.entities.put(entity.getName(), entity) != null) {
                 throw new DuplicateElementException("Duplicate entity named %s".formatted(entity.getName()));
@@ -57,6 +59,9 @@ public class Application {
             }
             if (this.pathSegmentEntities.put(entity.getPathSegment(), entity) != null) {
                 throw new DuplicateElementException("Duplicate path segment named %s".formatted(entity.getPathSegment()));
+            }
+            if (!linkNames.add(entity.getLinkName())) {
+                throw new DuplicateElementException("Duplicate link relation named %s".formatted(entity.getLinkName()));
             }
         });
 

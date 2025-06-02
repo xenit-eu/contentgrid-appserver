@@ -22,6 +22,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.List;
 import java.util.Set;
@@ -97,6 +98,7 @@ class AttributeTest {
         var attribute = ContentAttribute.builder()
                 .name(AttributeName.of("attribute"))
                 .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
                 .description("The pdf file of the entity")
                 .idColumn(ColumnName.of("column__id"))
                 .filenameColumn(ColumnName.of("column__filename"))
@@ -106,6 +108,7 @@ class AttributeTest {
 
         assertEquals(AttributeName.of("attribute"), attribute.getName());
         assertEquals(PathSegmentName.of("segment"), attribute.getPathSegment());
+        assertEquals(LinkName.of("link"), attribute.getLinkName());
         assertEquals("The pdf file of the entity", attribute.getDescription());
         assertEquals(AttributeName.of("id"), attribute.getId().getName());
         assertEquals(ColumnName.of("column__id"), ((SimpleAttribute) attribute.getId()).getColumn());

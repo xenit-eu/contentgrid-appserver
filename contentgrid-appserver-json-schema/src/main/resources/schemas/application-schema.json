@@ -34,6 +34,10 @@
             "type": "string",
             "description": "The path segment for the entity."
           },
+          "linkName": {
+            "type": "string",
+            "description": "The link name of the 'cg:entity' link relation."
+          },
           "primaryKey": {
             "$ref": "#/$defs/simpleAttribute"
           },
@@ -80,6 +84,7 @@
           "name",
           "table",
           "pathSegment",
+          "linkName",
           "primaryKey"
         ],
         "additionalProperties": false
@@ -204,6 +209,10 @@
         "pathSegment": {
           "type": "string",
           "description": "The URL path segment used to navigate from this endpoint's entity (entityName) to the related entity or entities. For example, if an 'Invoice' entity links to its 'Supplier', this pathSegment could be 'supplier'. This pathSegment and the name property must either both be defined or both be absent."
+        },
+        "linkName": {
+          "type": "string",
+          "description": "The link name of the 'cg:relation' link relation for the entity of this endpoint. Must be present when pathSegment is present, must be absent when pathSegment is absent."
         },
         "entityName": {
           "type": "string",
@@ -425,6 +434,10 @@
           "type": "string",
           "description": "The path segment for the content attribute."
         },
+        "linkName": {
+          "type": "string",
+          "description": "The link name of the 'cg:content' link relation."
+        },
         "idColumn": {
           "type": "string",
           "description": "The name of the column in the database that stores the content ID."
@@ -445,6 +458,7 @@
       "required": [
         "name",
         "pathSegment",
+        "linkName",
         "idColumn",
         "fileNameColumn",
         "mimeTypeColumn",

@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
@@ -12,8 +14,10 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +49,7 @@ public class Entity {
      * @param pathSegment the url path segment
      * @param description the description for this entity
      * @param table the database table name
+     * @param linkName the link name used in link relation 'cg:entity'
      * @param attributes list of attributes for this entity (excluding primary key attribute)
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
      * @param searchFilters list of search filters for this entity
@@ -53,12 +58,21 @@ public class Entity {
      * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
     @Builder
-    Entity(@NonNull EntityName name, @NonNull PathSegmentName pathSegment, String description, @NonNull TableName table,
-            @Singular List<Attribute> attributes, SimpleAttribute primaryKey, @Singular List<SearchFilter> searchFilters) {
+    Entity(
+            @NonNull EntityName name,
+            @NonNull PathSegmentName pathSegment,
+            String description,
+            @NonNull TableName table,
+            @NonNull LinkName linkName,
+            @Singular List<Attribute> attributes,
+            SimpleAttribute primaryKey,
+            @Singular List<SearchFilter> searchFilters
+    ) {
         this.name = name;
         this.pathSegment = pathSegment;
         this.description = description;
         this.table = table;
+        this.linkName = linkName;
         if (primaryKey == null) {
             this.primaryKey = SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build();
         } else if (Type.UUID.equals(primaryKey.getType())) {
@@ -85,6 +99,17 @@ public class Entity {
                     });
                 }
         );
+
+        var contentLinks = new HashSet<LinkName>();
+
+        getContentAttributes(attributes).forEach(attribute -> {
+            if (this.contentAttributes.put(attribute.getPathSegment(), attribute) != null) {
+                throw new DuplicateElementException("Duplicate content with path segment %s".formatted(attribute.getPathSegment()));
+            }
+            if (!contentLinks.add(attribute.getLinkName())) {
+                throw new DuplicateElementException("Duplicate content with link name %s".formatted(attribute.getLinkName()));
+            }
+        });
 
         searchFilters.forEach(
                 searchFilter -> {
@@ -120,6 +145,9 @@ public class Entity {
     @NonNull
     TableName table;
 
+    @NonNull
+    LinkName linkName;
+
     /**
      * The primary key attribute of this entity.
      */
@@ -139,6 +167,12 @@ public class Entity {
     Map<FilterName, SearchFilter> searchFilters = new HashMap<>();
 
     /**
+     * Internal map of content attributes by path segment.
+     */
+    @Getter(AccessLevel.NONE)
+    Map<PathSegmentName, ContentAttribute> contentAttributes = new HashMap<>();
+
+    /**
      * Returns an unmodifiable list of attributes (primary key excluded).
      *
      * @return an unmodifiable list of attributes (primary key excluded)
@@ -154,6 +188,16 @@ public class Entity {
      */
     public List<Attribute> getAllAttributes() {
         return Stream.concat(Stream.of(this.primaryKey), attributes.values().stream()).toList();
+    }
+
+    /**
+     * Returns an unmodifiable list of content attributes.
+     * Includes content attributes that are nested under CompositeAttributeImpl.
+     *
+     * @return an unmodifiable list of content attributes
+     */
+    public List<ContentAttribute> getContentAttributes() {
+        return List.copyOf(contentAttributes.values());
     }
 
     /**
@@ -185,6 +229,30 @@ public class Entity {
      */
     public Optional<SearchFilter> getFilterByName(FilterName filterName) {
         return Optional.ofNullable(searchFilters.get(filterName));
+    }
+
+    /**
+     * Finds a content attribute by its path segment name.
+     * Is also able to find content attributes that are nested under CompositeAttributeImpl.
+     *
+     * @param pathSegment the path segment name of the content to find
+     * @return an Optional containing the content attribute if found, or empty if not found
+     */
+    public Optional<ContentAttribute> getContentByPathSegment(PathSegmentName pathSegment) {
+        return Optional.ofNullable(contentAttributes.get(pathSegment));
+    }
+
+    private static List<ContentAttribute> getContentAttributes(List<Attribute> attributes) {
+        var result = new ArrayList<ContentAttribute>();
+        for (var attribute : attributes) {
+            if (attribute instanceof ContentAttribute contentAttribute) {
+                result.add(contentAttribute);
+            }
+            if (attribute instanceof CompositeAttributeImpl compositeAttribute) {
+                result.addAll(getContentAttributes(compositeAttribute.getAttributes()));
+            }
+        }
+        return result;
     }
 
 }

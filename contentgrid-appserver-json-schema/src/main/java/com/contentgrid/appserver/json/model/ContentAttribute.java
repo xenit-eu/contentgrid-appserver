@@ -9,11 +9,14 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"type", "name", "description", "pathSegment", "idColumn", "fileNameColumn", "mimeTypeColumn", "lengthColumn", "flags"})
+@JsonPropertyOrder({"type", "name", "description", "pathSegment", "linkName", "idColumn", "fileNameColumn", "mimeTypeColumn", "lengthColumn", "flags"})
 public final class ContentAttribute extends Attribute {
 
     @NonNull
     private String pathSegment;
+
+    @NonNull
+    private String linkName;
 
     @NonNull
     private String idColumn;

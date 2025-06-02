@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -33,18 +34,21 @@ class JoinCollectionTest {
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
+            .linkName(LinkName.of("persons"))
             .build();
 
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
+            .linkName(LinkName.of("invoices"))
             .build();
 
     private static final Entity PRODUCT = Entity.builder()
             .name(EntityName.of("product"))
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
+            .linkName(LinkName.of("products"))
             .build();
 
     private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
@@ -52,11 +56,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
+                    .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
+                    .linkName(LinkName.of("next_invoice"))
                     .build())
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
@@ -68,11 +74,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
+                    .linkName(LinkName.of("customer"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .targetReference(ColumnName.of("customer"))
             .build();
@@ -84,11 +92,13 @@ class JoinCollectionTest {
                     .entity(INVOICE)
                     .name(RelationName.of("products"))
                     .pathSegment(PathSegmentName.of("products"))
+                    .linkName(LinkName.of("products"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PRODUCT)
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
+                    .linkName(LinkName.of("invoices"))
                     .build())
             .joinTable(TableName.of("invoice__products"))
             .sourceReference(ColumnName.of("invoice_id"))
