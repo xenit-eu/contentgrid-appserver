@@ -259,7 +259,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         // entities have been instantiated.
         for (int i=1; i < propertyPath.size(); i++) {
             if (attribute instanceof com.contentgrid.appserver.application.model.attributes.CompositeAttribute parent) {
-                AttributeName attrName = (AttributeName) propertyPath.get(i);
+                AttributeName attrName = AttributeName.from(propertyPath.get(i));
                 // reassign attribute with the next child
                 attribute = parent.getAttributeByName(attrName)
                         .orElseThrow(() -> new InvalidSearchFilterException("Could not find %s in Composite %s"

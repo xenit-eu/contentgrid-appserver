@@ -270,7 +270,7 @@ public class Entity {
      */
     public SimpleAttribute resolveAttributePath(PropertyPath attributePath) {
 
-        var first = getAttributeByName((AttributeName) attributePath.getFirst())
+        var first = getAttributeByName(AttributeName.from(attributePath.getFirst()))
                 .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + attributePath.getFirst()));
 
         return resolveAttributePath(first, attributePath, 1);
@@ -284,7 +284,7 @@ public class Entity {
             throw new IllegalArgumentException("Path did not end in SimpleAttribute: " + path.stream()
                     .map(PropertyName::getValue).collect(Collectors.joining(".")));
         } else if (attribute instanceof CompositeAttribute composite) {
-            var child = composite.getAttributeByName((AttributeName) path.get(index))
+            var child = composite.getAttributeByName(AttributeName.from(path.get(index)))
                     .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(index)));
             return resolveAttributePath(child, path, index + 1);
         } else {

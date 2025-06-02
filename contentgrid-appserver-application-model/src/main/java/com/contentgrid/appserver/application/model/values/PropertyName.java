@@ -1,13 +1,13 @@
 package com.contentgrid.appserver.application.model.values;
 
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public class PropertyName {
     @NonNull
     @Getter
