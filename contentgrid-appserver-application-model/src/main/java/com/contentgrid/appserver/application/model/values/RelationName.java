@@ -6,10 +6,6 @@ import lombok.Value;
 public class RelationName implements PropertyName {
     String value;
 
-    public static RelationName from(PropertyName property) {
-        return new RelationName(property.getValue());
-    }
-
     @Override
     public String toString() {
         return getValue();

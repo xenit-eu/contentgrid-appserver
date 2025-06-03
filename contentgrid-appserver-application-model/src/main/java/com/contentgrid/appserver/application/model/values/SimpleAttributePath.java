@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Value
 public class SimpleAttributePath implements AttributePath {
-    AttributeName attribute;
+    @NonNull AttributeName attribute;
 
     @Override
     public @NonNull AttributeName getFirst() {

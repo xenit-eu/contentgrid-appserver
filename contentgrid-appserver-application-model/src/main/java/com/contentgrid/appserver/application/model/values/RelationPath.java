@@ -5,8 +5,8 @@ import lombok.Value;
 
 @Value
 public class RelationPath implements PropertyPath {
-    RelationName relation;
-    PropertyPath rest;
+    @NonNull RelationName relation;
+    @NonNull PropertyPath rest;
 
     @Override
     public @NonNull PropertyName getFirst() {
