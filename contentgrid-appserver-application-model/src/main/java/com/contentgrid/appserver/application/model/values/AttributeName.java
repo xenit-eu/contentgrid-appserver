@@ -9,4 +9,9 @@ public class AttributeName implements PropertyName {
     public static AttributeName from(PropertyName property) {
         return new AttributeName(property.getValue());
     }
+
+    @Override
+    public String toString() {
+        return getValue();
+    }
 }

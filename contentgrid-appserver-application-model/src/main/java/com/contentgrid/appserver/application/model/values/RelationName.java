@@ -9,4 +9,9 @@ public class RelationName implements PropertyName {
     public static RelationName from(PropertyName property) {
         return new RelationName(property.getValue());
     }
+
+    @Override
+    public String toString() {
+        return getValue();
+    }
 }
