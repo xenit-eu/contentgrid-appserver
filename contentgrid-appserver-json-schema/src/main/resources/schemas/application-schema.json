@@ -59,9 +59,13 @@
                   "type": "string",
                   "description": "The name of the filter."
                 },
-                "attributeName": {
-                  "type": "string",
-                  "description": "The name of the attribute to filter on."
+                "attributePath": {
+                  "type": "array",
+                  "description": "The path to the attribute to filter on.",
+                  "items": {
+                    "type": "string",
+                    "description": "An attribute name, part of this path."
+                  }
                 },
                 "type": {
                   "type": "string",
@@ -74,7 +78,7 @@
               },
               "required": [
                 "name",
-                "attributeName",
+                "attributePath",
                 "type"
               ]
             }

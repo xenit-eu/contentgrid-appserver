@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
@@ -11,11 +12,16 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +46,7 @@ import lombok.Value;
  * @see Entity.EntityBuilder
  */
 @Value
-public class Entity {
+public class Entity implements HasAttributes {
 
     /**
      * Constructs an Entity with the specified parameters.
@@ -117,11 +123,18 @@ public class Entity {
                         throw new DuplicateElementException(
                                 "Duplicate search filter named %s".formatted(searchFilter.getName()));
                     }
-                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter && !attributes.contains(
-                            attributeSearchFilter.getAttribute())) {
-                        throw new InvalidArgumentModelException(
-                                "AttributeSearchFilter %s does not have a valid attribute".formatted(
-                                        attributeSearchFilter.getName()));
+                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                        try {
+                            var attr = resolveAttributePath(attributeSearchFilter.getAttributePath());
+                            if (attr.getType() != attributeSearchFilter.getAttributeType()) {
+                                throw new InvalidArgumentModelException(("AttributeSearchFilter %s does not match the"
+                                        + " type of attribute %s (%s != %s)").formatted(attributeSearchFilter.getName(),
+                                        attr.getName(), attributeSearchFilter.getAttributeType(), attr.getType()));
+                            }
+                        } catch (IllegalArgumentException e) {
+                            throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
+                                    .formatted(attributeSearchFilter.getName()), e);
+                        }
                     }
                 }
         );
@@ -255,4 +268,38 @@ public class Entity {
         return result;
     }
 
+    /**
+     * Resolves an attribute path to its target SimpleAttribute.
+     *
+     * @param attributePath the path to resolve
+     * @return the SimpleAttribute at the end of the path
+     * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
+     */
+    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
+        return switch (attributePath) {
+            case AttributePath attrPath -> resolveAttributePath(this, attrPath);
+            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters are not yet implemented");
+        };
+    }
+
+    private static SimpleAttribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {
+        return switch (attributePath) {
+            case SimpleAttributePath simpleAttributePath -> {
+                var attr = container.getAttributeByName(simpleAttributePath.getFirst())
+                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + simpleAttributePath.getFirst()));
+                if (attr instanceof SimpleAttribute simpleAttribute) {
+                    yield simpleAttribute;
+                }
+                throw new IllegalArgumentException("SimpleAttributePath didn't end up at SimpleAttribute: " + attributePath);
+            }
+            case CompositeAttributePath compositeAttributePath -> {
+                var attr = container.getAttributeByName(compositeAttributePath.getFirst())
+                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + compositeAttributePath.getFirst()));
+                if (attr instanceof CompositeAttribute compAttribute) {
+                    yield resolveAttributePath(compAttribute, compositeAttributePath.getRest());
+                }
+                throw new IllegalArgumentException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
+            }
+        };
+    }
 }

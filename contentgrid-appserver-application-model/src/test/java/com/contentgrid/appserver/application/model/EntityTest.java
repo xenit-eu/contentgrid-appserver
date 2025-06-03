@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -89,9 +90,9 @@ class EntityTest {
         // getFilterByName
         var filter = entity.getFilterByName(FilterName.of("filter1")).orElseThrow();
         assertEquals(FilterName.of("filter1"), filter.getName());
-        var prefixFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
-        assertEquals(AttributeName.of("attribute1"), prefixFilter.getAttribute().getName());
-        assertEquals(ColumnName.of("column1"), prefixFilter.getAttribute().getColumn());
+        var attrSearchFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
+        assertEquals(AttributeName.of("attribute1"), attrSearchFilter.getAttributePath().getFirst());
+        assertEquals(Type.TEXT, attrSearchFilter.getAttributeType());
 
         // getContentByPathSegment
         var content = entity.getContentByPathSegment(PathSegmentName.of("content2")).orElseThrow();
@@ -270,6 +271,75 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2); // on missing ATTRIBUTE2
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_filterWithWrongType() {
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("filter"))
+                        .attributePath(PropertyPath.of(ATTRIBUTE1.getName()))
+                        .attributeType(Type.BOOLEAN)
+                        .build()
+                );
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_filterOnComposite() {
+        Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(COMPOSITE)
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("filter"))
+                        .attributePath(PropertyPath.of(COMPOSITE.getName(), CONTENT2.getName(), AttributeName.of("filename")))
+                        .attributeType(Type.TEXT)
+                        .build()
+                ).build();
+    }
+
+    @Test
+    void entity_filterOnCompositePointsToSimple() {
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("filter"))
+                        .attributePath(PropertyPath.of(ATTRIBUTE1.getName(), AttributeName.of("foo")))
+                        .attributeType(Type.TEXT)
+                        .build()
+                );
+
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_filterOnSimplePointsToComposite() {
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(COMPOSITE)
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("filter"))
+                        .attributePath(PropertyPath.of(COMPOSITE.getName()))
+                        .attributeType(Type.TEXT)
+                        .build()
+                );
+
         assertThrows(InvalidArgumentModelException.class, builder::build);
     }
 

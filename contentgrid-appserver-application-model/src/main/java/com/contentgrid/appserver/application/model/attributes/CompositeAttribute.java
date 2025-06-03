@@ -1,11 +1,12 @@
 package com.contentgrid.appserver.application.model.attributes;
 
+import com.contentgrid.appserver.application.model.HasAttributes;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
 import java.util.Optional;
 
-public sealed interface CompositeAttribute extends Attribute permits CompositeAttributeImpl, ContentAttribute, UserAttribute {
+public sealed interface CompositeAttribute extends Attribute, HasAttributes permits CompositeAttributeImpl, ContentAttribute, UserAttribute {
 
     /**
      * Returns an unmodifiable list of attributes.

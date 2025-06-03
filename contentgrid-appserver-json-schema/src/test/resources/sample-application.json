@@ -71,7 +71,7 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributeName": "name",
+          "attributePath": ["name"],
           "type": "prefix"
         }
       ]
@@ -189,12 +189,17 @@
       "searchFilters": [
         {
           "name": "lastNameFilter",
-          "attributeName": "lastName",
+          "attributePath": ["lastName"],
           "type": "prefix"
         },
         {
           "name": "emailFilter",
-          "attributeName": "email",
+          "attributePath": ["email"],
+          "type": "exact"
+        },
+        {
+          "name": "phoneFilter",
+          "attributePath": ["contactInfo", "phone"],
           "type": "exact"
         }
       ]
@@ -286,12 +291,12 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributeName": "name",
+          "attributePath": ["name"],
           "type": "prefix"
         },
         {
           "name": "statusFilter",
-          "attributeName": "status",
+          "attributePath": ["status"],
           "type": "exact"
         }
       ]
@@ -357,7 +362,7 @@
       "searchFilters": [
         {
           "name": "titleFilter",
-          "attributeName": "title",
+          "attributePath": ["title"],
           "type": "prefix"
         }
       ]
@@ -409,12 +414,12 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributeName": "name",
+          "attributePath": ["name"],
           "type": "prefix"
         },
         {
           "name": "categoryFilter",
-          "attributeName": "category",
+          "attributePath": ["category"],
           "type": "exact"
         }
       ]
@@ -460,7 +465,7 @@
       "searchFilters": [
         {
           "name": "ssnFilter",
-          "attributeName": "ssn",
+          "attributePath": ["ssn"],
           "type": "exact"
         }
       ]

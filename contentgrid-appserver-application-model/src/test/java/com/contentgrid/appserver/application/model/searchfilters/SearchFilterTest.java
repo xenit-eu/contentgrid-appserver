@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -8,6 +9,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilte
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +29,17 @@ class SearchFilterTest {
         var exactSearchFilter = ExactSearchFilter.builder()
                 .name(FilterName.of("filter")).attribute(getAttribute(type)).build();
         assertEquals(FilterName.of("filter"), exactSearchFilter.getName());
+        assertEquals(PropertyPath.of(AttributeName.of("name")), exactSearchFilter.getAttributePath());
+        assertEquals(type, exactSearchFilter.getAttributeType());
+    }
+
+    @Test
+    void searchFilterWithPath() {
+        var exactSearchFilter = ExactSearchFilter.builder()
+                .name(FilterName.of("filter")).attributePath(PropertyPath.of(AttributeName.of("foo"), AttributeName.of("bar")))
+                .attributeType(Type.TEXT).build();
+        assertEquals(FilterName.of("filter"), exactSearchFilter.getName());
+        assertEquals(PropertyPath.of(AttributeName.of("foo"), AttributeName.of("bar")), exactSearchFilter.getAttributePath());
     }
 
     @ParameterizedTest
@@ -42,6 +55,7 @@ class SearchFilterTest {
         var prefixSearchFilter = PrefixSearchFilter.builder()
                 .name(FilterName.of("filter~prefix")).attribute(getAttribute(Type.TEXT)).build();
         assertEquals(FilterName.of("filter~prefix"), prefixSearchFilter.getName());
+        assertEquals(PropertyPath.of(AttributeName.of("name")), prefixSearchFilter.getAttributePath());
     }
 
     @ParameterizedTest
