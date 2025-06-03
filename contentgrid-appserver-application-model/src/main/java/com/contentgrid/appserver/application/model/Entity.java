@@ -125,7 +125,12 @@ public class Entity implements HasAttributes {
                     }
                     if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                         try {
-                            resolveAttributePath(attributeSearchFilter.getAttributePath());
+                            var attr = resolveAttributePath(attributeSearchFilter.getAttributePath());
+                            if (attr.getType() != attributeSearchFilter.getAttributeType()) {
+                                throw new InvalidArgumentModelException(("AttributeSearchFilter %s does not match the"
+                                        + " type of attribute %s (%s != %s)").formatted(attributeSearchFilter.getName(),
+                                        attr.getName(), attributeSearchFilter.getAttributeType(), attr.getType()));
+                            }
                         } catch (IllegalArgumentException e) {
                             throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
                                     .formatted(attributeSearchFilter.getName()), e);
