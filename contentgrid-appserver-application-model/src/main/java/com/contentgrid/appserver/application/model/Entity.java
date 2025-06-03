@@ -12,13 +12,16 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -44,7 +46,7 @@ import lombok.Value;
  * @see Entity.EntityBuilder
  */
 @Value
-public class Entity {
+public class Entity implements HasAttributes {
 
     /**
      * Constructs an Entity with the specified parameters.
@@ -268,29 +270,31 @@ public class Entity {
      * @return the SimpleAttribute at the end of the path
      * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
      */
-    public SimpleAttribute resolveAttributePath(PropertyPath attributePath) {
-
-        var first = getAttributeByName(AttributeName.from(attributePath.getFirst()))
-                .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + attributePath.getFirst()));
-
-        return resolveAttributePath(first, attributePath, 1);
+    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
+        return switch (attributePath) {
+            case AttributePath attrPath -> resolveAttributePath(this, attrPath);
+            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters are not yet implemented");
+        };
     }
 
-    private SimpleAttribute resolveAttributePath(Attribute attribute, PropertyPath path, int index) {
-        if (index == path.size()) {
-            if (attribute instanceof SimpleAttribute simpleAttribute) {
-                return simpleAttribute;
+    private static SimpleAttribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {
+        return switch (attributePath) {
+            case SimpleAttributePath simpleAttributePath -> {
+                var attr = container.getAttributeByName(simpleAttributePath.getFirst())
+                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + simpleAttributePath.getFirst()));
+                if (attr instanceof SimpleAttribute simpleAttribute) {
+                    yield simpleAttribute;
+                }
+                throw new IllegalArgumentException("SimpleAttributePath didn't end up at SimpleAttribute: " + attributePath);
             }
-            throw new IllegalArgumentException("Path did not end in SimpleAttribute: " + path.stream()
-                    .map(PropertyName::getValue).collect(Collectors.joining(".")));
-        } else if (attribute instanceof CompositeAttribute composite) {
-            var child = composite.getAttributeByName(AttributeName.from(path.get(index)))
-                    .orElseThrow(() -> new IllegalArgumentException("Attribute not found in path: " + path.get(index)));
-            return resolveAttributePath(child, path, index + 1);
-        } else {
-            throw new IllegalArgumentException("Cannot proceed on path %s: Not a composite attribute (%s)"
-                    .formatted(path.stream().map(PropertyName::getValue).collect(Collectors.joining(".")),
-                            attribute.getName()));
-        }
+            case CompositeAttributePath compositeAttributePath -> {
+                var attr = container.getAttributeByName(compositeAttributePath.getFirst())
+                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + compositeAttributePath.getFirst()));
+                if (attr instanceof CompositeAttribute compAttribute) {
+                    yield resolveAttributePath(compAttribute, compositeAttributePath.getRest());
+                }
+                throw new IllegalArgumentException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
+            }
+        };
     }
 }

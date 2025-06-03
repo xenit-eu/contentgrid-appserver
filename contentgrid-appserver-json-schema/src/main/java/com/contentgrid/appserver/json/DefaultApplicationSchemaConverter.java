@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilt
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -256,16 +257,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         // If propertyPath has multiple elements, traverse composite attribute until you get to the leaf, in order
         // to find the type for this filter; Don't traverse relations: filters across relations are added after all
         // entities have been instantiated.
-        for (int i=1; i < propertyPath.size(); i++) {
+        AttributePath remainingPath = (AttributePath) propertyPath;
+        while (remainingPath.getRest() != null) {
             if (attribute instanceof com.contentgrid.appserver.application.model.attributes.CompositeAttribute parent) {
-                AttributeName attrName = AttributeName.from(propertyPath.get(i));
-                // reassign attribute with the next child
+                // reassign attribute with next child, update remainingPath
+                remainingPath = remainingPath.getRest();
+                var attrName = remainingPath.getFirst();
                 attribute = parent.getAttributeByName(attrName)
                         .orElseThrow(() -> new InvalidSearchFilterException("Could not find %s in Composite %s"
                                 .formatted(attrName, parent.getName().getValue())));
             } else {
                 throw new InvalidSearchFilterException("Attribute %s is not Composite but supposed to contain %s"
-                        .formatted(attribute.getName().getValue(), propertyPath.get(i)));
+                        .formatted(attribute.getName().getValue(), remainingPath.getRest().getFirst()));
             }
         }
 
@@ -485,17 +488,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonFilter.setName(filter.getName().getValue());
         switch (filter) {
             case PrefixSearchFilter prefixFilter -> {
-                jsonFilter.setAttributePath(prefixFilter.getAttributePath().stream().map(PropertyName::getValue).toList());
+                jsonFilter.setAttributePath(prefixFilter.getAttributePath().toList());
                 jsonFilter.setType("prefix");
             }
             case ExactSearchFilter exactFilter -> {
-                jsonFilter.setAttributePath(exactFilter.getAttributePath().stream().map(PropertyName::getValue).toList());
+                jsonFilter.setAttributePath(exactFilter.getAttributePath().toList());
                 jsonFilter.setType("exact");
             }
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
     }
+
 
     private Relation toJsonRelation(com.contentgrid.appserver.application.model.relations.Relation relation) {
         return switch (relation) {

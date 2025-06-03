@@ -2,10 +2,8 @@ package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
-import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -50,9 +48,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
         if (!supports(attributeType)) {
             throw new InvalidSearchFilterException("Attribute with type %s is not supported".formatted(attributeType));
         }
-        if (attributePath.isEmpty()) {
-            throw new InvalidSearchFilterException("Can't make an attribute search filter with an empty path. Path must lead to an attribute.");
-        }
+
         this.name = name;
         this.attributePath = attributePath;
         this.attributeType = attributeType;

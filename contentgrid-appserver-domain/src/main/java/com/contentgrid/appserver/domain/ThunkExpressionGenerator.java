@@ -4,9 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -43,9 +41,7 @@ public class ThunkExpressionGenerator {
             if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
                 try {
                     Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
-                    String[] pathSegments = exactSearchFilter.getAttributePath().stream()
-                            .map(PropertyName::getValue)
-                            .toArray(String[]::new);
+                    String[] pathSegments = exactSearchFilter.getAttributePath().toList().toArray(String[]::new);
                     ThunkExpression<Boolean> expression = createEqualityExpression(
                             pathSegments,
                             parsedValue
