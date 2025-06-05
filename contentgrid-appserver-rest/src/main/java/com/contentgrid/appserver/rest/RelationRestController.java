@@ -11,7 +11,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
@@ -38,7 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RelationRestController {
 
-    private final QueryEngine queryEngine;
+    private final DatamodelApi datamodelApi;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -63,23 +63,23 @@ public class RelationRestController {
             URI redirectUrl;
             switch (relation) {
                 case OneToOneRelation oneToOneRelation -> {
-                    var targetId = queryEngine.findTarget(application, oneToOneRelation, sourceId)
+                    var targetId = datamodelApi.findTarget(application, oneToOneRelation, sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
                 case ManyToOneRelation manyToOneRelation -> {
-                    var targetId = queryEngine.findTarget(application, manyToOneRelation, sourceId)
+                    var targetId = datamodelApi.findTarget(application, manyToOneRelation, sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
                 case OneToManyRelation oneToManyRelation -> {
-                    queryEngine.findById(application, oneToManyRelation.getSourceEndPoint().getEntity(), sourceId)
+                    datamodelApi.findById(application, oneToManyRelation.getSourceEndPoint().getEntity(), sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
                             Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
                 }
                 case ManyToManyRelation manyToManyRelation -> {
-                    queryEngine.findById(application, manyToManyRelation.getSourceEndPoint().getEntity(), sourceId)
+                    datamodelApi.findById(application, manyToManyRelation.getSourceEndPoint().getEntity(), sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
                             Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
@@ -124,7 +124,7 @@ public class RelationRestController {
                 .ref(targetId)
                 .build();
         try {
-            queryEngine.setLink(application, data, sourceId);
+            datamodelApi.setLink(application, data, sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -183,7 +183,7 @@ public class RelationRestController {
             dataBuilder.ref(targetId);
         }
         try {
-            queryEngine.addLinks(application, dataBuilder.build(), sourceId);
+            datamodelApi.addLinks(application, dataBuilder.build(), sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -202,7 +202,7 @@ public class RelationRestController {
         var relation = getRelationOrThrow(application, entityName, relationName);
 
         try {
-            queryEngine.unsetLink(application, relation, sourceId);
+            datamodelApi.unsetLink(application, relation, sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -225,14 +225,8 @@ public class RelationRestController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Single targets not supported.");
         }
 
-        var data = XToManyRelationData.builder()
-                .entity(relation.getSourceEndPoint().getEntity().getName())
-                .name(relation.getSourceEndPoint().getName())
-                .ref(targetId)
-                .build();
-
         try {
-            queryEngine.removeLinks(application, data, sourceId);
+            datamodelApi.removeLink(application, relation, sourceId, targetId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
