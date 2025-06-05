@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.RelationRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import org.springframework.hateoas.Link;
@@ -42,10 +43,10 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
-        // TODO: ACC-2100: use linkTo(methodOn(...)).withRel(RELATION).withName(relation.getSourceEndPoint().getName().getValue())
-        var href = getSelfLink(application, relation.getSourceEndPoint().getEntity(), id).getHref() + "/" + relation.getSourceEndPoint().getPathSegment();
-        return Link.of(href, ContentGridLinkRelations.RELATION)
-                .withName(relation.getSourceEndPoint().getName().getValue());
+        return linkTo(methodOn(RelationRestController.class)
+                .followRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id, relation.getSourceEndPoint().getPathSegment()))
+                .withRel(ContentGridLinkRelations.RELATION)
+                .withName(relation.getSourceEndPoint().getLinkName().getValue());
     }
 
     private Link getContentLink(Application application, Entity entity, EntityId id, ContentAttribute attribute) {
