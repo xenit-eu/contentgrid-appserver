@@ -56,49 +56,49 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+    public boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
             @NonNull EntityId targetId) throws QueryEngineException {
         return queryEngine.isLinked(application, relation, sourceId, targetId);
     }
 
     @Override
-    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation,
+    public Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation,
             @NonNull EntityId id) throws QueryEngineException {
         return queryEngine.findTarget(application, relation, id);
     }
 
     @Override
-    public Optional<XToOneRelationData> findLink(@NonNull Application application, @NonNull Relation relation,
+    public Optional<XToOneRelationData> findRelationData(@NonNull Application application, @NonNull Relation relation,
             @NonNull EntityId id) throws QueryEngineException {
         return queryEngine.findLink(application, relation, id);
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
+    public void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.setLink(application, data, id);
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
+    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.unsetLink(application, relation, id);
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void addRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.addLinks(application, data, id);
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.removeLinks(application, data, id);
     }
 
     @Override
-    public void removeLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+    public void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
             @NonNull EntityId targetId) throws QueryEngineException {
         var data = XToManyRelationData.builder()
                 .entity(relation.getSourceEndPoint().getEntity().getName())

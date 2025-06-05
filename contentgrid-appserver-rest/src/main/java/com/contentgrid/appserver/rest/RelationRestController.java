@@ -63,12 +63,12 @@ public class RelationRestController {
             URI redirectUrl;
             switch (relation) {
                 case OneToOneRelation oneToOneRelation -> {
-                    var targetId = datamodelApi.findTarget(application, oneToOneRelation, sourceId)
+                    var targetId = datamodelApi.findRelationTarget(application, oneToOneRelation, sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
                 case ManyToOneRelation manyToOneRelation -> {
-                    var targetId = datamodelApi.findTarget(application, manyToOneRelation, sourceId)
+                    var targetId = datamodelApi.findRelationTarget(application, manyToOneRelation, sourceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
@@ -124,7 +124,7 @@ public class RelationRestController {
                 .ref(targetId)
                 .build();
         try {
-            datamodelApi.setLink(application, data, sourceId);
+            datamodelApi.setRelation(application, data, sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -183,7 +183,7 @@ public class RelationRestController {
             dataBuilder.ref(targetId);
         }
         try {
-            datamodelApi.addLinks(application, dataBuilder.build(), sourceId);
+            datamodelApi.addRelationItems(application, dataBuilder.build(), sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -202,7 +202,7 @@ public class RelationRestController {
         var relation = getRelationOrThrow(application, entityName, relationName);
 
         try {
-            datamodelApi.unsetLink(application, relation, sourceId);
+            datamodelApi.deleteRelation(application, relation, sourceId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -226,7 +226,7 @@ public class RelationRestController {
         }
 
         try {
-            datamodelApi.removeLink(application, relation, sourceId, targetId);
+            datamodelApi.removeRelationItem(application, relation, sourceId, targetId);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

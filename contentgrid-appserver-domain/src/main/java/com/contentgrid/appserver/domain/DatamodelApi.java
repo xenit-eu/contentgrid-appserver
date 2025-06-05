@@ -82,7 +82,7 @@ public interface DatamodelApi {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
+    boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -94,10 +94,10 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
-     * Returns the target entity id that is linked with the entity having the given id.
+     * Returns the target relation data that is linked with the entity having the given id.
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
@@ -106,7 +106,7 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<XToOneRelationData> findLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    Optional<XToOneRelationData> findRelationData(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Link the target entity id provided in data with the given source id.
@@ -117,7 +117,7 @@ public interface DatamodelApi {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -127,7 +127,7 @@ public interface DatamodelApi {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Adds the links provided in data to the entity with the given id.
@@ -138,7 +138,7 @@ public interface DatamodelApi {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void addRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
@@ -149,7 +149,7 @@ public interface DatamodelApi {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Unlink the given target id from the given source id of the given relation.
@@ -161,6 +161,6 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
+    void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
 
 }
