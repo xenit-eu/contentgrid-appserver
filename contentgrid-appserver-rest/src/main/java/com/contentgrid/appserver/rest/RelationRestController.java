@@ -4,7 +4,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -40,18 +39,13 @@ public class RelationRestController {
 
     private final DatamodelApi datamodelApi;
 
-    private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
-        return application.getEntityByPathSegment(entityName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
-    }
-
     private Relation getRelationOrThrow(Application application, PathSegmentName entityName, PathSegmentName relationName) {
         return application.getRelationForPath(entityName, relationName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
     }
 
     @GetMapping("/{entityName}/{sourceId}/{relationName}")
-    public ResponseEntity<?> followRelation(
+    public ResponseEntity<Void> followRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId sourceId,
@@ -74,25 +68,25 @@ public class RelationRestController {
                 }
                 case OneToManyRelation oneToManyRelation -> {
                     datamodelApi.findById(application, oneToManyRelation.getSourceEndPoint().getEntity(), sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(sourceId)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
                             Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
                 }
                 case ManyToManyRelation manyToManyRelation -> {
                     datamodelApi.findById(application, manyToManyRelation.getSourceEndPoint().getEntity(), sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(sourceId)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
                             Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
                 }
             }
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
         } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         }
     }
 
     @PutMapping(path = "/{entityName}/{sourceId}/{relationName}", consumes = "text/uri-list")
-    public ResponseEntity<?> setRelation(
+    public ResponseEntity<Void> setRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId sourceId,
@@ -152,7 +146,7 @@ public class RelationRestController {
     }
 
     @PostMapping(path = "/{entityName}/{sourceId}/{relationName}", consumes = "text/uri-list")
-    public ResponseEntity<?> addRelation(
+    public ResponseEntity<Void> addRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId sourceId,
@@ -193,7 +187,7 @@ public class RelationRestController {
     }
 
     @DeleteMapping(path = "/{entityName}/{sourceId}/{relationName}")
-    public ResponseEntity<?> clearRelation(
+    public ResponseEntity<Void> clearRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId sourceId,
@@ -212,7 +206,7 @@ public class RelationRestController {
     }
 
     @DeleteMapping(path = "/{entityName}/{sourceId}/{relationName}/{targetId}")
-    public ResponseEntity<?> removeRelation(
+    public ResponseEntity<Void> removeRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId sourceId,

@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -37,11 +36,11 @@ public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<Li
                     .map(line -> {
                         try {
                             return URI.create(line);
-                        } catch (Exception e) {
+                        } catch (IllegalArgumentException e) {
                             throw new HttpMessageNotReadableException("Invalid URI in text/uri-list: " + line, e, inputMessage);
                         }
                     })
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 
