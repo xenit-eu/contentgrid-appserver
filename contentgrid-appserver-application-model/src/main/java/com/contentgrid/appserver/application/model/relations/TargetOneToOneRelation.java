@@ -40,7 +40,7 @@ public class TargetOneToOneRelation extends OneToOneRelation {
     ColumnName sourceReference;
 
     @Override
-    public Relation inverse() {
+    public SourceOneToOneRelation inverse() {
         return SourceOneToOneRelation.builder()
                 .sourceEndPoint(this.getTargetEndPoint())
                 .targetEndPoint(this.getSourceEndPoint())

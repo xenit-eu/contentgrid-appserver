@@ -68,7 +68,7 @@ public class ManyToManyRelation extends Relation {
     ColumnName targetReference;
 
     @Override
-    public Relation inverse() {
+    public ManyToManyRelation inverse() {
         return ManyToManyRelation.builder()
                 .sourceEndPoint(this.getTargetEndPoint())
                 .targetEndPoint(this.getSourceEndPoint())
