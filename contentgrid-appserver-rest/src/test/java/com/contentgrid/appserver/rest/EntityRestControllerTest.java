@@ -53,7 +53,7 @@ class EntityRestControllerTest {
         @Bean
         @Primary
         public ApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(TestApplication.getApplication());
+            return new SingleApplicationResolver(TestApplication.APPLICATION);
         }
 
         @Bean
