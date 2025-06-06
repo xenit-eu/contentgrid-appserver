@@ -4,6 +4,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -19,13 +20,13 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,7 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class RelationRestController {
+public class RelationRestController implements PropertyRestController {
 
     private final DatamodelApi datamodelApi;
 
@@ -44,42 +45,46 @@ public class RelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
     }
 
-    @GetMapping("/{entityName}/{sourceId}/{relationName}")
-    public ResponseEntity<Void> followRelation(
+    @Override
+    public Optional<ResponseEntity<Object>> getProperty(
             Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId sourceId,
-            @PathVariable PathSegmentName relationName
+            Entity entity,
+            EntityId instanceId,
+            PathSegmentName propertyName
     ) {
-        var relation = getRelationOrThrow(application, entityName, relationName);
+        var maybeRelation = application.getRelationForPath(entity.getPathSegment(), propertyName);
+        if (maybeRelation.isEmpty()) {
+            return Optional.empty();
+        }
+        var relation = maybeRelation.get();
         var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         try {
             URI redirectUrl;
             switch (relation) {
                 case OneToOneRelation oneToOneRelation -> {
-                    var targetId = datamodelApi.findRelationTarget(application, oneToOneRelation, sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
+                    var targetId = datamodelApi.findRelationTarget(application, oneToOneRelation, instanceId)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(propertyName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
                 case ManyToOneRelation manyToOneRelation -> {
-                    var targetId = datamodelApi.findRelationTarget(application, manyToOneRelation, sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relationName)));
+                    var targetId = datamodelApi.findRelationTarget(application, manyToOneRelation, instanceId)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(propertyName)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
                 }
                 case OneToManyRelation oneToManyRelation -> {
-                    datamodelApi.findById(application, oneToManyRelation.getSourceEndPoint().getEntity(), sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(sourceId)));
+                    datamodelApi.findById(application, oneToManyRelation.getSourceEndPoint().getEntity(), instanceId)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
-                            Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
+                            Map.of(relation.getTargetEndPoint().getName().getValue(), instanceId.toString()))).toUri(); // TODO: use RelationSearchFilter
                 }
                 case ManyToManyRelation manyToManyRelation -> {
-                    datamodelApi.findById(application, manyToManyRelation.getSourceEndPoint().getEntity(), sourceId)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(sourceId)));
+                    datamodelApi.findById(application, manyToManyRelation.getSourceEndPoint().getEntity(), instanceId)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
                     redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
-                            Map.of(relation.getTargetEndPoint().getName().getValue(), sourceId.toString()))).toUri(); // TODO: use RelationSearchFilter
+                            Map.of(relation.getTargetEndPoint().getName().getValue(), instanceId.toString()))).toUri(); // TODO: use RelationSearchFilter
                 }
             }
-            return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
+            return Optional.of(ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build());
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         }
