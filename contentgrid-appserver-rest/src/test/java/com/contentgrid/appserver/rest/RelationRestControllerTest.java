@@ -162,7 +162,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
@@ -178,7 +178,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/invoices/{sourceId}/customer", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/persons/%s\n".formatted(targetId)))
+                            .content("http://localhost/persons/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
@@ -231,7 +231,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\nhttp://localhost/invoices/%s\n".formatted(invoice1,
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
@@ -250,7 +250,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/products/{sourceId}/invoices", PRODUCT_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\nhttp://localhost/invoices/%s\n".formatted(invoice1,
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
@@ -289,10 +289,10 @@ class RelationRestControllerTest {
         static Stream<String> invalidUrls() {
             var targetId = EntityId.of(UUID.randomUUID());
             return Stream.of(
-                    "http://localhost/persons/%s\n".formatted(targetId), // person instead of invoice
-                    "http://localhost/invoices\n", // collection url
-                    "http://localhost/invoices/%s/next-invoice\n".formatted(targetId), // relation url
-                    "}%s\n".formatted(targetId) // illegal url
+                    "http://localhost/persons/%s%n".formatted(targetId), // person instead of invoice
+                    "http://localhost/invoices%n".formatted(), // collection url
+                    "http://localhost/invoices/%s/next-invoice%n".formatted(targetId), // relation url
+                    "}%s%n".formatted(targetId) // illegal url
             );
         }
 
@@ -310,7 +310,7 @@ class RelationRestControllerTest {
         void setRelationNoData() throws Exception {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("\n"))
+                            .content("%n".formatted()))
                     .andExpect(status().isBadRequest());
         }
 
@@ -321,7 +321,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\nhttp://localhost/invoices/%s\n".formatted(target1, target2)))
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(target1, target2)))
                     .andExpect(status().isBadRequest());
         }
 
@@ -331,7 +331,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/persons/{sourceId}/invoices", PERSON_ID) // one-to-many
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isBadRequest());
         }
 
@@ -348,7 +348,7 @@ class RelationRestControllerTest {
         void addRelationNoData() throws Exception {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
-                            .content("\n"))
+                            .content("%n".formatted()))
                     .andExpect(status().isBadRequest());
         }
 
@@ -358,7 +358,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/invoices/{sourceId}/previous-invoice", INVOICE_ID) // one-to-one
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isBadRequest());
         }
 
@@ -428,7 +428,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isNotFound());
         }
 
@@ -445,7 +445,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isBadRequest());
         }
 
@@ -464,7 +464,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\nhttp://localhost/invoices/%s\n".formatted(invoice1,
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
                     .andExpect(status().isNotFound());
         }
@@ -484,7 +484,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s\nhttp://localhost/invoices/%s\n".formatted(invoice1,
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
                     .andExpect(status().isBadRequest());
         }
