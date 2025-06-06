@@ -23,6 +23,7 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,6 +80,11 @@ class RelationRestControllerTest {
         }
     }
 
+    @AfterEach
+    void resetMocks() {
+        Mockito.reset(datamodelApi);
+    }
+
     @Nested
     class ValidInput {
 
@@ -93,6 +99,9 @@ class RelationRestControllerTest {
                     .andExpect(status().isFound())
                     .andExpect(
                             header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
+
+            Mockito.verify(datamodelApi)
+                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
         }
 
         @Test
@@ -106,6 +115,9 @@ class RelationRestControllerTest {
                     .andExpect(status().isFound())
                     .andExpect(
                             header().string(HttpHeaders.LOCATION, "http://localhost/persons/%s".formatted(targetId)));
+
+            Mockito.verify(datamodelApi)
+                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID);
         }
 
         @Test
@@ -121,6 +133,9 @@ class RelationRestControllerTest {
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
                             "http://localhost/invoices?page=0&customer=%s".formatted(PERSON_ID)));
+
+            Mockito.verify(datamodelApi)
+                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
         }
 
         @Test
@@ -136,6 +151,9 @@ class RelationRestControllerTest {
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
                             "http://localhost/invoices?page=0&products=%s".formatted(PRODUCT_ID)));
+
+            Mockito.verify(datamodelApi)
+                    .findById(TestApplication.APPLICATION, TestApplication.PRODUCT, PRODUCT_ID);
         }
 
         @Test
