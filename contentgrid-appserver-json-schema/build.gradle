@@ -17,11 +17,11 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.networknt:json-schema-validator:1.5.7'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.13.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.13.1'
     testImplementation 'uk.co.datumedge:hamcrest-json:0.3'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.13.0'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.13.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.1'
 }
 
 tasks.named('test') {
