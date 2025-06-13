@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest;
+package com.contentgrid.appserver.rest.property.handler;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +20,7 @@ import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationE
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.TestApplication;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -42,7 +43,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
-class RelationRestControllerTest {
+class RelationRequestHandlerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());
     private static final EntityId INVOICE_ID = EntityId.of(UUID.randomUUID());
