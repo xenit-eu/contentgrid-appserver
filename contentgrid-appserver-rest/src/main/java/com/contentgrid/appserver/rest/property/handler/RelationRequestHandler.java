@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,27 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<List<URI>, Relation> {
+
+    private static final HttpMethod[] SINGLE_TARGET_PROPERTY_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.PUT, HttpMethod.DELETE};
+    private static final HttpMethod[] MULTI_TARGET_PROPERTY_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.DELETE};
+    private static final HttpMethod[] SINGLE_TARGET_PROPERTY_ITEM_METHODS = {HttpMethod.GET, HttpMethod.HEAD};
+    private static final HttpMethod[] MULTI_TARGET_PROPERTY_ITEM_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.DELETE};
+
+    private static HttpMethod[] supportedPropertyMethods(Relation relation) {
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            return MULTI_TARGET_PROPERTY_METHODS;
+        } else {
+            return SINGLE_TARGET_PROPERTY_METHODS;
+        }
+    }
+
+    private static HttpMethod[] supportedPropertyItemMethods(Relation relation) {
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            return MULTI_TARGET_PROPERTY_ITEM_METHODS;
+        } else {
+            return SINGLE_TARGET_PROPERTY_ITEM_METHODS;
+        }
+    }
 
     private final DatamodelApi datamodelApi;
 
@@ -124,7 +146,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
         var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
 
         if (!(property instanceof OneToManyRelation || property instanceof ManyToManyRelation)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Single targets not supported.");
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                    .allow(SINGLE_TARGET_PROPERTY_METHODS)
+                    .build();
         }
 
         var dataBuilder = XToManyRelationData.builder()
@@ -151,12 +175,6 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    protected ResponseEntity<Object> patchProperty(Application application, Entity entity, EntityId instanceId,
-            Relation property, List<URI> body) {
-        return ResponseEntity.notFound().build();
-    }
-
-    @Override
     protected ResponseEntity<Object> putProperty(
             Application application,
             Entity entity,
@@ -173,7 +191,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
         var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
 
         if (property instanceof OneToManyRelation || property instanceof ManyToManyRelation) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                    .allow(MULTI_TARGET_PROPERTY_METHODS)
+                    .build();
         }
         var element = body.getFirst();
 
@@ -195,6 +215,14 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    protected ResponseEntity<Object> patchProperty(Application application, Entity entity, EntityId instanceId,
+            Relation property, List<URI> body) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(supportedPropertyMethods(property))
+                .build();
     }
 
     @Override
@@ -243,7 +271,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(supportedPropertyItemMethods(property))
+                .build();
     }
 
     @Override
@@ -255,7 +285,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(supportedPropertyItemMethods(property))
+                .build();
     }
 
     @Override
@@ -267,7 +299,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(supportedPropertyItemMethods(property))
+                .build();
     }
 
     @Override
@@ -279,7 +313,9 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId
     ) {
         if (!(property instanceof OneToManyRelation || property instanceof ManyToManyRelation)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Single targets not supported.");
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                    .allow(SINGLE_TARGET_PROPERTY_ITEM_METHODS)
+                    .build();
         }
 
         try {

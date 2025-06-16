@@ -1,9 +1,12 @@
 package com.contentgrid.appserver.rest.property.handler;
 
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,12 +25,14 @@ import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.TestApplication;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
@@ -38,6 +43,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -326,16 +332,6 @@ class RelationRequestHandlerTest {
                     .andExpect(status().isBadRequest());
         }
 
-        @Test
-        void setRelationToManyRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            mockMvc.perform(put("/persons/{sourceId}/invoices", PERSON_ID) // one-to-many
-                            .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isBadRequest());
-        }
-
         @ParameterizedTest
         @MethodSource("invalidUrls")
         void setRelationInvalidUrl(String url) throws Exception {
@@ -353,16 +349,6 @@ class RelationRequestHandlerTest {
                     .andExpect(status().isBadRequest());
         }
 
-        @Test
-        void addRelationToOneRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            mockMvc.perform(post("/invoices/{sourceId}/previous-invoice", INVOICE_ID) // one-to-one
-                            .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isBadRequest());
-        }
-
         @ParameterizedTest
         @MethodSource("invalidUrls")
         void addRelationInvalidUrl(String url) throws Exception {
@@ -372,12 +358,38 @@ class RelationRequestHandlerTest {
                     .andExpect(status().isBadRequest());
         }
 
-        @Test
-        void removeRelationToOneRelation() throws Exception {
+        static Stream<Arguments> unsupportedMethod() {
             var targetId = EntityId.of(UUID.randomUUID());
+            return Stream.of(
+                    // property endpoint
+                    Arguments.of(HttpMethod.PUT, "/persons/%s/invoices".formatted(PERSON_ID)),
+                    Arguments.of(HttpMethod.POST, "/invoices/%s/previous-invoice".formatted(INVOICE_ID)),
+                    Arguments.of(HttpMethod.PATCH, "/persons/%s/invoices".formatted(PERSON_ID)),
+                    Arguments.of(HttpMethod.PATCH, "/invoices/%s/previous-invoice".formatted(INVOICE_ID)),
+                    // property item endpoint
+                    Arguments.of(HttpMethod.POST, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
+                    Arguments.of(HttpMethod.POST, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.PUT, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
+                    Arguments.of(HttpMethod.PUT, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.PATCH, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
+                    Arguments.of(HttpMethod.PATCH, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.DELETE, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId))
+            );
+        }
 
-            mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice/{targetId}", INVOICE_ID, targetId)) // one-to-one
-                    .andExpect(status().isBadRequest());
+        @ParameterizedTest
+        @MethodSource
+        void unsupportedMethod(HttpMethod method, String url) throws Exception {
+            var requestBuilder = request(method, url);
+            if (Set.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH).contains(method)) {
+                requestBuilder = requestBuilder.contentType("text/uri-list")
+                        .content("http://localhost/invoices/%s%n".formatted(UUID.randomUUID()));
+            }
+            mockMvc.perform(requestBuilder)
+                    .andExpect(status().isMethodNotAllowed())
+                    .andExpect(header().exists(HttpHeaders.ALLOW))
+                    .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
+                    .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(method.name()))));
         }
 
     }
