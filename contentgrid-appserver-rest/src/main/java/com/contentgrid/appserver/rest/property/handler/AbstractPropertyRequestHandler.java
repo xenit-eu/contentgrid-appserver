@@ -5,15 +5,15 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.converter.HttpServletRequestConverter;
+import com.contentgrid.appserver.rest.exception.UnsupportedMediaTypeException;
+import com.contentgrid.appserver.rest.exception.PropertyNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
 public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRequestHandler {
@@ -24,46 +24,51 @@ public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRe
     protected abstract Optional<P> findProperty(Application application, Entity entity, PathSegmentName propertyName);
 
     @Override
-    public final Optional<ResponseEntity<Object>> getProperty(Application application, Entity entity, EntityId instanceId,
-            PathSegmentName propertyName) {
+    public final ResponseEntity<Object> getProperty(Application application, Entity entity, EntityId instanceId,
+            PathSegmentName propertyName) throws PropertyNotFoundException {
         return findProperty(application, entity, propertyName)
-                .map(property -> getProperty(application, entity, instanceId, property));
+                .map(property -> getProperty(application, entity, instanceId, property))
+                .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
     @Override
-    public final Optional<ResponseEntity<Object>> postProperty(Application application, Entity entity, EntityId instanceId,
-            PathSegmentName propertyName, HttpServletRequest request) {
+    public final ResponseEntity<Object> postProperty(Application application, Entity entity, EntityId instanceId,
+            PathSegmentName propertyName, HttpServletRequest request) throws PropertyNotFoundException, UnsupportedMediaTypeException {
         return findProperty(application, entity, propertyName)
                 .map(property -> handleProperty(request, body ->
-                        postProperty(application, entity, instanceId, property, body)));
+                        postProperty(application, entity, instanceId, property, body)))
+                .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
     @Override
-    public final Optional<ResponseEntity<Object>> putProperty(Application application, Entity entity, EntityId instanceId,
-            PathSegmentName propertyName, HttpServletRequest request) {
+    public final ResponseEntity<Object> putProperty(Application application, Entity entity, EntityId instanceId,
+            PathSegmentName propertyName, HttpServletRequest request) throws PropertyNotFoundException, UnsupportedMediaTypeException {
         return findProperty(application, entity, propertyName)
                 .map(property -> handleProperty(request, body ->
-                        putProperty(application, entity, instanceId, property, body)));
+                        putProperty(application, entity, instanceId, property, body)))
+                .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
     @Override
-    public final Optional<ResponseEntity<Object>> patchProperty(Application application, Entity entity, EntityId instanceId,
-            PathSegmentName propertyName, HttpServletRequest request) {
+    public final ResponseEntity<Object> patchProperty(Application application, Entity entity, EntityId instanceId,
+            PathSegmentName propertyName, HttpServletRequest request) throws PropertyNotFoundException, UnsupportedMediaTypeException {
         return findProperty(application, entity, propertyName)
                 .map(property -> handleProperty(request, body ->
-                        patchProperty(application, entity, instanceId, property, body)));
+                        patchProperty(application, entity, instanceId, property, body)))
+                .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
     @Override
-    public final Optional<ResponseEntity<Object>> deleteProperty(Application application, Entity entity, EntityId instanceId, PathSegmentName propertyName) {
+    public final ResponseEntity<Object> deleteProperty(Application application, Entity entity, EntityId instanceId,
+            PathSegmentName propertyName) throws PropertyNotFoundException {
         return findProperty(application, entity, propertyName)
-                .map(property -> deleteProperty(application, entity, instanceId, property));
+                .map(property -> deleteProperty(application, entity, instanceId, property))
+                .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
-    protected final ResponseEntity<Object> handleProperty(HttpServletRequest request, Function<T, ResponseEntity<Object>> function) {
+    protected final ResponseEntity<Object> handleProperty(HttpServletRequest request, Function<T, ResponseEntity<Object>> function) throws UnsupportedMediaTypeException {
         if (!requestConverter.canRead(request)) {
-            // TODO: what if a different request handler supports media type? e.g. PUT multipart/form-data vs PUT */*
-            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "media type not supported");
+            throw new UnsupportedMediaTypeException(request.getContentType());
         }
         return requestConverter.convert(request).map(function)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
