@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
+import org.springframework.util.InvalidMimeTypeException;
 
 @RequiredArgsConstructor
 public abstract class AbstractHttpServletRequestConverter<T> implements HttpServletRequestConverter<T> {
@@ -18,8 +20,16 @@ public abstract class AbstractHttpServletRequestConverter<T> implements HttpServ
 
     @Override
     public boolean canRead(HttpServletRequest request) {
-        var mediaType = MediaType.parseMediaType(request.getContentType());
-        return supportedMediaTypes.stream().anyMatch(supportedMediaType -> supportedMediaType.includes(mediaType));
+        if (request.getContentType() == null) {
+            return false;
+        }
+        try {
+            var mediaType = MediaType.parseMediaType(request.getContentType());
+            return supportedMediaTypes.stream().anyMatch(supportedMediaType -> supportedMediaType.includes(mediaType));
+        } catch (InvalidMediaTypeException | InvalidMimeTypeException e) {
+            // failure during MediaType.parseMediaType()
+            return false;
+        }
     }
 
     @Override
