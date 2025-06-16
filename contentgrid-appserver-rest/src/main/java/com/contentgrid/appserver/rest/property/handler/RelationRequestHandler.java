@@ -65,11 +65,6 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    public boolean supports(Application application, Entity entity, PathSegmentName propertyName) {
-        return application.getRelationForPath(entity.getPathSegment(), propertyName).isPresent();
-    }
-
-    @Override
     protected Optional<Relation> findProperty(Application application, Entity entity, PathSegmentName propertyName) {
         return application.getRelationForPath(entity.getPathSegment(), propertyName);
     }
@@ -263,7 +258,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    public ResponseEntity<Object> postPropertyItem(
+    protected ResponseEntity<Object> postPropertyItem(
             Application application,
             Entity entity,
             EntityId instanceId,
@@ -277,7 +272,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    public ResponseEntity<Object> putPropertyItem(
+    protected ResponseEntity<Object> putPropertyItem(
             Application application,
             Entity entity,
             EntityId instanceId,
@@ -291,7 +286,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    public ResponseEntity<Object> patchPropertyItem(
+    protected ResponseEntity<Object> patchPropertyItem(
             Application application,
             Entity entity,
             EntityId instanceId,
@@ -305,7 +300,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
     }
 
     @Override
-    public ResponseEntity<Object> deletePropertyItem(
+    protected ResponseEntity<Object> deletePropertyItem(
             Application application,
             Entity entity,
             EntityId instanceId,

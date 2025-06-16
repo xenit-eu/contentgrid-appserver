@@ -10,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 
 public interface PropertyRequestHandler {
 
-    boolean supports(Application application, Entity entity, PathSegmentName propertyName);
-
     /**
      * Access the property. Returns an {@link Optional} containing the result if the property exists, empty otherwise.
      * Might throw if the property exists, but accessing the property fails for a different reason.

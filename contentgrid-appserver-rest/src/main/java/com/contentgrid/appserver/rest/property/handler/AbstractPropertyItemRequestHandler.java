@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 public abstract class AbstractPropertyItemRequestHandler<T, P> extends AbstractPropertyRequestHandler<T, P> implements
         PropertyItemRequestHandler {
 
-    public AbstractPropertyItemRequestHandler(HttpServletRequestConverter<T> requestConverter) {
+    protected AbstractPropertyItemRequestHandler(HttpServletRequestConverter<T> requestConverter) {
         super(requestConverter);
     }
 

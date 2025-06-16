@@ -21,7 +21,7 @@ public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRe
     @Getter(AccessLevel.PROTECTED)
     private final HttpServletRequestConverter<T> requestConverter;
 
-    abstract protected Optional<P> findProperty(Application application, Entity entity, PathSegmentName propertyName);
+    protected abstract Optional<P> findProperty(Application application, Entity entity, PathSegmentName propertyName);
 
     @Override
     public final Optional<ResponseEntity<Object>> getProperty(Application application, Entity entity, EntityId instanceId,
