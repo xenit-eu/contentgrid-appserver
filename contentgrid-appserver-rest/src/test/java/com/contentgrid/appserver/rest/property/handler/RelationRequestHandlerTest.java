@@ -44,6 +44,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -303,6 +304,15 @@ class RelationRequestHandlerTest {
             );
         }
 
+        static Stream<String> invalidContentType() {
+            return Stream.of(
+                    MediaType.MULTIPART_FORM_DATA_VALUE,
+                    "{?/uri-list",
+                    "text/<uri-list>"
+                    // "text/uri-list; charset=<non-existing>" // MockMvc itself is unable to parse it
+            );
+        }
+
         @ParameterizedTest
         @CsvSource({
                 "/invoices/01234567-89ab-cdef-0123-456789abcdef/previous", // non-existent relation
@@ -319,6 +329,12 @@ class RelationRequestHandlerTest {
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void setRelationMissingContent() throws Exception {
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+                    .andExpect(status().isUnsupportedMediaType());
         }
 
         @Test
@@ -341,12 +357,38 @@ class RelationRequestHandlerTest {
                     .andExpect(status().isBadRequest());
         }
 
+        @ParameterizedTest
+        @MethodSource("invalidContentType")
+        void setRelationInvalidMimeType(String contentType) throws Exception {
+            var targetId = EntityId.of(UUID.randomUUID());
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+                            .contentType(contentType)
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
+                    .andExpect(status().isUnsupportedMediaType());
+        }
+
         @Test
         void addRelationNoData() throws Exception {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void addRelationMissingContent() throws Exception {
+            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID))
+                    .andExpect(status().isUnsupportedMediaType());
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidContentType")
+        void addRelationInvalidMimeType(String contentType) throws Exception {
+            var targetId = EntityId.of(UUID.randomUUID());
+            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+                            .contentType(contentType)
+                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
+                    .andExpect(status().isUnsupportedMediaType());
         }
 
         @ParameterizedTest
