@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
@@ -61,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -397,7 +399,10 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
         jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute)
                 .sorted(Comparator.comparing(Attribute::getName)).toList());
-        jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
+        jsonEntity.setSearchFilters(entity.getSearchFilters().stream()
+                .map(this::toJsonSearchFilter)
+                .filter(Objects::nonNull) // Filter out null values from RelationSearchFilters
+                .toList());
         return jsonEntity;
     }
 
@@ -495,6 +500,10 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             case ExactSearchFilter exactFilter -> {
                 jsonFilter.setAttributePath(exactFilter.getAttributePath().toList());
                 jsonFilter.setType("exact");
+            }
+            case RelationSearchFilter ignored -> {
+                // RelationSearchFilters aren't serialized to JSON
+                return null;
             }
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
