@@ -165,6 +165,38 @@ class RelationRequestHandlerTest {
         }
 
         @Test
+        void followOneToManyRelationItem() throws Exception {
+            var targetId = EntityId.of(UUID.randomUUID());
+
+            Mockito.doReturn(true).when(datamodelApi)
+                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+
+            mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
+                    .andExpect(status().isFound())
+                    .andExpect(
+                            header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
+
+            Mockito.verify(datamodelApi)
+                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+        }
+
+        @Test
+        void followManyToManyRelationItem() throws Exception {
+            var targetId = EntityId.of(UUID.randomUUID());
+
+            Mockito.doReturn(true).when(datamodelApi)
+                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, targetId);
+
+            mockMvc.perform(get("/products/{sourceId}/invoices/{targetId}", PRODUCT_ID, targetId))
+                    .andExpect(status().isFound())
+                    .andExpect(
+                            header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
+
+            Mockito.verify(datamodelApi)
+                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, targetId);
+        }
+
+        @Test
         void setOneToOneRelation() throws Exception {
             var targetId = EntityId.of(UUID.randomUUID());
 
@@ -315,8 +347,9 @@ class RelationRequestHandlerTest {
 
         @ParameterizedTest
         @CsvSource({
-                "/invoices/01234567-89ab-cdef-0123-456789abcdef/previous", // non-existent relation
-                "/invoice/01234567-89ab-cdef-0123-456789abcdef/previous-invoice", // non-existent entity
+                "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing", // non-existing relation
+                "/non-existing/01234567-89ab-cdef-0123-456789abcdef/previous-invoice", // non-existing entity
+                "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing/01234567-89ab-cdef-0123-456789abcdef", // non-existing relation
         })
         void followRelationInvalidUrl(String url) throws Exception {
             mockMvc.perform(get(url))
@@ -410,12 +443,8 @@ class RelationRequestHandlerTest {
                     Arguments.of(HttpMethod.PATCH, "/invoices/%s/previous-invoice".formatted(INVOICE_ID)),
                     // property item endpoint
                     Arguments.of(HttpMethod.POST, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
-                    Arguments.of(HttpMethod.POST, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
                     Arguments.of(HttpMethod.PUT, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
-                    Arguments.of(HttpMethod.PUT, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
-                    Arguments.of(HttpMethod.PATCH, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId)),
-                    Arguments.of(HttpMethod.PATCH, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
-                    Arguments.of(HttpMethod.DELETE, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId))
+                    Arguments.of(HttpMethod.PATCH, "/persons/%s/invoices/%s".formatted(PERSON_ID, targetId))
             );
         }
 
@@ -432,6 +461,30 @@ class RelationRequestHandlerTest {
                     .andExpect(header().exists(HttpHeaders.ALLOW))
                     .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
                     .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(method.name()))));
+        }
+
+        static Stream<Arguments> unsupportedUrl() {
+            var targetId = EntityId.of(UUID.randomUUID());
+            return Stream.of(
+                    // property item endpoint of *-to-one relation
+                    Arguments.of(HttpMethod.GET, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.POST, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.PUT, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.PATCH, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId)),
+                    Arguments.of(HttpMethod.DELETE, "/invoices/%s/previous-invoice/%s".formatted(INVOICE_ID, targetId))
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void unsupportedUrl(HttpMethod method, String url) throws Exception {
+            var requestBuilder = request(method, url);
+            if (Set.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH).contains(method)) {
+                requestBuilder = requestBuilder.contentType("text/uri-list")
+                        .content("http://localhost/invoices/%s%n".formatted(UUID.randomUUID()));
+            }
+            mockMvc.perform(requestBuilder)
+                    .andExpect(status().isNotFound());
         }
 
     }
@@ -467,6 +520,18 @@ class RelationRequestHandlerTest {
                     .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void followToManyRelationItemSourceIdOrTargetIdNotFound() throws Exception {
+            var targetId = EntityId.of(UUID.randomUUID());
+
+            // Returns false if sourceId or targetId does not exist, or if there is no relation between sourceId and targetId
+            Mockito.doReturn(false).when(datamodelApi)
+                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+
+            mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
                     .andExpect(status().isNotFound());
         }
 

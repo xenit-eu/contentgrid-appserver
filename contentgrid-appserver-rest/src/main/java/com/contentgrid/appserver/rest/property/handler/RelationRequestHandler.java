@@ -37,7 +37,6 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
 
     private static final HttpMethod[] SINGLE_TARGET_PROPERTY_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.PUT, HttpMethod.DELETE};
     private static final HttpMethod[] MULTI_TARGET_PROPERTY_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.DELETE};
-    private static final HttpMethod[] SINGLE_TARGET_PROPERTY_ITEM_METHODS = {HttpMethod.GET, HttpMethod.HEAD};
     private static final HttpMethod[] MULTI_TARGET_PROPERTY_ITEM_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.DELETE};
 
     private static HttpMethod[] supportedPropertyMethods(Relation relation) {
@@ -48,11 +47,15 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
         }
     }
 
-    private static HttpMethod[] supportedPropertyItemMethods(Relation relation) {
+    private static ResponseEntity<Object> propertyItemUnsupportedMethodResponse(Relation relation) {
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-            return MULTI_TARGET_PROPERTY_ITEM_METHODS;
+            // *-to-many relation
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                    .allow(MULTI_TARGET_PROPERTY_ITEM_METHODS)
+                    .build();
         } else {
-            return SINGLE_TARGET_PROPERTY_ITEM_METHODS;
+            // *-to-one relation
+            return ResponseEntity.notFound().build();
         }
     }
 
@@ -245,15 +248,15 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             Relation property,
             EntityId itemId
     ) {
-        try {
-            if (datamodelApi.hasRelationTarget(application, property, instanceId, itemId)) {
-                var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, entity.getPathSegment(), instanceId)).toUri();
-                return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        if (!(property instanceof OneToManyRelation || property instanceof ManyToManyRelation)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (datamodelApi.hasRelationTarget(application, property, instanceId, itemId)) {
+            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, property.getTargetEndPoint().getEntity().getPathSegment(), itemId)).toUri();
+            return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 
@@ -266,9 +269,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .allow(supportedPropertyItemMethods(property))
-                .build();
+        return propertyItemUnsupportedMethodResponse(property);
     }
 
     @Override
@@ -280,9 +281,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .allow(supportedPropertyItemMethods(property))
-                .build();
+        return propertyItemUnsupportedMethodResponse(property);
     }
 
     @Override
@@ -294,9 +293,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId,
             List<URI> body
     ) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .allow(supportedPropertyItemMethods(property))
-                .build();
+        return propertyItemUnsupportedMethodResponse(property);
     }
 
     @Override
@@ -308,9 +305,7 @@ public class RelationRequestHandler extends AbstractPropertyItemRequestHandler<L
             EntityId itemId
     ) {
         if (!(property instanceof OneToManyRelation || property instanceof ManyToManyRelation)) {
-            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                    .allow(SINGLE_TARGET_PROPERTY_ITEM_METHODS)
-                    .build();
+            return ResponseEntity.notFound().build();
         }
 
         try {
