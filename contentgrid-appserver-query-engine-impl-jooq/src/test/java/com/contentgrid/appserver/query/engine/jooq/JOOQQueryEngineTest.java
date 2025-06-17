@@ -550,6 +550,14 @@ class JOOQQueryEngineTest {
                 StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                         Scalar.of("Bö") // bob
+                ),
+                // across relation, to one
+                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                        Scalar.of("alice")
+                ),
+                // across relation, to many
+                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
+                        Scalar.of("code_1")
                 )
         );
     }

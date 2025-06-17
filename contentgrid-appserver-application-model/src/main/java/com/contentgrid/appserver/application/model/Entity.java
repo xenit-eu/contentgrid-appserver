@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
@@ -63,16 +63,16 @@ public class Entity implements HasAttributes {
      * @throws InvalidArgumentModelException if a search filter references an invalid attribute
      * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
-    @Builder
+    @Builder(toBuilder = true)
     Entity(
             @NonNull EntityName name,
             @NonNull PathSegmentName pathSegment,
             String description,
             @NonNull TableName table,
             @NonNull LinkName linkName,
-            @Singular List<Attribute> attributes,
+            @Singular @Builder.ObtainVia(method = "getAttributes") List<Attribute> attributes,
             SimpleAttribute primaryKey,
-            @Singular List<SearchFilter> searchFilters
+            @Singular @Builder.ObtainVia(method = "getSearchFilters") List<SearchFilter> searchFilters
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
@@ -268,17 +268,11 @@ public class Entity implements HasAttributes {
         return result;
     }
 
-    /**
-     * Resolves an attribute path to its target SimpleAttribute.
-     *
-     * @param attributePath the path to resolve
-     * @return the SimpleAttribute at the end of the path
-     * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
-     */
-    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
+    private SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
         return switch (attributePath) {
             case AttributePath attrPath -> resolveAttributePath(this, attrPath);
-            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters are not yet implemented");
+            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters cannot be placed "
+                    + "directly on an Entity. Instead, use .withPropagateSearchFilters() after constructing an Application.");
         };
     }
 

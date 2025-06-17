@@ -4,19 +4,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -137,6 +143,66 @@ class ThunkExpressionGeneratorTest {
                     .attributeType(Type.TEXT)
                     .build())
             .build();
+
+    private static final Entity shipmentEntity = Entity.builder()
+            .name(EntityName.of("shipment"))
+            .table(TableName.of("shipment"))
+            .pathSegment(PathSegmentName.of("shipments"))
+            .linkName(LinkName.of("shipments"))
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("shipped_on"))
+                    .column(ColumnName.of("shipped_on"))
+                    .type(Type.DATETIME)
+                    .build()
+            )
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("destination"))
+                    .column(ColumnName.of("destination"))
+                    .type(Type.TEXT)
+                    .build()
+            )
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipped_on"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("shipped_on"))
+                            .column(ColumnName.of("shipped_on"))
+                            .type(Type.DATETIME)
+                            .build())
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("destination"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("destination"))
+                            .column(ColumnName.of("destination"))
+                            .type(Type.TEXT)
+                            .build())
+                    .build())
+            .build();
+
+    private static final Relation shipmentRelation = ManyToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(testEntity)
+                    .name(RelationName.of("shipment"))
+                    .pathSegment(PathSegmentName.of("shipment"))
+                    .linkName(LinkName.of("shipment"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(shipmentEntity)
+                    .name(RelationName.of("products"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .linkName(LinkName.of("products"))
+                    .build())
+            .targetReference(ColumnName.of("shipment"))
+            .build();
+
+    private static final Application testApplication = Application.builder()
+            .name(ApplicationName.of("testApplication"))
+            .entity(testEntity)
+            .entity(shipmentEntity)
+            .relation(shipmentRelation)
+            .build()
+            // Propagate searchFilters so we can test searching across relations
+            .withPropagatedSearchFilters();
 
     @Test
     void emptyParamsShouldReturnTrueExpression() {
@@ -349,5 +415,27 @@ class ThunkExpressionGeneratorTest {
                 ),
                 comparison.getLeftTerm()
         );
+    }
+
+    @Test
+    void acrossRelationAttributeIsValid() {
+        Map<String, String> params = Map.of("shipment.destination", "North Pole");
+
+        var entity = testApplication.getEntityByName(EntityName.of("testEntity")).orElseThrow();
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(entity, params);
+
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipment"),
+                        SymbolicReference.path("destination")
+                ),
+                comparison.getLeftTerm()
+        );
+
     }
 }

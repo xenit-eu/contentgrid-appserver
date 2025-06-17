@@ -5,8 +5,11 @@ import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundExce
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
@@ -44,8 +47,8 @@ public class Application {
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityNotFoundException if a relation references an entity not in the application
      */
-    @Builder
-    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    @Builder(toBuilder = true)
+    Application(@NonNull ApplicationName name, @Singular @Builder.ObtainVia(method = "getEntities") Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
         this.relations = relations;
         var tables = new HashSet<TableName>();
@@ -66,10 +69,10 @@ public class Application {
         });
 
         relations.forEach(relation -> {
-            if (!this.entities.containsValue(relation.getSourceEndPoint().getEntity())) {
+            if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity().getName())) {
                 throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
-            if (!this.entities.containsValue(relation.getTargetEndPoint().getEntity())) {
+            if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
                 throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
@@ -131,16 +134,16 @@ public class Application {
     /**
      * Finds a relation for a given Entity and relation name.
      *
-     * @param entity the entity containing the relation
-     * @param name the relation name to match
+     * @param entityName the name of the entity containing the relation
+     * @param relationName the relation name to match
      * @return an Optional containing a relation where the entity is either the source or target entity
      * and the name matches
      */
-    public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
+    public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName relationName) {
         for (var relation : relations) {
-            if (relation.getSourceEndPoint().getEntity().equals(entity) && Objects.equals(relation.getSourceEndPoint().getName(), name)) {
+            if (relation.getSourceEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getSourceEndPoint().getName(), relationName)) {
                 return Optional.of(relation);
-            } else if (relation.getTargetEndPoint().getEntity().equals(entity) && Objects.equals(relation.getTargetEndPoint().getName(), name)) {
+            } else if (relation.getTargetEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getTargetEndPoint().getName(), relationName)) {
                 return Optional.of(relation.inverse());
             }
         }
@@ -150,13 +153,13 @@ public class Application {
     /**
      * Finds a relation for a given entity name and relation name.
      *
-     * @param entityName the name of the entity containing the relation
+     * @param entity the entity containing the relation
      * @param name the relation name to match
      * @return an optional containing a relation where the entity is either the source or target entity
      * and the name matches
      */
-    public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
-        return getEntityByName(entityName).flatMap(entity -> getRelationForEntity(entity, name));
+    public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
+        return getRelationForEntity(entity.getName(), name);
     }
 
     public Relation getRequiredRelationForEntity(Entity entity, RelationName name) {
@@ -222,6 +225,56 @@ public class Application {
             }
         }
         return results;
+    }
+
+    /**
+     * Creates a new Application with search filters propagated across relations.
+     */
+    public Application withPropagatedSearchFilters() {
+        var updatedEntities = new HashSet<Entity>();
+
+        for (var entity : entities.values()) {
+            var updatedFilters = new HashSet<>(entity.getSearchFilters());
+
+            var outgoingRelations = getRelationsForSourceEntity(entity);
+
+            for (var relation : outgoingRelations) {
+                var targetEntity = relation.getTargetEndPoint().getEntity();
+
+                // Only propagate AttributeSearchFilters (not RelationSearchFilters) to avoid infinite loops
+                var attributeFilters = targetEntity.getSearchFilters().stream()
+                    .filter(AttributeSearchFilter.class::isInstance)
+                    .map(AttributeSearchFilter.class::cast)
+                    .toList();
+
+                for (var targetFilter : attributeFilters) {
+                    var relationFilterName = FilterName.of(
+                        relation.getSourceEndPoint().getName()
+                        + "." + targetFilter.getName().getValue()
+                    );
+
+                    var relationSearchFilter = RelationSearchFilter.builder()
+                        .name(relationFilterName)
+                        .relation(relation)
+                        .wrappedFilter(targetFilter)
+                        .build();
+
+                    updatedFilters.add(relationSearchFilter);
+                }
+            }
+
+            var updatedEntity = entity.toBuilder()
+                .clearSearchFilters()
+                .searchFilters(updatedFilters)
+                .build();
+
+            updatedEntities.add(updatedEntity);
+        }
+
+        return toBuilder()
+            .clearEntities()
+            .entities(updatedEntities)
+            .build();
     }
 
 }

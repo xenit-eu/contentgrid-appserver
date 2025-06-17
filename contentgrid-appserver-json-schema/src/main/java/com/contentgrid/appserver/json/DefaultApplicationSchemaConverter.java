@@ -86,7 +86,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
-                .build();
+                .build()
+                .withPropagatedSearchFilters();
     }
 
     private ApplicationSchema getApplicationSchema(InputStream json) throws InValidJsonException {
