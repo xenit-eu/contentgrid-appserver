@@ -34,6 +34,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -332,6 +333,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         @Getter(AccessLevel.NONE)
         Set<String> variables = new HashSet<>();
 
+        @NonFinal
+        @Getter(AccessLevel.NONE)
+        int underscore = 0;
+
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this.application = application;
             this.entity = entity;
@@ -347,7 +352,15 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
 
         private boolean addVariable(String variable) {
-            return variables.add(variable);
+            if (variable.equals("_")) {
+                return variables.add(underscore());
+            } else {
+                return variables.add(variable);
+            }
+        }
+
+        private String underscore() {
+            return "_" + underscore++;
         }
     }
 }

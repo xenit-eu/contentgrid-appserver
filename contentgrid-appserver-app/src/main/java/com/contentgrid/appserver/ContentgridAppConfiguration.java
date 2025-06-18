@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -218,6 +219,22 @@ public class ContentgridAppConfiguration {
                         .build())
                 .targetReference(ColumnName.of("invoice"))
                 .build();
+        var customerToInvoice = OneToManyRelation.builder()
+                .sourceEndPoint(RelationEndPoint.builder()
+                        .entity(person)
+                        .name(RelationName.of("invoices"))
+                        .pathSegment(PathSegmentName.of("invoices"))
+                        .linkName(LinkName.of("invoices"))
+                        .build())
+                .targetEndPoint(RelationEndPoint.builder()
+                        .entity(invoice)
+                        .name(RelationName.of("customer"))
+                        .pathSegment(PathSegmentName.of("customer"))
+                        .linkName(LinkName.of("customer"))
+                        .build())
+                .sourceReference(ColumnName.of("customer"))
+                .build();
+
         return new SingleApplicationResolver(
                 Application.builder()
                         .name(ApplicationName.of("test"))
@@ -225,6 +242,7 @@ public class ContentgridAppConfiguration {
                         .entity(shipment)
                         .entity(invoice)
                         .relation(shipmentToInvoice)
+                        .relation(customerToInvoice)
                         .build()
                         .withPropagatedSearchFilters()
         );

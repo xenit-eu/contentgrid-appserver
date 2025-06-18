@@ -564,7 +564,7 @@ class ThunkExpressionGeneratorTest {
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("shipments"),
-                        SymbolicReference.pathVar("x"),
+                        SymbolicReference.pathVar("_"),
                         SymbolicReference.path("destination")
                 ),
                 comparison.getLeftTerm()
@@ -584,7 +584,7 @@ class ThunkExpressionGeneratorTest {
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("wishlist"),
-                        SymbolicReference.pathVar("x"),
+                        SymbolicReference.pathVar("_"),
                         SymbolicReference.path("description")
                 ),
                 comparison.getLeftTerm()

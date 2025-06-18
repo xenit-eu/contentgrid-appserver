@@ -48,10 +48,10 @@ public class ThunkExpressionGenerator {
                 prefix = switch (rel) {
                     case OneToOneRelation oto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
                     case ManyToOneRelation mto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-                    case OneToManyRelation otm -> List.of(SymbolicReference.pathVar("x"),
-                            SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-                    case ManyToManyRelation mtm -> List.of(SymbolicReference.pathVar("x"),
-                            SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
+                    case OneToManyRelation otm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
+                            SymbolicReference.pathVar("_"));
+                    case ManyToManyRelation mtm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
+                            SymbolicReference.pathVar("_"));
                 };
 
                 searchFilter = relationSearchFilter.getWrappedFilter();

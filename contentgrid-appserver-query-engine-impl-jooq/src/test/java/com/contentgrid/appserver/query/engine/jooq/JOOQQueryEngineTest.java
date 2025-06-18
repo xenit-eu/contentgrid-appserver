@@ -1888,6 +1888,28 @@ class JOOQQueryEngineTest {
         assertFalse(queryEngine.isLinked(APPLICATION, relation, INVOICE1_ID, PRODUCT1_ID));
     }
 
+    @Test
+    void testTwoUnderscores() {
+        // underscore variable used multiple times
+        // normally two variables that are the same makes for a rejection
+        // underscore is special-cased to always be considered a unique variable
+        var expression = Comparison.areEqual(
+                // person.friends[_].name
+                // Bob -> Alice
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("friends"), SymbolicReference.pathVar("_"), SymbolicReference.path("name")),
+                // person.invoices[_].previous_invoice.customer.name
+                // Bob -> invoice 2 -> invoice 1 -> Alice
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
+        );
+        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null);
+        var results = slice.getEntities();
+
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        var primaryKey = result.getId();
+        assertEquals(BOB_ID, primaryKey);
+    }
+
     @SpringBootApplication
     static class TestApplication {
         public static void main(String[] args) {
