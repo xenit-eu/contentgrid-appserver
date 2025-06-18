@@ -16,6 +16,7 @@ import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationE
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.converter.UriListHttpServletRequestConverter;
+import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,15 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
                 .filter(relation -> relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation);
     }
 
+    private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
+        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
+        return UriTemplateMatcher.<EntityId>builder()
+                .matcherFor(methodOn(EntityRestController.class)
+                                .getEntity(application, targetPathSegment, null),
+                        params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
+                .build();
+    }
+
     @Override
     protected ResponseEntity<Object> getProperty(
             Application application,
@@ -64,24 +74,6 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        }
-    }
-
-    private PathSegmentName parseEntityPathSegment(URI uri) {
-        var path = uri.getPath().split("/");
-        if (path.length == 3 && path[0].isEmpty()) {
-            return PathSegmentName.of(path[1]);
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid path %s".formatted(uri.getPath()));
-        }
-    }
-
-    private EntityId parseEntityId(URI uri) {
-        var path = uri.getPath().split("/");
-        if (path.length == 3 && path[0].isEmpty()) {
-            return EntityId.of(UUID.fromString(path[2]));
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid path %s".formatted(uri.getPath()));
         }
     }
 
@@ -112,18 +104,15 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
         if (body.size() > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
         }
-        var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
         var element = body.getFirst();
-
-        var pathSegment = parseEntityPathSegment(element);
-        if (!targetPathSegment.equals(pathSegment)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity. Expected %s, got %s.".formatted(targetPathSegment, pathSegment));
+        var maybeId = getMatcherForTargetEntity(application, property).tryMatch(element.toString());
+        if (maybeId.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
         }
-        var targetId = parseEntityId(element);
         var data = XToOneRelationData.builder()
                 .entity(property.getSourceEndPoint().getEntity().getName())
                 .name(property.getSourceEndPoint().getName())
-                .ref(targetId)
+                .ref(maybeId.get())
                 .build();
         try {
             datamodelApi.setRelation(application, data, instanceId);

@@ -268,7 +268,7 @@ class RelationRequestHandlerTest {
         }
 
         @Test
-        void addOneToManyRelationData() throws Exception {
+        void addOneToManyRelationItems() throws Exception {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
@@ -287,7 +287,7 @@ class RelationRequestHandlerTest {
         }
 
         @Test
-        void addManyToManyRelationData() throws Exception {
+        void addManyToManyRelationItems() throws Exception {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
@@ -306,7 +306,7 @@ class RelationRequestHandlerTest {
         }
 
         @Test
-        void removeOneToManyRelationData() throws Exception {
+        void removeOneToManyRelationItem() throws Exception {
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
                     .andExpect(status().isNoContent());
 
@@ -316,7 +316,7 @@ class RelationRequestHandlerTest {
         }
 
         @Test
-        void removeManyToManyRelationData() throws Exception {
+        void removeManyToManyRelationItem() throws Exception {
             mockMvc.perform(delete("/products/{sourceId}/invoices/{targetId}", PRODUCT_ID, INVOICE_ID))
                     .andExpect(status().isNoContent());
 
