@@ -48,6 +48,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Test class for both {@link XToOneRelationRequestHandler} and {@link XToManyRelationRequestHandler}.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRequestHandlerTest {
