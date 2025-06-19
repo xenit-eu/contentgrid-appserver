@@ -13,7 +13,9 @@ import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
 public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRequestHandler {
@@ -71,7 +73,7 @@ public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRe
             throw new UnsupportedMediaTypeException(request.getContentType());
         }
         return requestConverter.convert(request).map(function)
-                .orElseGet(() -> ResponseEntity.badRequest().build());
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body"));
     }
 
     protected abstract ResponseEntity<Object> getProperty(Application application, Entity entity, EntityId instanceId, P property);

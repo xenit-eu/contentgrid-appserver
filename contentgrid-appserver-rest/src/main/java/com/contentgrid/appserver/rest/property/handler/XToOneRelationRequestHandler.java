@@ -20,6 +20,7 @@ import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,12 +28,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.MethodNotAllowedException;
 import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler<List<URI>, Relation> {
 
-    private static final HttpMethod[] SUPPORTED_PROPERTY_METHODS = {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.PUT, HttpMethod.DELETE};
+    private static final Set<HttpMethod> SUPPORTED_PROPERTY_METHODS = Set.of(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.PUT, HttpMethod.DELETE);
 
     @NonNull
     private final DatamodelApi datamodelApi;
@@ -85,9 +87,7 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
             Relation property,
             List<URI> body
     ) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .allow(SUPPORTED_PROPERTY_METHODS)
-                .build();
+        throw new MethodNotAllowedException(HttpMethod.POST, SUPPORTED_PROPERTY_METHODS);
     }
 
     @Override
@@ -132,9 +132,7 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
             Relation property,
             List<URI> body
     ) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .allow(SUPPORTED_PROPERTY_METHODS)
-                .build();
+        throw new MethodNotAllowedException(HttpMethod.PATCH, SUPPORTED_PROPERTY_METHODS);
     }
 
     @Override
