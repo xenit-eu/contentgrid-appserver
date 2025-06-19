@@ -473,6 +473,12 @@ class ApplicationTest {
         assertEquals(2, orderIncomingRelations.size());
         assertTrue(orderIncomingRelations.stream()
                 .allMatch(incomingRelation -> orderOutgoingRelations.contains(incomingRelation.inverse())));
+
+        // Test propagating customer.order.order_number filter
+        assertEquals(1, application.getEntityByName(EntityName.of("customer")).orElseThrow().getSearchFilters().size());
+        application = application.withPropagatedSearchFilters();
+        assertEquals(2, application.getEntityByName(EntityName.of("customer")).orElseThrow().getSearchFilters().size());
+
     }
 
 }
