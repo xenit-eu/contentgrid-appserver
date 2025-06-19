@@ -30,6 +30,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
@@ -56,6 +57,11 @@ class ApplicationTest {
                     .mimetypeColumn(ColumnName.of("content__mimetype"))
                     .lengthColumn(ColumnName.of("content__length"))
                     .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
+                    .attributeType(Type.TEXT)
+                    .name(FilterName.of("invoiceNumber"))
+                    .build())
             .build();
 
     private static final Entity CUSTOMER = Entity.builder()
@@ -67,6 +73,11 @@ class ApplicationTest {
                     .description("The name of the customer").type(Type.TEXT).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email"))
                     .description("The email of the customer").type(Type.TEXT).build())
+            .searchFilter(PrefixSearchFilter.builder()
+                    .attributePath(PropertyPath.of(AttributeName.of("name")))
+                    .attributeType(Type.TEXT)
+                    .name(FilterName.of("name~prefix"))
+                    .build())
             .build();
 
     private static final Relation MANY_TO_ONE = ManyToOneRelation.builder()
@@ -293,6 +304,30 @@ class ApplicationTest {
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
         assertThrows(EntityNotFoundException.class, builder::build);
+    }
+
+    @Test
+    void application_propagateSearchFilters() {
+        var application = Application.builder()
+                .name(ApplicationName.of("propagateSearchFiltersTest"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .build()
+                .withPropagatedSearchFilters();
+
+        var invoice = application.getEntityByName(EntityName.of("Invoice")).orElseThrow();
+        var customer = application.getEntityByName(EntityName.of("Customer")).orElseThrow();
+
+        // Validate the searchfilter propagated in the direction the relation is defined
+        assertTrue(invoice.getSearchFilters().stream().anyMatch(f ->
+                f instanceof com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter rsf
+                        && rsf.getRelation().getSourceEndPoint().getName().equals(RelationName.of("customer"))));
+
+        // Validate the searchfilter also propagated in the inverse direction
+        assertTrue(customer.getSearchFilters().stream().anyMatch(f ->
+                f instanceof com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter rsf
+                        && rsf.getRelation().getSourceEndPoint().getName().equals(RelationName.of("invoices"))));
     }
 
     /**
