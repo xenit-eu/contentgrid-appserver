@@ -163,6 +163,11 @@ public class ContentgridAppConfiguration {
                         .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("number")))
                         .attributeType(Type.TEXT)
                         .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("invoice.number"))
+                        .attributePath(PropertyPath.of(RelationName.of("invoice"), AttributeName.of("number")))
+                        .attributeType(Type.TEXT)
+                        .build())
                 .build();
         var invoice = Entity.builder()
                 .name(EntityName.of("invoice"))
@@ -202,6 +207,11 @@ public class ContentgridAppConfiguration {
                         .name(FilterName.of("amount"))
                         .attributePath(PropertyPath.of(AttributeName.of("amount")))
                         .attributeType(Type.DOUBLE)
+                        .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("shipments.address.country"))
+                        .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("address"), AttributeName.of("country")))
+                        .attributeType(Type.TEXT)
                         .build())
                 .build();
         var shipmentToInvoice = ManyToOneRelation.builder()
@@ -244,7 +254,13 @@ public class ContentgridAppConfiguration {
                         .relation(shipmentToInvoice)
                         .relation(customerToInvoice)
                         .build()
-                        .withPropagatedSearchFilters()
+//                        .withPropagatedSearchFilters()
         );
     }
+
+//    @Bean
+//    Double creator(SingleApplicationResolver r, TableCreator c) {
+//        c.createTables(r.getApplication());
+//        return 0.1;
+//    }
 }

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -9,7 +10,11 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.PropertyName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -27,7 +32,7 @@ import java.util.stream.Stream;
 
 public class ThunkExpressionGenerator {
 
-    static ThunkExpression<Boolean> from(Entity entity, Map<String, String> params) {
+    static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, String> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
 
         for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -42,29 +47,29 @@ public class ThunkExpressionGenerator {
             SearchFilter searchFilter = maybeSearchFilter.get();
             List<PathElement> prefix = null;
 
-            if (searchFilter instanceof RelationSearchFilter relationSearchFilter) {
-                // We always view it the relation from the source endpoint perspective, works for inverse relations too
-                var rel = relationSearchFilter.getRelation();
-                prefix = switch (rel) {
-                    case OneToOneRelation oto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-                    case ManyToOneRelation mto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-                    case OneToManyRelation otm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
-                            SymbolicReference.pathVar("_"));
-                    case ManyToManyRelation mtm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
-                            SymbolicReference.pathVar("_"));
-                };
-
-                searchFilter = relationSearchFilter.getWrappedFilter();
-            }
+//            if (searchFilter instanceof RelationSearchFilter relationSearchFilter) {
+//                // We always view it the relation from the source endpoint perspective, works for inverse relations too
+//                var rel = relationSearchFilter.getRelation();
+//                prefix = switch (rel) {
+//                    case OneToOneRelation oto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
+//                    case ManyToOneRelation mto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
+//                    case OneToManyRelation otm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
+//                            SymbolicReference.pathVar("_"));
+//                    case ManyToManyRelation mtm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
+//                            SymbolicReference.pathVar("_"));
+//                };
+//
+//                searchFilter = relationSearchFilter.getWrappedFilter();
+//            }
 
             // currently only handle exact search TODO support prefix, case insensitive, ...
             if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
                 try {
                     Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
-                    List<String> pathSegments = exactSearchFilter.getAttributePath().toList();
+                    Stream<PathElement> pathElements = convertPath(application, entity, exactSearchFilter.getAttributePath());
                     ThunkExpression<Boolean> expression = createEqualityExpression(
                             prefix,
-                            pathSegments,
+                            pathElements,
                             parsedValue
                     );
                     expressions.add(expression);
@@ -105,13 +110,54 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createEqualityExpression(List<PathElement> prefix, List<String> pathSegments, Scalar<?> value) {
+    private static ThunkExpression<Boolean> createEqualityExpression(List<PathElement> prefix, Stream<PathElement> pathElements, Scalar<?> value) {
         Stream<PathElement> pathPrefix = prefix == null
                 ? Stream.of()
                 : prefix.stream();
-        Stream<PathElement> path = pathSegments.stream().map(SymbolicReference::path);
-        SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), Stream.concat(pathPrefix, path));
+        SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), Stream.concat(pathPrefix, pathElements));
 
         return Comparison.areEqual(attr, value);
+    }
+
+    private static Stream<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {
+        List<PathElement> pathElements = new ArrayList<>();
+        Entity currentEntity = entity;
+        PropertyPath currentPath = path;
+
+        while (currentPath != null) {
+            PropertyName name = currentPath.getFirst();
+            final Entity entityForLambda = currentEntity; // Make effectively final for lambda
+
+            switch (name) {
+                case AttributeName ignored -> {
+                    // If the remaining path is just (composite) attributes, validate the path via the current entity
+                    // This throws if there is an invalid link
+                    entityForLambda.resolveAttributePath(currentPath);
+
+                    // Convert the rest of the path using toList()
+                    return Stream.concat(
+                            pathElements.stream(),
+                            currentPath.toList().stream().map(SymbolicReference::path)
+                    );
+                }
+                case RelationName relationName -> {
+                    var relation = application.getRelationForEntity(entityForLambda, relationName)
+                            .orElseThrow(() -> new IllegalArgumentException("Relation %s not found on entity %s"
+                                    .formatted(relationName.getValue(), entityForLambda.getName().getValue())));
+
+                    pathElements.add(SymbolicReference.path(relationName.getValue()));
+
+                    // ThunkExpressions need an underscore variable to traverse ToMany (e.g. entity.invoices[_].date)
+                    if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+                        pathElements.add(SymbolicReference.pathVar("_"));
+                    }
+
+                    currentEntity = relation.getTargetEndPoint().getEntity();
+                    currentPath = currentPath.getRest();
+                }
+            }
+        }
+
+        return pathElements.stream();
     }
 }

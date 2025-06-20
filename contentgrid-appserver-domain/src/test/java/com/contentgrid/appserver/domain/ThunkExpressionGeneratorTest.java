@@ -145,6 +145,11 @@ class ThunkExpressionGeneratorTest {
                     .attributePath(PropertyPath.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
                     .attributeType(Type.TEXT)
                     .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipment.destination"))
+                    .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("destination")))
+                    .attributeType(Type.TEXT)
+                    .build())
             .build();
 
     private static final Entity shipmentEntity = Entity.builder()
@@ -180,6 +185,11 @@ class ThunkExpressionGeneratorTest {
                             .type(Type.TEXT)
                             .build())
                     .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("parcel.barcode"))
+                    .attributePath(PropertyPath.of(RelationName.of("parcel"), AttributeName.of("barcode")))
+                    .attributeType(Type.TEXT)
+                    .build())
             .build();
 
     private static final SimpleAttribute barcode = SimpleAttribute.builder()
@@ -187,6 +197,7 @@ class ThunkExpressionGeneratorTest {
             .column(ColumnName.of("barcode"))
             .type(Type.TEXT)
             .build();
+
     private static final Entity parcelEntity = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -213,6 +224,16 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("name"))
                     .attribute(customerName)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipments.destination"))
+                    .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("destination")))
+                    .attributeType(Type.TEXT)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("wishlist.description"))
+                    .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
+                    .attributeType(Type.TEXT)
                     .build())
             .build();
 
@@ -292,14 +313,14 @@ class ThunkExpressionGeneratorTest {
             .relation(parcelRelation)
             .relation(customerShipmentRelation)
             .relation(wishlistRelation)
-            .build()
+            .build();
             // Propagate searchFilters so we can test searching across relations
-            .withPropagatedSearchFilters();
+//            .withPropagatedSearchFilters();
 
     @Test
     void emptyParamsShouldReturnTrueExpression() {
         Map<String, String> params = new HashMap<>();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
         assertEquals(true, ((Scalar<Boolean>) result).getValue());
@@ -310,7 +331,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("nonExistentFilter", "value");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
         assertEquals(true, ((Scalar<Boolean>) result).getValue());
@@ -321,7 +342,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "test value");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -334,7 +355,7 @@ class ThunkExpressionGeneratorTest {
         params.put("description", "test value");
         params.put("count", "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(LogicalOperation.class, result);
         LogicalOperation operation = (LogicalOperation) result;
@@ -347,7 +368,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("count", "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -359,7 +380,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("price", "123.45");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -371,7 +392,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("in_stock", "true");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -383,7 +404,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "sample text");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -396,7 +417,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("arrival_date", timestamp);
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -409,7 +430,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("id", uuid.toString());
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -423,7 +444,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("count", exception.getAttributeName());
@@ -438,7 +459,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("price", exception.getAttributeName());
@@ -453,7 +474,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("arrival_date", exception.getAttributeName());
@@ -468,7 +489,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("id", exception.getAttributeName());
@@ -481,7 +502,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -493,7 +514,7 @@ class ThunkExpressionGeneratorTest {
     void compositeAttributeShouldBeFoundCorrectly() {
         Map<String, String> params = Map.of("audit.modified_by.name", "Alice Aaronson");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -515,7 +536,7 @@ class ThunkExpressionGeneratorTest {
 
         var entity = testApplication.getEntityByName(EntityName.of("testEntity")).orElseThrow();
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -536,7 +557,7 @@ class ThunkExpressionGeneratorTest {
     void acrossOneToOneRelationAttributeIsValid() {
         Map<String, String> params = Map.of("parcel.barcode", "1234567890");
         var entity = testApplication.getEntityByName(EntityName.of("shipment")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -556,7 +577,7 @@ class ThunkExpressionGeneratorTest {
     void acrossOneToManyRelationAttributeIsValid() {
         Map<String, String> params = Map.of("shipments.destination", "Moon Base");
         var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertInstanceOf(Scalar.class, comparison.getRightTerm());
@@ -576,7 +597,7 @@ class ThunkExpressionGeneratorTest {
     void acrossManyToManyRelationAttributeIsValid() {
         Map<String, String> params = Map.of("wishlist.description", "A unicorn");
         var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertInstanceOf(Scalar.class, comparison.getRightTerm());

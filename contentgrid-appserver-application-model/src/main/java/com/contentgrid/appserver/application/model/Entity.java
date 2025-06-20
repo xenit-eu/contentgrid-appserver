@@ -123,19 +123,19 @@ public class Entity implements HasAttributes {
                         throw new DuplicateElementException(
                                 "Duplicate search filter named %s".formatted(searchFilter.getName()));
                     }
-                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                        try {
-                            var attr = resolveAttributePath(attributeSearchFilter.getAttributePath());
-                            if (attr.getType() != attributeSearchFilter.getAttributeType()) {
-                                throw new InvalidArgumentModelException(("AttributeSearchFilter %s does not match the"
-                                        + " type of attribute %s (%s != %s)").formatted(attributeSearchFilter.getName(),
-                                        attr.getName(), attributeSearchFilter.getAttributeType(), attr.getType()));
-                            }
-                        } catch (IllegalArgumentException e) {
-                            throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
-                                    .formatted(attributeSearchFilter.getName()), e);
-                        }
-                    }
+//                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+//                        try {
+//                            var attr = resolveAttributePath(attributeSearchFilter.getAttributePath());
+//                            if (attr.getType() != attributeSearchFilter.getAttributeType()) {
+//                                throw new InvalidArgumentModelException(("AttributeSearchFilter %s does not match the"
+//                                        + " type of attribute %s (%s != %s)").formatted(attributeSearchFilter.getName(),
+//                                        attr.getName(), attributeSearchFilter.getAttributeType(), attr.getType()));
+//                            }
+//                        } catch (IllegalArgumentException e) {
+//                            throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
+//                                    .formatted(attributeSearchFilter.getName()), e);
+//                        }
+//                    }
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
@@ -268,7 +268,7 @@ public class Entity implements HasAttributes {
         return result;
     }
 
-    private SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
+    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
         return switch (attributePath) {
             case AttributePath attrPath -> resolveAttributePath(this, attrPath);
             case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters cannot be placed "

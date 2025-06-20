@@ -1,17 +1,22 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
@@ -82,6 +87,9 @@ public class Application {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
         });
+
+        // Validating entity search filters (happens here rather than in Entity because they might go across relations)
+        this.entities.values().forEach(this::validateEntitySearchFilters);
     }
 
     /**
@@ -275,6 +283,54 @@ public class Application {
             .clearEntities()
             .entities(updatedEntities)
             .build();
+    }
+
+    private void validateEntitySearchFilters(Entity entity) {
+        entity.getSearchFilters().forEach(searchFilter -> {
+            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                try {
+                    var resolvedAttribute = resolveAttributePath(entity, attributeSearchFilter.getAttributePath());
+                    if (resolvedAttribute.getType() != attributeSearchFilter.getAttributeType()) {
+                        throw new InvalidArgumentModelException(
+                            "SearchFilter %s does not match the type of attribute %s (%s != %s)".formatted(
+                                    attributeSearchFilter.getName(), resolvedAttribute.getName(),
+                                    attributeSearchFilter.getAttributeType(), resolvedAttribute.getType()));
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidArgumentModelException("SearchFilter %s does not have a valid attribute path"
+                            .formatted(attributeSearchFilter.getName()), e);
+                }
+            }
+        });
+    }
+
+    private SimpleAttribute resolveAttributePath(Entity entity, PropertyPath path) {
+        Entity currentEntity = entity;
+        PropertyPath currentPath = path;
+
+        while (currentPath != null) {
+            PropertyName name = currentPath.getFirst();
+
+            switch (name) {
+                case AttributeName ignored -> {
+                    // When we hit an attribute, validate the remaining path via the current entity
+                    return currentEntity.resolveAttributePath(currentPath);
+                }
+                case RelationName relationName -> {
+                    final Entity entityForLambda = currentEntity; // Make effectively final for lambda
+                    var relation = getRelationForEntity(entityForLambda, relationName)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                            "Relation '%s' not found on entity '%s'"
+                                .formatted(relationName.getValue(), entityForLambda.getName().getValue())));
+
+                    // Move to the target entity
+                    currentEntity = relation.getTargetEndPoint().getEntity();
+                    currentPath = currentPath.getRest();
+                }
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid property path: path ended without reaching an attribute");
     }
 
 }
