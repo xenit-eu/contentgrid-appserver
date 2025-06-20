@@ -254,13 +254,7 @@ public class ContentgridAppConfiguration {
                         .relation(shipmentToInvoice)
                         .relation(customerToInvoice)
                         .build()
-//                        .withPropagatedSearchFilters()
         );
     }
 
-//    @Bean
-//    Double creator(SingleApplicationResolver r, TableCreator c) {
-//        c.createTables(r.getApplication());
-//        return 0.1;
-//    }
 }

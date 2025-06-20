@@ -306,30 +306,6 @@ class ApplicationTest {
         assertThrows(EntityNotFoundException.class, builder::build);
     }
 
-    @Test
-    void application_propagateSearchFilters() {
-        var application = Application.builder()
-                .name(ApplicationName.of("propagateSearchFiltersTest"))
-                .entity(INVOICE)
-                .entity(CUSTOMER)
-                .relation(MANY_TO_ONE)
-                .build()
-                .withPropagatedSearchFilters();
-
-        var invoice = application.getEntityByName(EntityName.of("Invoice")).orElseThrow();
-        var customer = application.getEntityByName(EntityName.of("Customer")).orElseThrow();
-
-        // Validate the searchfilter propagated in the direction the relation is defined
-        assertTrue(invoice.getSearchFilters().stream().anyMatch(f ->
-                f instanceof com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter rsf
-                        && rsf.getRelation().getSourceEndPoint().getName().equals(RelationName.of("customer"))));
-
-        // Validate the searchfilter also propagated in the inverse direction
-        assertTrue(customer.getSearchFilters().stream().anyMatch(f ->
-                f instanceof com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter rsf
-                        && rsf.getRelation().getSourceEndPoint().getName().equals(RelationName.of("invoices"))));
-    }
-
     /**
      * Test if we can create the application we use for integration testing:
      * https://console.contentgrid.com/app-frontend/integration-test-do-not-touch
@@ -508,11 +484,6 @@ class ApplicationTest {
         assertEquals(2, orderIncomingRelations.size());
         assertTrue(orderIncomingRelations.stream()
                 .allMatch(incomingRelation -> orderOutgoingRelations.contains(incomingRelation.inverse())));
-
-        // Test propagating customer.order.order_number filter
-        assertEquals(1, application.getEntityByName(EntityName.of("customer")).orElseThrow().getSearchFilters().size());
-        application = application.withPropagatedSearchFilters();
-        assertEquals(2, application.getEntityByName(EntityName.of("customer")).orElseThrow().getSearchFilters().size());
 
     }
 

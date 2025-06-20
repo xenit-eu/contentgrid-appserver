@@ -4,11 +4,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -46,21 +43,6 @@ public class ThunkExpressionGenerator {
 
             SearchFilter searchFilter = maybeSearchFilter.get();
             List<PathElement> prefix = null;
-
-//            if (searchFilter instanceof RelationSearchFilter relationSearchFilter) {
-//                // We always view it the relation from the source endpoint perspective, works for inverse relations too
-//                var rel = relationSearchFilter.getRelation();
-//                prefix = switch (rel) {
-//                    case OneToOneRelation oto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-//                    case ManyToOneRelation mto -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()));
-//                    case OneToManyRelation otm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
-//                            SymbolicReference.pathVar("_"));
-//                    case ManyToManyRelation mtm -> List.of(SymbolicReference.path(rel.getSourceEndPoint().getName().getValue()),
-//                            SymbolicReference.pathVar("_"));
-//                };
-//
-//                searchFilter = relationSearchFilter.getWrappedFilter();
-//            }
 
             // currently only handle exact search TODO support prefix, case insensitive, ...
             if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {

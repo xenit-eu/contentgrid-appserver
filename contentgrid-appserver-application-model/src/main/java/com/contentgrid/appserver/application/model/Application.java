@@ -8,11 +8,9 @@ import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundEx
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.RelationSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
@@ -235,55 +233,6 @@ public class Application {
         return results;
     }
 
-    /**
-     * Creates a new Application with search filters propagated across relations.
-     */
-    public Application withPropagatedSearchFilters() {
-        var updatedEntities = new HashSet<Entity>();
-
-        for (var entity : entities.values()) {
-            var updatedFilters = new HashSet<>(entity.getSearchFilters());
-
-            var outgoingRelations = getRelationsForSourceEntity(entity);
-
-            for (var relation : outgoingRelations) {
-                var targetEntity = relation.getTargetEndPoint().getEntity();
-
-                // Only propagate AttributeSearchFilters (not RelationSearchFilters) to avoid infinite loops
-                var attributeFilters = targetEntity.getSearchFilters().stream()
-                    .filter(AttributeSearchFilter.class::isInstance)
-                    .map(AttributeSearchFilter.class::cast)
-                    .toList();
-
-                for (var targetFilter : attributeFilters) {
-                    var relationFilterName = FilterName.of(
-                        relation.getSourceEndPoint().getName()
-                        + "." + targetFilter.getName().getValue()
-                    );
-
-                    var relationSearchFilter = RelationSearchFilter.builder()
-                        .name(relationFilterName)
-                        .relation(relation)
-                        .wrappedFilter(targetFilter)
-                        .build();
-
-                    updatedFilters.add(relationSearchFilter);
-                }
-            }
-
-            var updatedEntity = entity.toBuilder()
-                .clearSearchFilters()
-                .searchFilters(updatedFilters)
-                .build();
-
-            updatedEntities.add(updatedEntity);
-        }
-
-        return toBuilder()
-            .clearEntities()
-            .entities(updatedEntities)
-            .build();
-    }
 
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
