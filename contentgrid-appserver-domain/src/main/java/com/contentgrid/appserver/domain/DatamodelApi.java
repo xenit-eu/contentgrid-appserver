@@ -97,18 +97,6 @@ public interface DatamodelApi {
     Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
-     * Returns the target relation data that is linked with the entity having the given id.
-     * This operation can only be used for many-to-one or one-to-one relationships.
-     *
-     * @param application the application context
-     * @param relation the *-to-one relation to query
-     * @param id the primary key of the source entity
-     * @return optional with the linked target entity, empty otherwise
-     * @throws QueryEngineException if an error occurs during the query operation
-     */
-    Optional<XToOneRelationData> findRelationData(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
-
-    /**
      * Link the target entity id provided in data with the given source id.
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
@@ -161,6 +149,13 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
+    default void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException {
+        var data = XToManyRelationData.builder()
+                .entity(relation.getSourceEndPoint().getEntity().getName())
+                .name(relation.getSourceEndPoint().getName())
+                .ref(targetId)
+                .build();
+        removeRelationItems(application, data, sourceId);
+    }
 
 }

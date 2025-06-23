@@ -68,12 +68,6 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public Optional<XToOneRelationData> findRelationData(@NonNull Application application, @NonNull Relation relation,
-            @NonNull EntityId id) throws QueryEngineException {
-        return queryEngine.findLink(application, relation, id);
-    }
-
-    @Override
     public void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.setLink(application, data, id);
@@ -95,16 +89,5 @@ public class DatamodelApiImpl implements DatamodelApi {
     public void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
             throws QueryEngineException {
         queryEngine.removeLinks(application, data, id);
-    }
-
-    @Override
-    public void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
-            @NonNull EntityId targetId) throws QueryEngineException {
-        var data = XToManyRelationData.builder()
-                .entity(relation.getSourceEndPoint().getEntity().getName())
-                .name(relation.getSourceEndPoint().getName())
-                .ref(targetId)
-                .build();
-        queryEngine.removeLinks(application, data, sourceId);
     }
 }
