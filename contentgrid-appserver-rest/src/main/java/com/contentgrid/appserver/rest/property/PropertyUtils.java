@@ -26,27 +26,22 @@ public class PropertyUtils {
         var entity = application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity %s does not exist".formatted(entityName)));
 
-        var propertyExists = false;
-        Throwable cause = null;
+        UnsupportedMediaTypeException unsupportedMediaTypeException = null;
 
         for (var requestHandler : requestHandlers) {
             try {
                 return function.apply(requestHandler, entity);
             } catch (PropertyNotFoundException e) {
-                if (cause == null) {
-                    cause = e;
-                }
+                // skip
             } catch (UnsupportedMediaTypeException e) {
-                propertyExists = true;
-                cause = e;
+                unsupportedMediaTypeException = e;
             }
         }
 
-        if (propertyExists) {
-            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type", cause);
+        if (unsupportedMediaTypeException != null) {
+            throw unsupportedMediaTypeException;
         } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Property %s does not exist on entity %s".formatted(propertyName, entityName), cause);
+            throw new PropertyNotFoundException(propertyName);
         }
     }
 }

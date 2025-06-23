@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.converter.HttpServletRequestConverter;
+import com.contentgrid.appserver.rest.exception.IllegalMediaTypeException;
 import com.contentgrid.appserver.rest.exception.UnsupportedMediaTypeException;
 import com.contentgrid.appserver.rest.exception.PropertyNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +15,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.InvalidMimeTypeException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
@@ -68,12 +72,23 @@ public abstract class AbstractPropertyRequestHandler<T, P> implements PropertyRe
                 .orElseThrow(() -> new PropertyNotFoundException(propertyName));
     }
 
-    protected final ResponseEntity<Object> handleProperty(HttpServletRequest request, Function<T, ResponseEntity<Object>> function) throws UnsupportedMediaTypeException {
-        if (!requestConverter.canRead(request)) {
-            throw new UnsupportedMediaTypeException(request.getContentType());
-        }
+    protected final ResponseEntity<Object> handleProperty(HttpServletRequest request, Function<T, ResponseEntity<Object>> function)
+            throws IllegalMediaTypeException, UnsupportedMediaTypeException {
+        assertMediaTypeSupported(request);
         return requestConverter.convert(request).map(function)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body"));
+    }
+
+    private void assertMediaTypeSupported(HttpServletRequest request)
+            throws IllegalMediaTypeException, UnsupportedMediaTypeException {
+        try {
+            var mediaType = MediaType.parseMediaType(request.getContentType());
+            if (!requestConverter.canRead(mediaType)) {
+                throw new UnsupportedMediaTypeException(mediaType, requestConverter.getSupportedMediaTypes());
+            }
+        } catch (InvalidMediaTypeException | InvalidMimeTypeException e) {
+            throw new IllegalMediaTypeException(request.getContentType(), requestConverter.getSupportedMediaTypes());
+        }
     }
 
     protected abstract ResponseEntity<Object> getProperty(Application application, Entity entity, EntityId instanceId, P property);

@@ -1,18 +1,32 @@
 package com.contentgrid.appserver.rest.converter;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 
-public interface HttpServletRequestConverter<T> {
+@Getter
+@RequiredArgsConstructor
+public abstract class HttpServletRequestConverter<T> {
+
+    private final List<MediaType> supportedMediaTypes;
+
+    HttpServletRequestConverter(MediaType... supportedMediaTypes) {
+        this(List.of(supportedMediaTypes));
+    }
 
     /**
-     * Returns whether this converter is able to convert the given request.
-     * Note: the body InputStream can not yet be consumed.
+     * Returns whether this converter is able to convert the given media type of the request.
      *
-     * @param request the request to check
-     * @return whether this converter is able to convert the given request
+     * @param mediaType the media type of the request to check
+     * @return whether this converter is able to convert the given media type of the request
      */
-    boolean canRead(HttpServletRequest request);
+    public boolean canRead(MediaType mediaType) {
+        return supportedMediaTypes.stream().anyMatch(supportedMediaType -> supportedMediaType.includes(mediaType));
+    }
 
     /**
      * Converts a {@link HttpServletRequest} and returns an {@link Optional} containing the converted request.
@@ -20,5 +34,19 @@ public interface HttpServletRequestConverter<T> {
      * @param request the request to be converted
      * @return an {@link Optional} containing the converted request, empty if it could not be converted
      */
-    Optional<T> convert(HttpServletRequest request);
+    public Optional<T> convert(HttpServletRequest request) {
+        try {
+            return Optional.ofNullable(read(request));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Converts a {@link HttpServletRequest}.
+     *
+     * @param request the request to be converted
+     * @return the converted request
+     */
+    protected abstract T read(HttpServletRequest request) throws IOException;
 }

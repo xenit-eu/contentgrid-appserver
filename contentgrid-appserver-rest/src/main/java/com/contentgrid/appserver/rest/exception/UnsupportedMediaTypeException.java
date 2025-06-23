@@ -1,9 +1,13 @@
 package com.contentgrid.appserver.rest.exception;
 
-public class UnsupportedMediaTypeException extends RuntimeException {
+import java.util.List;
+import org.springframework.http.MediaType;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
-    public UnsupportedMediaTypeException(String mediaType) {
-        super("Media type %s not supported".formatted(mediaType));
+public class UnsupportedMediaTypeException extends UnsupportedMediaTypeStatusException {
+
+    public UnsupportedMediaTypeException(MediaType mediaType, List<MediaType> supportedMediaTypes) {
+        super(mediaType, supportedMediaTypes);
     }
 
 }

@@ -11,7 +11,7 @@ import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UriListHttpServletRequestConverter extends AbstractHttpServletRequestConverter<List<URI>> {
+public class UriListHttpServletRequestConverter extends HttpServletRequestConverter<List<URI>> {
 
     public UriListHttpServletRequestConverter() {
         super(MediaType.parseMediaType("text/uri-list"));
