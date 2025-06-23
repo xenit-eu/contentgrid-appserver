@@ -50,8 +50,8 @@ public class Application {
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityNotFoundException if a relation references an entity not in the application
      */
-    @Builder(toBuilder = true)
-    Application(@NonNull ApplicationName name, @Singular @Builder.ObtainVia(method = "getEntities") Set<Entity> entities, @Singular Set<Relation> relations) {
+    @Builder
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
         this.relations = relations;
         var tables = new HashSet<TableName>();
@@ -266,11 +266,11 @@ public class Application {
                     return currentEntity.resolveAttributePath(currentPath);
                 }
                 case RelationName relationName -> {
-                    final Entity entityForLambda = currentEntity; // Make effectively final for lambda
-                    var relation = getRelationForEntity(entityForLambda, relationName)
+                    final String entityName = currentEntity.getName().getValue(); // Make final for lambda
+                    var relation = getRelationForEntity(currentEntity, relationName)
                         .orElseThrow(() -> new IllegalArgumentException(
                             "Relation '%s' not found on entity '%s'"
-                                .formatted(relationName.getValue(), entityForLambda.getName().getValue())));
+                                .formatted(relationName.getValue(), entityName)));
 
                     // Move to the target entity
                     currentEntity = relation.getTargetEndPoint().getEntity();

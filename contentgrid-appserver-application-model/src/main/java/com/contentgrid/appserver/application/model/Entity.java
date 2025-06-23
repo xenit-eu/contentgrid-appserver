@@ -9,7 +9,6 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
@@ -63,16 +62,16 @@ public class Entity implements HasAttributes {
      * @throws InvalidArgumentModelException if a search filter references an invalid attribute
      * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
-    @Builder(toBuilder = true)
+    @Builder
     Entity(
             @NonNull EntityName name,
             @NonNull PathSegmentName pathSegment,
             String description,
             @NonNull TableName table,
             @NonNull LinkName linkName,
-            @Singular @Builder.ObtainVia(method = "getAttributes") List<Attribute> attributes,
+            @Singular List<Attribute> attributes,
             SimpleAttribute primaryKey,
-            @Singular @Builder.ObtainVia(method = "getSearchFilters") List<SearchFilter> searchFilters
+            @Singular List<SearchFilter> searchFilters
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
@@ -258,8 +257,8 @@ public class Entity implements HasAttributes {
     public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
         return switch (attributePath) {
             case AttributePath attrPath -> resolveAttributePath(this, attrPath);
-            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters cannot be placed "
-                    + "directly on an Entity. Instead, use .withPropagateSearchFilters() after constructing an Application.");
+            case RelationPath ignored -> throw new UnsupportedOperationException("Can't resolve paths across relations"
+                    + " from the Entity, try via Application instead.");
         };
     }
 

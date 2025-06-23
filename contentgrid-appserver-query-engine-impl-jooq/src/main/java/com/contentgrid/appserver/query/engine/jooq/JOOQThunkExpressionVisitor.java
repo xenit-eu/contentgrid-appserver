@@ -34,7 +34,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;

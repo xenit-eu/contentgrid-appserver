@@ -42,7 +42,6 @@ public class ThunkExpressionGenerator {
             }
 
             SearchFilter searchFilter = maybeSearchFilter.get();
-            List<PathElement> prefix = null;
 
             // currently only handle exact search TODO support prefix, case insensitive, ...
             if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
@@ -50,7 +49,6 @@ public class ThunkExpressionGenerator {
                     Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
                     Stream<PathElement> pathElements = convertPath(application, entity, exactSearchFilter.getAttributePath());
                     ThunkExpression<Boolean> expression = createEqualityExpression(
-                            prefix,
                             pathElements,
                             parsedValue
                     );
@@ -92,11 +90,8 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createEqualityExpression(List<PathElement> prefix, Stream<PathElement> pathElements, Scalar<?> value) {
-        Stream<PathElement> pathPrefix = prefix == null
-                ? Stream.of()
-                : prefix.stream();
-        SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), Stream.concat(pathPrefix, pathElements));
+    private static ThunkExpression<Boolean> createEqualityExpression(Stream<PathElement> pathElements, Scalar<?> value) {
+        SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
         return Comparison.areEqual(attr, value);
     }
@@ -108,13 +103,13 @@ public class ThunkExpressionGenerator {
 
         while (currentPath != null) {
             PropertyName name = currentPath.getFirst();
-            final Entity entityForLambda = currentEntity; // Make effectively final for lambda
+            final String entityName = currentEntity.getName().getValue(); // Can only use (effectively) final vars in lambda
 
             switch (name) {
                 case AttributeName ignored -> {
                     // If the remaining path is just (composite) attributes, validate the path via the current entity
                     // This throws if there is an invalid link
-                    entityForLambda.resolveAttributePath(currentPath);
+                    currentEntity.resolveAttributePath(currentPath);
 
                     // Convert the rest of the path using toList()
                     return Stream.concat(
@@ -123,9 +118,9 @@ public class ThunkExpressionGenerator {
                     );
                 }
                 case RelationName relationName -> {
-                    var relation = application.getRelationForEntity(entityForLambda, relationName)
+                    var relation = application.getRelationForEntity(currentEntity, relationName)
                             .orElseThrow(() -> new IllegalArgumentException("Relation %s not found on entity %s"
-                                    .formatted(relationName.getValue(), entityForLambda.getName().getValue())));
+                                    .formatted(relationName.getValue(), entityName)));
 
                     pathElements.add(SymbolicReference.path(relationName.getValue()));
 

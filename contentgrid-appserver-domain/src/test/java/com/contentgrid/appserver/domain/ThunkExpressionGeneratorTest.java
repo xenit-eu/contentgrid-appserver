@@ -314,8 +314,6 @@ class ThunkExpressionGeneratorTest {
             .relation(customerShipmentRelation)
             .relation(wishlistRelation)
             .build();
-            // Propagate searchFilters so we can test searching across relations
-//            .withPropagatedSearchFilters();
 
     @Test
     void emptyParamsShouldReturnTrueExpression() {
