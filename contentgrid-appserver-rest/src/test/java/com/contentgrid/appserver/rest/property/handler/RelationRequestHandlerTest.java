@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -134,7 +135,7 @@ class RelationRequestHandlerTest {
         @Test
         void followOneToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(EntityName.of("person"))
+                            .name(TestApplication.PERSON.getName())
                             .id(PERSON_ID)
                             .build()))
                     .when(datamodelApi)
@@ -152,7 +153,7 @@ class RelationRequestHandlerTest {
         @Test
         void followManyToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(EntityName.of("product"))
+                            .name(TestApplication.PRODUCT.getName())
                             .id(PRODUCT_ID)
                             .build()))
                     .when(datamodelApi)
@@ -165,6 +166,25 @@ class RelationRequestHandlerTest {
 
             Mockito.verify(datamodelApi)
                     .findById(TestApplication.APPLICATION, TestApplication.PRODUCT, PRODUCT_ID);
+        }
+
+        @Test
+        @Disabled("Following unidirectional *-to-many relations not implemented")
+        void followUnidirectionalToManyRelation() throws Exception {
+            Mockito.doReturn(Optional.of(EntityData.builder()
+                    .name(TestApplication.PERSON.getName())
+                    .id(PERSON_ID)
+                    .build()))
+                    .when(datamodelApi)
+                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+
+            mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
+                    .andExpect(status().isFound())
+                    .andExpect(header().string(HttpHeaders.LOCATION,
+                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID))); // TODO: change url
+
+            Mockito.verify(datamodelApi)
+                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
         }
 
         @Test

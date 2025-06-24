@@ -72,10 +72,17 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
         datamodelApi.findById(application, property.getSourceEndPoint().getEntity(), instanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
-        var redirectUrl = linkTo(methodOn(EntityRestController.class).listEntity(application, targetPathSegment, 0,
-                Map.of(property.getTargetEndPoint().getName().getValue(), instanceId.toString()))).toUri(); // TODO: use RelationSearchFilter
+        // TODO: use FilterName of relation
+        var filterName = property.getTargetEndPoint().getName();
+        if (filterName != null) {
+            var redirectUrl = linkTo(methodOn(EntityRestController.class)
+                    .listEntity(application, targetPathSegment, 0, Map.of(filterName.getValue(), instanceId.toString())))
+                    .toUri();
 
-        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
+            return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unidirectional *-to-many relation not implemented.");
+        }
     }
 
     @Override
