@@ -201,6 +201,16 @@
           "name": "phoneFilter",
           "attributePath": [{"name": "contactInfo", "type": "attr"}, {"name": "phone", "type": "attr"}],
           "type": "exact"
+        },
+        {
+          "name": "manager.lastNameFilter",
+          "attributePath": [{"name": "manager", "type": "rel"}, {"name": "lastName", "type": "attr"}],
+          "type": "prefix"
+        },
+        {
+          "name": "subordinates.lastNameFilter",
+          "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
+          "type": "prefix"
         }
       ]
     },
