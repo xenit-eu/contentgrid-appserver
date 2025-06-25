@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -109,7 +110,7 @@ public class ThunkExpressionGenerator {
                 case AttributeName ignored -> {
                     // If the remaining path is just (composite) attributes, validate the path via the current entity
                     // This throws if there is an invalid link
-                    currentEntity.resolveAttributePath(currentPath);
+                    currentEntity.resolveAttributePath((AttributePath) currentPath);
 
                     // Convert the rest of the path using toList()
                     return Stream.concat(

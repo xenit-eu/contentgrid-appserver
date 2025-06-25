@@ -254,12 +254,8 @@ public class Entity implements HasAttributes {
         return result;
     }
 
-    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
-        return switch (attributePath) {
-            case AttributePath attrPath -> resolveAttributePath(this, attrPath);
-            case RelationPath ignored -> throw new UnsupportedOperationException("Can't resolve paths across relations"
-                    + " from the Entity, try via Application instead.");
-        };
+    public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {
+        return resolveAttributePath(this, attributePath);
     }
 
     private static SimpleAttribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {

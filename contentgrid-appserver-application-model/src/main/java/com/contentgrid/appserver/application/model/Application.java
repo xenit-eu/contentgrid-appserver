@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
@@ -238,7 +239,7 @@ public class Application {
         entity.getSearchFilters().forEach(searchFilter -> {
             if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                 try {
-                    var resolvedAttribute = resolveAttributePath(entity, attributeSearchFilter.getAttributePath());
+                    var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                     if (resolvedAttribute.getType() != attributeSearchFilter.getAttributeType()) {
                         throw new InvalidArgumentModelException(
                             "SearchFilter %s does not match the type of attribute %s (%s != %s)".formatted(
@@ -253,7 +254,7 @@ public class Application {
         });
     }
 
-    private SimpleAttribute resolveAttributePath(Entity entity, PropertyPath path) {
+    private SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
         Entity currentEntity = entity;
         PropertyPath currentPath = path;
 
@@ -263,7 +264,7 @@ public class Application {
             switch (name) {
                 case AttributeName ignored -> {
                     // When we hit an attribute, validate the remaining path via the current entity
-                    return currentEntity.resolveAttributePath(currentPath);
+                    return currentEntity.resolveAttributePath((AttributePath) currentPath);
                 }
                 case RelationName relationName -> {
                     final String entityName = currentEntity.getName().getValue(); // Make final for lambda
