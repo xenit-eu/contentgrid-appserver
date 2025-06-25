@@ -263,8 +263,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             var propName = prop.getValue();
             var entityName = currentEntity.getName();
             var attr = currentContainer.stream().filter(a -> a.getName().equals(propName)).findFirst().orElse(null);
-            var rel = jsonRelations.stream().flatMap(r -> Stream.of(r.getSourceEndpoint(), r.getTargetEndpoint()))
-                    .filter(e -> prop.getValue().equals(e.getName()) && e.getEntityName().equals(entityName))
+            // If our entity name matches one of the endpoints of a relation, we need the other endpoint to actually
+            // follow the relation to the next entity.
+            // Turn every relation into 2 pairs of endpoints, source to target and target to source
+            var rel = jsonRelations.stream().flatMap(r -> Stream.of(
+                            new Endpoints(r.getSourceEndpoint(), r.getTargetEndpoint()),
+                            new Endpoints(r.getTargetEndpoint(), r.getSourceEndpoint())
+                    ))
+                    .filter(e -> propName.equals(e.source().getName()) && e.source().getEntityName().equals(entityName))
+                    .map(Endpoints::target)
                     .findFirst().orElse(null);
             if (attr == null && rel == null) {
                 throw new InvalidSearchFilterException("Attribute or relation for filter not found: " + propName);
@@ -298,6 +305,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             };
         }
     }
+
+    private record Endpoints(RelationEndPoint source, RelationEndPoint target) {}
 
     private com.contentgrid.appserver.application.model.Entity findEntity(String name,
             Set<com.contentgrid.appserver.application.model.Entity> entities) {

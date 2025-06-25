@@ -73,6 +73,11 @@
           "name": "nameFilter",
           "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "projects.description",
+          "attributePath": [{"name": "projects", "type": "rel"}, {"name": "description", "type": "attr"}],
+          "type": "exact"
         }
       ]
     },
