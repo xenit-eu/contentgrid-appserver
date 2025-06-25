@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -103,14 +104,13 @@ public class ThunkExpressionGenerator {
         PropertyPath currentPath = path;
 
         while (currentPath != null) {
-            PropertyName name = currentPath.getFirst();
             final String entityName = currentEntity.getName().getValue(); // Can only use (effectively) final vars in lambda
 
-            switch (name) {
-                case AttributeName ignored -> {
+            switch (currentPath) {
+                case AttributePath attributePath -> {
                     // If the remaining path is just (composite) attributes, validate the path via the current entity
                     // This throws if there is an invalid link
-                    currentEntity.resolveAttributePath((AttributePath) currentPath);
+                    currentEntity.resolveAttributePath(attributePath);
 
                     // Convert the rest of the path using toList()
                     return Stream.concat(
@@ -118,7 +118,8 @@ public class ThunkExpressionGenerator {
                             currentPath.toList().stream().map(SymbolicReference::path)
                     );
                 }
-                case RelationName relationName -> {
+                case RelationPath relationPath -> {
+                    var relationName = relationPath.getRelation();
                     var relation = application.getRelationForEntity(currentEntity, relationName)
                             .orElseThrow(() -> new IllegalArgumentException("Relation %s not found on entity %s"
                                     .formatted(relationName.getValue(), entityName)));

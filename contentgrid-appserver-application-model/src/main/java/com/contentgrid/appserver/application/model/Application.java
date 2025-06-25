@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -259,19 +260,17 @@ public class Application {
         PropertyPath currentPath = path;
 
         while (currentPath != null) {
-            PropertyName name = currentPath.getFirst();
-
-            switch (name) {
-                case AttributeName ignored -> {
+            switch (currentPath) {
+                case AttributePath attributePath -> {
                     // When we hit an attribute, validate the remaining path via the current entity
-                    return currentEntity.resolveAttributePath((AttributePath) currentPath);
+                    return currentEntity.resolveAttributePath(attributePath);
                 }
-                case RelationName relationName -> {
+                case RelationPath relationPath -> {
                     final String entityName = currentEntity.getName().getValue(); // Make final for lambda
-                    var relation = getRelationForEntity(currentEntity, relationName)
+                    var relation = getRelationForEntity(currentEntity, relationPath.getRelation())
                         .orElseThrow(() -> new IllegalArgumentException(
                             "Relation '%s' not found on entity '%s'"
-                                .formatted(relationName.getValue(), entityName)));
+                                .formatted(relationPath.getFirst().getValue(), entityName)));
 
                     // Move to the target entity
                     currentEntity = relation.getTargetEndPoint().getEntity();

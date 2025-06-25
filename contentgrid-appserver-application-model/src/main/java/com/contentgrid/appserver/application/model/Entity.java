@@ -18,8 +18,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
-import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
