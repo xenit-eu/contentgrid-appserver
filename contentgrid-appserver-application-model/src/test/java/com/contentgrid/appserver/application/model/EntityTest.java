@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -263,20 +264,26 @@ class EntityTest {
 
     @Test
     void entity_filterOnMissingAttribute() {
-        var builder = Entity.builder()
+        var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .searchFilter(FILTER1)
-                .searchFilter(FILTER2); // on missing ATTRIBUTE2
-        assertThrows(InvalidArgumentModelException.class, builder::build);
+                .searchFilter(FILTER2) // on missing ATTRIBUTE2
+                .build();
+
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
     }
 
     @Test
     void entity_filterWithWrongType() {
-        var builder = Entity.builder()
+        var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
                 .linkName(LinkName.of("link"))
@@ -287,8 +294,14 @@ class EntityTest {
                         .attributePath(PropertyPath.of(ATTRIBUTE1.getName()))
                         .attributeType(Type.BOOLEAN)
                         .build()
-                );
-        assertThrows(InvalidArgumentModelException.class, builder::build);
+                )
+                .build();
+
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
     }
 
     @Test
@@ -309,7 +322,7 @@ class EntityTest {
 
     @Test
     void entity_filterOnCompositePointsToSimple() {
-        var builder = Entity.builder()
+        var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
                 .linkName(LinkName.of("link"))
@@ -320,14 +333,19 @@ class EntityTest {
                         .attributePath(PropertyPath.of(ATTRIBUTE1.getName(), AttributeName.of("foo")))
                         .attributeType(Type.TEXT)
                         .build()
-                );
+                )
+                .build();
 
-        assertThrows(InvalidArgumentModelException.class, builder::build);
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
     }
 
     @Test
     void entity_filterOnSimplePointsToComposite() {
-        var builder = Entity.builder()
+        var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
                 .linkName(LinkName.of("link"))
@@ -338,9 +356,14 @@ class EntityTest {
                         .attributePath(PropertyPath.of(COMPOSITE.getName()))
                         .attributeType(Type.TEXT)
                         .build()
-                );
+                )
+                .build();
 
-        assertThrows(InvalidArgumentModelException.class, builder::build);
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
     }
 
     @Test

@@ -293,7 +293,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             var pathElement = tail.getFirst();
             if (pathElement instanceof VariablePathElement variable) {
                 // add variable to context and check whether variable is unique
-                if (!context.addVariable(variable.getVariable().getName())) {
+                if (!context.addVariable(variable)) {
                     throw new InvalidThunkExpressionException(
                             "Variable %s is not unique".formatted(variable.getVariable().getName()));
                 }
@@ -346,8 +346,12 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             return joinCollection.getRootAlias();
         }
 
-        private boolean addVariable(String variable) {
-            return variables.add(variable);
+        private boolean addVariable(VariablePathElement variable) {
+            if (variable.getVariable().getName().equals("_")) {
+                return true;
+            } else {
+                return variables.add(variable.getVariable().getName());
+            }
         }
     }
 }

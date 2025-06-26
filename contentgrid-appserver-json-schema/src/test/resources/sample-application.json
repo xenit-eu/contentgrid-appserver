@@ -71,8 +71,13 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributePath": ["name"],
+          "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "projects.description",
+          "attributePath": [{"name": "projects", "type": "rel"}, {"name": "description", "type": "attr"}],
+          "type": "exact"
         }
       ]
     },
@@ -189,18 +194,28 @@
       "searchFilters": [
         {
           "name": "lastNameFilter",
-          "attributePath": ["lastName"],
+          "attributePath": [{"name": "lastName", "type": "attr"}],
           "type": "prefix"
         },
         {
           "name": "emailFilter",
-          "attributePath": ["email"],
+          "attributePath": [{"name": "email", "type": "attr"}],
           "type": "exact"
         },
         {
           "name": "phoneFilter",
-          "attributePath": ["contactInfo", "phone"],
+          "attributePath": [{"name": "contactInfo", "type": "attr"}, {"name": "phone", "type": "attr"}],
           "type": "exact"
+        },
+        {
+          "name": "manager.lastNameFilter",
+          "attributePath": [{"name": "manager", "type": "rel"}, {"name": "lastName", "type": "attr"}],
+          "type": "prefix"
+        },
+        {
+          "name": "subordinates.lastNameFilter",
+          "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
+          "type": "prefix"
         }
       ]
     },
@@ -291,12 +306,12 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributePath": ["name"],
+          "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
         },
         {
           "name": "statusFilter",
-          "attributePath": ["status"],
+          "attributePath": [{"name": "status", "type": "attr"}],
           "type": "exact"
         }
       ]
@@ -362,7 +377,7 @@
       "searchFilters": [
         {
           "name": "titleFilter",
-          "attributePath": ["title"],
+          "attributePath": [{"name": "title", "type": "attr"}],
           "type": "prefix"
         }
       ]
@@ -414,12 +429,12 @@
       "searchFilters": [
         {
           "name": "nameFilter",
-          "attributePath": ["name"],
+          "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
         },
         {
           "name": "categoryFilter",
-          "attributePath": ["category"],
+          "attributePath": [{"name": "category", "type": "attr"}],
           "type": "exact"
         }
       ]
@@ -465,7 +480,7 @@
       "searchFilters": [
         {
           "name": "ssnFilter",
-          "attributePath": ["ssn"],
+          "attributePath": [{"name": "ssn", "type": "attr"}],
           "type": "exact"
         }
       ]

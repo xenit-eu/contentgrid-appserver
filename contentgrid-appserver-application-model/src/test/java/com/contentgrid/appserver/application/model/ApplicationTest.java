@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -30,6 +31,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
@@ -56,6 +58,11 @@ class ApplicationTest {
                     .mimetypeColumn(ColumnName.of("content__mimetype"))
                     .lengthColumn(ColumnName.of("content__length"))
                     .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
+                    .attributeType(Type.TEXT)
+                    .name(FilterName.of("invoiceNumber"))
+                    .build())
             .build();
 
     private static final Entity CUSTOMER = Entity.builder()
@@ -67,6 +74,11 @@ class ApplicationTest {
                     .description("The name of the customer").type(Type.TEXT).build())
             .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email"))
                     .description("The email of the customer").type(Type.TEXT).build())
+            .searchFilter(PrefixSearchFilter.builder()
+                    .attributePath(PropertyPath.of(AttributeName.of("name")))
+                    .attributeType(Type.TEXT)
+                    .name(FilterName.of("name~prefix"))
+                    .build())
             .build();
 
     private static final Relation MANY_TO_ONE = ManyToOneRelation.builder()
@@ -295,6 +307,93 @@ class ApplicationTest {
         assertThrows(EntityNotFoundException.class, builder::build);
     }
 
+    @Test
+    void application_searchFilterWithNonExistentRelation() {
+        var entity = Entity.builder()
+                .name(EntityName.of("testEntity"))
+                .table(TableName.of("test_table"))
+                .pathSegment(PathSegmentName.of("test-entities"))
+                .linkName(LinkName.of("test-entities"))
+                .primaryKey(SimpleAttribute.builder()
+                        .name(AttributeName.of("id"))
+                        .column(ColumnName.of("id"))
+                        .type(Type.UUID)
+                        .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("nonexistent.name"))
+                        .attributePath(PropertyPath.of(RelationName.of("nonexistent"), AttributeName.of("name")))
+                        .attributeType(Type.TEXT)
+                        .build())
+                .build();
+
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+    }
+
+    @Test
+    void application_searchFilterWithNonExistentAttribute() {
+        var sourceEntity = Entity.builder()
+                .name(EntityName.of("sourceEntity"))
+                .table(TableName.of("source_table"))
+                .pathSegment(PathSegmentName.of("source-entities"))
+                .linkName(LinkName.of("source-entities"))
+                .primaryKey(SimpleAttribute.builder()
+                        .name(AttributeName.of("id"))
+                        .column(ColumnName.of("id"))
+                        .type(Type.UUID)
+                        .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("target.nonexistent"))
+                        .attributePath(PropertyPath.of(RelationName.of("target"), AttributeName.of("nonexistent")))
+                        .attributeType(Type.TEXT)
+                        .build())
+                .build();
+
+        var targetEntity = Entity.builder()
+                .name(EntityName.of("targetEntity"))
+                .table(TableName.of("target_table"))
+                .pathSegment(PathSegmentName.of("target-entities"))
+                .linkName(LinkName.of("target-entities"))
+                .primaryKey(SimpleAttribute.builder()
+                        .name(AttributeName.of("id"))
+                        .column(ColumnName.of("id"))
+                        .type(Type.UUID)
+                        .build())
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("name"))
+                        .column(ColumnName.of("name"))
+                        .type(Type.TEXT)
+                        .build())
+                .build();
+
+        var relation = ManyToOneRelation.builder()
+                .sourceEndPoint(RelationEndPoint.builder()
+                        .entity(sourceEntity)
+                        .name(RelationName.of("target"))
+                        .pathSegment(PathSegmentName.of("target"))
+                        .linkName(LinkName.of("target"))
+                        .build())
+                .targetEndPoint(RelationEndPoint.builder()
+                        .entity(targetEntity)
+                        .name(RelationName.of("sources"))
+                        .pathSegment(PathSegmentName.of("sources"))
+                        .linkName(LinkName.of("sources"))
+                        .build())
+                .targetReference(ColumnName.of("target_id"))
+                .build();
+
+        var applicationBuilder = Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(sourceEntity)
+                .entity(targetEntity)
+                .relation(relation);
+
+        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+    }
+
     /**
      * Test if we can create the application we use for integration testing:
      * https://console.contentgrid.com/app-frontend/integration-test-do-not-touch
@@ -332,6 +431,11 @@ class ApplicationTest {
                         PrefixSearchFilter.builder().attribute(customerName).name(FilterName.of("name~prefix")).build())
                 .attribute(customerEmail)
                 .attribute(customerPhone)
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("orders.order_number"))
+                        .attributePath(PropertyPath.of(RelationName.of("orders"), AttributeName.of("order_number")))
+                        .attributeType(Type.TEXT)
+                        .build())
                 .build();
 
         var orderId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id"))
@@ -402,6 +506,16 @@ class ApplicationTest {
                 .attribute(orderTotalAmount)
                 .attribute(orderDocument)
                 .attribute(orderAudit)
+                .searchFilter(PrefixSearchFilter.builder()
+                        .name(FilterName.of("products.name"))
+                        .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("name")))
+                        .attributeType(Type.TEXT)
+                        .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("products.category"))
+                        .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("category")))
+                        .attributeType(Type.TEXT)
+                        .build())
                 .build();
 
         var productName = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("name"))
@@ -473,6 +587,7 @@ class ApplicationTest {
         assertEquals(2, orderIncomingRelations.size());
         assertTrue(orderIncomingRelations.stream()
                 .allMatch(incomingRelation -> orderOutgoingRelations.contains(incomingRelation.inverse())));
+
     }
 
 }

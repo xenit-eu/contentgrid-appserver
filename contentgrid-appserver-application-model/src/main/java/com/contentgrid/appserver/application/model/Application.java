@@ -1,15 +1,23 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,10 +74,10 @@ public class Application {
         });
 
         relations.forEach(relation -> {
-            if (!this.entities.containsValue(relation.getSourceEndPoint().getEntity())) {
+            if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity().getName())) {
                 throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
-            if (!this.entities.containsValue(relation.getTargetEndPoint().getEntity())) {
+            if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
                 throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
@@ -79,6 +87,9 @@ public class Application {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
         });
+
+        // Validating entity search filters (happens here rather than in Entity because they might go across relations)
+        this.entities.values().forEach(this::validateEntitySearchFilters);
     }
 
     /**
@@ -131,16 +142,16 @@ public class Application {
     /**
      * Finds a relation for a given Entity and relation name.
      *
-     * @param entity the entity containing the relation
-     * @param name the relation name to match
+     * @param entityName the name of the entity containing the relation
+     * @param relationName the relation name to match
      * @return an Optional containing a relation where the entity is either the source or target entity
      * and the name matches
      */
-    public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
+    public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName relationName) {
         for (var relation : relations) {
-            if (relation.getSourceEndPoint().getEntity().equals(entity) && Objects.equals(relation.getSourceEndPoint().getName(), name)) {
+            if (relation.getSourceEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getSourceEndPoint().getName(), relationName)) {
                 return Optional.of(relation);
-            } else if (relation.getTargetEndPoint().getEntity().equals(entity) && Objects.equals(relation.getTargetEndPoint().getName(), name)) {
+            } else if (relation.getTargetEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getTargetEndPoint().getName(), relationName)) {
                 return Optional.of(relation.inverse());
             }
         }
@@ -150,13 +161,13 @@ public class Application {
     /**
      * Finds a relation for a given entity name and relation name.
      *
-     * @param entityName the name of the entity containing the relation
+     * @param entity the entity containing the relation
      * @param name the relation name to match
      * @return an optional containing a relation where the entity is either the source or target entity
      * and the name matches
      */
-    public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName name) {
-        return getEntityByName(entityName).flatMap(entity -> getRelationForEntity(entity, name));
+    public Optional<Relation> getRelationForEntity(Entity entity, RelationName name) {
+        return getRelationForEntity(entity.getName(), name);
     }
 
     public Relation getRequiredRelationForEntity(Entity entity, RelationName name) {
@@ -222,6 +233,53 @@ public class Application {
             }
         }
         return results;
+    }
+
+
+    private void validateEntitySearchFilters(Entity entity) {
+        entity.getSearchFilters().forEach(searchFilter -> {
+            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                try {
+                    var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                    if (resolvedAttribute.getType() != attributeSearchFilter.getAttributeType()) {
+                        throw new InvalidArgumentModelException(
+                            "SearchFilter %s does not match the type of attribute %s (%s != %s)".formatted(
+                                    attributeSearchFilter.getName(), resolvedAttribute.getName(),
+                                    attributeSearchFilter.getAttributeType(), resolvedAttribute.getType()));
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidArgumentModelException("SearchFilter %s does not have a valid attribute path"
+                            .formatted(attributeSearchFilter.getName()), e);
+                }
+            }
+        });
+    }
+
+    private SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
+        Entity currentEntity = entity;
+        PropertyPath currentPath = path;
+
+        while (currentPath != null) {
+            switch (currentPath) {
+                case AttributePath attributePath -> {
+                    // When we hit an attribute, validate the remaining path via the current entity
+                    return currentEntity.resolveAttributePath(attributePath);
+                }
+                case RelationPath relationPath -> {
+                    final String entityName = currentEntity.getName().getValue(); // Make final for lambda
+                    var relation = getRelationForEntity(currentEntity, relationPath.getRelation())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                            "Relation '%s' not found on entity '%s'"
+                                .formatted(relationPath.getFirst().getValue(), entityName)));
+
+                    // Move to the target entity
+                    currentEntity = relation.getTargetEndPoint().getEntity();
+                    currentPath = currentPath.getRest();
+                }
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid property path: path ended without reaching an attribute");
     }
 
 }

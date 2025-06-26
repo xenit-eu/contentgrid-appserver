@@ -1,15 +1,14 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
@@ -19,8 +18,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
-import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
@@ -122,19 +119,6 @@ public class Entity implements HasAttributes {
                     if (this.searchFilters.put(searchFilter.getName(), searchFilter) != null) {
                         throw new DuplicateElementException(
                                 "Duplicate search filter named %s".formatted(searchFilter.getName()));
-                    }
-                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                        try {
-                            var attr = resolveAttributePath(attributeSearchFilter.getAttributePath());
-                            if (attr.getType() != attributeSearchFilter.getAttributeType()) {
-                                throw new InvalidArgumentModelException(("AttributeSearchFilter %s does not match the"
-                                        + " type of attribute %s (%s != %s)").formatted(attributeSearchFilter.getName(),
-                                        attr.getName(), attributeSearchFilter.getAttributeType(), attr.getType()));
-                            }
-                        } catch (IllegalArgumentException e) {
-                            throw new InvalidArgumentModelException("AttributeSearchFilter %s does not have a valid attribute path"
-                                    .formatted(attributeSearchFilter.getName()), e);
-                        }
                     }
                 }
         );
@@ -268,18 +252,8 @@ public class Entity implements HasAttributes {
         return result;
     }
 
-    /**
-     * Resolves an attribute path to its target SimpleAttribute.
-     *
-     * @param attributePath the path to resolve
-     * @return the SimpleAttribute at the end of the path
-     * @throws IllegalArgumentException if the path cannot be resolved to a SimpleAttribute
-     */
-    public SimpleAttribute resolveAttributePath(@NonNull PropertyPath attributePath) {
-        return switch (attributePath) {
-            case AttributePath attrPath -> resolveAttributePath(this, attrPath);
-            case RelationPath ignored -> throw new UnsupportedOperationException("Relation filters are not yet implemented");
-        };
+    public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {
+        return resolveAttributePath(this, attributePath);
     }
 
     private static SimpleAttribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {

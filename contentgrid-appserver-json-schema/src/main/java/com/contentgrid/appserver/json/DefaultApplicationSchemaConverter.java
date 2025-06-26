@@ -19,7 +19,6 @@ import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilt
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -44,6 +43,7 @@ import com.contentgrid.appserver.json.model.Entity;
 import com.contentgrid.appserver.json.model.ManyToManyRelation;
 import com.contentgrid.appserver.json.model.OneToManyRelation;
 import com.contentgrid.appserver.json.model.OneToOneRelation;
+import com.contentgrid.appserver.json.model.PropertyPathElement;
 import com.contentgrid.appserver.json.model.Relation;
 import com.contentgrid.appserver.json.model.RelationEndPoint;
 import com.contentgrid.appserver.json.model.RequiredConstraint;
@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
 
@@ -74,7 +75,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var schema = getApplicationSchema(json);
         Set<com.contentgrid.appserver.application.model.Entity> entities = new HashSet<>();
         for (Entity entity : schema.getEntities()) {
-            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity);
+            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity,
+                    schema.getEntities(), schema.getRelations());
             entities.add(convertEntity);
         }
         Set<com.contentgrid.appserver.application.model.relations.Relation> relations =
@@ -100,7 +102,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
-            Entity jsonEntity) throws InValidJsonException {
+            Entity jsonEntity, List<Entity> jsonEntities, List<Relation> jsonRelations) throws InValidJsonException {
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = fromJsonSimpleAttribute(
                 jsonEntity.getPrimaryKey());
         List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes;
@@ -116,7 +118,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> list = new ArrayList<>();
             for (SearchFilter sf : jsonEntity.getSearchFilters()) {
                 com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(
-                        sf, attributes);
+                        sf, jsonEntity, jsonEntities, jsonRelations);
                 list.add(searchFilter);
             }
             searchFilters = list;
@@ -240,40 +242,61 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonSearchFilter(
             SearchFilter jsonFilter,
-            List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes) throws InValidJsonException {
+            Entity jsonEntity,
+            List<Entity> jsonEntities,
+            List<Relation> jsonRelations
+    ) throws InValidJsonException {
         var type = jsonFilter.getType();
-        List<PropertyName> attrPath = List.copyOf(jsonFilter.getAttributePath().stream().map(AttributeName::of).toList());
+        List<PropertyName> attrPath = jsonFilter.getAttributePath().stream()
+                .map(element -> element.getType().equals("attr")
+                        ? AttributeName.of(element.getName())
+                        : RelationName.of(element.getName())
+                ).toList();
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
-        com.contentgrid.appserver.application.model.attributes.Attribute attribute = attributes.stream()
-                .filter(a -> a.getName()
-                        .getValue()
-                        .equals(propertyPath.getFirst().getValue()))
-                .findFirst()
-                .orElse(null);
-        if (attribute == null) {
-            throw new AttributeNotFoundException("Attribute for filter not found: " + propertyPath.getFirst());
-        }
-        // If propertyPath has multiple elements, traverse composite attribute until you get to the leaf, in order
-        // to find the type for this filter; Don't traverse relations: filters across relations are added after all
-        // entities have been instantiated.
-        AttributePath remainingPath = (AttributePath) propertyPath;
-        while (remainingPath.getRest() != null) {
-            if (attribute instanceof com.contentgrid.appserver.application.model.attributes.CompositeAttribute parent) {
-                // reassign attribute with next child, update remainingPath
-                remainingPath = remainingPath.getRest();
-                var attrName = remainingPath.getFirst();
-                attribute = parent.getAttributeByName(attrName)
-                        .orElseThrow(() -> new InvalidSearchFilterException("Could not find %s in Composite %s"
-                                .formatted(attrName, parent.getName().getValue())));
+
+        // Finding the type of the attribute pointed to by the path, traversing the path if there's multiple elements
+        var currentContainer = jsonEntity.getAttributes();
+        var currentEntity = jsonEntity;
+        Attribute attribute = null;
+        for (PropertyName prop : attrPath) {
+            var propName = prop.getValue();
+            var entityName = currentEntity.getName();
+            var attr = currentContainer.stream().filter(a -> a.getName().equals(propName)).findFirst().orElse(null);
+            // If our entity name matches one of the endpoints of a relation, we need the other endpoint to actually
+            // follow the relation to the next entity.
+            // Turn every relation into 2 pairs of endpoints, source to target and target to source
+            var rel = jsonRelations.stream().flatMap(r -> Stream.of(
+                            new Endpoints(r.getSourceEndpoint(), r.getTargetEndpoint()),
+                            new Endpoints(r.getTargetEndpoint(), r.getSourceEndpoint())
+                    ))
+                    .filter(e -> propName.equals(e.source().getName()) && e.source().getEntityName().equals(entityName))
+                    .map(Endpoints::target)
+                    .findFirst().orElse(null);
+            if (attr == null && rel == null) {
+                throw new InvalidSearchFilterException("Attribute or relation for filter not found: " + propName);
+            } else if (attr != null) {
+                if (attr instanceof CompositeAttribute composite) {
+                    currentContainer = composite.getAttributes();
+                } else {
+                    attribute = attr;
+                }
             } else {
-                throw new InvalidSearchFilterException("Attribute %s is not Composite but supposed to contain %s"
-                        .formatted(attribute.getName().getValue(), remainingPath.getRest().getFirst()));
+                currentEntity = jsonEntities.stream().filter(e -> e.getName().equals(rel.getEntityName()))
+                        .findFirst().orElseThrow(() -> new InvalidSearchFilterException("Entity from path not found"));
+                currentContainer = currentEntity.getAttributes();
             }
+
         }
 
-        if (!(attribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute simpleAttribute)) {
-            throw new InvalidAttributeTypeException("Attribute for filter is not a simple attribute: " + attribute.getName());
+        if (attribute == null) {
+            throw new InvalidSearchFilterException("Attribute for filter not found: " + propertyPath.toList());
+        }
+
+        var targetAttribute = fromJsonAttribute(attribute);
+
+        if (!(targetAttribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute simpleAttribute)) {
+            throw new InvalidSearchFilterException("Attribute for filter is not a simple attribute: " + attribute.getName());
         } else {
             return switch (type) {
                 case "prefix" -> PrefixSearchFilter.builder().name(filterName).attributePath(propertyPath).attributeType(simpleAttribute.getType()).build();
@@ -282,6 +305,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             };
         }
     }
+
+    private record Endpoints(RelationEndPoint source, RelationEndPoint target) {}
 
     private com.contentgrid.appserver.application.model.Entity findEntity(String name,
             Set<com.contentgrid.appserver.application.model.Entity> entities) {
@@ -488,16 +513,35 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonFilter.setName(filter.getName().getValue());
         switch (filter) {
             case PrefixSearchFilter prefixFilter -> {
-                jsonFilter.setAttributePath(prefixFilter.getAttributePath().toList());
+                jsonFilter.setAttributePath(toJsonPropertyPath(prefixFilter.getAttributePath()));
                 jsonFilter.setType("prefix");
             }
             case ExactSearchFilter exactFilter -> {
-                jsonFilter.setAttributePath(exactFilter.getAttributePath().toList());
+                jsonFilter.setAttributePath(toJsonPropertyPath(exactFilter.getAttributePath()));
                 jsonFilter.setType("exact");
             }
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
+    }
+
+    private List<PropertyPathElement> toJsonPropertyPath(PropertyPath propertyPath) {
+        var result = new ArrayList<PropertyPathElement>();
+        var path = propertyPath;
+
+        while(path != null) {
+            var element = path.getFirst();
+            var jsonElement = new PropertyPathElement();
+            jsonElement.setName(element.getValue());
+            jsonElement.setType(switch(element) {
+                case RelationName ignored -> "rel";
+                case AttributeName ignored -> "attr";
+            });
+            result.add(jsonElement);
+            path = path.getRest();
+        }
+
+        return result;
     }
 
 

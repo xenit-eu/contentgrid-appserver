@@ -26,7 +26,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull Map<String, String> params, PageData pageData)
             throws EntityNotFoundException, InvalidThunkExpressionException {
-        ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(entity, params);
+        ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
         return queryEngine.findAll(application, entity, filter, pageData);
     }
 

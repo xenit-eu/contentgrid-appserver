@@ -4,19 +4,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -136,12 +145,180 @@ class ThunkExpressionGeneratorTest {
                     .attributePath(PropertyPath.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
                     .attributeType(Type.TEXT)
                     .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipment.destination"))
+                    .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("destination")))
+                    .attributeType(Type.TEXT)
+                    .build())
+            .build();
+
+    private static final Entity shipmentEntity = Entity.builder()
+            .name(EntityName.of("shipment"))
+            .table(TableName.of("shipment"))
+            .pathSegment(PathSegmentName.of("shipments"))
+            .linkName(LinkName.of("shipments"))
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("shipped_on"))
+                    .column(ColumnName.of("shipped_on"))
+                    .type(Type.DATETIME)
+                    .build()
+            )
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("destination"))
+                    .column(ColumnName.of("destination"))
+                    .type(Type.TEXT)
+                    .build()
+            )
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipped_on"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("shipped_on"))
+                            .column(ColumnName.of("shipped_on"))
+                            .type(Type.DATETIME)
+                            .build())
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("destination"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("destination"))
+                            .column(ColumnName.of("destination"))
+                            .type(Type.TEXT)
+                            .build())
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("parcel.barcode"))
+                    .attributePath(PropertyPath.of(RelationName.of("parcel"), AttributeName.of("barcode")))
+                    .attributeType(Type.TEXT)
+                    .build())
+            .build();
+
+    private static final SimpleAttribute barcode = SimpleAttribute.builder()
+            .name(AttributeName.of("barcode"))
+            .column(ColumnName.of("barcode"))
+            .type(Type.TEXT)
+            .build();
+
+    private static final Entity parcelEntity = Entity.builder()
+            .name(EntityName.of("person"))
+            .table(TableName.of("person"))
+            .pathSegment(PathSegmentName.of("person"))
+            .linkName(LinkName.of("person"))
+            .attribute(barcode)
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("barcode"))
+                    .attribute(barcode)
+                    .build())
+            .build();
+
+    private static final SimpleAttribute customerName = SimpleAttribute.builder()
+            .name(AttributeName.of("name"))
+            .column(ColumnName.of("name"))
+            .type(Type.TEXT)
+            .build();
+    private static final Entity customerEntity = Entity.builder()
+            .name(EntityName.of("customer"))
+            .table(TableName.of("customer"))
+            .pathSegment(PathSegmentName.of("customers"))
+            .linkName(LinkName.of("customers"))
+            .attribute(customerName)
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("name"))
+                    .attribute(customerName)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("shipments.destination"))
+                    .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("destination")))
+                    .attributeType(Type.TEXT)
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("wishlist.description"))
+                    .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
+                    .attributeType(Type.TEXT)
+                    .build())
+            .build();
+
+    private static final Relation shipmentRelation = ManyToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(testEntity)
+                    .name(RelationName.of("shipment"))
+                    .pathSegment(PathSegmentName.of("shipment"))
+                    .linkName(LinkName.of("shipment"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(shipmentEntity)
+                    .name(RelationName.of("products"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .linkName(LinkName.of("products"))
+                    .build())
+            .targetReference(ColumnName.of("shipment"))
+            .build();
+
+    private static final Relation parcelRelation = SourceOneToOneRelation.builder()
+            .sourceEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(shipmentEntity)
+                    .name(RelationName.of("parcel"))
+                    .pathSegment(PathSegmentName.of("parcel"))
+                    .linkName(LinkName.of("parcel"))
+                    .build())
+            .targetEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(parcelEntity)
+                    .name(RelationName.of("shipment"))
+                    .pathSegment(PathSegmentName.of("shipment"))
+                    .linkName(LinkName.of("shipment"))
+                    .build())
+            .targetReference(ColumnName.of("parcel"))
+            .build();
+
+    private static final Relation customerShipmentRelation = OneToManyRelation.builder()
+            .sourceEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(customerEntity)
+                    .name(RelationName.of("shipments"))
+                    .pathSegment(PathSegmentName.of("shipments"))
+                    .linkName(LinkName.of("shipments"))
+                    .build())
+            .targetEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(shipmentEntity)
+                    .name(RelationName.of("customer"))
+                    .pathSegment(PathSegmentName.of("customer"))
+                    .linkName(LinkName.of("customer"))
+                    .build())
+            .sourceReference(ColumnName.of("customer"))
+            .build();
+
+    private static final Relation wishlistRelation = ManyToManyRelation.builder()
+            .sourceEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(customerEntity)
+                    .name(RelationName.of("wishlist"))
+                    .pathSegment(PathSegmentName.of("wishlist"))
+                    .linkName(LinkName.of("wishlist"))
+                    .build())
+            .targetEndPoint(Relation.RelationEndPoint.builder()
+                    .entity(testEntity)
+                    .name(RelationName.of("wishlisted_by"))
+                    .pathSegment(PathSegmentName.of("wishlisted-by"))
+                    .linkName(LinkName.of("wishlisted-by"))
+                    .build())
+            .joinTable(TableName.of("customer_wishlist"))
+            .sourceReference(ColumnName.of("customer"))
+            .targetReference(ColumnName.of("test_entity"))
+            .build();
+
+    private static final Application testApplication = Application.builder()
+            .name(ApplicationName.of("testApplication"))
+            .entity(testEntity)
+            .entity(shipmentEntity)
+            .entity(parcelEntity)
+            .entity(customerEntity)
+            .relation(shipmentRelation)
+            .relation(parcelRelation)
+            .relation(customerShipmentRelation)
+            .relation(wishlistRelation)
             .build();
 
     @Test
     void emptyParamsShouldReturnTrueExpression() {
         Map<String, String> params = new HashMap<>();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
         assertEquals(true, ((Scalar<Boolean>) result).getValue());
@@ -152,7 +329,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("nonExistentFilter", "value");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
         assertEquals(true, ((Scalar<Boolean>) result).getValue());
@@ -163,7 +340,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "test value");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -176,7 +353,7 @@ class ThunkExpressionGeneratorTest {
         params.put("description", "test value");
         params.put("count", "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(LogicalOperation.class, result);
         LogicalOperation operation = (LogicalOperation) result;
@@ -189,7 +366,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("count", "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -201,7 +378,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("price", "123.45");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -213,7 +390,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("in_stock", "true");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -225,7 +402,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "sample text");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -238,7 +415,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("arrival_date", timestamp);
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -251,7 +428,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("id", uuid.toString());
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -265,7 +442,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("count", exception.getAttributeName());
@@ -280,7 +457,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("price", exception.getAttributeName());
@@ -295,7 +472,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("arrival_date", exception.getAttributeName());
@@ -310,7 +487,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
         assertEquals("id", exception.getAttributeName());
@@ -323,7 +500,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -335,7 +512,7 @@ class ThunkExpressionGeneratorTest {
     void compositeAttributeShouldBeFoundCorrectly() {
         Map<String, String> params = Map.of("audit.modified_by.name", "Alice Aaronson");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -349,5 +526,88 @@ class ThunkExpressionGeneratorTest {
                 ),
                 comparison.getLeftTerm()
         );
+    }
+
+    @Test
+    void acrossManyToOneRelationAttributeIsValid() {
+        Map<String, String> params = Map.of("shipment.destination", "North Pole");
+
+        var entity = testApplication.getEntityByName(EntityName.of("testEntity")).orElseThrow();
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipment"),
+                        SymbolicReference.path("destination")
+                ),
+                comparison.getLeftTerm()
+        );
+
+        assertEquals(Scalar.of("North Pole"), comparison.getRightTerm());
+    }
+
+    @Test
+    void acrossOneToOneRelationAttributeIsValid() {
+        Map<String, String> params = Map.of("parcel.barcode", "1234567890");
+        var entity = testApplication.getEntityByName(EntityName.of("shipment")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("parcel"),
+                        SymbolicReference.path("barcode")
+                ),
+                comparison.getLeftTerm()
+        );
+        assertEquals(Scalar.of("1234567890"), comparison.getRightTerm());
+    }
+
+    @Test
+    void acrossOneToManyRelationAttributeIsValid() {
+        Map<String, String> params = Map.of("shipments.destination", "Moon Base");
+        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipments"),
+                        SymbolicReference.pathVar("_"),
+                        SymbolicReference.path("destination")
+                ),
+                comparison.getLeftTerm()
+        );
+        assertEquals(Scalar.of("Moon Base"), comparison.getRightTerm());
+    }
+
+    @Test
+    void acrossManyToManyRelationAttributeIsValid() {
+        Map<String, String> params = Map.of("wishlist.description", "A unicorn");
+        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertInstanceOf(Scalar.class, comparison.getRightTerm());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("wishlist"),
+                        SymbolicReference.pathVar("_"),
+                        SymbolicReference.path("description")
+                ),
+                comparison.getLeftTerm()
+        );
+        assertEquals(Scalar.of("A unicorn"), comparison.getRightTerm());
     }
 }

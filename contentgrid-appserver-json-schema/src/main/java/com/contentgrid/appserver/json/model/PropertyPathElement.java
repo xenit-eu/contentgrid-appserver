@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.json.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -9,14 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SearchFilter {
+public class PropertyPathElement {
 
     @NonNull
     private String name;
 
     @NonNull
-    private List<PropertyPathElement> attributePath;
-
-    @NonNull
-    private String type; // exact, prefix
+    private String type; // attr, rel
 }

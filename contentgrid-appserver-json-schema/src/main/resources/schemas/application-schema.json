@@ -63,8 +63,19 @@
                   "type": "array",
                   "description": "The path to the attribute to filter on.",
                   "items": {
-                    "type": "string",
-                    "description": "An attribute name, part of this path."
+                    "type": "object",
+                    "description": "A property name, part of this path.",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "The property name"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Whether this property refers to an attribute or relation",
+                        "enum": ["attr", "rel"]
+                      }
+                    }
                   }
                 },
                 "type": {
