@@ -1,13 +1,17 @@
 package com.contentgrid.appserver.rest.property.handler;
 
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -376,7 +380,8 @@ class RelationRequestHandlerTest {
         })
         void followRelationInvalidUrl(String url) throws Exception {
             mockMvc.perform(get(url))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -384,13 +389,15 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void setRelationMissingContent() throws Exception {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isUnsupportedMediaType());
+                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -401,7 +408,8 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(target1, target2)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @ParameterizedTest
@@ -410,7 +418,8 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
                             .content(url))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @ParameterizedTest
@@ -420,7 +429,9 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType(contentType)
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isUnsupportedMediaType());
+                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value(startsWith("https://contentgrid.cloud/problems/invalid-media-type")));
         }
 
         @Test
@@ -428,13 +439,15 @@ class RelationRequestHandlerTest {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void addRelationMissingContent() throws Exception {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID))
-                    .andExpect(status().isUnsupportedMediaType());
+                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @ParameterizedTest
@@ -444,7 +457,9 @@ class RelationRequestHandlerTest {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType(contentType)
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isUnsupportedMediaType());
+                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value(startsWith("https://contentgrid.cloud/problems/invalid-media-type")));
         }
 
         @ParameterizedTest
@@ -453,7 +468,8 @@ class RelationRequestHandlerTest {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
                             .content(url))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         static Stream<Arguments> unsupportedMethod() {
@@ -481,6 +497,8 @@ class RelationRequestHandlerTest {
             }
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isMethodNotAllowed())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value(is("https://contentgrid.cloud/problems/method-not-allowed")))
                     .andExpect(header().exists(HttpHeaders.ALLOW))
                     .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
                     .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(method.name()))));
@@ -507,7 +525,8 @@ class RelationRequestHandlerTest {
                         .content("http://localhost/invoices/%s%n".formatted(UUID.randomUUID()));
             }
             mockMvc.perform(requestBuilder)
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
     }
@@ -525,7 +544,8 @@ class RelationRequestHandlerTest {
                     .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -534,7 +554,8 @@ class RelationRequestHandlerTest {
                     .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -543,7 +564,8 @@ class RelationRequestHandlerTest {
                     .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -555,7 +577,8 @@ class RelationRequestHandlerTest {
                     .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -572,7 +595,8 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -589,7 +613,8 @@ class RelationRequestHandlerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -609,7 +634,8 @@ class RelationRequestHandlerTest {
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -629,7 +655,8 @@ class RelationRequestHandlerTest {
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -638,7 +665,8 @@ class RelationRequestHandlerTest {
                     .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -647,7 +675,8 @@ class RelationRequestHandlerTest {
                     .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -656,7 +685,8 @@ class RelationRequestHandlerTest {
                     .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID);
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
@@ -665,7 +695,8 @@ class RelationRequestHandlerTest {
                     .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID);
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
     }
