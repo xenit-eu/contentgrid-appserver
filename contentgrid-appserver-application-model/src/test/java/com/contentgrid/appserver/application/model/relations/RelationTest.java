@@ -86,9 +86,9 @@ class RelationTest {
         assertFalse(oneToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToOneRelation.inverse();
-        assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
         assertEquals(oneToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(oneToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(oneToOneRelation.getTargetReference(), inverseRelation.getSourceReference());
         assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
@@ -127,9 +127,9 @@ class RelationTest {
         assertFalse(oneToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToOneRelation.inverse();
-        assertInstanceOf(TargetOneToOneRelation.class, inverseRelation);
         assertEquals(oneToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(oneToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(oneToOneRelation.getTargetReference(), inverseRelation.getSourceReference());
         assertEquals(oneToOneRelation, inverseRelation.inverse());
     }
 
@@ -322,9 +322,9 @@ class RelationTest {
         assertFalse(manyToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToOneRelation.inverse();
-        assertInstanceOf(OneToManyRelation.class, inverseRelation);
         assertEquals(manyToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(manyToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(manyToOneRelation.getTargetReference(), inverseRelation.getSourceReference());
         assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
@@ -362,9 +362,9 @@ class RelationTest {
         assertFalse(manyToOneRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToOneRelation.inverse();
-        assertInstanceOf(OneToManyRelation.class, inverseRelation);
         assertEquals(manyToOneRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(manyToOneRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(manyToOneRelation.getTargetReference(), inverseRelation.getSourceReference());
         assertEquals(manyToOneRelation, inverseRelation.inverse());
     }
 
@@ -417,9 +417,9 @@ class RelationTest {
         assertFalse(oneToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToManyRelation.inverse();
-        assertInstanceOf(ManyToOneRelation.class, inverseRelation);
         assertEquals(oneToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(oneToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(oneToManyRelation.getSourceReference(), inverseRelation.getTargetReference());
         assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
@@ -458,9 +458,9 @@ class RelationTest {
         assertTrue(oneToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = oneToManyRelation.inverse();
-        assertInstanceOf(ManyToOneRelation.class, inverseRelation);
         assertEquals(oneToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(oneToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(oneToManyRelation.getSourceReference(), inverseRelation.getTargetReference());
         assertEquals(oneToManyRelation, inverseRelation.inverse());
     }
 
@@ -517,9 +517,11 @@ class RelationTest {
         assertFalse(manyToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToManyRelation.inverse();
-        assertInstanceOf(ManyToManyRelation.class, inverseRelation);
         assertEquals(manyToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(manyToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(manyToManyRelation.getJoinTable(), inverseRelation.getJoinTable());
+        assertEquals(manyToManyRelation.getTargetReference(), inverseRelation.getSourceReference());
+        assertEquals(manyToManyRelation.getSourceReference(), inverseRelation.getTargetReference());
         assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 
@@ -561,9 +563,11 @@ class RelationTest {
         assertFalse(manyToManyRelation.getTargetEndPoint().isRequired());
 
         var inverseRelation = manyToManyRelation.inverse();
-        assertInstanceOf(ManyToManyRelation.class, inverseRelation);
         assertEquals(manyToManyRelation.getSourceEndPoint(), inverseRelation.getTargetEndPoint());
         assertEquals(manyToManyRelation.getTargetEndPoint(), inverseRelation.getSourceEndPoint());
+        assertEquals(manyToManyRelation.getJoinTable(), inverseRelation.getJoinTable());
+        assertEquals(manyToManyRelation.getTargetReference(), inverseRelation.getSourceReference());
+        assertEquals(manyToManyRelation.getSourceReference(), inverseRelation.getTargetReference());
         assertEquals(manyToManyRelation, inverseRelation.inverse());
     }
 

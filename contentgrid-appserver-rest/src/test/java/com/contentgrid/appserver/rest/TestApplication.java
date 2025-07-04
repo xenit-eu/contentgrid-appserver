@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
@@ -32,14 +33,14 @@ import com.contentgrid.appserver.application.model.values.TableName;
 
 public class TestApplication {
 
-    private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
+    public static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
             .column(ColumnName.of("name"))
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .build();
 
-    private static final SimpleAttribute PERSON_VAT = SimpleAttribute.builder()
+    public static final SimpleAttribute PERSON_VAT = SimpleAttribute.builder()
             .name(AttributeName.of("vat"))
             .column(ColumnName.of("vat"))
             .type(Type.TEXT)
@@ -47,7 +48,7 @@ public class TestApplication {
             .constraint(Constraint.unique())
             .build();
 
-    private static final Entity PERSON = Entity.builder()
+    public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
@@ -64,7 +65,7 @@ public class TestApplication {
                     .build())
             .build();
 
-    private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
+    public static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
             .name(AttributeName.of("number"))
             .column(ColumnName.of("number"))
             .type(Type.TEXT)
@@ -72,32 +73,32 @@ public class TestApplication {
             .constraint(Constraint.unique())
             .build();
 
-    private static final SimpleAttribute INVOICE_AMOUNT = SimpleAttribute.builder()
+    public static final SimpleAttribute INVOICE_AMOUNT = SimpleAttribute.builder()
             .name(AttributeName.of("amount"))
             .column(ColumnName.of("amount"))
             .type(Type.DOUBLE)
             .constraint(Constraint.required())
             .build();
 
-    private static final SimpleAttribute INVOICE_RECEIVED = SimpleAttribute.builder()
+    public static final SimpleAttribute INVOICE_RECEIVED = SimpleAttribute.builder()
             .name(AttributeName.of("received"))
             .column(ColumnName.of("received"))
             .type(Type.DATETIME)
             .build();
 
-    private static final SimpleAttribute INVOICE_PAY_BEFORE = SimpleAttribute.builder()
+    public static final SimpleAttribute INVOICE_PAY_BEFORE = SimpleAttribute.builder()
             .name(AttributeName.of("pay_before"))
             .column(ColumnName.of("pay_before"))
             .type(Type.DATETIME)
             .build();
 
-    private static final SimpleAttribute INVOICE_IS_PAID = SimpleAttribute.builder()
+    public static final SimpleAttribute INVOICE_IS_PAID = SimpleAttribute.builder()
             .name(AttributeName.of("is_paid"))
             .column(ColumnName.of("is_paid"))
             .type(Type.BOOLEAN)
             .build();
 
-    private static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
+    public static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
             .linkName(LinkName.of("content"))
@@ -107,7 +108,7 @@ public class TestApplication {
             .lengthColumn(ColumnName.of("content__length"))
             .build();
 
-    private static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttributeImpl.builder()
+    public static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttributeImpl.builder()
             .name(AttributeName.of("audit_metadata"))
             .attribute(SimpleAttribute.builder()
                     .name(AttributeName.of("created_date"))
@@ -137,7 +138,7 @@ public class TestApplication {
                     .build())
             .build();
 
-    private static final Entity INVOICE = Entity.builder()
+    public static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
@@ -155,20 +156,20 @@ public class TestApplication {
                     .build())
             .build();
 
-    private static final SimpleAttribute PRODUCT_NAME = SimpleAttribute.builder()
+    public static final SimpleAttribute PRODUCT_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
             .column(ColumnName.of("name"))
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .build();
 
-    private static final SimpleAttribute PRODUCT_DESCRIPTION = SimpleAttribute.builder()
+    public static final SimpleAttribute PRODUCT_DESCRIPTION = SimpleAttribute.builder()
             .name(AttributeName.of("description"))
             .column(ColumnName.of("description"))
             .type(Type.TEXT)
             .build();
 
-    private static final SimpleAttribute PRODUCT_PRICE = SimpleAttribute.builder()
+    public static final SimpleAttribute PRODUCT_PRICE = SimpleAttribute.builder()
             .name(AttributeName.of("price"))
             .description("Product price")
             .column(ColumnName.of("price"))
@@ -176,21 +177,21 @@ public class TestApplication {
             .constraint(Constraint.required())
             .build();
 
-    private static final SimpleAttribute PRODUCT_RELEASE_DATE = SimpleAttribute.builder()
+    public static final SimpleAttribute PRODUCT_RELEASE_DATE = SimpleAttribute.builder()
             .name(AttributeName.of("release_date"))
             .description("Product release date")
             .column(ColumnName.of("release_date"))
             .type(Type.DATETIME)
             .build();
 
-    private static final SimpleAttribute PRODUCT_IN_STOCK = SimpleAttribute.builder()
+    public static final SimpleAttribute PRODUCT_IN_STOCK = SimpleAttribute.builder()
             .name(AttributeName.of("in_stock"))
             .description("Is product in stock")
             .column(ColumnName.of("in_stock"))
             .type(Type.BOOLEAN)
             .build();
 
-    private static final ContentAttribute PRODUCT_PICTURE = ContentAttribute.builder()
+    public static final ContentAttribute PRODUCT_PICTURE = ContentAttribute.builder()
             .name(AttributeName.of("picture"))
             .pathSegment(PathSegmentName.of("picture"))
             .linkName(LinkName.of("picture"))
@@ -200,7 +201,7 @@ public class TestApplication {
             .lengthColumn(ColumnName.of("picture__length"))
             .build();
 
-    private static final Entity PRODUCT = Entity.builder()
+    public static final Entity PRODUCT = Entity.builder()
             .name(EntityName.of("product"))
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
@@ -217,7 +218,7 @@ public class TestApplication {
                     .build())
             .build();
 
-    private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
+    public static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("customer"))
@@ -234,7 +235,9 @@ public class TestApplication {
             .targetReference(ColumnName.of("customer"))
             .build();
 
-    private static final ManyToManyRelation PERSON_FRIENDS = ManyToManyRelation.builder()
+    public static final OneToManyRelation PERSON_INVOICES = INVOICE_CUSTOMER.inverse();
+
+    public static final ManyToManyRelation PERSON_FRIENDS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
                     .name(RelationName.of("friends"))
@@ -249,7 +252,7 @@ public class TestApplication {
             .targetReference(ColumnName.of("person_tgt_id"))
             .build();
 
-    private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
+    public static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("previous_invoice"))
@@ -265,7 +268,7 @@ public class TestApplication {
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
 
-    private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
+    public static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE)
                     .name(RelationName.of("products"))
@@ -283,7 +286,9 @@ public class TestApplication {
             .targetReference(ColumnName.of("product_id"))
             .build();
 
-    private static final Application APPLICATION = Application.builder()
+    public static final ManyToManyRelation PRODUCT_INVOICES = INVOICE_PRODUCTS.inverse();
+
+    public static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("demo-application"))
             .entity(INVOICE)
             .entity(PERSON)
@@ -293,8 +298,4 @@ public class TestApplication {
             .relation(PERSON_FRIENDS)
             .relation(INVOICE_PRODUCTS)
             .build();
-
-    public static Application getApplication() {
-        return APPLICATION;
-    }
 }

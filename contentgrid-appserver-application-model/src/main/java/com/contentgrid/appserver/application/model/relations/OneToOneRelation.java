@@ -13,4 +13,7 @@ public abstract sealed class OneToOneRelation extends Relation permits SourceOne
     protected OneToOneRelation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint) {
         super(sourceEndPoint, targetEndPoint);
     }
+
+    @Override
+    public abstract OneToOneRelation inverse();
 }

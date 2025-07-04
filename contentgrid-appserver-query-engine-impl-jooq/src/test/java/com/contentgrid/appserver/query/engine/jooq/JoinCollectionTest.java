@@ -67,7 +67,7 @@ class JoinCollectionTest {
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
 
-    private static final OneToOneRelation INVOICE_NEXT = (OneToOneRelation) INVOICE_PREVIOUS.inverse();
+    private static final OneToOneRelation INVOICE_NEXT = INVOICE_PREVIOUS.inverse();
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
@@ -85,7 +85,7 @@ class JoinCollectionTest {
             .targetReference(ColumnName.of("customer"))
             .build();
 
-    private static final OneToManyRelation PERSON_INVOICES = (OneToManyRelation) INVOICE_CUSTOMER.inverse();
+    private static final OneToManyRelation PERSON_INVOICES = INVOICE_CUSTOMER.inverse();
 
     private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
@@ -105,7 +105,7 @@ class JoinCollectionTest {
             .targetReference(ColumnName.of("product_id"))
             .build();
 
-    private static final ManyToManyRelation PRODUCT_INVOICES = (ManyToManyRelation) INVOICE_PRODUCTS.inverse();
+    private static final ManyToManyRelation PRODUCT_INVOICES = INVOICE_PRODUCTS.inverse();
 
     private static Stream<Arguments> relations() {
         return Stream.of(

@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.rest.property.PropertyRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
@@ -42,16 +43,17 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
-        // TODO: ACC-2100: use linkTo(methodOn(...)).withRel(RELATION).withName(relation.getSourceEndPoint().getName().getValue())
-        var href = getSelfLink(application, relation.getSourceEndPoint().getEntity(), id).getHref() + "/" + relation.getSourceEndPoint().getPathSegment();
-        return Link.of(href, ContentGridLinkRelations.RELATION)
-                .withName(relation.getSourceEndPoint().getName().getValue());
+        return linkTo(methodOn(PropertyRestController.class)
+                .getProperty(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
+                        relation.getSourceEndPoint().getPathSegment()))
+                .withRel(ContentGridLinkRelations.RELATION)
+                .withName(relation.getSourceEndPoint().getLinkName().getValue());
     }
 
     private Link getContentLink(Application application, Entity entity, EntityId id, ContentAttribute attribute) {
-        // TODO: ACC-2097: use linkTo(methodOn(...)).withRel(CONTENT).withName(attribute.getLinkName().getValue())
-        var href = getSelfLink(application, entity, id).getHref() + "/" + attribute.getPathSegment();
-        return Link.of(href, ContentGridLinkRelations.CONTENT)
+        return linkTo(methodOn(PropertyRestController.class)
+                .getProperty(application, entity.getPathSegment(), id, attribute.getPathSegment()))
+                .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());
     }
 }

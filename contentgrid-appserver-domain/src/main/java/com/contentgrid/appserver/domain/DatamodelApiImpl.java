@@ -3,12 +3,15 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -50,5 +53,41 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .attributes(data.getAttributes())
                 .build();
         queryEngine.update(application, dataWithId);
+    }
+
+    @Override
+    public boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+            @NonNull EntityId targetId) throws QueryEngineException {
+        return queryEngine.isLinked(application, relation, sourceId, targetId);
+    }
+
+    @Override
+    public Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation,
+            @NonNull EntityId id) throws QueryEngineException {
+        return queryEngine.findTarget(application, relation, id);
+    }
+
+    @Override
+    public void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
+            throws QueryEngineException {
+        queryEngine.setLink(application, data, id);
+    }
+
+    @Override
+    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
+            throws QueryEngineException {
+        queryEngine.unsetLink(application, relation, id);
+    }
+
+    @Override
+    public void addRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+            throws QueryEngineException {
+        queryEngine.addLinks(application, data, id);
+    }
+
+    @Override
+    public void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+            throws QueryEngineException {
+        queryEngine.removeLinks(application, data, id);
     }
 }
