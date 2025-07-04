@@ -72,7 +72,7 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
         datamodelApi.findById(application, property.getSourceEndPoint().getEntity(), instanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
-        // TODO: use FilterName of relation
+        // TODO: ACC-2149 use FilterName of relation
         var filterName = property.getTargetEndPoint().getName();
         if (filterName != null) {
             var redirectUrl = linkTo(methodOn(EntityRestController.class)

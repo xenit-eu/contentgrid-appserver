@@ -3,4 +3,4 @@ spring:
   mvc.problemdetails.enabled: true
 server:
   port: ${PORT:8080}
-  max-http-request-header-size: 10MB
+  max-http-request-header-size: 10MB  # needed for abac-context

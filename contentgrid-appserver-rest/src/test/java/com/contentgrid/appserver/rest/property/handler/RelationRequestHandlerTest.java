@@ -185,7 +185,7 @@ class RelationRequestHandlerTest {
             mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID))); // TODO: change url
+                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID))); // TODO: ACC-2149 change url
 
             Mockito.verify(datamodelApi)
                     .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
