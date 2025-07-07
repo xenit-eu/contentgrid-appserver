@@ -10,8 +10,11 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -27,10 +30,20 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, String> params, PageData pageData)
+            @NonNull Map<String, String> params, SortData sort, PageData pageData)
             throws EntityNotFoundException, InvalidThunkExpressionException {
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
-        return queryEngine.findAll(application, entity, filter, pageData);
+        validateSortData(entity, sort);
+        return queryEngine.findAll(application, entity, filter, sort, pageData);
+    }
+
+    private void validateSortData(Entity entity, SortData sortData) {
+        for (FieldSort field : sortData.getSortedFields()) {
+            var name = field.getAttributeName();
+            entity.getAttributeByName(name).orElseThrow(() -> new InvalidDataException(
+                    "Attribute '%s' not found on entity '%s'".formatted(name, entity.getName())));
+            // TODO validate search filters
+        }
     }
 
     @Override

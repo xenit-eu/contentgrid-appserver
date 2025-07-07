@@ -8,6 +8,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -43,7 +44,7 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression,
-            PageData pageData) throws QueryEngineException;
+            SortData sortData, PageData pageData) throws QueryEngineException;
 
     /**
      * Finds an entity that matches the given id.

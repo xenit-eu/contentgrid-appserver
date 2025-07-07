@@ -9,6 +9,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
@@ -36,7 +37,7 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
-            PageData pageData) throws EntityNotFoundException, InvalidThunkExpressionException;
+            SortData sort, PageData pageData) throws EntityNotFoundException, InvalidThunkExpressionException;
 
     /**
      * Finds an entity that matches the given id.
