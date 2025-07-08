@@ -71,7 +71,6 @@ class EntityRestControllerTest {
     @Test
     void testSuccessfullyCreateEntityInstance() throws Exception {
         Map<String, Object> product = new HashMap<>();
-        product.put("id", UUID.randomUUID());
         product.put("name", "Test Product");
         product.put("price", 29.99);
         product.put("release_date", "2023-01-15T10:00:00Z");

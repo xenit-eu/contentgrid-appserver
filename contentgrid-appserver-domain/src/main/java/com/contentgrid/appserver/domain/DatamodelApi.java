@@ -63,7 +63,7 @@ public interface DatamodelApi {
             throws QueryEngineException;
 
     /**
-     * Updates an entity with the given data.
+     * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
      *
      * @param application the application context
      * @param id the id of the entity to update
@@ -71,6 +71,18 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the update operation
      */
     void update(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data)
+            throws QueryEngineException;
+
+    /**
+     * Updates an entity with the given data. Replaces only the attributes present in the given data, other attributes
+     * keep their previous value.
+     *
+     * @param application the application context
+     * @param id the id of the entity to update
+     * @param data the updated data for the entity
+     * @throws QueryEngineException if an error occurs during the update operation
+     */
+    void updatePartial(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data)
             throws QueryEngineException;
 
     /**

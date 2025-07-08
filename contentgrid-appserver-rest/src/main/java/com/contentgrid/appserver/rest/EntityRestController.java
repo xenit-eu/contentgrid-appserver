@@ -15,6 +15,7 @@ import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
+import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import java.util.ArrayList;
 import java.util.List;
@@ -126,7 +127,11 @@ public class EntityRestController {
         var converted = EntityDataValidator.validate(entity, data);
         var entityData = createEntityData(converted, entity);
 
-        datamodelApi.update(application, id, entityData);
+        try {
+            datamodelApi.update(application, id, entityData);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         var result = datamodelApi.findById(application, entity, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 

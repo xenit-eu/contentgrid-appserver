@@ -2,13 +2,17 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -18,6 +22,7 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,6 +64,29 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public void update(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data) throws QueryEngineException {
+        var entity = application.getEntityByName(data.getName()).orElseThrow();
+        ArrayList<AttributeData> attributeData = new ArrayList<>();
+        for (Attribute attr : entity.getAttributes()) {
+            var given = data.getAttributeByName(attr.getName());
+            if (given.isPresent()) {
+                attributeData.add(given.get());
+            } else if (attr instanceof SimpleAttribute){
+                attributeData.add(SimpleAttributeData.builder().name(attr.getName()).build());
+            } else {
+                // Creating CompositeAttributes is for when we support content TODO ACC-2097
+            }
+        }
+
+        var dataWithId = EntityData.builder()
+                .id(id)
+                .name(data.getName())
+                .attributes(attributeData)
+                .build();
+        queryEngine.update(application, dataWithId);
+    }
+
+    @Override
+    public void updatePartial(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data) throws QueryEngineException {
         var dataWithId = EntityData.builder()
                 .id(id)
                 .name(data.getName())
