@@ -31,4 +31,6 @@ public class Entity {
     private List<Attribute> attributes;
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<SearchFilter> searchFilters;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<SortableField> sortableFields;
 }

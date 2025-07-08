@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -19,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,8 +58,9 @@ public class Entity implements HasAttributes {
      * @param attributes list of attributes for this entity (excluding primary key attribute)
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
      * @param searchFilters list of search filters for this entity
-     * @throws DuplicateElementException if duplicate attributes or search filters are found
-     * @throws InvalidArgumentModelException if a search filter references an invalid attribute
+     * @param sortableFields list of fields by which this entity can be sorted
+     * @throws DuplicateElementException if duplicate attributes, search filters, or sortable fields are found
+     * @throws InvalidArgumentModelException if a sortable field doesn't reference an attribute on this entity
      * @throws InvalidAttributeTypeException if primary key has an invalid type
      */
     @Builder
@@ -69,7 +72,8 @@ public class Entity implements HasAttributes {
             @NonNull LinkName linkName,
             @Singular List<Attribute> attributes,
             SimpleAttribute primaryKey,
-            @Singular List<SearchFilter> searchFilters
+            @Singular List<SearchFilter> searchFilters,
+            @Singular List<SortableField> sortableFields
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
@@ -122,6 +126,25 @@ public class Entity implements HasAttributes {
                     }
                 }
         );
+
+        sortableFields.forEach(
+                sortableField -> {
+                    if (this.sortableFields.put(sortableField.getName(), sortableField) != null) {
+                        throw new DuplicateElementException(
+                                "Duplicate sortable field named %s".formatted(sortableField.getName()));
+                    }
+
+                    if (sortableField.getPropertyPath() instanceof  SimpleAttributePath simpleAttributePath) {
+                        getAttributeByName(simpleAttributePath.getAttribute()).orElseThrow(() ->
+                                new InvalidArgumentModelException(("Sorting across a relation is not implemented."
+                                        + " SortableField %s must reference a single attribute on this entity")
+                                        .formatted(sortableField.getName())));
+                    } else {
+                        throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
+                                .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));
+                    }
+                }
+        );
         this.attributes.remove(this.primaryKey.getName());
     }
 
@@ -162,6 +185,12 @@ public class Entity implements HasAttributes {
      */
     @Getter(AccessLevel.NONE)
     Map<FilterName, SearchFilter> searchFilters = new HashMap<>();
+
+    /**
+     * Internal map of sortable fields by name.
+     */
+    @Getter(AccessLevel.NONE)
+    Map<SortableName, SortableField> sortableFields = new HashMap<>();
 
     /**
      * Internal map of content attributes by path segment.
@@ -206,6 +235,15 @@ public class Entity implements HasAttributes {
     }
 
     /**
+     * Returns a list of fields (attributes) by which this Entity can be sorted
+     *
+     * @return an unmodifiable list of sortable fields
+     */
+    public List<SortableField> getSortableFields() {
+        return List.copyOf(sortableFields.values());
+    }
+
+    /**
      * Finds an Attribute by its name.
      *
      * @param attributeName the name of the attribute to find
@@ -226,6 +264,16 @@ public class Entity implements HasAttributes {
      */
     public Optional<SearchFilter> getFilterByName(FilterName filterName) {
         return Optional.ofNullable(searchFilters.get(filterName));
+    }
+
+    /**
+     * Finds a SortableField by its name.
+     *
+     * @param sortableName the name of the sortable field to find
+     * @return an Optional containing the SortableField if found, or empty if not found
+     */
+    public Optional<SortableField> getSortableFieldByName(SortableName sortableName) {
+        return Optional.ofNullable(sortableFields.get(sortableName));
     }
 
     /**

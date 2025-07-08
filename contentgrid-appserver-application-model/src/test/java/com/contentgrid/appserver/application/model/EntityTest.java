@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -21,6 +22,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -57,6 +59,7 @@ class EntityTest {
             .build();
     private static final SearchFilter FILTER1 = PrefixSearchFilter.builder().name(FilterName.of("filter1")).attribute(ATTRIBUTE1).build();
     private static final SearchFilter FILTER2 = ExactSearchFilter.builder().name(FilterName.of("filter2")).attribute(ATTRIBUTE2).build();
+    private static final SortableField SORTABLE1 = SortableField.builder().name(SortableName.of("sortable1")).propertyPath(PropertyPath.of(ATTRIBUTE1.getName())).build();
 
     @Test
     void entityTest() {
@@ -73,6 +76,7 @@ class EntityTest {
                 .attribute(COMPOSITE)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2)
+                .sortableField(SORTABLE1)
                 .build();
 
         assertEquals(EntityName.of("entity"), entity.getName());
@@ -122,6 +126,16 @@ class EntityTest {
                 () -> filters.add(filter3)
         );
 
+        var sortables = entity.getSortableFields();
+        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+
+        // validate that the list of sortable fields is immutable
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> sortables.add(sortable2)
+        );
+
+
         var contentAttributes = entity.getContentAttributes();
         var content3 = ContentAttribute.builder()
                 .name(AttributeName.of("content3"))
@@ -152,6 +166,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2)
+                .sortableField(SORTABLE1)
                 .build();
 
         assertEquals(PRIMARY_KEY, entity.getPrimaryKey());
@@ -170,6 +185,7 @@ class EntityTest {
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2)
+                .sortableField(SORTABLE1)
                 .build();
 
         assertEquals(primaryKey, entity.getPrimaryKey());
@@ -188,7 +204,8 @@ class EntityTest {
                 .attribute(ATTRIBUTE1)
                 .attribute(ATTRIBUTE2)
                 .searchFilter(FILTER1)
-                .searchFilter(FILTER2);
+                .searchFilter(FILTER2)
+                .sortableField(SORTABLE1);
 
         assertThrows(InvalidAttributeTypeException.class, builder::build);
     }
@@ -204,7 +221,8 @@ class EntityTest {
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
-                .searchFilter(FILTER1);
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1);
         assertThrows(DuplicateElementException.class, builder1::build);
 
         // primary key attribute
@@ -216,7 +234,8 @@ class EntityTest {
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
-                .searchFilter(FILTER1);
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1);
         assertThrows(DuplicateElementException.class, builder2::build);
     }
 
@@ -231,7 +250,8 @@ class EntityTest {
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate1)
-                .searchFilter(FILTER1);
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1);
         assertThrows(DuplicateElementException.class, builder1::build);
 
         // primary key column
@@ -243,7 +263,8 @@ class EntityTest {
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
                 .attribute(duplicate2)
-                .searchFilter(FILTER1);
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1);
         assertThrows(DuplicateElementException.class, builder2::build);
     }
 
@@ -408,5 +429,54 @@ class EntityTest {
                 .attribute(COMPOSITE)
                 .attribute(duplicate);
         assertThrows(DuplicateElementException.class, builder::build);
+    }
+
+    @Test
+    void entity_duplicateSortableName() {
+        var duplicate = SortableField.builder().name(SORTABLE1.getName()).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .attribute(ATTRIBUTE2)
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1)
+                .sortableField(duplicate);
+        assertThrows(DuplicateElementException.class, builder::build);
+    }
+
+    @Test
+    void entity_sortableOnMissingAttribute() {
+        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                // No attribute 2 here
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1)
+                .sortableField(sortable2);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_sortableOnCompositeAttribute() {
+        var sortableComposite = SortableField.builder().name(SortableName.of("sortable2"))
+                .propertyPath(PropertyPath.of(COMPOSITE.getName(), CONTENT2.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .attribute(COMPOSITE)
+                .searchFilter(FILTER1)
+                .sortableField(SORTABLE1)
+                .sortableField(sortableComposite);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
     }
 }

@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -20,6 +21,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
@@ -105,6 +107,14 @@ public class ContentgridAppConfiguration {
                         .name(FilterName.of("last_name"))
                         .attributePath(PropertyPath.of(AttributeName.of("last_name")))
                         .attributeType(Type.TEXT)
+                        .build())
+                .sortableField(SortableField.builder()
+                        .name(SortableName.of("first_name"))
+                        .propertyPath(PropertyPath.of(AttributeName.of("first_name")))
+                        .build())
+                .sortableField(SortableField.builder()
+                        .name(SortableName.of("last_name"))
+                        .propertyPath(PropertyPath.of(AttributeName.of("last_name")))
                         .build())
                 .build();
         var shipment = Entity.builder()
@@ -212,6 +222,14 @@ public class ContentgridAppConfiguration {
                         .name(FilterName.of("shipments.address.country"))
                         .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("address"), AttributeName.of("country")))
                         .attributeType(Type.TEXT)
+                        .build())
+                .sortableField(SortableField.builder()
+                        .name(SortableName.of("number"))
+                        .propertyPath(PropertyPath.of(AttributeName.of("number")))
+                        .build())
+                .sortableField(SortableField.builder()
+                        .name(SortableName.of("amount"))
+                        .propertyPath(PropertyPath.of(AttributeName.of("amount")))
                         .build())
                 .build();
         var shipmentToInvoice = ManyToOneRelation.builder()

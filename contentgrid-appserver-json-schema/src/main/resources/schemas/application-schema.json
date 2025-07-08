@@ -93,6 +93,43 @@
                 "type"
               ]
             }
+          },
+          "sortableFields": {
+            "type": "array",
+            "description": "A list of fields by which this entity can be sorted",
+            "items": {
+              "type": "object",
+              "description": "A field by which the entity can be sorted.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the sortable field."
+                },
+                "attributePath": {
+                  "type": "array",
+                  "description": "The path to the attribute to sort by.",
+                  "items": {
+                    "type": "object",
+                    "description": "A property name, part of this path.",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "The property name"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Whether this property refers to an attribute or relation",
+                        "enum": ["attr", "rel"]
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "attributePath"
+              ]
+            }
           }
         },
         "required": [
