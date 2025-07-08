@@ -10,13 +10,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
-import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,40 +41,31 @@ class EntityRestControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine();
-
     @TestConfiguration
     static class TestConfig {
         @Bean
         @Primary
-        public DatamodelApi dmapi(DummyQueryEngine queryEngine) {
+        public DatamodelApi dmapi(QueryEngine queryEngine) {
             return new DatamodelApiImpl(queryEngine);
         }
 
         @Bean
         @Primary
-        public ApplicationResolver singleApplicationResolver() {
+        public SingleApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(TestApplication.APPLICATION);
         }
-
-        @Bean
-        @Primary
-        public DummyQueryEngine testQueryEngine() {
-            // So we can clear it between tests
-            return TEST_QUERY_ENGINE;
-        }
     }
 
-    static class TestQueryEngine extends DummyQueryEngine {
-        public void reset() {
-            super.entityInstances.clear();
-        }
-    }
+    @Autowired
+    TableCreator tableCreator;
 
     @BeforeEach
     void setup() {
-        TEST_QUERY_ENGINE.reset();
+        tableCreator.createTables(TestApplication.APPLICATION);
+    }
+    @AfterEach
+    void teardown() {
+        tableCreator.dropTables(TestApplication.APPLICATION);
     }
 
     @Test
