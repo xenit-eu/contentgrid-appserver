@@ -68,7 +68,9 @@ public class JOOQQueryEngine implements QueryEngine {
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
-        var orderBy = sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList();
+        var orderBy = sortData != null
+                ? sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList()
+                : List.<OrderField<?>>of();
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
         var results = dslContext.selectFrom(table)

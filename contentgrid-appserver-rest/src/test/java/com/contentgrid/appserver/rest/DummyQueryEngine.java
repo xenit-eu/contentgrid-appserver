@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -28,7 +29,7 @@ public class DummyQueryEngine implements QueryEngine {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression, PageData pageData)
+            @NonNull ThunkExpression<Boolean> expression, SortData sortData, PageData pageData)
             throws QueryEngineException {
         var entities = entityInstances.get(entity.getName().getValue());
         return SliceData.builder()

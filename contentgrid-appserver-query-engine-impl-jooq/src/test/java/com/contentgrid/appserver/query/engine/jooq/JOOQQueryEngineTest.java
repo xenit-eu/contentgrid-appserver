@@ -430,7 +430,7 @@ class JOOQQueryEngineTest {
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
-        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null);
+        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, null);
         var resultList = results.getEntities().stream().map(EntityData::getId).toList();
         assertEquals(expected.size(), resultList.size());
         assertTrue(resultList.containsAll(expected));
@@ -565,7 +565,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validExpressions")
     void findAllValidExpression(ThunkExpression<Boolean> expression) {
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, null);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -651,7 +651,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidExpressions")
     void findAllInvalidExpression(ThunkExpression<Boolean> expression) {
-        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null));
+        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, null));
     }
 
     static Stream<Arguments> validCreateData() {
@@ -1531,7 +1531,7 @@ class JOOQQueryEngineTest {
 
         // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, null);
         assertTrue(slice.getEntities().isEmpty());
 
         // unlink relations for person
@@ -1540,7 +1540,7 @@ class JOOQQueryEngineTest {
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
-        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, null);
         assertTrue(slice.getEntities().isEmpty());
     }
 
@@ -1684,7 +1684,7 @@ class JOOQQueryEngineTest {
                     );
                 }
                 var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
-                        null);
+                        null, null);
                 assertTrue(slice.getEntities().isEmpty());
             } else {
                 // TODO: How do we validate this?
@@ -1901,7 +1901,7 @@ class JOOQQueryEngineTest {
                 // Bob -> invoice 2 -> invoice 1 -> Alice
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
         );
-        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null);
+        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, null);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
