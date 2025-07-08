@@ -21,6 +21,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -28,7 +29,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 
 public class TestApplication {
@@ -62,6 +65,14 @@ public class TestApplication {
             .searchFilter(PrefixSearchFilter.builder()
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("vat"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("vat")))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("name"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("name")))
                     .build())
             .build();
 
@@ -154,6 +165,10 @@ public class TestApplication {
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
                     .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("number"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("number")))
+                    .build())
             .build();
 
     public static final SimpleAttribute PRODUCT_NAME = SimpleAttribute.builder()
@@ -215,6 +230,14 @@ public class TestApplication {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("code"))
                     .attribute(PRODUCT_NAME)
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("name"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("name")))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("price"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("price")))
                     .build())
             .build();
 

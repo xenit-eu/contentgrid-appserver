@@ -320,4 +320,56 @@ class EntityRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void testSorting() throws Exception {
+        // Create entity with less-sorting price but greater-sorting name
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Nines");
+        product.put("price", 99.99);
+        product.put("release_date", "2023-02-20T14:30:00Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Create entity with greater-sorting price but less-sorting name
+        Map<String, Object> product2 = new HashMap<>();
+        product.put("name", "Hundred");
+        product.put("price", 100.0);
+        product.put("release_date", "2022-02-22T22:22:22Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // List by ascending price
+        mockMvc.perform(get("/products?sort=price,asc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
+
+        // Then list by descending price
+        mockMvc.perform(get("/products?sort=price,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
+
+        // List by ascending name
+        mockMvc.perform(get("/products?sort=name,asc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
+
+        // Then list by descending name
+        mockMvc.perform(get("/products?sort=name,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
+    }
+
+
 }
