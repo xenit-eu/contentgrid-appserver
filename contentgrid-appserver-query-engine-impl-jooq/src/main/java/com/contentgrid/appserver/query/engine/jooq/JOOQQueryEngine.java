@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -90,7 +91,11 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     private static SortField<Object> convert(Entity entity, FieldSort field) {
-        var attr = entity.getAttributeByName(field.getAttributeName()).orElseThrow();
+        var path = entity.getSortableFieldByName(field.getName()).orElseThrow().getPropertyPath();
+        if (!(path instanceof AttributePath attrPath)) {
+            throw new IllegalArgumentException("Sorting by complex property paths is not supported.");
+        }
+        var attr = entity.getAttributeByName(attrPath.getFirst()).orElseThrow();
         // TODO multi-column attributes should get some way to mark which one is suitable for sorting...
         var dslField = DSL.field(attr.getColumns().getFirst().getValue());
         return switch (field.getDirection()) {

@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
@@ -191,9 +192,9 @@ public class EntityRestController {
             var split = s.split(",", 2);
             if (split.length == 2) {
                 var direction = Direction.valueOf(split[1].toUpperCase());
-                names.add(new FieldSort(direction, AttributeName.of(split[0])));
+                names.add(new FieldSort(direction, SortableName.of(split[0])));
             } else {
-                names.add(new FieldSort(Direction.ASC, AttributeName.of(split[0])));
+                names.add(new FieldSort(Direction.ASC, SortableName.of(split[0])));
             }
         }
 

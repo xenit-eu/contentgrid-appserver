@@ -39,10 +39,9 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
-            var name = field.getAttributeName();
-            entity.getAttributeByName(name).orElseThrow(() -> new InvalidDataException(
-                    "Attribute '%s' not found on entity '%s'".formatted(name, entity.getName())));
-            // TODO validate search filters
+            var name = field.getName();
+            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidDataException(
+                    "Sortable field '%s' not found on entity '%s'".formatted(name, entity.getName())));
         }
     }
 

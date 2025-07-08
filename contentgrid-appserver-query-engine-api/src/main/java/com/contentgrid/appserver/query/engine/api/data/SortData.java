@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.query.engine.api.data;
 
-import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import java.util.List;
 import lombok.Value;
 
@@ -11,7 +11,7 @@ public class SortData {
     @Value
     public static class FieldSort {
         Direction direction;
-        AttributeName attributeName;
+        SortableName name;
     }
 
     public enum Direction { ASC, DESC }
