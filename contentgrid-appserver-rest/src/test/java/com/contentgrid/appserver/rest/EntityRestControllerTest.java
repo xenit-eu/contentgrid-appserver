@@ -1,10 +1,12 @@
 package com.contentgrid.appserver.rest;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -371,5 +373,23 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
     }
 
+    @Test
+    void testInvalidSort() throws Exception {
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Nines");
+        product.put("price", 99.99);
+        product.put("release_date", "2023-02-20T14:30:00Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Invalid sort direction
+        mockMvc.perform(get("/products?sort=price,foo").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Invalid sort direction")));
+    }
 
 }

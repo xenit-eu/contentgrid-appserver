@@ -29,7 +29,7 @@ public class ContentGridExceptionHandler {
     private final MessageSourceAccessor messageSourceAccessor;
 
 
-    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class})
+    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class, InvalidSortParameterException.class})
     ResponseEntity<Problem> handleHttpMessageReadException(@NonNull Exception exception) {
         Throwable currentException = exception;
 
