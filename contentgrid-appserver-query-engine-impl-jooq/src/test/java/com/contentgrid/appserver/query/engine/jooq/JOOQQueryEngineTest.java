@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -35,7 +36,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -45,6 +48,8 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
@@ -210,6 +215,14 @@ class JOOQQueryEngineTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("invoice_num"))
+                    .propertyPath(PropertyPath.of(INVOICE_NUMBER.getName()))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("amount"))
+                    .propertyPath(PropertyPath.of(INVOICE_AMOUNT.getName()))
                     .build())
             .build();
 
@@ -400,7 +413,7 @@ class JOOQQueryEngineTest {
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE2_ID.getValue())
                 .set(DSL.field("number", String.class), "invoice_2")
-                .set(DSL.field("amount", Double.class), 20.0)
+                .set(DSL.field("amount", Double.class), 5.0)
                 .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
                 .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
                 .set(DSL.field("is_paid", Boolean.class), false)
@@ -475,7 +488,7 @@ class JOOQQueryEngineTest {
                 LogicalOperation.conjunction(Stream.of(
                         Comparison.greater(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
+                                Scalar.of(6.0)
                         ),
                         Comparison.less(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
@@ -486,7 +499,7 @@ class JOOQQueryEngineTest {
                 LogicalOperation.conjunction(Stream.of(
                         Comparison.greaterOrEquals(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
+                                Scalar.of(6.0)
                         ),
                         Comparison.lessOrEquals(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
@@ -1908,6 +1921,37 @@ class JOOQQueryEngineTest {
         var result = results.getFirst();
         var primaryKey = result.getId();
         assertEquals(BOB_ID, primaryKey);
+    }
+
+    @Test
+    void testSorting() {
+        // Ascending by invoice number
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.ASC, SortableName.of("invoice_num"))
+        )), null);
+        assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+
+        // Descending by invoice number
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.DESC, SortableName.of("invoice_num"))
+        )), null);
+        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+
+        // Ascending by amount
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.ASC, SortableName.of("amount"))
+        )), null);
+        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+
+        // Descending by amount
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.DESC, SortableName.of("amount"))
+        )), null);
+        assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
     }
 
     @SpringBootApplication
