@@ -3,19 +3,7 @@ plugins {
     id 'io.freefair.lombok'
 }
 
-apply from: "${rootProject.projectDir}/gradle/jacoco.gradle"
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 dependencies {
     api project(':contentgrid-appserver-application-model')
     api 'com.contentgrid.thunx:thunx-model:0.12.0'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
 }

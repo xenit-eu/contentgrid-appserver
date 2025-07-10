@@ -3,27 +3,13 @@ plugins {
     id 'io.freefair.lombok'
 }
 
-apply from: "${rootProject.projectDir}/gradle/jacoco.gradle"
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 dependencies {
     api project(':contentgrid-appserver-application-model')
     implementation platform('org.springframework.boot:spring-boot-dependencies:3.5.3')
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.networknt:json-schema-validator:1.5.8'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.13.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'uk.co.datumedge:hamcrest-json:0.3'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.13.3'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.3'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
 }
