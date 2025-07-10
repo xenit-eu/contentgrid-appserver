@@ -23,6 +23,7 @@ include 'contentgrid-appserver-rest'
 include 'contentgrid-appserver-domain'
 
 include 'contentgrid-appserver-content-api'
+include 'contentgrid-appserver-content-impl-utils'
 include 'contentgrid-appserver-content-impl-fs'
 include 'contentgrid-appserver-content-impl-s3'
 include 'contentgrid-appserver-content-impl-encryption'
