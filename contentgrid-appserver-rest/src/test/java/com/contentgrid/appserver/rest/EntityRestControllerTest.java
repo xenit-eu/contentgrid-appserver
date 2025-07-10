@@ -349,25 +349,25 @@ class EntityRestControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         // List by ascending price
-        mockMvc.perform(get("/products?sort=price,asc").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=price,asc").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
                 .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
 
         // Then list by descending price
-        mockMvc.perform(get("/products?sort=price,desc").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=price,desc").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
                 .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
 
         // List by ascending name
-        mockMvc.perform(get("/products?sort=name,asc").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=name,asc").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
                 .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
 
         // Then list by descending name
-        mockMvc.perform(get("/products?sort=name,desc").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=name,desc").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
                 .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
@@ -387,14 +387,14 @@ class EntityRestControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         // Invalid sort direction
-        mockMvc.perform(get("/products?sort=price,foo").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=price,foo").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
                 .andExpect(jsonPath("$.detail").value(containsString("Invalid sort direction")));
 
         // Invalid sort field
-        mockMvc.perform(get("/products?sort=foo,desc").accept(MediaTypes.HAL_JSON))
+        mockMvc.perform(get("/products?_sort=foo,desc").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
