@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.exception;
 
+import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
@@ -29,7 +30,7 @@ public class ContentGridExceptionHandler {
     private final MessageSourceAccessor messageSourceAccessor;
 
 
-    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class, InvalidSortParameterException.class})
+    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class})
     ResponseEntity<Problem> handleHttpMessageReadException(@NonNull Exception exception) {
         Throwable currentException = exception;
 
@@ -81,6 +82,15 @@ public class ContentGridExceptionHandler {
         return message + " at " + location.offsetDescription();
     }
 
+    @ExceptionHandler(InvalidSortParameterException.class)
+    ResponseEntity<Problem> handleInvalidSortParameterException(@NonNull InvalidSortParameterException exception) {
+        log.warn("Invalid sort parameter:", exception);
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_SORT_PARAMETER)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+        );
+    }
 
     static ResponseEntity<Problem> createResponse(Problem problem) {
         var responseBuilder = ResponseEntity.internalServerError();

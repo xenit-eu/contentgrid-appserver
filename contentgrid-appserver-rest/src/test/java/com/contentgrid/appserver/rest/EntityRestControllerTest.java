@@ -389,7 +389,16 @@ class EntityRestControllerTest {
         // Invalid sort direction
         mockMvc.perform(get("/products?sort=price,foo").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("Invalid sort direction")));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
+                .andExpect(jsonPath("$.detail").value(containsString("Invalid sort direction")));
+
+        // Invalid sort field
+        mockMvc.perform(get("/products?sort=foo,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
+                .andExpect(jsonPath("$.detail").value(containsString("not found")));
     }
 
 }

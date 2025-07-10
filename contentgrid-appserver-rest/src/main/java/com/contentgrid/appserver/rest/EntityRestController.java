@@ -17,7 +17,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -201,7 +201,7 @@ public class EntityRestController {
                     var direction = Direction.valueOf(split[1].toUpperCase());
                     names.add(new FieldSort(direction, SortableName.of(split[0])));
                 } catch (IllegalArgumentException e) {
-                    throw new InvalidSortParameterException(split[1]);
+                    throw InvalidSortParameterException.invalidDirection(split[1]);
                 }
             } else {
                 names.add(new FieldSort(Direction.ASC, SortableName.of(split[0])));
