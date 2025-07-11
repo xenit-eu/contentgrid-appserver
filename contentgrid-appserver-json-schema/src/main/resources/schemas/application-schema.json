@@ -60,23 +60,7 @@
                   "description": "The name of the filter."
                 },
                 "attributePath": {
-                  "type": "array",
-                  "description": "The path to the attribute to filter on.",
-                  "items": {
-                    "type": "object",
-                    "description": "A property name, part of this path.",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "The property name"
-                      },
-                      "type": {
-                        "type": "string",
-                        "description": "Whether this property refers to an attribute or relation",
-                        "enum": ["attr", "rel"]
-                      }
-                    }
-                  }
+                  "$ref": "#/$defs/attributePath"
                 },
                 "type": {
                   "type": "string",
@@ -91,6 +75,27 @@
                 "name",
                 "attributePath",
                 "type"
+              ]
+            }
+          },
+          "sortableFields": {
+            "type": "array",
+            "description": "A list of fields by which this entity can be sorted",
+            "items": {
+              "type": "object",
+              "description": "A field by which the entity can be sorted.",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the sortable field."
+                },
+                "attributePath": {
+                  "$ref": "#/$defs/attributePath"
+                }
+              },
+              "required": [
+                "name",
+                "attributePath"
               ]
             }
           }
@@ -527,6 +532,28 @@
         "type"
       ],
       "additionalProperties": false
+    },
+    "attributePath":{
+      "type": "array",
+      "description": "The path to the attribute to filter on.",
+      "items": {
+        "type": "object",
+        "description": "A property name, part of this path.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The property name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Whether this property refers to an attribute or relation",
+            "enum": [
+              "attr",
+              "rel"
+            ]
+          }
+        }
+      }
     }
   }
 }

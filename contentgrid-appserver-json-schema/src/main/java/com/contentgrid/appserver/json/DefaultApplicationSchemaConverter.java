@@ -27,6 +27,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.json.exceptions.InValidJsonException;
@@ -49,6 +50,7 @@ import com.contentgrid.appserver.json.model.RelationEndPoint;
 import com.contentgrid.appserver.json.model.RequiredConstraint;
 import com.contentgrid.appserver.json.model.SearchFilter;
 import com.contentgrid.appserver.json.model.SimpleAttribute;
+import com.contentgrid.appserver.json.model.SortableField;
 import com.contentgrid.appserver.json.model.UniqueConstraint;
 import com.contentgrid.appserver.json.model.UserAttribute;
 import com.contentgrid.appserver.json.validation.ApplicationSchemaValidator;
@@ -123,6 +125,17 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             }
             searchFilters = list;
         }
+        List<com.contentgrid.appserver.application.model.sortable.SortableField> sortableFields;
+        if (jsonEntity.getSortableFields() == null) {
+            sortableFields = List.of();
+        } else {
+            List<com.contentgrid.appserver.application.model.sortable.SortableField> list = new ArrayList<>();
+            for (SortableField sf : jsonEntity.getSortableFields()) {
+                com.contentgrid.appserver.application.model.sortable.SortableField sortableField = fromJsonSortableField(sf);
+                list.add(sortableField);
+            }
+            sortableFields = list;
+        }
         return com.contentgrid.appserver.application.model.Entity.builder()
                 .name(EntityName.of(jsonEntity.getName()))
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
@@ -132,6 +145,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .primaryKey(primaryKey)
                 .attributes(attributes)
                 .searchFilters(searchFilters)
+                .sortableFields(sortableFields)
                 .build();
     }
 
@@ -306,6 +320,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         }
     }
 
+    private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {
+        List<PropertyName> attrPath = jsonSortableField.getAttributePath().stream()
+                .map(element -> element.getType().equals("attr")
+                        ? AttributeName.of(element.getName())
+                        : RelationName.of(element.getName())
+                ).toList();
+        var propertyPath = PropertyPath.of(attrPath);
+        var sortableName = SortableName.of(jsonSortableField.getName());
+
+        return com.contentgrid.appserver.application.model.sortable.SortableField.builder()
+                .name(sortableName)
+                .propertyPath(propertyPath)
+                .build();
+    }
+
     private record Endpoints(RelationEndPoint source, RelationEndPoint target) {}
 
     private com.contentgrid.appserver.application.model.Entity findEntity(String name,
@@ -422,6 +451,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute)
                 .sorted(Comparator.comparing(Attribute::getName)).toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
+        jsonEntity.setSortableFields(entity.getSortableFields().stream().map(this::toJsonSortableField).toList());
         return jsonEntity;
     }
 
@@ -523,6 +553,14 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
+    }
+
+    private SortableField toJsonSortableField(
+            com.contentgrid.appserver.application.model.sortable.SortableField sortableField) {
+        var jsonSortableField = new SortableField();
+        jsonSortableField.setName(sortableField.getName().getValue());
+        jsonSortableField.setAttributePath(toJsonPropertyPath(sortableField.getPropertyPath()));
+        return jsonSortableField;
     }
 
     private List<PropertyPathElement> toJsonPropertyPath(PropertyPath propertyPath) {

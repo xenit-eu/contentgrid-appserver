@@ -76,7 +76,7 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         var filterName = property.getTargetEndPoint().getName();
         if (filterName != null) {
             var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                    .listEntity(application, targetPathSegment, 0, Map.of(filterName.getValue(), instanceId.toString())))
+                    .listEntity(application, targetPathSegment, 0, null, Map.of(filterName.getValue(), instanceId.toString())))
                     .toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();

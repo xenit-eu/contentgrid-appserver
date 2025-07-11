@@ -1,22 +1,26 @@
 package com.contentgrid.appserver.rest;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
-import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,46 +43,36 @@ class EntityRestControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    static final TestQueryEngine TEST_QUERY_ENGINE = new TestQueryEngine();
-
     @TestConfiguration
     static class TestConfig {
         @Bean
         @Primary
-        public DatamodelApi dmapi(DummyQueryEngine queryEngine) {
+        public DatamodelApi dmapi(QueryEngine queryEngine) {
             return new DatamodelApiImpl(queryEngine);
         }
 
         @Bean
         @Primary
-        public ApplicationResolver singleApplicationResolver() {
+        public SingleApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(TestApplication.APPLICATION);
         }
-
-        @Bean
-        @Primary
-        public DummyQueryEngine testQueryEngine() {
-            // So we can clear it between tests
-            return TEST_QUERY_ENGINE;
-        }
     }
 
-    static class TestQueryEngine extends DummyQueryEngine {
-        public void reset() {
-            super.entityInstances.clear();
-        }
-    }
+    @Autowired
+    TableCreator tableCreator;
 
     @BeforeEach
     void setup() {
-        TEST_QUERY_ENGINE.reset();
+        tableCreator.createTables(TestApplication.APPLICATION);
+    }
+    @AfterEach
+    void teardown() {
+        tableCreator.dropTables(TestApplication.APPLICATION);
     }
 
     @Test
     void testSuccessfullyCreateEntityInstance() throws Exception {
         Map<String, Object> product = new HashMap<>();
-        product.put("id", UUID.randomUUID());
         product.put("name", "Test Product");
         product.put("price", 29.99);
         product.put("release_date", "2023-01-15T10:00:00Z");
@@ -326,6 +320,85 @@ class EntityRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedProduct)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testSorting() throws Exception {
+        // Create entity with less-sorting price but greater-sorting name
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Nines");
+        product.put("price", 99.99);
+        product.put("release_date", "2023-02-20T14:30:00Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Create entity with greater-sorting price but less-sorting name
+        Map<String, Object> product2 = new HashMap<>();
+        product.put("name", "Hundred");
+        product.put("price", 100.0);
+        product.put("release_date", "2022-02-22T22:22:22Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // List by ascending price
+        mockMvc.perform(get("/products?_sort=price,asc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
+
+        // Then list by descending price
+        mockMvc.perform(get("/products?_sort=price,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
+
+        // List by ascending name
+        mockMvc.perform(get("/products?_sort=name,asc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Hundred")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Nines")));
+
+        // Then list by descending name
+        mockMvc.perform(get("/products?_sort=name,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item[0].name", is("Nines")))
+                .andExpect(jsonPath("$._embedded.item[1].name", is("Hundred")));
+    }
+
+    @Test
+    void testInvalidSort() throws Exception {
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Nines");
+        product.put("price", 99.99);
+        product.put("release_date", "2023-02-20T14:30:00Z");
+
+        mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Invalid sort direction
+        mockMvc.perform(get("/products?_sort=price,foo").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
+                .andExpect(jsonPath("$.detail").value(containsString("Invalid sort direction")));
+
+        // Invalid sort field
+        mockMvc.perform(get("/products?_sort=foo,desc").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
+                .andExpect(jsonPath("$.detail").value(containsString("not found")));
     }
 
 }

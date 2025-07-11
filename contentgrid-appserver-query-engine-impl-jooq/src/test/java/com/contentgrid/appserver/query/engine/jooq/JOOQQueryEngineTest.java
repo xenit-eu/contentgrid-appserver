@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -35,7 +36,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -45,6 +48,8 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
@@ -210,6 +215,14 @@ class JOOQQueryEngineTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("invoice_num"))
+                    .propertyPath(PropertyPath.of(INVOICE_NUMBER.getName()))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("amount"))
+                    .propertyPath(PropertyPath.of(INVOICE_AMOUNT.getName()))
                     .build())
             .build();
 
@@ -400,7 +413,7 @@ class JOOQQueryEngineTest {
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE2_ID.getValue())
                 .set(DSL.field("number", String.class), "invoice_2")
-                .set(DSL.field("amount", Double.class), 20.0)
+                .set(DSL.field("amount", Double.class), 5.0)
                 .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
                 .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
                 .set(DSL.field("is_paid", Boolean.class), false)
@@ -430,7 +443,7 @@ class JOOQQueryEngineTest {
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
-        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null);
+        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, null);
         var resultList = results.getEntities().stream().map(EntityData::getId).toList();
         assertEquals(expected.size(), resultList.size());
         assertTrue(resultList.containsAll(expected));
@@ -475,7 +488,7 @@ class JOOQQueryEngineTest {
                 LogicalOperation.conjunction(Stream.of(
                         Comparison.greater(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
+                                Scalar.of(6.0)
                         ),
                         Comparison.less(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
@@ -486,7 +499,7 @@ class JOOQQueryEngineTest {
                 LogicalOperation.conjunction(Stream.of(
                         Comparison.greaterOrEquals(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
+                                Scalar.of(6.0)
                         ),
                         Comparison.lessOrEquals(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
@@ -565,7 +578,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validExpressions")
     void findAllValidExpression(ThunkExpression<Boolean> expression) {
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, null);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -651,7 +664,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidExpressions")
     void findAllInvalidExpression(ThunkExpression<Boolean> expression) {
-        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null));
+        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, null));
     }
 
     static Stream<Arguments> validCreateData() {
@@ -1531,7 +1544,7 @@ class JOOQQueryEngineTest {
 
         // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, null);
         assertTrue(slice.getEntities().isEmpty());
 
         // unlink relations for person
@@ -1540,7 +1553,7 @@ class JOOQQueryEngineTest {
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
-        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, null);
         assertTrue(slice.getEntities().isEmpty());
     }
 
@@ -1684,7 +1697,7 @@ class JOOQQueryEngineTest {
                     );
                 }
                 var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
-                        null);
+                        null, null);
                 assertTrue(slice.getEntities().isEmpty());
             } else {
                 // TODO: How do we validate this?
@@ -1901,13 +1914,44 @@ class JOOQQueryEngineTest {
                 // Bob -> invoice 2 -> invoice 1 -> Alice
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
         );
-        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null);
+        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, null);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
         var result = results.getFirst();
         var primaryKey = result.getId();
         assertEquals(BOB_ID, primaryKey);
+    }
+
+    @Test
+    void testSorting() {
+        // Ascending by invoice number
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.ASC, SortableName.of("invoice_num"))
+        )), null);
+        assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+
+        // Descending by invoice number
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.DESC, SortableName.of("invoice_num"))
+        )), null);
+        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+
+        // Ascending by amount
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.ASC, SortableName.of("amount"))
+        )), null);
+        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+
+        // Descending by amount
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.DESC, SortableName.of("amount"))
+        )), null);
+        assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
     }
 
     @SpringBootApplication

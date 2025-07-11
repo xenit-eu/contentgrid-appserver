@@ -5,17 +5,25 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
+import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
+import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.PagedModel;
@@ -24,7 +32,9 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -45,16 +55,25 @@ public class EntityRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
     }
 
+    // Workaround for https://github.com/spring-projects/spring-framework/issues/23820
+    // We need this so you have have a single ?sort=foo,asc parameter without it splitting on the comma
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
+    }
+
     @GetMapping("/{entityName}")
     public CollectionModel<?> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false, name = "_sort") String[] sort,
             @RequestParam Map<String, String> params
     ) {
         var entity = getEntityOrThrow(application, entityName);
+        var sortData = parseSortData(sort);
 
-        var results = datamodelApi.findAll(application, entity, params, defaultPageData());
+        var results = datamodelApi.findAll(application, entity, params, sortData, defaultPageData());
 
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.getEntities().stream()
@@ -109,7 +128,11 @@ public class EntityRestController {
         var converted = EntityDataValidator.validate(entity, data);
         var entityData = createEntityData(converted, entity);
 
-        datamodelApi.update(application, id, entityData);
+        try {
+            datamodelApi.update(application, id, entityData);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         var result = datamodelApi.findById(application, entity, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -163,4 +186,29 @@ public class EntityRestController {
                         : pageInfo.getExactCount()
         );
     }
+
+    private SortData parseSortData(String[] sort) {
+        ArrayList<FieldSort> names = new ArrayList<>();
+
+        if (sort == null) {
+            return new SortData(names);
+        }
+
+        for (String s : sort) {
+            var split = s.split(",", 2);
+            if (split.length == 2) {
+                try {
+                    var direction = Direction.valueOf(split[1].toUpperCase());
+                    names.add(new FieldSort(direction, SortableName.of(split[0])));
+                } catch (IllegalArgumentException e) {
+                    throw InvalidSortParameterException.invalidDirection(split[1]);
+                }
+            } else {
+                names.add(new FieldSort(Direction.ASC, SortableName.of(split[0])));
+            }
+        }
+
+        return new SortData(names);
+    }
+
 }

@@ -217,6 +217,16 @@
           "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
         }
+      ],
+      "sortableFields": [
+        {
+          "name": "lastName",
+          "attributePath": [{"name": "lastName", "type": "attr"}]
+        },
+        {
+          "name": "email",
+          "attributePath": [{"name": "email", "type": "attr"}]
+        }
       ]
     },
     {
@@ -314,6 +324,16 @@
           "attributePath": [{"name": "status", "type": "attr"}],
           "type": "exact"
         }
+      ],
+      "sortableFields": [
+        {
+          "name": "name",
+          "attributePath": [{"name": "name", "type": "attr"}]
+        },
+        {
+          "name": "status",
+          "attributePath": [{"name": "status", "type": "attr"}]
+        }
       ]
     },
     {
@@ -380,6 +400,12 @@
           "attributePath": [{"name": "title", "type": "attr"}],
           "type": "prefix"
         }
+      ],
+      "sortableFields": [
+        {
+          "name": "title",
+          "attributePath": [{"name": "title", "type": "attr"}]
+        }
       ]
     },
     {
@@ -437,6 +463,16 @@
           "attributePath": [{"name": "category", "type": "attr"}],
           "type": "exact"
         }
+      ],
+      "sortableFields": [
+        {
+          "name": "name",
+          "attributePath": [{"name": "name", "type": "attr"}]
+        },
+        {
+          "name": "category",
+          "attributePath": [{"name": "category", "type": "attr"}]
+        }
       ]
     },
     {
@@ -482,6 +518,12 @@
           "name": "ssnFilter",
           "attributePath": [{"name": "ssn", "type": "attr"}],
           "type": "exact"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "ssn",
+          "attributePath": [{"name": "ssn", "type": "attr"}]
         }
       ]
     }

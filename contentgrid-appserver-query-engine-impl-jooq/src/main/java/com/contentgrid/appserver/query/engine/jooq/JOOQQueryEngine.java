@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -20,12 +21,15 @@ import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -38,7 +42,9 @@ import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Field;
+import org.jooq.OrderField;
 import org.jooq.Record;
+import org.jooq.SortField;
 import org.jooq.UpdateSetFirstStep;
 import org.jooq.UpdateSetMoreStep;
 import org.jooq.exception.IntegrityConstraintViolationException;
@@ -58,15 +64,19 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression, PageData pageData) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> expression, SortData sortData, PageData pageData) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(application, entity);
+        var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
+        var orderBy = sortData != null
+                ? sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList()
+                : List.<OrderField<?>>of();
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
         var results = dslContext.selectFrom(table)
                 .where(condition)
+                .orderBy(orderBy)
                 .fetch()
                 .intoMaps();
 
@@ -78,6 +88,20 @@ public class JOOQQueryEngine implements QueryEngine {
                         // TODO: ACC-2048: support paging
                         .build())
                 .build();
+    }
+
+    private static SortField<Object> convert(Entity entity, FieldSort field) {
+        var path = entity.getSortableFieldByName(field.getName()).orElseThrow().getPropertyPath();
+        if (!(path instanceof AttributePath attrPath)) {
+            throw new IllegalArgumentException("Sorting by complex property paths is not supported.");
+        }
+        var attr = entity.getAttributeByName(attrPath.getFirst()).orElseThrow();
+        // TODO multi-column attributes should get some way to mark which one is suitable for sorting...
+        var dslField = DSL.field(attr.getColumns().getFirst().getValue());
+        return switch (field.getDirection()) {
+            case ASC -> dslField.asc();
+            case DESC -> dslField.desc();
+        };
     }
 
     /**
