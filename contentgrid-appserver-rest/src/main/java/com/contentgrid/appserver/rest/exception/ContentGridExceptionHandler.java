@@ -84,7 +84,6 @@ public class ContentGridExceptionHandler {
 
     @ExceptionHandler(InvalidSortParameterException.class)
     ResponseEntity<Problem> handleInvalidSortParameterException(@NonNull InvalidSortParameterException exception) {
-        log.warn("Invalid sort parameter:", exception);
         return createResponse(
                 problemFactory.createProblem(ProblemType.INVALID_SORT_PARAMETER)
                         .withStatus(HttpStatus.BAD_REQUEST)
