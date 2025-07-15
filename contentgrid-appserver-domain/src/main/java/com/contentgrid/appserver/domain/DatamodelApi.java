@@ -4,7 +4,9 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
+import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -34,7 +36,8 @@ public interface DatamodelApi {
      * @return a slice of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
+    SliceData findAll(@NonNull Application application, @NonNull Entity entity,
+            @NonNull Map<String, String> params,
             SortData sort, PageData pageData) throws EntityNotFoundException, InvalidThunkExpressionException;
 
     /**
@@ -52,34 +55,43 @@ public interface DatamodelApi {
      * Creates an entity with the given data and relations.
      *
      * @param application the application context
+     * @param entityName the name of the entity to update
      * @param data the data for the new entity
      * @return the value of the primary key for the newly created entity
      * @throws QueryEngineException if an error occurs during the create operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
+    EntityData create(@NonNull Application application, @NonNull EntityName entityName,  @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException;
 
     /**
      * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
      *
      * @param application the application context
+     * @param entityName the name of the entity to update
      * @param id the id of the entity to update
      * @param data the updated data for the entity
      * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    void update(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data)
-            throws QueryEngineException;
+    EntityData update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException;
 
     /**
      * Updates an entity with the given data. Replaces only the attributes present in the given data, other attributes
      * keep their previous value.
      *
      * @param application the application context
+     * @param entityName the name of the entity to update
      * @param id the id of the entity to update
      * @param data the updated data for the entity
      * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    void updatePartial(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data)
-            throws QueryEngineException;
+    EntityData updatePartial(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException;
 
     /**
      * Determines whether the given source and target entities are linked by the specified relation.

@@ -2,25 +2,31 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
+import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
+import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
+import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
+import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
+import com.contentgrid.appserver.domain.data.mapper.TransformingDataEntryMapper;
+import com.contentgrid.appserver.domain.data.transformers.FilterDataEntryTransformer;
+import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
-import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -31,8 +37,32 @@ import lombok.RequiredArgsConstructor;
 public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
 
+    private RequestInputDataMapper createInputDataMapper(
+            @NonNull Application application,
+            @NonNull EntityName entityName,
+            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper
+    ) {
+        var entity = application.getRequiredEntityByName(entityName);
+        var relations = application.getRelationsForSourceEntity(entity);
+
+        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
+        var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
+
+        var combinedMapper = inputMapper.andThen(mapper)
+                .andThen(queryEngineMapper);
+
+        return new RequestInputDataMapper(
+                entity.getAttributes(),
+                relations,
+                combinedMapper,
+                combinedMapper
+        );
+
+    }
+
     @Override
-    public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
+    public SliceData findAll(@NonNull Application application,
+            @NonNull Entity entity,
             @NonNull Map<String, String> params, SortData sort, PageData pageData)
             throws EntityNotFoundException, InvalidThunkExpressionException {
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
@@ -49,47 +79,76 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
+    public Optional<EntityData> findById(@NonNull Application application,
+            @NonNull Entity entity, @NonNull EntityId id)
             throws EntityNotFoundException {
         return queryEngine.findById(application, entity, id);
     }
 
     @Override
-    public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
-        return queryEngine.create(application, data).getId();
+    public EntityData create(
+            @NonNull Application application,
+            @NonNull EntityName entityName,
+            @NonNull RequestInputData requestData
+    ) throws QueryEngineException, InvalidPropertyDataException {
+        var inputMapper = createInputDataMapper(
+                application,
+                entityName,
+                // All missing fields are regarded as null
+                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
+        );
+
+        var createData = EntityCreateData.builder()
+                .entityName(entityName)
+                .attributes(inputMapper.mapAttributes(requestData))
+                .relations(inputMapper.mapRelations(requestData))
+                .build();
+
+        return queryEngine.create(application, createData);
     }
 
     @Override
-    public void update(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data) throws QueryEngineException {
-        var entity = application.getEntityByName(data.getName()).orElseThrow();
-        ArrayList<AttributeData> attributeData = new ArrayList<>();
-        for (Attribute attr : entity.getAttributes()) {
-            var given = data.getAttributeByName(attr.getName());
-            if (given.isPresent()) {
-                attributeData.add(given.get());
-            } else if (attr instanceof SimpleAttribute){
-                attributeData.add(SimpleAttributeData.builder().name(attr.getName()).build());
-            } else {
-                // Creating CompositeAttributes is for when we support content TODO ACC-2097
-            }
-        }
+    public EntityData update(@NonNull Application application,
+            @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var inputMapper = createInputDataMapper(
+                application,
+                entityName,
+                // All missing fields are regarded as null
+                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
+        );
 
-        var dataWithId = EntityData.builder()
+        var entityData = EntityData.builder()
+                .name(entityName)
                 .id(id)
-                .name(data.getName())
-                .attributes(attributeData)
+                .attributes(inputMapper.mapAttributes(data))
                 .build();
-        queryEngine.update(application, dataWithId);
+
+        var updateData = queryEngine.update(application, entityData);
+
+        return updateData.getUpdated();
     }
 
     @Override
-    public void updatePartial(@NonNull Application application, @NonNull EntityId id, @NonNull EntityData data) throws QueryEngineException {
-        var dataWithId = EntityData.builder()
+    public EntityData updatePartial(@NonNull Application application,
+            @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var inputMapper = createInputDataMapper(
+                application,
+                entityName,
+                // Missing fields are omitted, so they are not update
+                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.omitMissing())
+        );
+
+        var entityData = EntityData.builder()
+                .name(entityName)
                 .id(id)
-                .name(data.getName())
-                .attributes(data.getAttributes())
+                .attributes(inputMapper.mapAttributes(data))
                 .build();
-        queryEngine.update(application, dataWithId);
+
+        var updateData = queryEngine.update(application, entityData);
+
+        return updateData.getUpdated();
     }
 
     @Override
