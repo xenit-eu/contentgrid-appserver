@@ -18,3 +18,28 @@ sonar {
         }
     }
 }
+
+allprojects {
+    pluginManager.withPlugin("java-library") {
+        apply plugin: 'jacoco'
+
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+
+        tasks.named('test').configure {
+            useJUnitPlatform()
+            finalizedBy tasks.named('jacocoTestReport')
+        }
+
+        tasks.named('jacocoTestReport').configure {
+            dependsOn tasks.named('test') // tests are required to run before generating the report
+            reports {
+                xml.required = true
+                html.required = true
+            }
+        }
+    }
+}
