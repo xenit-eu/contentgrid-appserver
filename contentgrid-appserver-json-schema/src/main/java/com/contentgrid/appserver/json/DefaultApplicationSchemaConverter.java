@@ -239,11 +239,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return switch (flag) {
             case "ignored" -> IgnoredFlag.INSTANCE;
             case "readOnly" -> ReadOnlyFlag.INSTANCE;
-            case "createdDate" -> CreatedDateFlag.builder().build();
-            case "creator" -> CreatorFlag.builder().build();
-            case "eTag" -> ETagFlag.builder().build();
-            case "modifiedDate" -> ModifiedDateFlag.builder().build();
-            case "modifier" -> ModifierFlag.builder().build();
+            case "createdDate" -> CreatedDateFlag.INSTANCE;
+            case "creator" -> CreatorFlag.INSTANCE;
+            case "eTag" -> ETagFlag.INSTANCE;
+            case "modifiedDate" -> ModifiedDateFlag.INSTANCE;
+            case "modifier" -> ModifierFlag.INSTANCE;
             default -> throw new UnknownFlagException("Unknown flag: " + flag);
         };
     }

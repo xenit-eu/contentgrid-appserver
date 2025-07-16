@@ -86,7 +86,7 @@ class AttributeTest {
     @Test
     void eTagAttribute() {
         var attribute = SimpleAttribute.builder().name(AttributeName.of("attribute"))
-                .column(ColumnName.of("column")).type(Type.LONG).flag(ETagFlag.builder().build()).build();
+                .column(ColumnName.of("column")).type(Type.LONG).flag(ETagFlag.INSTANCE).build();
 
         assertTrue(attribute.hasFlag(ETagFlag.class));
         assertTrue(attribute.isIgnored());
@@ -96,7 +96,7 @@ class AttributeTest {
     @Test
     void eTag_invalidAttribute() {
         var builder = SimpleAttribute.builder().name(AttributeName.of("attribute"))
-                .column(ColumnName.of("column")).type(Type.DATETIME).flag(ETagFlag.builder().build());
+                .column(ColumnName.of("column")).type(Type.DATETIME).flag(ETagFlag.INSTANCE);
 
         assertThrows(InvalidFlagException.class, builder::build);
     }
@@ -142,7 +142,7 @@ class AttributeTest {
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
-                        .flag(CreatorFlag.builder().build())
+                        .flag(CreatorFlag.INSTANCE)
                         .idColumn(ColumnName.of("auditing__created_by_id"))
                         .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
                         .usernameColumn(ColumnName.of("auditing__created_by_name"))
@@ -151,20 +151,20 @@ class AttributeTest {
                         .name(AttributeName.of("created_date"))
                         .column(ColumnName.of("auditing__created_date"))
                         .type(Type.DATETIME)
-                        .flag(CreatedDateFlag.builder().build())
+                        .flag(CreatedDateFlag.INSTANCE)
                         .build())
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
                         .idColumn(ColumnName.of("auditing__last_modified_by_id"))
                         .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
                         .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
-                        .flag(ModifierFlag.builder().build())
+                        .flag(ModifierFlag.INSTANCE)
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("last_modified_date"))
                         .column(ColumnName.of("auditing__last_modified_date"))
                         .type(Type.DATETIME)
-                        .flag(ModifiedDateFlag.builder().build())
+                        .flag(ModifiedDateFlag.INSTANCE)
                         .build())
                 .build();
 
