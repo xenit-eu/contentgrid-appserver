@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,6 +20,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -39,6 +41,7 @@ class AttributeTest {
         assertEquals(Type.TEXT, attribute.getType());
         assertTrue(attribute.getConstraint(RequiredConstraint.class).isPresent());
         assertTrue(attribute.getConstraint(UniqueConstraint.class).isEmpty());
+        assertEquals(Set.of(), attribute.getFlags());
     }
 
     @Test
@@ -50,6 +53,7 @@ class AttributeTest {
         assertEquals(Type.TEXT, attribute.getType());
         assertTrue(attribute.getConstraint(UniqueConstraint.class).isPresent());
         assertTrue(attribute.getConstraint(RequiredConstraint.class).isEmpty());
+        assertEquals(Set.of(), attribute.getFlags());
     }
 
     @Test
@@ -64,6 +68,7 @@ class AttributeTest {
         assertTrue(attribute.getConstraint(RequiredConstraint.class).isEmpty());
         assertTrue(attribute.getConstraint(AllowedValuesConstraint.class).isPresent());
         assertEquals(List.of("test", "demo"), attribute.getConstraint(AllowedValuesConstraint.class).orElseThrow().getValues());
+        assertEquals(Set.of(), attribute.getFlags());
     }
 
     @Test
@@ -75,6 +80,7 @@ class AttributeTest {
         assertEquals(Type.TEXT, attribute.getType());
         assertEquals(List.of(), attribute.getConstraints());
         assertEquals(List.of(ColumnName.of("column")), attribute.getColumns());
+        assertEquals(Set.of(), attribute.getFlags());
     }
 
     @Test
@@ -82,7 +88,9 @@ class AttributeTest {
         var attribute = SimpleAttribute.builder().name(AttributeName.of("attribute"))
                 .column(ColumnName.of("column")).type(Type.LONG).flag(ETagFlag.builder().build()).build();
 
-        assertEquals(Set.of(ETagFlag.builder().build()), attribute.getFlags());
+        assertTrue(attribute.hasFlag(ETagFlag.class));
+        assertTrue(attribute.isIgnored());
+        assertFalse(attribute.isReadOnly());
     }
 
     @Test
@@ -111,13 +119,21 @@ class AttributeTest {
         assertEquals(LinkName.of("link"), attribute.getLinkName());
         assertEquals("The pdf file of the entity", attribute.getDescription());
         assertEquals(AttributeName.of("id"), attribute.getId().getName());
-        assertEquals(ColumnName.of("column__id"), ((SimpleAttribute) attribute.getId()).getColumn());
+        assertEquals(ColumnName.of("column__id"), attribute.getId().getColumn());
+        assertTrue(attribute.getId().isIgnored());
+        assertFalse(attribute.getId().isReadOnly());
         assertEquals(AttributeName.of("filename"), attribute.getFilename().getName());
-        assertEquals(ColumnName.of("column__filename"), ((SimpleAttribute) attribute.getFilename()).getColumn());
+        assertEquals(ColumnName.of("column__filename"), attribute.getFilename().getColumn());
+        assertFalse(attribute.getFilename().isIgnored());
+        assertFalse(attribute.getFilename().isReadOnly());
         assertEquals(AttributeName.of("mimetype"), attribute.getMimetype().getName());
-        assertEquals(ColumnName.of("column__mimetype"), ((SimpleAttribute) attribute.getMimetype()).getColumn());
+        assertEquals(ColumnName.of("column__mimetype"), attribute.getMimetype().getColumn());
+        assertFalse(attribute.getMimetype().isIgnored());
+        assertFalse(attribute.getMimetype().isReadOnly());
         assertEquals(AttributeName.of("length"), attribute.getLength().getName());
-        assertEquals(ColumnName.of("column__length"), ((SimpleAttribute) attribute.getLength()).getColumn());
+        assertEquals(ColumnName.of("column__length"), attribute.getLength().getColumn());
+        assertFalse(attribute.getLength().isIgnored());
+        assertTrue(attribute.getLength().isReadOnly());
     }
 
     @Test
@@ -167,10 +183,18 @@ class AttributeTest {
         assertEquals(AttributeName.of("name"), modifiedBy.getUsername().getName());
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
 
-        assertEquals(Set.of(CreatorFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().getFlags());
-        assertEquals(Set.of(CreatedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().getFlags());
-        assertEquals(Set.of(ModifierFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().getFlags());
-        assertEquals(Set.of(ModifiedDateFlag.builder().build()), attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().getFlags());
+        assertTrue(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().hasFlag(CreatorFlag.class));
+        assertTrue(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().isReadOnly());
+        assertFalse(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().isIgnored());
+        assertTrue(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().hasFlag(CreatedDateFlag.class));
+        assertTrue(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().isReadOnly());
+        assertFalse(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().isIgnored());
+        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().hasFlag(ModifierFlag.class));
+        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().isReadOnly());
+        assertFalse(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().isIgnored());
+        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().hasFlag(ModifiedDateFlag.class));
+        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().isReadOnly());
+        assertFalse(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().isIgnored());
 
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));

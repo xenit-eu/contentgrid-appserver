@@ -9,7 +9,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class ETagFlag implements AttributeFlag {
+public class ETagFlag implements IgnoredFlag {
 
     @Override
     public void checkSupported(Attribute attribute) {

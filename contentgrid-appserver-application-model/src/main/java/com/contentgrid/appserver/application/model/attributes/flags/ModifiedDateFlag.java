@@ -9,7 +9,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class ModifiedDateFlag implements AttributeFlag {
+public class ModifiedDateFlag implements ReadOnlyFlag {
 
     @Override
     public void checkSupported(Attribute attribute) {

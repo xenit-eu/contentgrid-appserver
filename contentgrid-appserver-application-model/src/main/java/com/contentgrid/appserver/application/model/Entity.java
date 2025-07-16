@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
@@ -81,9 +82,14 @@ public class Entity implements HasAttributes {
         this.table = table;
         this.linkName = linkName;
         if (primaryKey == null) {
-            this.primaryKey = SimpleAttribute.builder().name(AttributeName.of("id")).column(ColumnName.of("id")).type(Type.UUID).build();
+            this.primaryKey = SimpleAttribute.builder()
+                    .name(AttributeName.of("id"))
+                    .column(ColumnName.of("id"))
+                    .type(Type.UUID)
+                    .flag(ReadOnlyFlag.INSTANCE)
+                    .build();
         } else if (Type.UUID.equals(primaryKey.getType())) {
-            this.primaryKey = primaryKey;
+            this.primaryKey = primaryKey; // TODO: ensure ReadOnlyFlag is present
         } else {
             throw new InvalidAttributeTypeException("Type %s is not supported for primary key".formatted(primaryKey.getType()));
         }

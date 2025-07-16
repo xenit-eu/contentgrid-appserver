@@ -8,8 +8,10 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -29,9 +31,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.json.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.json.exceptions.InValidJsonException;
-import com.contentgrid.appserver.json.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.json.model.AllowedValuesConstraint;
@@ -237,6 +237,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private AttributeFlag fromJsonFlag(String flag) throws UnknownFlagException {
         return switch (flag) {
+            case "ignored" -> IgnoredFlag.INSTANCE;
+            case "readOnly" -> ReadOnlyFlag.INSTANCE;
             case "createdDate" -> CreatedDateFlag.builder().build();
             case "creator" -> CreatorFlag.builder().build();
             case "eTag" -> ETagFlag.builder().build();
@@ -484,6 +486,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             case ETagFlag ignored -> "eTag";
             case ModifiedDateFlag ignored -> "modifiedDate";
             case ModifierFlag ignored -> "modifier";
+            case IgnoredFlag ignored -> "ignored";
+            case ReadOnlyFlag ignored -> "readOnly";
             default -> throw new IllegalArgumentException("Unknown flag: " + flag);
         };
     }

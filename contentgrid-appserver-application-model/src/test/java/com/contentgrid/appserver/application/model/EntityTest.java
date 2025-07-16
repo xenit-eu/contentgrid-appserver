@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
@@ -32,7 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class EntityTest {
 
     private static final SimpleAttribute PRIMARY_KEY = SimpleAttribute.builder().name(AttributeName.of("id")).column(
-            ColumnName.of("id")).type(Type.UUID).build();
+            ColumnName.of("id")).type(Type.UUID).flag(ReadOnlyFlag.INSTANCE).build();
     private static final SimpleAttribute ATTRIBUTE1 = SimpleAttribute.builder().name(AttributeName.of("attribute1")).column(ColumnName.of("column1")).type(Type.TEXT).build();
     private static final SimpleAttribute ATTRIBUTE2 = SimpleAttribute.builder().name(AttributeName.of("attribute2")).column(ColumnName.of("column2")).type(Type.BOOLEAN).build();
     private static final ContentAttribute CONTENT1 = ContentAttribute.builder()
@@ -174,7 +175,7 @@ class EntityTest {
 
     @Test
     void entity_differentPrimaryKey() {
-        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).build();
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).flag(ReadOnlyFlag.INSTANCE).build();
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))

@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
@@ -39,9 +40,13 @@ public class UserAttribute implements CompositeAttribute {
         this.description = description;
         this.flags = flags;
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
-                .type(Type.TEXT).build();
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
         this.namespace = SimpleAttribute.builder().name(AttributeName.of("namespace")).column(namespaceColumn)
-                .type(Type.TEXT).build();
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
         this.username = SimpleAttribute.builder().name(AttributeName.of("name")).column(usernameColumn)
                 .type(Type.TEXT).build();
 

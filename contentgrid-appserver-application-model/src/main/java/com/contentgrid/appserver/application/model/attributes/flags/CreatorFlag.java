@@ -8,7 +8,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public class CreatorFlag implements AttributeFlag {
+public class CreatorFlag implements ReadOnlyFlag {
 
     @Override
     public void checkSupported(Attribute attribute) {
