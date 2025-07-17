@@ -33,11 +33,11 @@ public class JOOQUtils {
     }
 
     public static Field<?> resolveField(TableName alias, SimpleAttribute attribute) {
-        return resolveField(alias, attribute.getColumn(), attribute.getType(), attribute.getConstraint(RequiredConstraint.class).isPresent());
+        return resolveField(alias, attribute.getColumn(), attribute.getType(), attribute.hasConstraint(RequiredConstraint.class));
     }
 
     public static Field<?> resolveField(SimpleAttribute attribute) {
-        return resolveField(attribute.getColumn(), attribute.getType(), attribute.getConstraint(RequiredConstraint.class).isPresent());
+        return resolveField(attribute.getColumn(), attribute.getType(), attribute.hasConstraint(RequiredConstraint.class));
     }
 
     public static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {

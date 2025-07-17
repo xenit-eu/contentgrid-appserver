@@ -4,12 +4,15 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
 @Value
-@Builder
-public class ETagFlag implements AttributeFlag {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class ETagFlag implements IgnoredFlag {
+
+    public static final ETagFlag INSTANCE = new ETagFlag();
 
     @Override
     public void checkSupported(Attribute attribute) {

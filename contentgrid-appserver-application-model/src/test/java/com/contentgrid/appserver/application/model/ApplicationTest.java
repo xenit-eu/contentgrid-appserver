@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateF
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
@@ -318,6 +319,7 @@ class ApplicationTest {
                         .name(AttributeName.of("id"))
                         .column(ColumnName.of("id"))
                         .type(Type.UUID)
+                        .flag(ReadOnlyFlag.INSTANCE)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("nonexistent.name"))
@@ -344,6 +346,7 @@ class ApplicationTest {
                         .name(AttributeName.of("id"))
                         .column(ColumnName.of("id"))
                         .type(Type.UUID)
+                        .flag(ReadOnlyFlag.INSTANCE)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("target.nonexistent"))
@@ -361,6 +364,7 @@ class ApplicationTest {
                         .name(AttributeName.of("id"))
                         .column(ColumnName.of("id"))
                         .type(Type.UUID)
+                        .flag(ReadOnlyFlag.INSTANCE)
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("name"))
@@ -402,7 +406,7 @@ class ApplicationTest {
     void application_integration_testing() {
 
         var customerId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id"))
-                .column(ColumnName.of("id")).build();
+                .column(ColumnName.of("id")).flag(ReadOnlyFlag.INSTANCE).build();
         var customerName = SimpleAttribute.builder().type(Type.TEXT)
                 .name(AttributeName.of("name"))
                 .column(ColumnName.of("name"))
@@ -439,7 +443,7 @@ class ApplicationTest {
                 .build();
 
         var orderId = SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id"))
-                .build();
+                .flag(ReadOnlyFlag.INSTANCE).build();
 
         var orderNumber = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("order_number"))
                 .column(ColumnName.of("order_number"))
@@ -466,7 +470,7 @@ class ApplicationTest {
                 .name(AttributeName.of("auditing"))
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("created_by"))
-                        .flag(CreatorFlag.builder().build())
+                        .flag(CreatorFlag.INSTANCE)
                         .idColumn(ColumnName.of("auditing__created_by_id"))
                         .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
                         .usernameColumn(ColumnName.of("auditing__created_by_name"))
@@ -475,11 +479,11 @@ class ApplicationTest {
                         .name(AttributeName.of("created_date"))
                         .column(ColumnName.of("auditing__created_date"))
                         .type(Type.DATETIME)
-                        .flag(CreatedDateFlag.builder().build())
+                        .flag(CreatedDateFlag.INSTANCE)
                         .build())
                 .attribute(UserAttribute.builder()
                         .name(AttributeName.of("last_modified_by"))
-                        .flag(ModifierFlag.builder().build())
+                        .flag(ModifierFlag.INSTANCE)
                         .idColumn(ColumnName.of("auditing__last_modified_by_id"))
                         .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
                         .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
@@ -488,7 +492,7 @@ class ApplicationTest {
                         .name(AttributeName.of("last_modified_date"))
                         .column(ColumnName.of("auditing__last_modified_date"))
                         .type(Type.DATETIME)
-                        .flag(ModifiedDateFlag.builder().build())
+                        .flag(ModifiedDateFlag.INSTANCE)
                         .build())
                 .build();
 
@@ -540,7 +544,7 @@ class ApplicationTest {
                 .table(TableName.of("product"))
                 .pathSegment(PathSegmentName.of("products"))
                 .linkName(LinkName.of("products"))
-                .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id")).build())
+                .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id")).flag(ReadOnlyFlag.INSTANCE).build())
                 .attribute(productName)
                 .searchFilter(PrefixSearchFilter.builder().attribute(productName).name(FilterName.of("name")).build())
                 .attribute(SimpleAttribute.builder().type(Type.DOUBLE).name(AttributeName.of("price")).column(ColumnName.of("price")).build())

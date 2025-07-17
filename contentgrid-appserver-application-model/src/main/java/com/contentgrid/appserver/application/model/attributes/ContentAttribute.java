@@ -2,6 +2,8 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -61,13 +63,17 @@ public class ContentAttribute implements CompositeAttribute {
         this.pathSegment = pathSegment;
         this.linkName = linkName;
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
-                .type(Type.TEXT).build();
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
                 .type(Type.TEXT).build();
         this.mimetype = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
                 .type(Type.TEXT).build();
         this.length = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
-                .type(Type.LONG).build();
+                .type(Type.LONG)
+                .flag(ReadOnlyFlag.INSTANCE)
+                .build();
 
         for (var flag : this.flags) {
             flag.checkSupported(this);

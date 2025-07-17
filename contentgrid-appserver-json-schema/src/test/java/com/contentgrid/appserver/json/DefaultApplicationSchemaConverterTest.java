@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -95,9 +96,9 @@ class DefaultApplicationSchemaConverterTest {
                                     "name": "id",
                                     "description": "Unique identifier for the employee",
                                     "type": "simple",
-                                    "dataType": "text",
+                                    "dataType": "uuid",
                                     "columnName": "id",
-                                    "flags": ["unknownFlag"]
+                                    "flags": ["readOnly", "unknownFlag"]
                                 }
                         }
                     ]
@@ -159,6 +160,9 @@ class DefaultApplicationSchemaConverterTest {
                                     "type": "simple",
                                     "dataType": "uuid",
                                     "columnName": "source_id",
+                                    "flags": [
+                                        "readOnly"
+                                    ],
                                     "constraints": [
                                         {
                                             "type": "required"
@@ -182,6 +186,9 @@ class DefaultApplicationSchemaConverterTest {
                                     "type": "simple",
                                     "dataType": "uuid",
                                     "columnName": "source_id",
+                                    "flags": [
+                                        "readOnly"
+                                    ],
                                     "constraints": [
                                         {
                                             "type": "required"
@@ -266,6 +273,9 @@ class DefaultApplicationSchemaConverterTest {
                                     "type": "simple",
                                     "dataType": "uuid",
                                     "columnName": "source_id",
+                                    "flags": [
+                                        "readOnly"
+                                    ],
                                     "constraints": [
                                         {
                                             "type": "required"
@@ -289,6 +299,9 @@ class DefaultApplicationSchemaConverterTest {
                                     "type": "simple",
                                     "dataType": "uuid",
                                     "columnName": "source_id",
+                                    "flags": [
+                                        "readOnly"
+                                    ],
                                     "constraints": [
                                         {
                                             "type": "required"
@@ -342,6 +355,7 @@ class DefaultApplicationSchemaConverterTest {
                 .description("Unique identifier for the source entity")
                 .type(Type.UUID)
                 .column(ColumnName.of("source_id"))
+                .flag(ReadOnlyFlag.INSTANCE)
                 .constraint(Constraint.required())
                 .constraint(Constraint.unique())
                 .build();

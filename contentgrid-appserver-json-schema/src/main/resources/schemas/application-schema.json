@@ -311,6 +311,8 @@
       "type": "string",
       "description": "A flag for the attribute, that is used to apply a specific behavior.",
       "enum": [
+        "ignored",
+        "readOnly",
         "createdDate",
         "creator",
         "eTag",

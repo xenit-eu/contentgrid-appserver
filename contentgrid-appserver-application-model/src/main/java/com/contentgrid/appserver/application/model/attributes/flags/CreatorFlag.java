@@ -3,12 +3,15 @@ package com.contentgrid.appserver.application.model.attributes.flags;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
-@Builder
 @Value
-public class CreatorFlag implements AttributeFlag {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class CreatorFlag implements ReadOnlyFlag {
+
+    public static final CreatorFlag INSTANCE = new CreatorFlag();
 
     @Override
     public void checkSupported(Attribute attribute) {

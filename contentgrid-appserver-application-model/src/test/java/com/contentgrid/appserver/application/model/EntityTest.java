@@ -7,9 +7,11 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
@@ -32,7 +34,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class EntityTest {
 
     private static final SimpleAttribute PRIMARY_KEY = SimpleAttribute.builder().name(AttributeName.of("id")).column(
-            ColumnName.of("id")).type(Type.UUID).build();
+            ColumnName.of("id")).type(Type.UUID).flag(ReadOnlyFlag.INSTANCE).build();
     private static final SimpleAttribute ATTRIBUTE1 = SimpleAttribute.builder().name(AttributeName.of("attribute1")).column(ColumnName.of("column1")).type(Type.TEXT).build();
     private static final SimpleAttribute ATTRIBUTE2 = SimpleAttribute.builder().name(AttributeName.of("attribute2")).column(ColumnName.of("column2")).type(Type.BOOLEAN).build();
     private static final ContentAttribute CONTENT1 = ContentAttribute.builder()
@@ -174,7 +176,7 @@ class EntityTest {
 
     @Test
     void entity_differentPrimaryKey() {
-        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).build();
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).flag(ReadOnlyFlag.INSTANCE).build();
         var entity = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
@@ -194,7 +196,7 @@ class EntityTest {
     @ParameterizedTest
     @ValueSource(strings = {"TEXT", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"})
     void entity_invalidPrimaryKey(Type type) {
-        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(type).build();
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(type).flag(ReadOnlyFlag.INSTANCE).build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
@@ -208,6 +210,24 @@ class EntityTest {
                 .sortableField(SORTABLE1);
 
         assertThrows(InvalidAttributeTypeException.class, builder::build);
+    }
+
+    @Test
+    void entity_invalidPrimaryKey_missingFlag() {
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .primaryKey(primaryKey)
+                .attribute(ATTRIBUTE1)
+                .attribute(ATTRIBUTE2)
+                .searchFilter(FILTER1)
+                .searchFilter(FILTER2)
+                .sortableField(SORTABLE1);
+
+        assertThrows(MissingFlagException.class, builder::build);
     }
 
     @Test
