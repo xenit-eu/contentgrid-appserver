@@ -24,6 +24,7 @@ import org.springframework.util.MimeType;
  * Validates entity instance data against the entity's attribute definitions. Ensures that all required attributes are
  * present and have the correct data types.
  */
+// TODO: move to domain layer ACC-2182
 @UtilityClass
 public class EntityDataValidator {
 
@@ -61,7 +62,7 @@ public class EntityDataValidator {
             Object value = data.get(key);
 
             if (value == null) {
-                // TODO check constraints ACC-2069
+                // TODO check constraints ACC-2069 ACC-2182
                 // For now, treat all attributes as optional
                 continue;
             }
@@ -156,7 +157,7 @@ public class EntityDataValidator {
     }
 
     private static String validateStringAttributeValue(Object value) {
-        // TODO: NullPointerException when value is null
+        // TODO: NullPointerException when value is null ACC-2182
         if (!(value instanceof String)) {
             throw new IllegalArgumentException("Expected text value, got: " + value.getClass().getSimpleName());
         }
@@ -180,7 +181,7 @@ public class EntityDataValidator {
         Map<AttributeName, Object> validatedData = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
 
-        // TODO: check for unknown and non-writable attributes
+        // TODO: check for unknown and non-writable attributes ACC-2182
 
         if (value instanceof Map map) {
             for (Attribute subAttribute : attribute.getAttributes()) {
@@ -202,7 +203,7 @@ public class EntityDataValidator {
                 }
             }
         } else {
-            // TODO add required check ACC-2069
+            // TODO add required check ACC-2069 ACC-2182
             throw new IllegalArgumentException("Expected map, got: " + value.getClass().getSimpleName());
         }
 
@@ -217,7 +218,7 @@ public class EntityDataValidator {
         Map<AttributeName, Object> validatedData = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
 
-        // TODO: check for unknown and non-writable attributes
+        // TODO: check for unknown and non-writable attributes ACC-2182
 
         if (value instanceof Map map) {
             // Filename
@@ -238,7 +239,7 @@ public class EntityDataValidator {
 
             // User doesn't get to set id or length
         }
-        // TODO add required check ACC-2069
+        // TODO add required check ACC-2069 ACC-2182
 
         if (!validationErrors.isEmpty()) {
             throw new AttributesValidationException(validationErrors);
@@ -247,8 +248,7 @@ public class EntityDataValidator {
     }
 
     private static Map<AttributeName, Object> validateUserAttributeValue(UserAttribute attribute, Object value) {
-        // TODO: check for unknown and non-writable attributes
-        // TODO how to provide user attributes as input?
+        // TODO: check for unknown and non-writable attributes ACC-2182
         return new HashMap<>();
     }
 }
