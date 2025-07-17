@@ -18,14 +18,28 @@ public sealed interface Attribute permits CompositeAttribute, SimpleAttribute {
 
     Set<AttributeFlag> getFlags();
 
+    /**
+     * Returns whether this attribute has a flag of the specified type.
+     *
+     * @param flagClass the class object representing the flag type
+     * @return whether this attribute has the flag
+     */
     default boolean hasFlag(Class<? extends AttributeFlag> flagClass) {
         return getFlags().stream().anyMatch(flagClass::isInstance);
     }
 
+    /**
+     * Returns whether this attribute is ignored in request and response bodies.
+     * @return whether this attribute is ignored
+     */
     default boolean isIgnored() {
         return hasFlag(IgnoredFlag.class);
     }
 
+    /**
+     * Returns whether this attribute is read-only.
+     * @return whether this attribute is read-only
+     */
     default boolean isReadOnly() {
         return hasFlag(ReadOnlyFlag.class);
     }
