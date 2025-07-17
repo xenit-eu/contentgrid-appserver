@@ -39,8 +39,8 @@ class AttributeTest {
         assertEquals(AttributeName.of("attribute"), attribute.getName());
         assertEquals(ColumnName.of("column"), attribute.getColumn());
         assertEquals(Type.TEXT, attribute.getType());
-        assertTrue(attribute.getConstraint(RequiredConstraint.class).isPresent());
-        assertTrue(attribute.getConstraint(UniqueConstraint.class).isEmpty());
+        assertTrue(attribute.hasConstraint(RequiredConstraint.class));
+        assertFalse(attribute.hasConstraint(UniqueConstraint.class));
         assertEquals(Set.of(), attribute.getFlags());
     }
 
@@ -51,8 +51,8 @@ class AttributeTest {
         assertEquals(AttributeName.of("attribute"), attribute.getName());
         assertEquals(ColumnName.of("column"), attribute.getColumn());
         assertEquals(Type.TEXT, attribute.getType());
-        assertTrue(attribute.getConstraint(UniqueConstraint.class).isPresent());
-        assertTrue(attribute.getConstraint(RequiredConstraint.class).isEmpty());
+        assertTrue(attribute.hasConstraint(UniqueConstraint.class));
+        assertFalse(attribute.hasConstraint(RequiredConstraint.class));
         assertEquals(Set.of(), attribute.getFlags());
     }
 
@@ -64,9 +64,9 @@ class AttributeTest {
         assertEquals(AttributeName.of("attribute"), attribute.getName());
         assertEquals(ColumnName.of("column"), attribute.getColumn());
         assertEquals(Type.TEXT, attribute.getType());
-        assertTrue(attribute.getConstraint(UniqueConstraint.class).isEmpty());
-        assertTrue(attribute.getConstraint(RequiredConstraint.class).isEmpty());
-        assertTrue(attribute.getConstraint(AllowedValuesConstraint.class).isPresent());
+        assertFalse(attribute.hasConstraint(UniqueConstraint.class));
+        assertFalse(attribute.hasConstraint(RequiredConstraint.class));
+        assertTrue(attribute.hasConstraint(AllowedValuesConstraint.class));
         assertEquals(List.of("test", "demo"), attribute.getConstraint(AllowedValuesConstraint.class).orElseThrow().getValues());
         assertEquals(Set.of(), attribute.getFlags());
     }

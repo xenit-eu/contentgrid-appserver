@@ -54,7 +54,7 @@ public class JOOQTableCreator implements TableCreator {
         switch (attribute) {
             case SimpleAttribute simpleAttribute -> {
                 var result = step.column(JOOQUtils.resolveField(simpleAttribute));
-                if (simpleAttribute.getConstraint(UniqueConstraint.class).isPresent()) {
+                if (simpleAttribute.hasConstraint(UniqueConstraint.class)) {
                     result = result.constraint(DSL.unique(simpleAttribute.getColumn().getValue()));
                 }
                 return result;

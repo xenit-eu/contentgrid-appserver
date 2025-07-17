@@ -81,6 +81,16 @@ public class SimpleAttribute implements Attribute {
     }
 
     /**
+     * Returns whether this attribute has a constraint of the specified type.
+     *
+     * @param constraintClass the class object representing the constraint type
+     * @return whether this attribute has the constraint
+     */
+    public boolean hasConstraint(Class<? extends Constraint> constraintClass) {
+        return getConstraints().stream().anyMatch(constraintClass::isInstance);
+    }
+
+    /**
      * Finds a constraint of the specified type associated with this attribute.
      *
      * @param <C> the type of constraint to find
