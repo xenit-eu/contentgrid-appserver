@@ -3,6 +3,8 @@ package com.contentgrid.appserver.application.model.attributes;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
@@ -38,7 +40,11 @@ public class UserAttribute implements CompositeAttribute {
             @NonNull ColumnName idColumn, @NonNull ColumnName namespaceColumn, @NonNull ColumnName usernameColumn) {
         this.name = name;
         this.description = description;
-        this.flags = flags;
+        if (flags.stream().anyMatch(flag -> flag instanceof ReadOnlyFlag || flag instanceof IgnoredFlag)) {
+            this.flags = flags;
+        } else {
+            throw new MissingFlagException("Writing to user attributes not supported, a ReadOnlyFlag or IgnoredFlag is required");
+        }
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
                 .type(Type.TEXT)
                 .flag(IgnoredFlag.INSTANCE)

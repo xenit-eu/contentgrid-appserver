@@ -15,12 +15,16 @@ import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConst
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
+import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -133,6 +137,51 @@ class AttributeTest {
         assertEquals(ColumnName.of("column__length"), attribute.getLength().getColumn());
         assertFalse(attribute.getLength().isIgnored());
         assertTrue(attribute.getLength().isReadOnly());
+    }
+
+    @Test
+    void readOnlyUserAttribute() {
+        var attribute = UserAttribute.builder()
+                .name(AttributeName.of("identity"))
+                .idColumn(ColumnName.of("identity__id"))
+                .usernameColumn(ColumnName.of("identity__name"))
+                .namespaceColumn(ColumnName.of("identity__ns"))
+                .flag(ReadOnlyFlag.INSTANCE)
+                .build();
+
+        assertEquals(ColumnName.of("identity__id"), attribute.getId().getColumn());
+        assertEquals(ColumnName.of("identity__name"), attribute.getUsername().getColumn());
+        assertEquals(ColumnName.of("identity__ns"), attribute.getNamespace().getColumn());
+        assertTrue(attribute.hasFlag(ReadOnlyFlag.class));
+    }
+
+    @Test
+    void ignoredUserAttribute() {
+        var attribute = UserAttribute.builder()
+                .name(AttributeName.of("identity"))
+                .idColumn(ColumnName.of("identity__id"))
+                .usernameColumn(ColumnName.of("identity__name"))
+                .namespaceColumn(ColumnName.of("identity__ns"))
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
+
+        assertEquals(ColumnName.of("identity__id"), attribute.getId().getColumn());
+        assertEquals(ColumnName.of("identity__name"), attribute.getUsername().getColumn());
+        assertEquals(ColumnName.of("identity__ns"), attribute.getNamespace().getColumn());
+        assertTrue(attribute.hasFlag(IgnoredFlag.class));
+    }
+
+    @Test
+    void userAttribute_missingReadOnlyFlag() {
+        AttributeFlag customFlag = attribute -> {};
+        var builder = UserAttribute.builder()
+                .name(AttributeName.of("identity"))
+                .idColumn(ColumnName.of("identity__id"))
+                .usernameColumn(ColumnName.of("identity__name"))
+                .namespaceColumn(ColumnName.of("identity__ns"))
+                .flag(customFlag);
+
+        assertThrows(MissingFlagException.class, builder::build);
     }
 
     @Test
