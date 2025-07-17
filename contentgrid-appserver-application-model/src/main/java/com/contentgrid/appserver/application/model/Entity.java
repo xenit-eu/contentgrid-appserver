@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -88,10 +89,12 @@ public class Entity implements HasAttributes {
                     .type(Type.UUID)
                     .flag(ReadOnlyFlag.INSTANCE)
                     .build();
-        } else if (Type.UUID.equals(primaryKey.getType())) {
-            this.primaryKey = primaryKey; // TODO: ensure ReadOnlyFlag is present
-        } else {
+        } else if (!Type.UUID.equals(primaryKey.getType())) {
             throw new InvalidAttributeTypeException("Type %s is not supported for primary key".formatted(primaryKey.getType()));
+        } else if (!primaryKey.hasFlag(ReadOnlyFlag.class)) {
+            throw new MissingFlagException("Primary key should have the ReadOnlyFlag");
+        } else {
+            this.primaryKey = primaryKey;
         }
 
         this.attributes.put(this.primaryKey.getName(), this.primaryKey);

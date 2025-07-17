@@ -15,6 +15,9 @@
         "type": "simple",
         "columnName": "dept_id",
         "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ],
         "constraints": [
           {
             "type": "required"
@@ -92,7 +95,10 @@
         "description": "The unique identifier for the employee",
         "type": "simple",
         "columnName": "emp_id",
-        "dataType": "uuid"
+        "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ]
       },
       "attributes": [
         {
@@ -241,6 +247,9 @@
         "type": "simple",
         "columnName": "proj_id",
         "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ],
         "constraints": [
           {
             "type": "required"
@@ -348,6 +357,9 @@
         "type": "simple",
         "columnName": "doc_id",
         "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ],
         "constraints": [
           {
             "type": "required"
@@ -420,6 +432,9 @@
         "type": "simple",
         "columnName": "skill_id",
         "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ],
         "constraints": [
           {
             "type": "required"
@@ -487,6 +502,9 @@
         "type": "simple",
         "columnName": "secret_id",
         "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ],
         "constraints": [
           {
             "type": "required"

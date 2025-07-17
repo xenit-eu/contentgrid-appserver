@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
@@ -195,7 +196,7 @@ class EntityTest {
     @ParameterizedTest
     @ValueSource(strings = {"TEXT", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"})
     void entity_invalidPrimaryKey(Type type) {
-        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(type).build();
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(type).flag(ReadOnlyFlag.INSTANCE).build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
@@ -209,6 +210,24 @@ class EntityTest {
                 .sortableField(SORTABLE1);
 
         assertThrows(InvalidAttributeTypeException.class, builder::build);
+    }
+
+    @Test
+    void entity_invalidPrimaryKey_missingFlag() {
+        var primaryKey = SimpleAttribute.builder().name(AttributeName.of("entity-id")).column(ColumnName.of("entity_id")).type(Type.UUID).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .primaryKey(primaryKey)
+                .attribute(ATTRIBUTE1)
+                .attribute(ATTRIBUTE2)
+                .searchFilter(FILTER1)
+                .searchFilter(FILTER2)
+                .sortableField(SORTABLE1);
+
+        assertThrows(MissingFlagException.class, builder::build);
     }
 
     @Test

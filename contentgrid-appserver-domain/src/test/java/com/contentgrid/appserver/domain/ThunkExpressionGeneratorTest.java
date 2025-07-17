@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -78,6 +79,7 @@ class ThunkExpressionGeneratorTest {
             .name(AttributeName.of("invoice_id"))
             .column(ColumnName.of("invoiced_id"))
             .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
             .build();
 
     private static final CompositeAttribute COMP_ATTR = CompositeAttributeImpl.builder()
