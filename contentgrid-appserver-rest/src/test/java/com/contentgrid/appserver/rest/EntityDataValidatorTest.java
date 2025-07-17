@@ -11,11 +11,6 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.attributes.UserAttribute;
-import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;

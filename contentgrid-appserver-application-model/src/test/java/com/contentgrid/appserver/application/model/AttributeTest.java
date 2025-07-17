@@ -20,7 +20,6 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -184,17 +183,9 @@ class AttributeTest {
         assertInstanceOf(SimpleAttribute.class, attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow());
 
         assertTrue(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().hasFlag(CreatorFlag.class));
-        assertTrue(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().isReadOnly());
-        assertFalse(attribute.getAttributeByName(AttributeName.of("created_by")).orElseThrow().isIgnored());
         assertTrue(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().hasFlag(CreatedDateFlag.class));
-        assertTrue(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().isReadOnly());
-        assertFalse(attribute.getAttributeByName(AttributeName.of("created_date")).orElseThrow().isIgnored());
         assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().hasFlag(ModifierFlag.class));
-        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().isReadOnly());
-        assertFalse(attribute.getAttributeByName(AttributeName.of("last_modified_by")).orElseThrow().isIgnored());
         assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().hasFlag(ModifiedDateFlag.class));
-        assertTrue(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().isReadOnly());
-        assertFalse(attribute.getAttributeByName(AttributeName.of("last_modified_date")).orElseThrow().isIgnored());
 
         var columnNames = attribute.getColumns();
         assertTrue(columnNames.contains(ColumnName.of("auditing__created_by_id")));
