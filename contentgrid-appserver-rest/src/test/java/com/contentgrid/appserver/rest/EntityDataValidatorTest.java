@@ -128,32 +128,26 @@ class EntityDataValidatorTest {
     class CompositeTest {
 
         Attribute attribute = CompositeAttributeImpl.builder()
-                .name(AttributeName.of("auditing"))
-                .attribute(UserAttribute.builder()
-                        .name(AttributeName.of("created_by"))
-                        .flag(CreatorFlag.INSTANCE)
-                        .idColumn(ColumnName.of("auditing__created_by_id"))
-                        .namespaceColumn(ColumnName.of("auditing__created_by_ns"))
-                        .usernameColumn(ColumnName.of("auditing__created_by_name"))
+                .name(AttributeName.of("address"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("country"))
+                        .column(ColumnName.of("address__country"))
+                        .type(Type.TEXT)
                         .build())
                 .attribute(SimpleAttribute.builder()
-                        .name(AttributeName.of("created_date"))
-                        .column(ColumnName.of("auditing__created_date"))
-                        .type(Type.DATETIME)
-                        .flag(CreatedDateFlag.INSTANCE)
-                        .build())
-                .attribute(UserAttribute.builder()
-                        .name(AttributeName.of("last_modified_by"))
-                        .idColumn(ColumnName.of("auditing__last_modified_by_id"))
-                        .namespaceColumn(ColumnName.of("auditing__last_modified_by_ns"))
-                        .usernameColumn(ColumnName.of("auditing__last_modified_by_name"))
-                        .flag(ModifierFlag.INSTANCE)
+                        .name(AttributeName.of("zip"))
+                        .column(ColumnName.of("address__zip"))
+                        .type(Type.TEXT)
                         .build())
                 .attribute(SimpleAttribute.builder()
-                        .name(AttributeName.of("last_modified_date"))
-                        .column(ColumnName.of("auditing__last_modified_date"))
-                        .type(Type.DATETIME)
-                        .flag(ModifiedDateFlag.INSTANCE)
+                        .name(AttributeName.of("street"))
+                        .column(ColumnName.of("address__street"))
+                        .type(Type.TEXT)
+                        .build())
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("number"))
+                        .column(ColumnName.of("address__number"))
+                        .type(Type.LONG)
                         .build())
                 .build();
 
@@ -169,14 +163,11 @@ class EntityDataValidatorTest {
         void testCompositeCorrect() {
 
             EntityDataValidator.validate(entity, Map.of(
-                    "auditing", Map.of(
-                            "created_date", "2025-05-25T05:25:25Z",
-                            "last_modified_date", "2026-06-26T06:26:26Z",
-                            "created_by", Map.of(
-                                    "id", "alan.smithee@example.com",
-                                    "name", "Alan Smithee",
-                                    "namespace", "https://keycloak.test/realms/cg-a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
-                            )
+                    "address", Map.of(
+                            "country", "TEST",
+                            "zip", "0123",
+                            "street", "EntityDataValidatorTest",
+                            "number", 0
                     )
             ));
         }
@@ -186,13 +177,15 @@ class EntityDataValidatorTest {
 
             var exception = assertThrows(InvalidEntityDataException.class, () ->
                     EntityDataValidator.validate(entity, Map.of(
-                            "auditing", Map.of(
-                                    "created_date", "2025-05-25T05:25:25Z",
-                                    "last_modified_date", "not a date"
+                            "address", Map.of(
+                                    "country", "TEST",
+                                    "zip", "0123",
+                                    "street", "EntityDataValidatorTest",
+                                    "number", "not an int"
                             )
                     )));
             assertEquals(1, exception.getInvalidAttributes().size());
-            assertTrue(exception.getValidationErrors().containsKey("auditing.last_modified_date"));
+            assertTrue(exception.getValidationErrors().containsKey("address.number"));
         }
     }
 

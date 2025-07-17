@@ -39,24 +39,26 @@ public class EntityDataValidator {
         Map<String, String> validationErrors = new HashMap<>();
         Map<String, Object> validatedData = new HashMap<>();
 
-        // Check for unknown attributes
+        // Check for unknown and non-writable attributes
         for (String attributeKey : data.keySet()) {
             AttributeName attrName = AttributeName.of(attributeKey);
-            if (entity.getAttributeByName(attrName).isEmpty()) {
+            if (entity.getAttributeByName(attrName)
+                    .filter(attribute -> !attribute.isIgnored() && !attribute.isReadOnly())
+                    .isEmpty()) {
                 validationErrors.put(attrName.getValue(), "Unknown attribute");
             }
         }
 
         // Validate each attribute
         for (Attribute attribute : entity.getAllAttributes()) {
+            // Skip validation of ignored and read-only attributes
+            if (attribute.isIgnored() || attribute.isReadOnly()) {
+                continue;
+            }
+
             AttributeName attributeName = attribute.getName();
             String key = attributeName.getValue();
             Object value = data.get(key);
-
-            // Skip primary key validation if not provided (will be generated)
-            if (entity.getPrimaryKey().getName().equals(attributeName) && value == null) {
-                continue;
-            }
 
             if (value == null) {
                 // TODO check constraints ACC-2069
@@ -154,6 +156,7 @@ public class EntityDataValidator {
     }
 
     private static String validateStringAttributeValue(Object value) {
+        // TODO: NullPointerException when value is null
         if (!(value instanceof String)) {
             throw new IllegalArgumentException("Expected text value, got: " + value.getClass().getSimpleName());
         }
@@ -177,8 +180,14 @@ public class EntityDataValidator {
         Map<AttributeName, Object> validatedData = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
 
+        // TODO: check for unknown and non-writable attributes
+
         if (value instanceof Map map) {
             for (Attribute subAttribute : attribute.getAttributes()) {
+                if (subAttribute.isIgnored() || subAttribute.isReadOnly()) {
+                    // Skip ignored and read-only attributes
+                    continue;
+                }
                 Object subAttributeValue = map.get(subAttribute.getName().getValue());
 
                 try {
@@ -208,6 +217,8 @@ public class EntityDataValidator {
         Map<AttributeName, Object> validatedData = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
 
+        // TODO: check for unknown and non-writable attributes
+
         if (value instanceof Map map) {
             // Filename
             try {
@@ -236,7 +247,8 @@ public class EntityDataValidator {
     }
 
     private static Map<AttributeName, Object> validateUserAttributeValue(UserAttribute attribute, Object value) {
-        // TODO check attribute flags for readonly/rest-ignored ACC-2070
+        // TODO: check for unknown and non-writable attributes
+        // TODO how to provide user attributes as input?
         return new HashMap<>();
     }
 }
