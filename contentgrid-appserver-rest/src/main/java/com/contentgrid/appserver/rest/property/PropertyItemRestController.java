@@ -5,6 +5,8 @@ import static com.contentgrid.appserver.rest.property.PropertyUtils.handleProper
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.appserver.rest.property.handler.PropertyItemRequestHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
+@SpecializedOnPropertyType(type = PropertyType.TO_MANY_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
 public class PropertyItemRestController {
 
     private final List<PropertyItemRequestHandler> requestHandlers;
