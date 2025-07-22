@@ -56,7 +56,7 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
         /* Some setters are called from within the constructor of a parent class.
             In that case, configurers is not initialized yet.
             We don't need to store that configurer at all, because it will also be called
-            during construction of the delegate mapping
+            during construction of the delegate mapping (StaticApplicationRequestMappingHandlerMapping).
          */
         if (configurers != null) {
             configurers.add(configurer);
