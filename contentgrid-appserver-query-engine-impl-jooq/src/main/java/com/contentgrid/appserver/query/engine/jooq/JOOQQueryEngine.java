@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -127,21 +128,23 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public EntityId create(@NonNull Application application, @NonNull EntityData data,
-            @NonNull List<RelationData> relations) throws QueryEngineException {
+    public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getRequiredEntity(application, data.getName());
+        var entity = getRequiredEntity(application, data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
-        if (data.getId() != null) {
-            throw new InvalidDataException("Provided data should not contain primary key, it is auto-generated");
-        }
 
         var step = dslContext.insertInto(table)
                 .set(primaryKey, id.getValue());
 
-        var list = EntityDataConverter.convert(data, entity);
+        var entityData = EntityData.builder()
+                .name(data.getEntityName())
+                .id(id)
+                .attributes(data.getAttributes())
+                .build();
+
+        var list = EntityDataConverter.convert(entityData, entity);
         for (var entry : list) {
             step = step.set(entry.field(), entry.value());
         }
@@ -150,10 +153,10 @@ public class JOOQQueryEngine implements QueryEngine {
         var nonOwningRelations = new ArrayList<RelationData>();
         var processedRelations = new HashSet<RelationName>();
 
-        for (var relationData : relations) {
+        for (var relationData : data.getRelations()) {
             if (!entity.getName().equals(relationData.getEntity())) {
                 throw new InvalidDataException("Entity '%s' from relation '%s' does not match entity '%s' from data"
-                        .formatted(relationData.getEntity(), relationData.getName(), data.getName()));
+                        .formatted(relationData.getEntity(), relationData.getName(), data.getEntityName()));
             }
             if (!processedRelations.add(relationData.getName())) {
                 throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
@@ -236,9 +239,6 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
-        if (id == null) {
-            throw new InvalidDataException("No entity id provided");
-        }
 
         UpdateSetFirstStep<?> update = dslContext.update(table);
         UpdateSetMoreStep<?> step = null;

@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.api;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -60,11 +61,10 @@ public interface QueryEngine {
      *
      * @param application the application context
      * @param data the data for the new entity
-     * @param relations the relationships to establish for the new entity
      * @return the value of the primary key for the newly created entity
      * @throws QueryEngineException if an error occurs during the create operation
      */
-    EntityId create(@NonNull Application application, @NonNull EntityData data, @NonNull List<RelationData> relations) throws QueryEngineException;
+    EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
