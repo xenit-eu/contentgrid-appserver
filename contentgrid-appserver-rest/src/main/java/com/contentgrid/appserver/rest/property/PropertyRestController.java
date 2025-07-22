@@ -5,6 +5,8 @@ import static com.contentgrid.appserver.rest.property.PropertyUtils.handleProper
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.appserver.rest.property.handler.PropertyRequestHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -21,11 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
+@SpecializedOnPropertyType(type = {PropertyType.TO_ONE_RELATION,
+        PropertyType.TO_MANY_RELATION}, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
 public class PropertyRestController {
 
     private final List<PropertyRequestHandler> requestHandlers;
 
-    @GetMapping("/{entityName}/{instanceId}/{propertyName}")
+    @GetMapping(value = "/{entityName}/{instanceId}/{propertyName}")
     public ResponseEntity<Object> getProperty(
             Application application,
             @PathVariable PathSegmentName entityName,
@@ -36,7 +40,7 @@ public class PropertyRestController {
                 requestHandler.getProperty(application, entity, instanceId, propertyName));
     }
 
-    @PostMapping("/{entityName}/{instanceId}/{propertyName}")
+    @PostMapping(value = "/{entityName}/{instanceId}/{propertyName}")
     public ResponseEntity<Object> postProperty(
             Application application,
             @PathVariable PathSegmentName entityName,
