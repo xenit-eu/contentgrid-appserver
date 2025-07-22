@@ -7,8 +7,5 @@ import lombok.NonNull;
 public sealed interface RelationData permits XToOneRelationData, XToManyRelationData  {
 
     @NonNull
-    EntityName getEntity();
-
-    @NonNull
     RelationName getName();
 }

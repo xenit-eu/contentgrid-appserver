@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -154,15 +153,12 @@ public class JOOQQueryEngine implements QueryEngine {
         var processedRelations = new HashSet<RelationName>();
 
         for (var relationData : data.getRelations()) {
-            if (!entity.getName().equals(relationData.getEntity())) {
-                throw new InvalidDataException("Entity '%s' from relation '%s' does not match entity '%s' from data"
-                        .formatted(relationData.getEntity(), relationData.getName(), data.getEntityName()));
-            }
             if (!processedRelations.add(relationData.getName())) {
                 throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
                         .formatted(relationData.getName()));
             }
-            var relation = getRequiredRelation(application, relationData);
+            var relation = application.getRelationForEntity(entity, relationData.getName())
+                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
 
             switch (relationData) {
                 case XToOneRelationData xToOneRelationData -> {
@@ -199,7 +195,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // add relations owned by other entities
         for (var relationData : nonOwningRelations) {
-            var relation = getRequiredRelation(application, relationData);
+            var relation = application.getRelationForEntity(entity, relationData.getName())
+                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
             switch (relationData) {
                 case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef());
                 case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs());
@@ -213,14 +210,6 @@ public class JOOQQueryEngine implements QueryEngine {
         try {
             return application.getRequiredEntityByName(entityName);
         } catch (com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException e) {
-            throw new InvalidDataException(e.getMessage(), e);
-        }
-    }
-
-    private Relation getRequiredRelation(Application application, RelationData relationData) throws InvalidDataException {
-        try {
-            return application.getRequiredRelationForEntity(relationData.getEntity(), relationData.getName());
-        } catch (RelationNotFoundException e) {
             throw new InvalidDataException(e.getMessage(), e);
         }
     }
