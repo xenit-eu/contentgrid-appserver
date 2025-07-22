@@ -15,14 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -232,11 +228,7 @@ class RelationRequestHandlerTest {
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
-                    .entity(EntityName.of("invoice"))
-                    .name(RelationName.of("previous_invoice"))
-                    .ref(targetId)
-                    .build(), INVOICE_ID);
+            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
         }
 
         @Test
@@ -248,11 +240,7 @@ class RelationRequestHandlerTest {
                             .content("http://localhost/persons/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
-                    .entity(EntityName.of("invoice"))
-                    .name(RelationName.of("customer"))
-                    .ref(targetId)
-                    .build(), INVOICE_ID);
+            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID, targetId);
         }
 
         @Test
@@ -302,12 +290,7 @@ class RelationRequestHandlerTest {
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, XToManyRelationData.builder()
-                    .entity(EntityName.of("person"))
-                    .name(RelationName.of("invoices"))
-                    .ref(invoice1)
-                    .ref(invoice2)
-                    .build(), PERSON_ID);
+            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
         }
 
         @Test
@@ -321,12 +304,7 @@ class RelationRequestHandlerTest {
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, XToManyRelationData.builder()
-                    .entity(EntityName.of("product"))
-                    .name(RelationName.of("invoices"))
-                    .ref(invoice1)
-                    .ref(invoice2)
-                    .build(), PRODUCT_ID);
+            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, Set.of(invoice1, invoice2));
         }
 
         @Test
@@ -586,11 +564,7 @@ class RelationRequestHandlerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
-                    .setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
-                            .entity(EntityName.of("invoice"))
-                            .name(RelationName.of("previous_invoice"))
-                            .ref(targetId)
-                            .build(), INVOICE_ID);
+                    .setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
@@ -604,11 +578,7 @@ class RelationRequestHandlerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .setRelation(TestApplication.APPLICATION, XToOneRelationData.builder()
-                            .entity(EntityName.of("invoice"))
-                            .name(RelationName.of("previous_invoice"))
-                            .ref(targetId)
-                            .build(), INVOICE_ID);
+                    .setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
@@ -623,12 +593,7 @@ class RelationRequestHandlerTest {
             var invoice2 = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
-                    .addRelationItems(TestApplication.APPLICATION, XToManyRelationData.builder()
-                            .entity(EntityName.of("person"))
-                            .name(RelationName.of("invoices"))
-                            .ref(invoice1)
-                            .ref(invoice2)
-                            .build(), PERSON_ID);
+                    .addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
@@ -644,12 +609,7 @@ class RelationRequestHandlerTest {
             var invoice2 = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .addRelationItems(TestApplication.APPLICATION, XToManyRelationData.builder()
-                            .entity(EntityName.of("person"))
-                            .name(RelationName.of("invoices"))
-                            .ref(invoice1)
-                            .ref(invoice2)
-                            .build(), PERSON_ID);
+                    .addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")

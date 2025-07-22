@@ -11,7 +11,6 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
@@ -109,13 +108,8 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
         if (maybeId.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
         }
-        var data = XToOneRelationData.builder()
-                .entity(property.getSourceEndPoint().getEntity().getName())
-                .name(property.getSourceEndPoint().getName())
-                .ref(maybeId.get())
-                .build();
         try {
-            datamodelApi.setRelation(application, data, instanceId);
+            datamodelApi.setRelation(application, property, instanceId, maybeId.get());
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

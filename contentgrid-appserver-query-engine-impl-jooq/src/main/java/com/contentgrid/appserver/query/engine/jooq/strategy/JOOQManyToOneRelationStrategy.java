@@ -50,14 +50,14 @@ public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrat
     }
 
     @Override
-    public void create(DSLContext dslContext, ManyToOneRelation relation, EntityId id, XToOneRelationData data) {
+    public void create(DSLContext dslContext, ManyToOneRelation relation, EntityId id, EntityId targetId) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
 
         try {
             var updated = dslContext.update(table)
-                    .set(targetRef, data.getRef().getValue())
+                    .set(targetRef, targetId.getValue())
                     .where(sourceRef.eq(id.getValue()))
                     .execute();
 

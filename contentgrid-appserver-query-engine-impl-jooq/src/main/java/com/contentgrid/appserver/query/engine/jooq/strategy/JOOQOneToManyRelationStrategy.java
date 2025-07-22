@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
@@ -8,6 +9,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -64,17 +66,17 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
         }
     }
 
-    private Collection<UUID> getRefs(XToManyRelationData data) {
-        return data.getRefs().stream().map(EntityId::getValue).toList();
+    private Collection<UUID> getRefs(Set<EntityId> data) {
+        return data.stream().map(EntityId::getValue).toList();
     }
 
     @Override
     public void add(DSLContext dslContext, OneToManyRelation relation, EntityId id,
-            XToManyRelationData data) {
+            Set<EntityId> targetIds) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
-        var refs = getRefs(data);
+        var refs = getRefs(targetIds);
 
         try {
             var updated = dslContext.update(table)
@@ -92,11 +94,11 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
 
     @Override
     public void remove(DSLContext dslContext, OneToManyRelation relation, EntityId id,
-            XToManyRelationData data) {
+            Set<EntityId> targetIds) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
-        var refs = getRefs(data);
+        var refs = getRefs(targetIds);
 
         try {
             var updated = dslContext.update(table)
@@ -107,7 +109,7 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
             if (updated < refs.size()) {
                 throw new EntityNotFoundException(
                         "Entities provided that are not linked to entity '%s' with primary key '%s'"
-                                .formatted(data.getEntity(), id));
+                                .formatted(relation.getTargetEndPoint().getEntity(), id));
             }
         } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
             if (relation.getTargetEndPoint().isRequired()) {

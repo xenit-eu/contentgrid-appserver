@@ -87,7 +87,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
         }
     }
 
-    public abstract void create(DSLContext dslContext, R relation, EntityId id, XToOneRelationData data);
+    public abstract void create(DSLContext dslContext, R relation, EntityId id, EntityId targetId);
 
     @Override
     public void delete(DSLContext dslContext, R relation, EntityId id) {

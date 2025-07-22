@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Field;
@@ -195,9 +196,10 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // add relations owned by other entities
         for (var relationData : nonOwningRelations) {
+            var relation = getRequiredRelation(application, relationData);
             switch (relationData) {
-                case XToOneRelationData xToOneRelationData -> this.setLink(application, xToOneRelationData, id);
-                case XToManyRelationData xToManyRelationData -> this.addLinks(application, xToManyRelationData, id);
+                case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef());
+                case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs());
             }
         }
 
@@ -317,12 +319,11 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
+    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        strategy.create(dslContext, relation, id, data);
+        strategy.create(dslContext, relation, id, targetId);
     }
 
     @Override
@@ -334,20 +335,18 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.add(dslContext, relation, id, data);
+        strategy.add(dslContext, relation, id, targetIds);
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.remove(dslContext, relation, id, data);
+        strategy.remove(dslContext, relation, id, targetIds);
     }
 }
