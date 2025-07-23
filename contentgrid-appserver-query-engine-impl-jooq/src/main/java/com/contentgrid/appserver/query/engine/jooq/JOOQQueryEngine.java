@@ -23,7 +23,8 @@ import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
@@ -77,7 +78,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression, SortData sortData, PageData pageData) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> expression, SortData sortData, QueryPageData page) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
@@ -86,10 +87,14 @@ public class JOOQQueryEngine implements QueryEngine {
                 ? sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList()
                 : List.<OrderField<?>>of();
 
+        var offsetAndLimit = convertPageData(page);
+
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
+                .offset(offsetAndLimit.offset())
+                .limit(offsetAndLimit.limit())
                 .fetch()
                 .intoMaps();
 
@@ -101,6 +106,20 @@ public class JOOQQueryEngine implements QueryEngine {
                         // TODO: ACC-2048: support paging
                         .build())
                 .build();
+    }
+
+    private record OffsetAndLimit(long offset, int limit) {}
+
+    private static OffsetAndLimit convertPageData(QueryPageData data)  {
+        if (data == null) {
+            return new OffsetAndLimit(0, 20); // defaults
+        }
+
+        if (!(data instanceof OffsetData offsetData)) {
+            throw new RuntimeException("Only offset-based query paging is implemented");
+        }
+
+        return new OffsetAndLimit(offsetData.getOffset(), offsetData.getLimit());
     }
 
     private static SortField<Object> convert(Entity entity, FieldSort field) {
@@ -419,5 +438,21 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.remove(dslContext, relation, id, targetIds);
+    }
+
+    @Override
+    public long exactCount(@NonNull Application application, @NonNull Entity entity,
+            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
+        var dslContext = resolver.resolve(application);
+        var context = new JOOQContext(application, entity);
+        var alias = context.getRootAlias();
+        var table = JOOQUtils.resolveTable(entity, alias);
+
+        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        var count = dslContext.selectCount().from(table)
+                .where(condition)
+                .fetchOne(0, long.class);
+
+        return count;
     }
 }

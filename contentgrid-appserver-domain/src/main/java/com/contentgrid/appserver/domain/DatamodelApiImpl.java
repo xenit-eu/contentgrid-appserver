@@ -22,18 +22,26 @@ import com.contentgrid.appserver.domain.data.validation.ContentAttributeModifica
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
+import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.paging.PageBasedPagination;
+import com.contentgrid.appserver.domain.paging.ResultSlice;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.hateoas.pagination.api.Pagination;
+import com.contentgrid.hateoas.pagination.api.PaginationControls;
+import com.contentgrid.hateoas.pagination.offset.OffsetPagination;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
     private final ContentStore contentStore;
+    private final CursorCodec cursorCodec;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -85,13 +94,44 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public SliceData findAll(@NonNull Application application,
-            @NonNull Entity entity,
-            @NonNull Map<String, String> params, SortData sort, PageData pageData)
+    public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
+            @NonNull Map<String, String> params, SortData sort, EncodedCursorPagination pagination)
             throws EntityNotFoundException, InvalidThunkExpressionException {
+
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
         validateSortData(entity, sort);
-        return queryEngine.findAll(application, entity, filter, sort, pageData);
+
+        var offsetData = convertPaginationToOffset(pagination, entity.getName(), params);
+
+        // Request one extra row, so we can see if it's present → there is a next page
+        var page = new OffsetData(offsetData.getLimit() + 1, offsetData.getOffset());
+        var result = queryEngine.findAll(application, entity, filter, sort, page);
+        // Get a total count of how many items match these params (to be replaced with an estimate count at some point)
+        var count = ItemCount.exact(queryEngine.exactCount(application, entity, filter));
+        var size = result.getEntities().size();
+
+        PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
+                sort, params, offsetData, size);
+
+        if (size > offsetData.getLimit()) {
+            // Remove the extra row again
+            return new ResultSlice(result.getEntities().subList(0, offsetData.getLimit()), controls, count);
+        } else {
+            return new ResultSlice(result.getEntities(), controls, count);
+        }
+    }
+
+    private OffsetData convertPaginationToOffset(Pagination pagination, EntityName entityName, Map<String, String> params) {
+        if (pagination == null) {
+            // use defaults
+            return new OffsetData(EncodedCursorPagination.PAGE_SIZE, 0);
+        }
+        return switch(pagination) {
+            case OffsetPagination o -> new OffsetData(o.getPageSize(), o.getPageNumber() * o.getPageSize());
+            case EncodedCursorPagination e -> convertPaginationToOffset(cursorCodec.decodeCursor(e.getCursorContext(), entityName.getValue(), params), null, null);
+            case PageBasedPagination p -> new OffsetData(p.getSize(), p.getPage() * p.getSize());
+            default -> throw new IllegalStateException("Unexpected value: " + pagination);
+        };
     }
 
     private void validateSortData(Entity entity, SortData sortData) {

@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.exception;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -107,6 +108,13 @@ public class ContentGridExceptionHandler {
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
         );
+    }
+
+    @ExceptionHandler(CursorDecodeException.class)
+    ResponseEntity<Problem> handleInvalidCursor(@NonNull CursorDecodeException e) {
+        return createResponse(problemFactory.createProblem(ProblemType.INVALID_PAGINATION_PARAMETER)
+                .withStatus(HttpStatus.BAD_REQUEST)
+                .withDetail(e.getMessage()));
     }
 
     @ExceptionHandler(InvalidPropertyDataException.class)

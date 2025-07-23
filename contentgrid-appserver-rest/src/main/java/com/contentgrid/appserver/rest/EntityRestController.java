@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.PageData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -12,7 +13,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -35,6 +35,7 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.http.ETag;
+import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -66,14 +67,14 @@ public class EntityRestController {
     }
 
     // Workaround for https://github.com/spring-projects/spring-framework/issues/23820
-    // We need this so you have have a single ?sort=foo,asc parameter without it splitting on the comma
+    // We need this so you can have a single ?sort=foo,asc parameter without it splitting on the comma
     @InitBinder
     public void initBinder(WebDataBinder binder) {
         binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
     }
 
     @GetMapping("/{entityName}")
-    public CollectionModel<EntityDataRepresentationModel> listEntity(
+    public CollectionModel<?> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
@@ -83,9 +84,15 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
         var sortData = parseSortData(sort);
 
-        var results = datamodelApi.findAll(application, entity, params, sortData, defaultPageData());
+        var results = datamodelApi.findAll(application, entity, params, sortData, null);
 
-        return assembler.withContext(application).toCollectionModel(results.getEntities());
+        EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
+        var models = results.getContent().stream()
+                .map(res -> wrappers.wrap(assembler.withContext(application).toModel(res), IanaLinkRelations.ITEM))
+                .toList();
+        // TODO use page data and count data
+//        return PagedModel.of(models, fromPageInfo(results.getPageInfo()));
+        return CollectionModel.of(models);
     }
 
     @GetMapping("/{entityName}/{instanceId}")

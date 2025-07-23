@@ -7,14 +7,15 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.hateoas.pagination.api.Slice;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -33,13 +34,13 @@ public interface DatamodelApi {
      * @param application the application context
      * @param entity the entity type to query
      * @param params the parameters to filter entities
-     * @param pageData pagination parameters for the query
+     * @param pagination pagination parameters for the query
      * @return a slice of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, String> params,
-            SortData sort, PageData pageData) throws EntityNotFoundException, InvalidThunkExpressionException;
+    Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
+            SortData sort, EncodedCursorPagination pagination)
+            throws EntityNotFoundException, InvalidThunkExpressionException, CursorDecodeException;
 
     /**
      * Finds an entity that matches the given id.

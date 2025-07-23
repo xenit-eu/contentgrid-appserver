@@ -33,6 +33,9 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
@@ -65,8 +68,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 public class ContentgridAppConfiguration {
 
     @Bean
-    public DatamodelApi api(QueryEngine queryEngine, ContentStore contentStore) {
-        return new DatamodelApiImpl(queryEngine, contentStore);
+    public DatamodelApi api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec) {
+        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec);
     }
 
     @Bean
@@ -103,6 +106,11 @@ public class ContentgridAppConfiguration {
         return new FilesystemContentStore(Files.createTempDirectory("contentgrid", PosixFilePermissions.asFileAttribute(permissions)));
     }
 
+
+    @Bean
+    CursorCodec cursorCodec() {
+        return new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
+    }
 
     @Bean
     ApplicationResolver applicationResolver() {

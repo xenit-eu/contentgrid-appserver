@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -53,6 +55,7 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -81,6 +84,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -1867,6 +1871,43 @@ class JOOQQueryEngineTest {
         )), null);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+    }
+
+    @Test
+    void testPaging() {
+        // Make a lot of data
+        dslContext.truncateTable(PRODUCT.getTable().getValue(), INVOICE_PRODUCTS.getJoinTable().getValue()).execute();
+        var inserter = dslContext.insertInto(DSL.table(PRODUCT.getTable().getValue()),
+                        DSL.field("id", UUID.class), DSL.field("code", String.class), DSL.field("description", String.class));
+        for (int i = 0; i < 10_000; i++) {
+            inserter = inserter.values(UUID_GENERATOR.generate(), "code_%04d".formatted(i), "a product");
+        }
+        inserter.execute();
+
+        Function<EntityData, String> getCode = data -> ((SimpleAttributeData<String>) data
+                .getAttributeByName(PRODUCT_CODE.getName()).get()).getValue();
+
+        // Validate limits work
+        var firstPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(40, 0));
+        assertEquals(40, firstPage.getEntities().size());
+        assertEquals("code_0000", getCode.apply(firstPage.getEntities().getFirst()));
+        assertEquals("code_0039", getCode.apply(firstPage.getEntities().getLast()));
+
+        // Validate offsets work
+        var fourthPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 60));
+        assertEquals(20, fourthPage.getEntities().size());
+        assertEquals("code_0060", getCode.apply(fourthPage.getEntities().getFirst()));
+        assertEquals("code_0079", getCode.apply(fourthPage.getEntities().getLast()));
+
+        // Validate page info near the end is correct
+        var lastPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 9990));
+        assertEquals(10, lastPage.getEntities().size());
+        assertEquals("code_9990", getCode.apply(lastPage.getEntities().getFirst()));
+        assertEquals("code_9999", getCode.apply(lastPage.getEntities().getLast()));
+
+        // Validate default limits (not fetching all 10k by default)
+        var unspecified = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, null);
+        assertThat(unspecified.getEntities().size(), lessThan(1000));
     }
 
     @SpringBootApplication

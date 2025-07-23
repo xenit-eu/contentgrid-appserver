@@ -7,7 +7,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
+import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -38,12 +38,13 @@ public interface QueryEngine {
      * @param application the application context
      * @param entity the entity type to query
      * @param expression the predicate expression to filter entities
-     * @param pageData pagination parameters for the query
+     * @param sortData sorting parameters for the query
+     * @param page pagination parameters for the query
      * @return a slice of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
     SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression,
-            SortData sortData, PageData pageData) throws QueryEngineException;
+            SortData sortData, QueryPageData page) throws QueryEngineException;
 
     /**
      * Finds an entity that matches the requested identity
@@ -163,4 +164,14 @@ public interface QueryEngine {
      */
     void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
 
+    /**
+     * Counts how many entities exist that match the given expression.
+     *
+     * @param application the application context
+     * @param entity the entity type to query
+     * @param expression the predicate expression to filter entities
+     * @return a slice of entities matching the criteria
+     * @throws QueryEngineException if an error occurs during the query operation
+     */
+    long exactCount(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
 }
