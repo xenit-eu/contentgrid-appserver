@@ -11,7 +11,6 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
@@ -96,20 +95,18 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         if (body.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
-        var dataBuilder = XToManyRelationData.builder()
-                .entity(property.getSourceEndPoint().getEntity().getName())
-                .name(property.getSourceEndPoint().getName());
         var matcher = getMatcherForTargetEntity(application, property);
+        var targetIds = new java.util.HashSet<EntityId>();
 
         for (var element : body) {
             var maybeId = matcher.tryMatch(element.toString());
             if (maybeId.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
             }
-            dataBuilder.ref(maybeId.get());
+            targetIds.add(maybeId.get());
         }
         try {
-            datamodelApi.addRelationItems(application, dataBuilder.build(), instanceId);
+            datamodelApi.addRelationItems(application, property, instanceId, targetIds);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

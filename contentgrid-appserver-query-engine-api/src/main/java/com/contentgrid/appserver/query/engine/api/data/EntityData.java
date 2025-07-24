@@ -20,13 +20,14 @@ public class EntityData {
     @NonNull
     EntityName name;
 
+    @NonNull
     EntityId id;
 
     @Getter(AccessLevel.NONE)
     Map<AttributeName, AttributeData> attributes = new HashMap<>();
 
     @Builder
-    EntityData(@NonNull EntityName name, EntityId id, @Singular List<AttributeData> attributes) {
+    EntityData(@NonNull EntityName name, @NonNull EntityId id, @Singular List<AttributeData> attributes) {
         this.name = name;
         this.id = id;
         for (var attribute : attributes) {

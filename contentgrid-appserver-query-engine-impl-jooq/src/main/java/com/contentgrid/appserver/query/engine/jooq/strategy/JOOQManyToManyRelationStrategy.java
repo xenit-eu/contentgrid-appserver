@@ -2,11 +2,11 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -71,14 +71,14 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
     }
 
     @Override
-    public void add(DSLContext dslContext, ManyToManyRelation relation, EntityId id, XToManyRelationData data) {
+    public void add(DSLContext dslContext, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
         var step = dslContext.insertInto(table, sourceRef, targetRef);
 
-        for (var ref : data.getRefs()) {
-            step = step.values(id.getValue(), ref.getValue());
+        for (var targetId : targetIds) {
+            step = step.values(id.getValue(), targetId.getValue());
         }
 
         try {
@@ -91,11 +91,11 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
     }
 
     @Override
-    public void remove(DSLContext dslContext, ManyToManyRelation relation, EntityId id, XToManyRelationData data) {
+    public void remove(DSLContext dslContext, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
-        var refs = data.getRefs().stream()
+        var refs = targetIds.stream()
                 .map(EntityId::getValue)
                 .toList();
 
@@ -105,7 +105,7 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
 
         if (deleted < refs.size()) {
             throw new EntityNotFoundException("Some provided target entities of relation '%s' not found"
-                    .formatted(data.getName()));
+                    .formatted(relation.getSourceEndPoint().getName()));
         }
     }
 

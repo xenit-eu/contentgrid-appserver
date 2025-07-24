@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -87,7 +86,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
         }
     }
 
-    public abstract void create(DSLContext dslContext, R relation, EntityId id, XToOneRelationData data);
+    public abstract void create(DSLContext dslContext, R relation, EntityId id, EntityId targetId);
 
     @Override
     public void delete(DSLContext dslContext, R relation, EntityId id) {

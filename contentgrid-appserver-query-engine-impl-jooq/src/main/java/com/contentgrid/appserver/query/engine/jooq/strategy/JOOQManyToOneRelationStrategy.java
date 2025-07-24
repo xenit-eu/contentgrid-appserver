@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -50,14 +49,14 @@ public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrat
     }
 
     @Override
-    public void create(DSLContext dslContext, ManyToOneRelation relation, EntityId id, XToOneRelationData data) {
+    public void create(DSLContext dslContext, ManyToOneRelation relation, EntityId id, EntityId targetId) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
 
         try {
             var updated = dslContext.update(table)
-                    .set(targetRef, data.getRef().getValue())
+                    .set(targetRef, targetId.getValue())
                     .where(sourceRef.eq(id.getValue()))
                     .execute();
 

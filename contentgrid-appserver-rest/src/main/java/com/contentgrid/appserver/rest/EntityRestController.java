@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -19,7 +20,6 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,7 +107,7 @@ public class EntityRestController {
         var converted = EntityDataValidator.validate(entity, data);
         var entityData = createEntityData(converted, entity);
 
-        var id = datamodelApi.create(application, entityData, List.of());
+        var id = datamodelApi.create(application, entityData);
         var result = datamodelApi.findById(application, entity, id).orElseThrow();
 
         RepresentationModel<?> model = assembler.withContext(application).toModel(result);
@@ -126,7 +126,12 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         var converted = EntityDataValidator.validate(entity, data);
-        var entityData = createEntityData(converted, entity);
+        var entityCreateData = createEntityData(converted, entity);
+        var entityData = EntityData.builder()
+                .name(entityCreateData.getEntityName())
+                .attributes(entityCreateData.getAttributes())
+                .id(id)
+                .build();
 
         try {
             datamodelApi.update(application, id, entityData);
@@ -143,9 +148,11 @@ public class EntityRestController {
                 .body(model);
     }
 
-    private static EntityData createEntityData(Map<String, Object> data, Entity entity) {
+    private static EntityCreateData createEntityData(Map<String, Object> data, Entity entity) {
         // Should this just be rolled into the EntityDataValidator? 🤔
-        return EntityData.builder().name(entity.getName()).attributes(data.entrySet().stream()
+        return EntityCreateData.builder()
+                .entityName(entity.getName())
+                .attributes(data.entrySet().stream()
                 .map(entry -> {
                     var providedAttributeName = entry.getKey();
                     var attributeData = entry.getValue();

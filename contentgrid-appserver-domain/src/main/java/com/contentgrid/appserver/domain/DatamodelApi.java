@@ -4,19 +4,17 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.NonNull;
 
 /**
@@ -55,12 +53,10 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param data the data for the new entity
-     * @param relations the relationships to establish for the new entity
      * @return the value of the primary key for the newly created entity
      * @throws QueryEngineException if an error occurs during the create operation
      */
-    EntityId create(@NonNull Application application, @NonNull EntityData data, @NonNull List<RelationData> relations)
-            throws QueryEngineException;
+    EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
@@ -110,15 +106,16 @@ public interface DatamodelApi {
     Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
-     * Link the target entity id provided in data with the given source id.
+     * Link the target entity id with the given source id.
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param data the relation data containing the links to set
+     * @param relation the relation to set
      * @param id the primary key of the source entity
+     * @param targetId the primary key of the target entity to link
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -131,26 +128,28 @@ public interface DatamodelApi {
     void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
 
     /**
-     * Adds the links provided in data to the entity with the given id.
+     * Adds the target entity links to the entity with the given id.
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param data the relation data containing the links to add
+     * @param relation the relation to add links to
      * @param id the primary key of the source entity
+     * @param targetIds the primary keys of the target entities to link
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
 
     /**
-     * Removes the links provided in data from the entity with the given id.
+     * Removes the target entity links from the entity with the given id.
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param data the relation data containing the links to remove
+     * @param relation the relation to remove links from
      * @param id the primary key of the source entity
+     * @param targetIds the primary keys of the target entities to unlink
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id) throws QueryEngineException;
+    void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
 
     /**
      * Unlink the given target id from the given source id of the given relation.
@@ -163,12 +162,7 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the remove operation
      */
     default void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException {
-        var data = XToManyRelationData.builder()
-                .entity(relation.getSourceEndPoint().getEntity().getName())
-                .name(relation.getSourceEndPoint().getName())
-                .ref(targetId)
-                .build();
-        removeRelationItems(application, data, sourceId);
+        removeRelationItems(application, relation, sourceId, Set.of(targetId));
     }
 
 }

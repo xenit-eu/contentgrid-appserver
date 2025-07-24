@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -62,7 +61,7 @@ public final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelation
 
     @Override
     public void create(DSLContext dslContext, TargetOneToOneRelation relation, EntityId id,
-            XToOneRelationData data) {
+            EntityId targetId) {
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
@@ -70,12 +69,12 @@ public final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelation
         try {
             var updated = dslContext.update(table)
                     .set(sourceRef, id.getValue())
-                    .where(targetRef.eq(data.getRef().getValue()))
+                    .where(targetRef.eq(targetId.getValue()))
                     .execute();
 
             if (updated == 0) {
                 throw new EntityNotFoundException(
-                        "Entity with primary key '%s' not found".formatted(data.getRef()));
+                        "Entity with primary key '%s' not found".formatted(targetId));
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found

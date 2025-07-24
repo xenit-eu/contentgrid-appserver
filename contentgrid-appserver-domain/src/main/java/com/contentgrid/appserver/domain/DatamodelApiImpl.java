@@ -8,24 +8,22 @@ import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundExce
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -57,9 +55,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public EntityId create(@NonNull Application application, @NonNull EntityData data,
-            @NonNull List<RelationData> relations) throws QueryEngineException {
-        return queryEngine.create(application, data, relations);
+    public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
+        return queryEngine.create(application, data);
     }
 
     @Override
@@ -108,9 +105,9 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
+    public void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId)
             throws QueryEngineException {
-        queryEngine.setLink(application, data, id);
+        queryEngine.setLink(application, relation, id, targetId);
     }
 
     @Override
@@ -120,14 +117,14 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void addRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
-        queryEngine.addLinks(application, data, id);
+        queryEngine.addLinks(application, relation, id, targetIds);
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
-        queryEngine.removeLinks(application, data, id);
+        queryEngine.removeLinks(application, relation, id, targetIds);
     }
 }

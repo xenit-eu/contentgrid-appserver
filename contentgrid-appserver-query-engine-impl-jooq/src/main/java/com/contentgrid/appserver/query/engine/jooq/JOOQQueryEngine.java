@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -15,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.Field;
@@ -126,21 +127,23 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public EntityId create(@NonNull Application application, @NonNull EntityData data,
-            @NonNull List<RelationData> relations) throws QueryEngineException {
+    public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getRequiredEntity(application, data.getName());
+        var entity = getRequiredEntity(application, data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
-        if (data.getId() != null) {
-            throw new InvalidDataException("Provided data should not contain primary key, it is auto-generated");
-        }
 
         var step = dslContext.insertInto(table)
                 .set(primaryKey, id.getValue());
 
-        var list = EntityDataConverter.convert(data, entity);
+        var entityData = EntityData.builder()
+                .name(data.getEntityName())
+                .id(id)
+                .attributes(data.getAttributes())
+                .build();
+
+        var list = EntityDataConverter.convert(entityData, entity);
         for (var entry : list) {
             step = step.set(entry.field(), entry.value());
         }
@@ -149,16 +152,13 @@ public class JOOQQueryEngine implements QueryEngine {
         var nonOwningRelations = new ArrayList<RelationData>();
         var processedRelations = new HashSet<RelationName>();
 
-        for (var relationData : relations) {
-            if (!entity.getName().equals(relationData.getEntity())) {
-                throw new InvalidDataException("Entity '%s' from relation '%s' does not match entity '%s' from data"
-                        .formatted(relationData.getEntity(), relationData.getName(), data.getName()));
-            }
+        for (var relationData : data.getRelations()) {
             if (!processedRelations.add(relationData.getName())) {
                 throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
                         .formatted(relationData.getName()));
             }
-            var relation = getRequiredRelation(application, relationData);
+            var relation = application.getRelationForEntity(entity, relationData.getName())
+                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
 
             switch (relationData) {
                 case XToOneRelationData xToOneRelationData -> {
@@ -195,9 +195,11 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // add relations owned by other entities
         for (var relationData : nonOwningRelations) {
+            var relation = application.getRelationForEntity(entity, relationData.getName())
+                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
             switch (relationData) {
-                case XToOneRelationData xToOneRelationData -> this.setLink(application, xToOneRelationData, id);
-                case XToManyRelationData xToManyRelationData -> this.addLinks(application, xToManyRelationData, id);
+                case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef());
+                case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs());
             }
         }
 
@@ -208,14 +210,6 @@ public class JOOQQueryEngine implements QueryEngine {
         try {
             return application.getRequiredEntityByName(entityName);
         } catch (com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException e) {
-            throw new InvalidDataException(e.getMessage(), e);
-        }
-    }
-
-    private Relation getRequiredRelation(Application application, RelationData relationData) throws InvalidDataException {
-        try {
-            return application.getRequiredRelationForEntity(relationData.getEntity(), relationData.getName());
-        } catch (RelationNotFoundException e) {
             throw new InvalidDataException(e.getMessage(), e);
         }
     }
@@ -234,9 +228,6 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
-        if (id == null) {
-            throw new InvalidDataException("No entity id provided");
-        }
 
         UpdateSetFirstStep<?> update = dslContext.update(table);
         UpdateSetMoreStep<?> step = null;
@@ -317,12 +308,11 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull XToOneRelationData data, @NonNull EntityId id)
+    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        strategy.create(dslContext, relation, id, data);
+        strategy.create(dslContext, relation, id, targetId);
     }
 
     @Override
@@ -334,20 +324,18 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.add(dslContext, relation, id, data);
+        strategy.add(dslContext, relation, id, targetIds);
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull XToManyRelationData data, @NonNull EntityId id)
+    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var relation = getRequiredRelation(application, data);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.remove(dslContext, relation, id, data);
+        strategy.remove(dslContext, relation, id, targetIds);
     }
 }
