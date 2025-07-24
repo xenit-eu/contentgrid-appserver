@@ -4,6 +4,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AMOUNT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AUDIT_METADATA;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONFIDENTIALITY;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONTENT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CUSTOMER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_IS_PAID;
@@ -12,6 +13,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_RECEIVED;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
@@ -111,6 +113,7 @@ class DatamodelApiImplTest {
                     "received", Instant.now(clock),
                     "pay_before", Instant.now(clock).plus(30, ChronoUnit.DAYS),
                     "is_paid", false,
+                    "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
             )));
 
@@ -124,6 +127,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
                         new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), Instant.now(clock).plus(30, ChronoUnit.DAYS)),
                         new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), false),
+                        new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                         CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName())
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
@@ -146,7 +150,8 @@ class DatamodelApiImplTest {
         void missingRequiredProperties_fails() {
             assertThatThrownBy(() -> {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                        "received", Instant.now(clock)
+                        "received", Instant.now(clock),
+                        "confidentiality", "public"
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -172,6 +177,7 @@ class DatamodelApiImplTest {
                         "amount", Instant.now(clock),
                         "received", "abc",
                         "is_paid", "maybe",
+                        "confidentiality", "public",
                         "customer", "test123"
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
@@ -202,6 +208,7 @@ class DatamodelApiImplTest {
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
+                    "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
                     "products", productIds.stream()
                             .map(pid -> new RelationDataEntry(PRODUCT.getName(), pid))
@@ -215,6 +222,7 @@ class DatamodelApiImplTest {
                 assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                        new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                         new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
                         new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
@@ -261,7 +269,8 @@ class DatamodelApiImplTest {
                 assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(PERSON_NAME.getName(), "test"),
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
-                        new SimpleAttributeData<>(PERSON_AGE.getName(), null)
+                        new SimpleAttributeData<>(PERSON_AGE.getName(), null),
+                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null)
                 );
 
                 assertThat(createData.getRelations()).isEmpty();
@@ -277,6 +286,7 @@ class DatamodelApiImplTest {
                  datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
                         "amount", 1.50,
+                        "confidentiality", "public",
                         "customer", customer,
                         "products", products
                 )));
@@ -319,6 +329,7 @@ class DatamodelApiImplTest {
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
+                    "confidentiality", "public",
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", 120, InputStream::nullInputStream)
             )));
 
@@ -332,6 +343,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
                         new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), Instant.now(clock).plus(30, ChronoUnit.DAYS)),
                         new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), false),
+                        new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                         CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName())
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
@@ -351,6 +363,7 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
+                    "confidentiality", "public",
                     "content", Map.of(
                             "id", "123",
                             "filename", "test-file.pdf",
@@ -383,6 +396,7 @@ class DatamodelApiImplTest {
                     "number", "invoice-1",
                     "amount", 1.50,
                     "received", Instant.now(clock),
+                    "confidentiality", "public",
                     "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                     "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
             )));
@@ -393,6 +407,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
+                    new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null), // Is set to null
                     new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null), // Is also set to null during an update
                     CompositeAttributeData.builder()
@@ -411,7 +426,8 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, INVOICE.getName(), EntityId.of(UUID.randomUUID()),
                         MapRequestInputData.fromMap(Map.of(
-                                "received", Instant.now(clock)
+                                "received", Instant.now(clock),
+                                "confidentiality", "public"
                         )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -442,6 +458,7 @@ class DatamodelApiImplTest {
             datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
+                    "confidentiality", "public",
                     "content", Map.of(
                             "filename", "file-123.pdf",
                             "mimetype", "application/pdf",
@@ -455,6 +472,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     // Missing values are set to null
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -487,6 +505,7 @@ class DatamodelApiImplTest {
             datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
+                    "confidentiality", "public",
                     "content", new FileDataEntry("file-123.pdf", "application/pdf", 120, InputStream::nullInputStream)
             )));
 
@@ -495,6 +514,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     // Missing values are set to null
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -530,6 +550,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
+                    "confidentiality", "public",
                     "received", Instant.now(clock),
                     "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                     "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
@@ -540,6 +561,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                     // amount is missing here, and thus not overwritten
+                    new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null) // Is set to null
                     // is_paid is missing here, and thus not overwritten
