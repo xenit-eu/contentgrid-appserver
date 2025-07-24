@@ -20,7 +20,6 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

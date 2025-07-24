@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.query.engine.api.data;
 
-import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import lombok.NonNull;
 

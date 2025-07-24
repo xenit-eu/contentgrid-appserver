@@ -3,7 +3,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;

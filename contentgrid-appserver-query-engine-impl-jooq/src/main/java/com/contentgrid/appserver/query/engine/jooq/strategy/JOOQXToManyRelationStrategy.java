@@ -2,7 +2,6 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import java.util.Set;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
