@@ -1474,8 +1474,8 @@ class JOOQQueryEngineTest {
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID), // alice is not an invoice
                 // Duplicate value for a one-to-one relation
                 Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
-                // XToOneRelationData for *-to-many relation
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID) // should be XToManyRelationData
+                // For *-to-many relation
+                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID)
         );
     }
 
@@ -1614,7 +1614,7 @@ class JOOQQueryEngineTest {
                 // One-to-many: non-existing target ref
                 Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
                 // Many-to-many: non-existing source ref
-                Arguments.of(ALICE_ID, INVOICE_PRODUCTS /* not an invoice */, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
+                Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // Many-to-many: non-existing target ref
                 Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /* not a product */, PRODUCT3_ID)),
                 // Many-to-many: already linked values
@@ -1634,7 +1634,7 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> invalidRemoveRelationData() {
         return Stream.of(
                 // Non-existing source ref
-                Arguments.of(ALICE_ID, INVOICE_PRODUCTS /* not an invoice */, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
+                Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // Non-existing target ref
                 Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /*  not a product */, PRODUCT3_ID)),
                 // Invalid target value
