@@ -47,6 +47,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class EntityRestController {
 
+    public static final String SORT_NAME = "_sort";
+
     private final DatamodelApi datamodelApi;
     private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
 
@@ -67,7 +69,7 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false, name = "_sort") String[] sort,
+            @RequestParam(required = false, name = SORT_NAME) String[] sort,
             @RequestParam Map<String, String> params
     ) {
         var entity = getEntityOrThrow(application, entityName);
