@@ -3,22 +3,18 @@ package com.contentgrid.appserver.rest.data;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
-import com.contentgrid.appserver.domain.data.transformers.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.transformers.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.convert.ConversionException;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
@@ -26,20 +22,17 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 public class MultipartRequestInputData implements RequestInputData {
     private final ParameterAccess<String> requestParams;
     private final ParameterAccess<MultipartFile> files;
-    private final ConversionService conversionService;
 
-    public static MultipartRequestInputData fromRequest(@NonNull HttpServletRequest servletRequest, @NonNull ConversionService conversionService) {
+    public static MultipartRequestInputData fromRequest(@NonNull HttpServletRequest servletRequest) {
         if(servletRequest instanceof MultipartHttpServletRequest multipartServletRequest) {
             return new MultipartRequestInputData(
                     new ServletRequestParameterAccess(servletRequest.getParameterMap()),
-                    ParameterAccess.forMap(multipartServletRequest.getMultiFileMap()),
-                    conversionService
+                    ParameterAccess.forMap(multipartServletRequest.getMultiFileMap())
             );
         }
         return new MultipartRequestInputData(
                 new ServletRequestParameterAccess(servletRequest.getParameterMap()),
-                ParameterAccess.forMap(Map.of()),
-                conversionService
+                ParameterAccess.forMap(Map.of())
         );
     }
 
@@ -92,20 +85,11 @@ public class MultipartRequestInputData implements RequestInputData {
             throw new InvalidDataTypeException(DataType.of(entryTypeHint), TechnicalDataType.CONTENT);
         }
 
-        if(DataEntry.ScalarDataEntry.class.isAssignableFrom(entryTypeHint)) {
-            try {
-                return requestParams.getAll(key)
-                        .stream()
-                        .map(param -> Optional.<DataEntry>ofNullable(conversionService.convert(param, entryTypeHint))
-                                .orElse(NullDataEntry.INSTANCE)
-                        )
-                        .toList();
-            } catch(ConversionException e) {
-                throw new InvalidDataFormatException(DataType.of(entryTypeHint), e);
-            }
-        }
-
-        throw new InvalidDataTypeException(DataType.of(entryTypeHint), TechnicalDataType.STRING);
+        // Fallback to return strings from the parameters
+        return requestParams.getAll(key)
+                .stream()
+                .map(StringDataEntry::new)
+                .toList();
     }
 
     @Override
@@ -118,8 +102,7 @@ public class MultipartRequestInputData implements RequestInputData {
 
         var inputData = new MultipartRequestInputData(
                 new NestedParameterAccess<>(key+".", requestParams),
-                new NestedParameterAccess<>(key+".", files),
-                conversionService
+                new NestedParameterAccess<>(key+".", files)
         );
 
         if(inputData.keys().findAny().isEmpty()) {

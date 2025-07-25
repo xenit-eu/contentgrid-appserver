@@ -17,10 +17,10 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
-import jakarta.servlet.ServletRequest;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import jakarta.servlet.http.HttpServletRequest;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +28,7 @@ import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.PagedModel.PageMetadata;
@@ -105,10 +106,13 @@ public class EntityRestController {
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
+        GenericConversionService conversionService = new GenericConversionService();
+        conversionService.addConverter(new StringDataEntryToRelationDataEntryConverter(application));
+
         var result = datamodelApi.create(
                 application,
                 entity.getName(),
-                data
+                new ConversionServiceRequestInputData(data, conversionService)
         );
 
         var model = assembler.withContext(application).toModel(result);
@@ -123,7 +127,7 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             HttpServletRequest request
     ) throws InvalidPropertyDataException {
-        return createEntity(application, entityName, MultipartRequestInputData.fromRequest(request, conversionService));
+        return createEntity(application, entityName, new ConversionServiceRequestInputData(MultipartRequestInputData.fromRequest(request), conversionService));
     }
 
     @PutMapping("/{entityName}/{id}")

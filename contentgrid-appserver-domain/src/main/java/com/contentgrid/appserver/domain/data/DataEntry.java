@@ -237,12 +237,15 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
     }
 
     @Value
+    @Builder
+    @RequiredArgsConstructor
     class MultipleRelationDataEntry implements AnyRelationDataEntry {
 
         @NonNull
         EntityName targetEntity;
 
         @NonNull
+        @Singular
         List<EntityId> targetIds;
 
         @Override

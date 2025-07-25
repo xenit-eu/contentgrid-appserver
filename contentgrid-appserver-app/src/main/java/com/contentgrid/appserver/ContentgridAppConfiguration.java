@@ -34,11 +34,10 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
-import com.contentgrid.appserver.rest.data.conversion.StringToBooleanDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringToDecimalDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringToInstantDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringToLongDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringToStringDataEntryConverter;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -84,11 +83,10 @@ public class ContentgridAppConfiguration {
             @Override
             public void addFormatters(FormatterRegistry registry) {
                 if(registry instanceof ConversionService conversionService) {
-                    registry.addConverter(new StringToBooleanDataEntryConverter(conversionService));
-                    registry.addConverter(new StringToDecimalDataEntryConverter(conversionService));
-                    registry.addConverter(new StringToInstantDataEntryConverter(conversionService));
-                    registry.addConverter(new StringToLongDataEntryConverter(conversionService));
-                    registry.addConverter(new StringToStringDataEntryConverter());
+                    registry.addConverter(new StringDataEntryToBooleanDataEntryConverter(conversionService));
+                    registry.addConverter(new StringDataEntryToDecimalDataEntryConverter(conversionService));
+                    registry.addConverter(new StringDataEntryToInstantDataEntryConverter(conversionService));
+                    registry.addConverter(new StringDataEntryToLongDataEntryConverter(conversionService));
                 } else {
                     throw new IllegalStateException("Registry is not a ConversionService");
                 }

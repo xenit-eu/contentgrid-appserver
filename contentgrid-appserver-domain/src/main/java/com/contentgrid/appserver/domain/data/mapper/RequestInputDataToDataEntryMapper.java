@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
@@ -16,6 +17,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.MultipleRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
@@ -24,9 +26,13 @@ import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.RequestInputData.DataResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.MissingResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.NullResult;
+import com.contentgrid.appserver.domain.data.transformers.AsTypeDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
+import com.contentgrid.appserver.domain.data.transformers.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.type.DataType;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -112,9 +118,22 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             var listResult = inputData.getList(relationName.getValue(), RelationDataEntry.class);
             return switch (listResult) {
                 case DataResult<List<? extends DataEntry>> v -> {
-                    var builder = ListDataEntry.builder();
+                    var targetEntity = relation.getTargetEndPoint().getEntity().getName();
+                    var builder = MultipleRelationDataEntry.builder()
+                            .targetEntity(targetEntity);
+
                     for (var item : v.get()) {
-                        builder.item((PlainDataEntry) item);
+                        item.map(new AsTypeDataEntryTransformer<>(RelationDataEntry.class))
+                                .validate(entry -> {
+                                    if(!Objects.equals(targetEntity, entry.getTargetEntity())) {
+                                        throw new InvalidDataTypeException(
+                                                DataType.of(relation),
+                                                DataType.of(entry)
+                                        );
+                                    }
+                                })
+                                .map(RelationDataEntry::getTargetId)
+                                .ifPresent(builder::targetId);
                     }
                     yield builder.build();
                 }

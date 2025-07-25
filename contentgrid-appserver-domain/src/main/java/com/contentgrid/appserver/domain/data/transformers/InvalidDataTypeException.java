@@ -22,6 +22,7 @@ public class InvalidDataTypeException extends InvalidDataException {
 
     @Override
     public String getMessage() {
-        return "Expected type %s, but got type %s".formatted(expectedType, actualType);
+        return "Expected type %s, but got type %s".formatted(expectedType.getHumanDescription(), actualType.getHumanDescription());
+
     }
 }

@@ -8,12 +8,12 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 
 @RequiredArgsConstructor
-public class StringToInstantDataEntryConverter implements Converter<String, InstantDataEntry> {
+public class StringDataEntryToInstantDataEntryConverter implements Converter<StringDataEntry, InstantDataEntry> {
     private final ConversionService conversionService;
 
     @Override
-    public InstantDataEntry convert(String source) {
-        var instant = conversionService.convert(source, Instant.class);
+    public InstantDataEntry convert(StringDataEntry source) {
+        var instant = conversionService.convert(source.getValue(), Instant.class);
         if(instant == null) {
             return null;
         }

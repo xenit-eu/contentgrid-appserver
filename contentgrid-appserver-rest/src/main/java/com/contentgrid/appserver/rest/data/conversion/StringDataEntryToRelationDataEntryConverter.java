@@ -3,9 +3,9 @@ package com.contentgrid.appserver.rest.data.conversion;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
@@ -15,12 +15,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.converter.Converter;
 
 @RequiredArgsConstructor
-public class StringToRelationDataEntryConverter implements Converter<String, RelationDataEntry> {
+public class StringDataEntryToRelationDataEntryConverter implements Converter<StringDataEntry, RelationDataEntry> {
     @NonNull
     private final Application application;
 
     @Override
-    public RelationDataEntry convert(String source) {
+    public RelationDataEntry convert(StringDataEntry source) {
+        var value = source.getValue();
         var matcher = UriTemplateMatcher.<RelationDataEntry>builder()
                 .matcherFor(methodOn(EntityRestController.class)
                                 .getEntity(null, null, null),
@@ -28,7 +29,7 @@ public class StringToRelationDataEntryConverter implements Converter<String, Rel
                             var entityPathSegment = params.get("entityName");
                             var entityId = params.get("instanceId");
                             var entity = application.getEntityByPathSegment(PathSegmentName.of(entityPathSegment))
-                                    .orElseThrow(() -> new IllegalArgumentException("Invalid entity URL '%s': no entity mapped to path '%s'".formatted(source, entityPathSegment)));
+                                    .orElseThrow(() -> new IllegalArgumentException("Invalid entity URL '%s': no entity mapped to path '%s'".formatted(value, entityPathSegment)));
 
                             return new RelationDataEntry(
                                     entity.getName(),
@@ -37,8 +38,8 @@ public class StringToRelationDataEntryConverter implements Converter<String, Rel
                         })
                 .build();
 
-        return matcher.tryMatch(source)
+        return matcher.tryMatch(value)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid entity URL '%s'".formatted(source)));
+                        "Invalid entity URL '%s'".formatted(value)));
     }
 }

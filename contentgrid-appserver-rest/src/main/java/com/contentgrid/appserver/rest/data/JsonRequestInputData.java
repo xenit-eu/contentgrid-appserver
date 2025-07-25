@@ -45,11 +45,12 @@ public class JsonRequestInputData implements RequestInputData {
     private final ObjectNode rootNode;
     private final ObjectCodec codec;
 
+    private static final ClassMapping<StringDataEntry, String> STRING_CLASS_MAPPING = new ClassMapping<>(
+            StringDataEntry.class, String.class, StringDataEntry::new);
     private static final Map<Class<? extends ScalarDataEntry>, ClassMapping<?, ?>> CLASS_MAPPING = Stream.of(
             new ClassMapping<>(BooleanDataEntry.class, Boolean.class, BooleanDataEntry::new),
             new ClassMapping<>(LongDataEntry.class, Long.class, LongDataEntry::new),
             new ClassMapping<>(DecimalDataEntry.class, BigDecimal.class, DecimalDataEntry::new),
-            new ClassMapping<>(StringDataEntry.class, String.class, StringDataEntry::new),
             new ClassMapping<>(InstantDataEntry.class, Instant.class, InstantDataEntry::new)
     ).collect(Collectors.toUnmodifiableMap(ClassMapping::dataEntryClass, Function.identity()));
 
@@ -125,10 +126,7 @@ public class JsonRequestInputData implements RequestInputData {
             return NullDataEntry.INSTANCE;
         }
         try (var parser = node.traverse(codec)){
-            var classMapping = CLASS_MAPPING.get(typeHint);
-            if(classMapping == null) {
-                throw new InvalidDataTypeException(DataType.of(typeHint), nodeToDataType(node));
-            }
+            var classMapping = CLASS_MAPPING.getOrDefault(typeHint, STRING_CLASS_MAPPING);
             return classMapping.parseUsing(parser);
         } catch (IOException e) {
             throw new InvalidDataFormatException(DataType.of(typeHint), e);
