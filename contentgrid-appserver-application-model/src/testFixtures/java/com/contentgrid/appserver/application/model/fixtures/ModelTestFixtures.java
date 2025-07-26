@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest;
+package com.contentgrid.appserver.application.model.fixtures;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -34,7 +34,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 
-public class TestApplication {
+public class ModelTestFixtures {
 
     public static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))

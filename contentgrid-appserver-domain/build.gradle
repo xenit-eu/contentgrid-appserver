@@ -11,6 +11,7 @@ dependencies {
     api 'com.contentgrid.hateoas:contentgrid-pagination-api:0.0.3'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

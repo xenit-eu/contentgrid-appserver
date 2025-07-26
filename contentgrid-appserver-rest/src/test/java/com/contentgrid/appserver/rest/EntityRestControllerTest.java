@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest;
 
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -54,7 +55,7 @@ class EntityRestControllerTest {
         @Bean
         @Primary
         public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(TestApplication.APPLICATION);
+            return new SingleApplicationResolver(APPLICATION);
         }
     }
 
@@ -63,11 +64,11 @@ class EntityRestControllerTest {
 
     @BeforeEach
     void setup() {
-        tableCreator.createTables(TestApplication.APPLICATION);
+        tableCreator.createTables(APPLICATION);
     }
     @AfterEach
     void teardown() {
-        tableCreator.dropTables(TestApplication.APPLICATION);
+        tableCreator.dropTables(APPLICATION);
     }
 
     @Test
