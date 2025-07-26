@@ -15,18 +15,22 @@ import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryM
 import com.contentgrid.appserver.domain.data.mapper.TransformingDataEntryMapper;
 import com.contentgrid.appserver.domain.data.transformers.FilterDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
+import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -98,10 +102,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
         );
 
+        var exceptionCollector = new ValidationExceptionCollector();
+        var attributes = exceptionCollector.use(() -> inputMapper.mapAttributes(requestData));
+        var relations = exceptionCollector.use(() -> inputMapper.mapRelations(requestData));
+        exceptionCollector.rethrow();
+
         var createData = EntityCreateData.builder()
                 .entityName(entityName)
-                .attributes(inputMapper.mapAttributes(requestData))
-                .relations(inputMapper.mapRelations(requestData))
+                .attributes(attributes)
+                .relations(relations)
                 .build();
 
         return queryEngine.create(application, createData);

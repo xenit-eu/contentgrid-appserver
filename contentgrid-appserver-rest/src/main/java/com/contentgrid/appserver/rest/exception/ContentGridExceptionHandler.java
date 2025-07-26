@@ -100,7 +100,13 @@ public class ContentGridExceptionHandler {
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
                         .withProperties(Map.of(
-                                "property-path", exception.getPath().toList()
+                                "property-path", exception.getPath().toList(),
+                                "all-errors", exception.allExceptions()
+                                        .map(ex -> Map.of(
+                                                "detail", ex.getMessage(),
+                                                "property-path", ex.getPath().toList()
+                                        ))
+                                        .toList()
                         ))
         );
     }

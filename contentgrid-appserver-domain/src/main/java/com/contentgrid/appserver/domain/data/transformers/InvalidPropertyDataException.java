@@ -7,6 +7,8 @@ import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
+import java.util.Arrays;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -25,6 +27,16 @@ public class InvalidPropertyDataException extends InvalidDataException {
     @Override
     public synchronized InvalidDataException getCause() {
         return (InvalidDataException) super.getCause();
+    }
+
+    public Stream<InvalidPropertyDataException> allExceptions() {
+        return Stream.concat(
+                Stream.of(this),
+                Arrays.stream(getSuppressed())
+                        .filter(InvalidPropertyDataException.class::isInstance)
+                        .map(InvalidPropertyDataException.class::cast)
+                        .flatMap(InvalidPropertyDataException::allExceptions)
+        );
     }
 
     @Override

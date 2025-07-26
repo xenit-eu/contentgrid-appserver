@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import java.util.ArrayList;
@@ -28,21 +29,26 @@ public class RequestInputDataMapper {
 
     private final RelationMapper<RequestInputData, Optional<RelationData>> relationMapper;
 
+
     public List<AttributeData> mapAttributes(RequestInputData requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<AttributeData>(attributes.size());
+        var exceptionCollector = new ValidationExceptionCollector();
         for (var attribute : attributes) {
-            attributeMapper.mapAttribute(attribute, requestInputData)
-                    .ifPresent(data::add);
+            exceptionCollector.use(() -> attributeMapper.mapAttribute(attribute, requestInputData)
+                    .ifPresent(data::add));
         }
+        exceptionCollector.rethrow();
         return data;
     }
 
     public List<RelationData> mapRelations(RequestInputData requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<RelationData>(relations.size());
+        var exceptionCollector = new ValidationExceptionCollector();
         for (var relation : relations) {
-            relationMapper.mapRelation(relation, requestInputData)
-                    .ifPresent(data::add);
+            exceptionCollector.use(() -> relationMapper.mapRelation(relation, requestInputData)
+                    .ifPresent(data::add));
         }
+        exceptionCollector.rethrow();
         return data;
     }
 
