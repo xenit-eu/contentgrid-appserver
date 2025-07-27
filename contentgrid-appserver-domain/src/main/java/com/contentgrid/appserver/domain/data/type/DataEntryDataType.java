@@ -55,7 +55,7 @@ final class DataEntryDataType {
 
             @Override
             public DataType transform(MultipleRelationDataEntry multipleRelationDataEntry) {
-                return of(multipleRelationDataEntry);
+                return RelationListDataType.to(multipleRelationDataEntry.getTargetEntity());
             }
 
             @Override

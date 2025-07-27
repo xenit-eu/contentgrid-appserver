@@ -8,7 +8,6 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.domain.data.AnyRelationDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.AnyRelationDataEntry;
@@ -103,6 +102,10 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
                     .map(new AsTypeDataEntryTransformer<>(getTypeForRelation(relation)) {
                         @Override
                         public Result<AnyRelationDataEntry> transform(NullDataEntry nullDataEntry) {
+                            // TODO: If relations can ever be used for entity updates; don't discard null values
+                            // Instead, there should be a complete split between to-one and to-many relations.
+                            // The null value would be valid to clear a to-one relation, but would be invalid to clear a to-many relation
+                            // (that would require an empty list)
                             return Result.empty();
                         }
                     })

@@ -8,12 +8,10 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -128,7 +126,8 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                                     if(!Objects.equals(targetEntity, entry.getTargetEntity())) {
                                         throw new InvalidDataTypeException(
                                                 DataType.of(relation),
-                                                DataType.of(entry)
+                                                // We need to create a MultipleRelationDataEntry, so the the exception correctly reports this to be a multiple relations entry
+                                                DataType.of(MultipleRelationDataEntry.builder().targetEntity(entry.getTargetEntity()).build())
                                         );
                                     }
                                 })

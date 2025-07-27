@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.data;
 
+import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
@@ -12,11 +13,13 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
 import com.contentgrid.appserver.domain.data.transformers.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.type.DataType;
+import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -31,15 +34,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MapRequestInputData implements RequestInputData {
     @NonNull
-    private final Map<String, ? extends DataEntry> data;
+    private final Map<String, ?> data;
 
     public static RequestInputData fromMap(Map<String, Object> map) {
-        return new MapRequestInputData(
-                map.entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(entry.getKey(), convertValue(entry.getValue())))
-                        .collect(Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue))
-        );
+        return new MapRequestInputData(map);
     }
 
     private static DataEntry convertValue(Object value) {
@@ -53,6 +51,7 @@ public class MapRequestInputData implements RequestInputData {
             case BigDecimal bigDecimal -> new DecimalDataEntry(bigDecimal);
             case String s -> new StringDataEntry(s);
             case Instant instant -> new InstantDataEntry(instant);
+            case Boolean bool -> new BooleanDataEntry(bool);
             case List<?> list -> new ListDataEntry(list.stream()
                     .map(MapRequestInputData::convertValue)
                     .map(PlainDataEntry.class::cast)
@@ -61,13 +60,17 @@ public class MapRequestInputData implements RequestInputData {
                     .map(entry -> Map.entry((String)entry.getKey(), (PlainDataEntry)convertValue(entry.getValue())))
                     .collect(Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue))
             );
+            case DataEntry dataEntry -> dataEntry;
             default -> throw new IllegalArgumentException("Unsupported value "+value.getClass());
         };
     }
 
     @Override
     public Stream<String> keys() {
-        return data.keySet().stream();
+        return data.entrySet().stream()
+                // Filter out all values that have been marked as missing
+                .filter(entry -> !Objects.equals(entry.getValue(), MissingDataEntry.INSTANCE))
+                .map(Entry::getKey);
     }
 
     @Override
@@ -76,29 +79,44 @@ public class MapRequestInputData implements RequestInputData {
         if(value == null) {
             return MissingDataEntry.INSTANCE;
         }
-        return value;
+        return switch (value) {
+            case List<?> list -> throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.LIST);
+            case Map<?, ?> map -> throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.OBJECT);
+            default -> convertValue(value);
+        };
     }
 
     @Override
     public Result<List<? extends DataEntry>> getList(String key, Class<? extends DataEntry> entryTypeHint)
             throws InvalidDataException {
-        var dataEntry = get(key, ListDataEntry.class);
-        return switch (dataEntry) {
+        if(!data.containsKey(key)) {
+            return Result.missing();
+        }
+
+        var value = data.get(key);
+        return switch (value) {
+            case null -> Result.empty();
             case MissingDataEntry ignored -> Result.missing();
             case NullDataEntry ignored -> Result.empty();
+            case List<?> list -> Result.of(list.stream().map(MapRequestInputData::convertValue).toList());
             case ListDataEntry listDataEntry -> Result.of(listDataEntry.getItems());
-            default -> throw new InvalidDataTypeException(DataType.of(ListDataEntry.class), DataType.of(dataEntry));
+            default -> throw new InvalidDataTypeException(DataType.of(ListDataEntry.class), DataType.of(convertValue(value)));
         };
     }
 
     @Override
     public Result<RequestInputData> nested(String key) throws InvalidDataException {
-        var dataEntry = get(key, MapDataEntry.class);
-        return switch (dataEntry) {
+        if(!data.containsKey(key)) {
+            return Result.missing();
+        }
+        var value = data.get(key);
+        return switch (value) {
+            case null -> Result.empty();
             case MissingDataEntry ignored -> Result.missing();
             case NullDataEntry ignored -> Result.empty();
+            case Map map -> Result.of(new MapRequestInputData(map));
             case MapDataEntry mapDataEntry -> Result.of(new MapRequestInputData(mapDataEntry.getItems()));
-            default -> throw new InvalidDataTypeException(DataType.of(MapDataEntry.class), DataType.of(dataEntry));
+            default -> throw new InvalidDataTypeException(DataType.of(MapDataEntry.class), DataType.of(convertValue(value)));
         };
     }
 }

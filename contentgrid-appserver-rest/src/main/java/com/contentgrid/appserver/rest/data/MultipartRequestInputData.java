@@ -123,13 +123,10 @@ public class MultipartRequestInputData implements RequestInputData {
         }
     }
 
+    @RequiredArgsConstructor
     private static class MapParameterAccess<T> implements ParameterAccess<T> {
 
         private final Map<String, List<T>> map;
-
-        public MapParameterAccess(Map<String, List<T>> map) {
-            this.map = map;
-        }
 
         @Override
         public Stream<String> keys() {
