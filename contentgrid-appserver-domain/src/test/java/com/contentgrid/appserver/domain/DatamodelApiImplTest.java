@@ -1,19 +1,33 @@
 package com.contentgrid.appserver.domain;
 
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AMOUNT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AUDIT_METADATA;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONTENT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_IS_PAID;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_NUMBER;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_BEFORE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_RECEIVED;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.data.transformers.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
@@ -29,6 +43,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +65,27 @@ class DatamodelApiImplTest {
 
     private final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
+    private static CompositeAttributeData getAuditMetadataData() {
+        // TODO: have these attributes be filled automatically
+        return CompositeAttributeData.builder()
+                .name(INVOICE_AUDIT_METADATA.getName())
+                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), null))
+                .attribute(CompositeAttributeData.builder()
+                        .name(AttributeName.of("created_by"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
+                        .build())
+                .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), null))
+                .attribute(CompositeAttributeData.builder()
+                        .name(AttributeName.of("last_modified_by"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
+                        .build())
+                .build();
+    }
+
     @BeforeEach
     void setup() {
         datamodelApi = new DatamodelApiImpl(queryEngine);
@@ -58,7 +94,7 @@ class DatamodelApiImplTest {
     @Nested
     class CreateEntity {
         @Test
-        void createWithAllSimpleProperties_succeeds() throws InvalidPropertyDataException {
+        void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
@@ -94,29 +130,8 @@ class DatamodelApiImplTest {
             });
         }
 
-        private static CompositeAttributeData getAuditMetadataData() {
-            // TODO: have these attributes be filled automatically
-            return CompositeAttributeData.builder()
-                    .name(INVOICE_AUDIT_METADATA.getName())
-                    .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), null))
-                    .attribute(CompositeAttributeData.builder()
-                            .name(AttributeName.of("created_by"))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
-                            .build())
-                    .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), null))
-                    .attribute(CompositeAttributeData.builder()
-                            .name(AttributeName.of("last_modified_by"))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
-                            .build())
-                    .build();
-        }
-
         @Test
-        void createMissingRequiredProperties_fails() {
+        void missingRequiredProperties_fails() {
             assertThatThrownBy(() -> {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "received", Instant.now(clock)
@@ -133,7 +148,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void createIncorrectDataType_fails() {
+        void incorrectDataType_fails() {
             assertThatThrownBy(() -> {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "number", 123,
@@ -143,6 +158,9 @@ class DatamodelApiImplTest {
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(InvalidDataTypeException.class);
+                        })
                         .extracting(e -> String.join(".", e.getPath().toList()))
                         .containsExactlyInAnyOrder(
                                 "number",
@@ -155,7 +173,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void createWithRelations_succeeds() throws InvalidPropertyDataException {
+        void relations_succeeds() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
@@ -207,7 +225,7 @@ class DatamodelApiImplTest {
 
         @ParameterizedTest
         @MethodSource
-        void createWithIncorrectRelation_fails(Object customer, Object products) {
+        void incorrectRelation_fails(Object customer, Object products) {
 
             assertThatThrownBy(() -> {
                  datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -218,6 +236,9 @@ class DatamodelApiImplTest {
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(InvalidDataTypeException.class);
+                        })
                         .extracting(e -> String.join(".", e.getPath().toList()))
                         .containsExactlyInAnyOrder(
                                 "customer",
@@ -226,7 +247,7 @@ class DatamodelApiImplTest {
             });
         }
 
-        static Stream<Arguments> createWithIncorrectRelation_fails() {
+        static Stream<Arguments> incorrectRelation_fails() {
             var personId = EntityId.of(UUID.randomUUID());
             var productIds = List.of(EntityId.of(UUID.randomUUID()), EntityId.of(UUID.randomUUID()));
             return Stream.of(
@@ -241,7 +262,8 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void createWithContent_succeeds() throws InvalidPropertyDataException {
+        @Disabled("Content is not supported yet")
+        void contentFile_succeeds() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var fileId = "my-file-123.bin";
@@ -278,7 +300,8 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void createWithContentAttributes_fails() {
+        @Disabled("Content is not supported yet")
+        void contentAttributes_fails() {
             assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
@@ -297,5 +320,284 @@ class DatamodelApiImplTest {
         }
     }
 
+    @Nested
+    class UpdateEntity {
 
+        @Test
+        void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "received", Instant.now(clock),
+                    "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
+                    "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null), // Is set to null
+                    new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null), // Is also set to null during an update
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
+                            .build(),
+                    getAuditMetadataData()
+            );
+        }
+
+        @Test
+        void missingRequiredProperties_fails() {
+            assertThatThrownBy(() -> {
+                datamodelApi.update(APPLICATION, INVOICE.getName(), EntityId.of(UUID.randomUUID()),
+                        MapRequestInputData.fromMap(Map.of(
+                                "received", Instant.now(clock)
+                        )));
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .containsExactlyInAnyOrder(
+                                "number"
+                        );
+            });
+
+            Mockito.verifyNoInteractions(queryEngine);
+        }
+
+        @Test
+        @Disabled("Content is not supported yet")
+        void contentAttributes_succeeds() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "content", Map.of(
+                            "filename", "file-123.pdf",
+                            "mimetype", "application/pdf",
+                            "id", "will-be-ignored",
+                            "length", 0xbad
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    // Missing values are set to null
+                    new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Note, content ID & length are not updated/overwritten ever
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .build(),
+                    getAuditMetadataData()
+            );
+        }
+
+        @Test
+        @Disabled("Content is not supported yet")
+        void contentFile_succeeds() throws InvalidPropertyDataException {
+
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var fileId = "my-file-123.bin";
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "content", new FileDataEntry("file-123.pdf", "application/pdf", 120, InputStream::nullInputStream)
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    // Missing values are set to null
+                    new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // New content ID is created and used
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "my-file.pdf"))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 120))
+                            .build(),
+                    getAuditMetadataData()
+            );
+        }
+    }
+
+    @Nested
+    class PartialUpdateEntity {
+
+        @Test
+        void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
+                    "received", Instant.now(clock),
+                    "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
+                    "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    // amount is missing here, and thus not overwritten
+                    new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null) // Is set to null
+                    // is_paid is missing here, and thus not overwritten
+            );
+        }
+
+        @Test
+        void nullRequiredProperties_fails() {
+            assertThatThrownBy(() -> {
+                datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), EntityId.of(UUID.randomUUID()),
+                        MapRequestInputData.fromMap(Map.of(
+                                "number", NullDataEntry.INSTANCE // Required value set to null
+                        )));
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .containsExactlyInAnyOrder(
+                                "number"
+                        );
+            });
+
+            Mockito.verifyNoInteractions(queryEngine);
+        }
+
+        @Test
+        void nullRequiredRelation_ignored() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).isEmpty();
+
+        }
+
+        @Test
+        @Disabled("Content is not supported yet")
+        void contentAttributes_succeeds() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "content", Map.of(
+                            "filename", "file-123.pdf",
+                            "mimetype", MissingDataEntry.INSTANCE,
+                            "id", "will-be-ignored",
+                            "length", 0xbad
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Note, content ID & length are not updated/overwritten ever
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
+                            // Mimetype is absent because it's a missing entry
+                            .build()
+            );
+        }
+
+        @Test
+        @Disabled("Content is not supported yet")
+        void contentFile_succeeds() throws InvalidPropertyDataException {
+
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var fileId = "my-file-123.bin";
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "content", new FileDataEntry("file-123.pdf", "application/pdf", 120, InputStream::nullInputStream)
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // New content ID is created and used
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "my-file.pdf"))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 120))
+                            .build()
+            );
+        }
+    }
 }

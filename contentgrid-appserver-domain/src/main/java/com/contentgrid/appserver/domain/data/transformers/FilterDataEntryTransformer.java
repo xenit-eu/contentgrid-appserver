@@ -11,6 +11,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MultipleRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntryTransformer;
@@ -19,21 +20,35 @@ import java.util.Optional;
 public class FilterDataEntryTransformer implements DataEntryTransformer<Optional<DataEntry>> {
 
     public static FilterDataEntryTransformer omitMissing() {
-        return new FilterDataEntryTransformer() {
+        return new RecursiveFilterDataEntryTransformer() {
             @Override
             public Optional<DataEntry> transform(MissingDataEntry missingDataEntry) {
                 return Optional.empty();
             }
+
         };
     }
 
     public static FilterDataEntryTransformer missingAsNull() {
-        return new FilterDataEntryTransformer() {
+        return new RecursiveFilterDataEntryTransformer() {
             @Override
             public Optional<DataEntry> transform(MissingDataEntry missingDataEntry) {
                 return Optional.of(NullDataEntry.INSTANCE);
             }
         };
+    }
+
+    private static class RecursiveFilterDataEntryTransformer extends FilterDataEntryTransformer {
+
+        @Override
+        public Optional<DataEntry> transform(MapDataEntry mapDataEntry) {
+            var builder = MapDataEntry.builder();
+            for (var entry : mapDataEntry.getItems().entrySet()) {
+                entry.getValue().map(this)
+                        .ifPresent(newValue -> builder.item(entry.getKey(), (PlainDataEntry) newValue));
+            }
+            return Optional.of(builder.build());
+        }
     }
 
     @Override

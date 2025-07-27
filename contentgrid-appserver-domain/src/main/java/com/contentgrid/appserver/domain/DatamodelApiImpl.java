@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
@@ -33,8 +34,10 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
 
@@ -99,10 +102,17 @@ public class DatamodelApiImpl implements DatamodelApi {
                 new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
         );
 
+        var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
+
         var exceptionCollector = new ValidationExceptionCollector();
-        var attributes = exceptionCollector.use(() -> inputMapper.mapAttributes(requestData));
-        var relations = exceptionCollector.use(() -> inputMapper.mapRelations(requestData));
+        var attributes = exceptionCollector.use(() -> inputMapper.mapAttributes(usageTrackingRequestData));
+        var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
         exceptionCollector.rethrow();
+
+        var unusedKeys = usageTrackingRequestData.getUnusedKeys();
+        if(!unusedKeys.isEmpty()) {
+            log.warn("Unused request keys: {}", unusedKeys);
+        }
 
         var createData = EntityCreateData.builder()
                 .entityName(entityName)
@@ -124,11 +134,18 @@ public class DatamodelApiImpl implements DatamodelApi {
                 new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
         );
 
+        var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
+
         var entityData = EntityData.builder()
                 .name(entityName)
                 .id(id)
-                .attributes(inputMapper.mapAttributes(data))
+                .attributes(inputMapper.mapAttributes(usageTrackingRequestData))
                 .build();
+
+        var unusedKeys = usageTrackingRequestData.getUnusedKeys();
+        if(!unusedKeys.isEmpty()) {
+            log.warn("Unused request keys: {}", unusedKeys);
+        }
 
         var updateData = queryEngine.update(application, entityData);
 
@@ -142,15 +159,22 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
-                // Missing fields are omitted, so they are not update
+                // Missing fields are omitted, so they are not updated
                 new TransformingDataEntryMapper<>(FilterDataEntryTransformer.omitMissing())
         );
+
+        var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
         var entityData = EntityData.builder()
                 .name(entityName)
                 .id(id)
-                .attributes(inputMapper.mapAttributes(data))
+                .attributes(inputMapper.mapAttributes(usageTrackingRequestData))
                 .build();
+
+        var unusedKeys = usageTrackingRequestData.getUnusedKeys();
+        if(!unusedKeys.isEmpty()) {
+            log.warn("Unused request keys: {}", unusedKeys);
+        }
 
         var updateData = queryEngine.update(application, entityData);
 

@@ -16,6 +16,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MultipleRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
@@ -48,6 +49,11 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
                 case SimpleAttribute simpleAttribute -> inputData
                         .map(new AsTypeDataEntryTransformer<>(getTypeForAttribute(simpleAttribute.getType())) {
                             @Override
+                            public Result<ScalarDataEntry> transform(MissingDataEntry missingDataEntry) {
+                                return Result.empty();
+                            }
+
+                            @Override
                             public Result<ScalarDataEntry> transform(NullDataEntry nullDataEntry) {
                                 return Result.of(nullDataEntry);
                             }
@@ -56,6 +62,11 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
                         .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
                 case CompositeAttribute compositeAttribute -> inputData
                         .map(new AsTypeDataEntryTransformer<>(MapDataEntry.class) {
+                            @Override
+                            public Result<MapDataEntry> transform(MissingDataEntry missingDataEntry) {
+                                return Result.empty();
+                            }
+
                             @Override
                             public Result<MapDataEntry> transform(NullDataEntry nullDataEntry) {
                                 var builder = MapDataEntry.builder();
