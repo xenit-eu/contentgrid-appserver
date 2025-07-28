@@ -9,14 +9,21 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.rest.hal.forms.HalFormsPayloadMetadataConverter;
 import com.contentgrid.appserver.rest.property.PropertyRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.mediatype.Affordances;
+import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 
+@RequiredArgsConstructor
 public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, Application> {
+
+    private final HalFormsPayloadMetadataConverter halFormsPayloadMetadataConverter;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull Application application) {
@@ -37,9 +44,17 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getSelfLink(Application application, Entity entity, EntityId id) {
-        return linkTo(methodOn(EntityRestController.class)
-                .getEntity(application, entity.getPathSegment(), id)
-        ).withSelfRel();
+        var payload = halFormsPayloadMetadataConverter.convertToUpdatePayloadMetadata(application, entity);
+        return Affordances.of(linkTo(methodOn(EntityRestController.class)
+                        .getEntity(application, entity.getPathSegment(), id))
+                        .withSelfRel())
+                .afford(HttpMethod.PUT)
+                .withName("default")
+                .withInput(payload)
+                .andAfford(HttpMethod.DELETE)
+                .withName("delete")
+                .build()
+                .toLink();
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {

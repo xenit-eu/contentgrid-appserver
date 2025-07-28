@@ -110,8 +110,22 @@ class EntityRestControllerTest {
         // Extract ID from created entity
         String id = objectMapper.readTree(responseContent).get("id").asText();
 
-        // Then retrieve it
+        // Then retrieve it with application/hal+json
         mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(id)))
+                .andExpect(jsonPath("$.name", is("Retrievable Product")))
+                .andExpect(jsonPath("$.price", is(99.99)))
+                .andExpect(jsonPath("$.in_stock", is(true)))
+                .andExpect(jsonPath("$._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
+                .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
+                .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.curies").isArray());
+
+        // Then retrieve it with application/prs.hal-forms+json
+        mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(id)))
                 .andExpect(jsonPath("$.name", is("Retrievable Product")))

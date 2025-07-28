@@ -50,7 +50,7 @@ public class EntityRestController {
     public static final String SORT_NAME = "_sort";
 
     private final DatamodelApi datamodelApi;
-    private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
+    private final EntityDataRepresentationModelAssembler assembler;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
