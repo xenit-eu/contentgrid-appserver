@@ -59,19 +59,20 @@ public interface QueryEngine {
      *
      * @param application the application context
      * @param data the data for the new entity
-     * @return the value of the primary key for the newly created entity
+     * @return The entity data that was inserted
      * @throws QueryEngineException if an error occurs during the create operation
      */
-    EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
+    EntityData create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
      *
      * @param application the application context
      * @param data the updated data for the entity, must include the entity's id
+     * @return Result of the update, including old and new entity data objects
      * @throws QueryEngineException if an error occurs during the update operation
      */
-    void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException;
+    UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException;
 
     /**
      * Deletes the entity that matches the given id.
@@ -79,9 +80,10 @@ public interface QueryEngine {
      * @param application the application context
      * @param entity the entity type to delete from
      * @param id the primary key value of the entity to delete
+     * @return The entity data that was deleted, if any was deleted
      * @throws QueryEngineException if an error occurs during the delete operation
      */
-    void delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityData> delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) throws QueryEngineException;
 
     /**
      * Deletes all entities of the specified type.

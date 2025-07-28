@@ -2,10 +2,13 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.jooq.DataType;
 import org.jooq.Field;
@@ -62,6 +65,20 @@ public class JOOQUtils {
 
     public static Field<UUID> resolvePrimaryKey(TableName alias, SimpleAttribute primaryKey) {
         return (Field<UUID>) resolveField(alias, primaryKey.getColumn(), primaryKey.getType(), true);
+    }
+
+    public static Field<?>[] resolveAttributeFields(Entity entity) {
+        return entity.getAllAttributes().stream()
+                .flatMap(JOOQUtils::resolveAttributeFields)
+                .toArray(Field[]::new);
+    }
+
+    private Stream<Field<?>> resolveAttributeFields(Attribute attribute) {
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute -> Stream.of(resolveField(simpleAttribute));
+            case CompositeAttribute compositeAttribute -> compositeAttribute.getAttributes().stream()
+                    .flatMap(JOOQUtils::resolveAttributeFields);
+        };
     }
 
     private static DataType<?> resolveType(SimpleAttribute.Type type, boolean required) {
