@@ -12,4 +12,9 @@ public class RelationPath implements PropertyPath {
     public @NonNull PropertyName getFirst() {
         return relation;
     }
+
+    @Override
+    public String toString() {
+        return "%s.%s".formatted(relation, rest);
+    }
 }

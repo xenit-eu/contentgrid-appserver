@@ -16,4 +16,9 @@ public class SimpleAttributePath implements AttributePath {
     public AttributePath getRest() {
         return null;
     }
+
+    @Override
+    public String toString() {
+        return attribute.toString();
+    }
 }

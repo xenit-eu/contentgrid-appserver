@@ -259,7 +259,7 @@ public class Application {
         });
     }
 
-    private SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
+    public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
         Entity currentEntity = entity;
         PropertyPath currentPath = path;
 

@@ -12,4 +12,9 @@ public class CompositeAttributePath implements AttributePath {
     public @NonNull AttributeName getFirst() {
         return attribute;
     }
+
+    @Override
+    public String toString() {
+        return "%s.%s".formatted(attribute, rest);
+    }
 }
