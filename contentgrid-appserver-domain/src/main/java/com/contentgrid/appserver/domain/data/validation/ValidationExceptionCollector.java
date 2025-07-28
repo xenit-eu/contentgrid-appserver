@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.domain.data.validation;
 
-import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 
 public class ValidationExceptionCollector {
     private InvalidPropertyDataException firstException;

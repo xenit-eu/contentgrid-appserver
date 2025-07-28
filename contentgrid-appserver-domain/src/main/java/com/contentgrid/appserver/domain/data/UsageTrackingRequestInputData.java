@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.domain.data;
 
-import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;

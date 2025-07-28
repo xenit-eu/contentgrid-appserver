@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundExce
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;

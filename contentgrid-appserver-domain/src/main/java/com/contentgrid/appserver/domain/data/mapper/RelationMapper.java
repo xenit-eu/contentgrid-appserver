@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.data.transformers.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import lombok.NonNull;
 
 /**

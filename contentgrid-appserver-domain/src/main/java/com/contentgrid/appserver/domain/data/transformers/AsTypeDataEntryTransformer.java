@@ -14,6 +14,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntryTransformer;
+import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.transformers.result.Result;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import lombok.NonNull;

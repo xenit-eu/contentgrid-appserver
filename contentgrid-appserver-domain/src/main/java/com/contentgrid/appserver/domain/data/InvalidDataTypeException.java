@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.domain.data.transformers;
+package com.contentgrid.appserver.domain.data;
 
 import com.contentgrid.appserver.domain.data.type.DataType;
 import lombok.Getter;

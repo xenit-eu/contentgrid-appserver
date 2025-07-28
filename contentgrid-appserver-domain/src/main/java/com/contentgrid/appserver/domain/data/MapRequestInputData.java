@@ -10,8 +10,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
-import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
-import com.contentgrid.appserver.domain.data.transformers.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import java.math.BigDecimal;

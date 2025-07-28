@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.domain.data.transformers.result;
 
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.transformers.InvalidDataException;
+import com.contentgrid.appserver.domain.data.InvalidDataException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.NonNull;
