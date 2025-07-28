@@ -16,6 +16,9 @@ import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryM
 import com.contentgrid.appserver.domain.data.mapper.TransformingDataEntryMapper;
 import com.contentgrid.appserver.domain.data.transformers.FilterDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.validation.AttributeConstraintValidationDataMapper;
+import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
+import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
@@ -53,6 +56,13 @@ public class DatamodelApiImpl implements DatamodelApi {
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
 
         var combinedMapper = inputMapper.andThen(mapper)
+                // Validate that required attributes and relations are present
+                .andThen(new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                                new AttributeConstraintValidationDataMapper<>(new RequiredAttributeConstraintValidator()),
+                                new RelationRequiredValidationDataMapper()
+                        )
+                ))
                 .andThen(queryEngineMapper);
 
         return new RequestInputDataMapper(

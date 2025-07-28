@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AMOUNT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AUDIT_METADATA;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONTENT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CUSTOMER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_IS_PAID;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_NUMBER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_BEFORE;
@@ -23,6 +24,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -97,6 +99,7 @@ class DatamodelApiImplTest {
         void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -104,7 +107,8 @@ class DatamodelApiImplTest {
                     "amount", 1.50,
                     "received", Instant.now(clock),
                     "pay_before", Instant.now(clock).plus(30, ChronoUnit.DAYS),
-                    "is_paid", false
+                    "is_paid", false,
+                    "customer", new RelationDataEntry(PERSON.getName(), personId)
             )));
 
             assertThat(result.getId()).isEqualTo(entityId);
@@ -126,7 +130,12 @@ class DatamodelApiImplTest {
                                 .build(),
                         getAuditMetadataData()
                 );
-                assertThat(createData.getRelations()).isEmpty();
+                assertThat(createData.getRelations()).containsExactlyInAnyOrder(
+                        XToOneRelationData.builder()
+                                .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
+                                .ref(personId)
+                                .build()
+                );
             });
         }
 
@@ -138,9 +147,14 @@ class DatamodelApiImplTest {
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                        })
                         .extracting(e -> String.join(".", e.getPath().toList()))
                         .containsExactlyInAnyOrder(
-                                "number"
+                                "amount",
+                                "number",
+                                "customer"
                         );
             });
 
@@ -154,7 +168,8 @@ class DatamodelApiImplTest {
                         "number", 123,
                         "amount", Instant.now(clock),
                         "received", "abc",
-                        "is_paid", "maybe"
+                        "is_paid", "maybe",
+                        "customer", "test123"
                 )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -166,7 +181,8 @@ class DatamodelApiImplTest {
                                 "number",
                                 "amount",
                                 "received",
-                                "is_paid"
+                                "is_paid",
+                                "customer"
                         );
             });
 
@@ -369,8 +385,12 @@ class DatamodelApiImplTest {
                         )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                        })
                         .extracting(e -> String.join(".", e.getPath().toList()))
                         .containsExactlyInAnyOrder(
+                                "amount",
                                 "number"
                         );
             });
@@ -505,6 +525,9 @@ class DatamodelApiImplTest {
                         )));
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                        })
                         .extracting(e -> String.join(".", e.getPath().toList()))
                         .containsExactlyInAnyOrder(
                                 "number"

@@ -102,7 +102,13 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             throws InvalidPropertyDataException {
         var relationName = relation.getSourceEndPoint().getName();
         try {
-            return inputData.get(relationName.getValue(), RelationDataEntry.class);
+            var entry = inputData.get(relationName.getValue(), RelationDataEntry.class);
+            if(entry instanceof RelationDataEntry e) {
+                if(!Objects.equals(relation.getTargetEndPoint().getEntity().getName(), e.getTargetEntity())) {
+                    throw new InvalidDataTypeException(DataType.of(relation), DataType.of(e));
+                }
+            }
+            return entry;
         } catch (InvalidDataException e) {
             throw e.withinProperty(relationName);
         }
