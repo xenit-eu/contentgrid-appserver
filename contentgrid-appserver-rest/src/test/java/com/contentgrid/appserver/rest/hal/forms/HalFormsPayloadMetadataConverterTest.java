@@ -20,9 +20,11 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.TestApplication;
+import com.contentgrid.appserver.rest.hal.forms.property.PropertyMetadataWithOptions;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.AffordanceModel.InputPayloadMetadata;
+import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
 import org.springframework.http.MediaType;
 
@@ -73,6 +75,17 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(confidentiality.isReadOnly()).isFalse();
                     assertThat(confidentiality.isRequired()).isTrue();
                     assertThat(confidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(confidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(1L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
                 },
                 content -> {
                     assertThat(content.getName()).isEqualTo("content");
@@ -85,28 +98,123 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(customer.isReadOnly()).isFalse();
                     assertThat(customer.isRequired()).isTrue();
                     assertThat(customer.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(customer).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(1L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
                 },
                 products -> {
                     assertThat(products.getName()).isEqualTo("products");
                     assertThat(products.isReadOnly()).isFalse();
                     assertThat(products.isRequired()).isFalse();
                     assertThat(products.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(products).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/products?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 },
                 previous -> {
                     assertThat(previous.getName()).isEqualTo("previous_invoice");
                     assertThat(previous.isReadOnly()).isFalse();
                     assertThat(previous.isRequired()).isFalse();
                     assertThat(previous.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(previous).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
                 },
                 next -> {
                     assertThat(next.getName()).isEqualTo("next_invoice");
                     assertThat(next.isReadOnly()).isFalse();
                     assertThat(next.isRequired()).isFalse();
                     assertThat(next.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(next).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
                 }
         );
 
         assertThat(InputPayloadMetadata.from(metadata).getMediaTypes()).containsExactly(MediaType.MULTIPART_FORM_DATA);
+    }
+
+    @Test
+    void convertToCreatePayloadMetadata_noContent() {
+        var metadata = converter.convertToCreatePayloadMetadata(TestApplication.APPLICATION, TestApplication.PERSON);
+
+        assertThat(metadata.getType()).isEqualTo(Object.class);
+
+        assertThat(metadata.stream()).satisfiesExactlyInAnyOrder(
+                name -> {
+                    assertThat(name.getName()).isEqualTo("name");
+                    assertThat(name.isReadOnly()).isFalse();
+                    assertThat(name.isRequired()).isTrue();
+                    assertThat(name.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                vat -> {
+                    assertThat(vat.getName()).isEqualTo("vat");
+                    assertThat(vat.isReadOnly()).isFalse();
+                    assertThat(vat.isRequired()).isTrue();
+                    assertThat(vat.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                gender -> {
+                    assertThat(gender.getName()).isEqualTo("gender");
+                    assertThat(gender.isReadOnly()).isFalse();
+                    assertThat(gender.isRequired()).isFalse();
+                    assertThat(gender.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(gender).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("female"),
+                                    value2 -> assertThat(value2).isEqualTo("male")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
+                },
+                invoices -> {
+                    assertThat(invoices.getName()).isEqualTo("invoices");
+                    assertThat(invoices.isReadOnly()).isFalse();
+                    assertThat(invoices.isRequired()).isFalse();
+                    assertThat(invoices.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(invoices).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
+                },
+                friends -> {
+                    assertThat(friends.getName()).isEqualTo("friends");
+                    assertThat(friends.isReadOnly()).isFalse();
+                    assertThat(friends.isRequired()).isFalse();
+                    assertThat(friends.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(friends).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
+                }
+        );
+
+        // No File input; use JSON for mediatype
+        assertThat(InputPayloadMetadata.from(metadata).getMediaTypes()).containsExactly(MediaType.APPLICATION_JSON);
     }
 
     @Test
@@ -151,6 +259,17 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(confidentiality.isReadOnly()).isFalse();
                     assertThat(confidentiality.isRequired()).isTrue();
                     assertThat(confidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(confidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(1L);
+                            assertThat(options.getMaxItems()).isEqualTo(1L);
+                        });
+                    });
                 },
                 contentFilename -> {
                     assertThat(contentFilename.getName()).isEqualTo("content.filename");
@@ -166,49 +285,6 @@ class HalFormsPayloadMetadataConverterTest {
                 }
         );
 
-        assertThat(InputPayloadMetadata.from(metadata).getMediaTypes()).containsExactly(MediaType.APPLICATION_JSON);
-    }
-
-    @Test
-    void convertToCreatePayloadMetadata_noContent() {
-        var metadata = converter.convertToCreatePayloadMetadata(TestApplication.APPLICATION, TestApplication.PERSON);
-
-        assertThat(metadata.getType()).isEqualTo(Object.class);
-
-        assertThat(metadata.stream()).satisfiesExactlyInAnyOrder(
-                name -> {
-                    assertThat(name.getName()).isEqualTo("name");
-                    assertThat(name.isReadOnly()).isFalse();
-                    assertThat(name.isRequired()).isTrue();
-                    assertThat(name.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                },
-                vat -> {
-                    assertThat(vat.getName()).isEqualTo("vat");
-                    assertThat(vat.isReadOnly()).isFalse();
-                    assertThat(vat.isRequired()).isTrue();
-                    assertThat(vat.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                },
-                gender -> {
-                    assertThat(gender.getName()).isEqualTo("gender");
-                    assertThat(gender.isReadOnly()).isFalse();
-                    assertThat(gender.isRequired()).isFalse();
-                    assertThat(gender.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                },
-                invoices -> {
-                    assertThat(invoices.getName()).isEqualTo("invoices");
-                    assertThat(invoices.isReadOnly()).isFalse();
-                    assertThat(invoices.isRequired()).isFalse();
-                    assertThat(invoices.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
-                },
-                friends -> {
-                    assertThat(friends.getName()).isEqualTo("friends");
-                    assertThat(friends.isReadOnly()).isFalse();
-                    assertThat(friends.isRequired()).isFalse();
-                    assertThat(friends.getInputType()).isEqualTo(HtmlInputType.URL_VALUE);
-                }
-        );
-
-        // No File input; use JSON for mediatype
         assertThat(InputPayloadMetadata.from(metadata).getMediaTypes()).containsExactly(MediaType.APPLICATION_JSON);
     }
 
@@ -230,6 +306,17 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(confidentiality.isReadOnly()).isFalse();
                     assertThat(confidentiality.isRequired()).isFalse();
                     assertThat(confidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(confidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 },
                 customerName -> {
                     assertThat(customerName.getName()).isEqualTo("customer.name~prefix");
@@ -260,6 +347,17 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(previousConfidentiality.isReadOnly()).isFalse();
                     assertThat(previousConfidentiality.isRequired()).isFalse();
                     assertThat(previousConfidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(previousConfidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 },
                 nextNumber -> {
                     assertThat(nextNumber.getName()).isEqualTo("next_invoice.number");
@@ -272,12 +370,47 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(nextConfidentiality.isReadOnly()).isFalse();
                     assertThat(nextConfidentiality.isRequired()).isFalse();
                     assertThat(nextConfidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(nextConfidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(sort).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    numberAsc -> assertThat(numberAsc.toString())
+                                            .contains("value=number,asc")
+                                            .contains("property=number")
+                                            .contains("direction=asc"),
+                                    numberDesc -> assertThat(numberDesc.toString())
+                                            .contains("value=number,desc")
+                                            .contains("property=number")
+                                            .contains("direction=desc"),
+                                    confidentialityAsc -> assertThat(confidentialityAsc.toString())
+                                            .contains("value=confidentiality,asc")
+                                            .contains("property=confidentiality")
+                                            .contains("direction=asc"),
+                                    confidentialityDesc -> assertThat(confidentialityDesc.toString())
+                                            .contains("value=confidentiality,desc")
+                                            .contains("property=confidentiality")
+                                            .contains("direction=desc")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 }
         );
 
@@ -326,12 +459,47 @@ class HalFormsPayloadMetadataConverterTest {
                     assertThat(invoicesConfidentiality.isReadOnly()).isFalse();
                     assertThat(invoicesConfidentiality.isRequired()).isFalse();
                     assertThat(invoicesConfidentiality.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(invoicesConfidentiality).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    value1 -> assertThat(value1).isEqualTo("public"),
+                                    value2 -> assertThat(value2).isEqualTo("confidential"),
+                                    value3 -> assertThat(value3).isEqualTo("secret")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getInputType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(sort).isInstanceOfSatisfying(PropertyMetadataWithOptions.class, propertyMetadata -> {
+                        assertThat(propertyMetadata.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                            assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                    vatAsc -> assertThat(vatAsc.toString())
+                                            .contains("value=vat,asc")
+                                            .contains("property=vat")
+                                            .contains("direction=asc"),
+                                    vatDesc -> assertThat(vatDesc.toString())
+                                            .contains("value=vat,desc")
+                                            .contains("property=vat")
+                                            .contains("direction=desc"),
+                                    nameAsc -> assertThat(nameAsc.toString())
+                                            .contains("value=name,asc")
+                                            .contains("property=name")
+                                            .contains("direction=asc"),
+                                    nameDesc -> assertThat(nameDesc.toString())
+                                            .contains("value=name,desc")
+                                            .contains("property=name")
+                                            .contains("direction=desc")
+                            );
+                            assertThat(options.getMinItems()).isEqualTo(0L);
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
                 }
         );
 

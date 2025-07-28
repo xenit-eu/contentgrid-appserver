@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
@@ -11,22 +12,16 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.sortable.SortableField;
-import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.hal.forms.property.PropertyMetadataWithInlineValues;
+import com.contentgrid.appserver.rest.hal.forms.property.RelationPropertyMetadata;
+import com.contentgrid.appserver.rest.hal.forms.property.SortPropertyMetadata;
 import com.contentgrid.hateoas.spring.affordances.property.BasicPropertyMetadata;
 import java.io.File;
-import java.net.URI;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.springframework.core.ResolvableType;
 import org.springframework.hateoas.AffordanceModel.PropertyMetadata;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
@@ -40,7 +35,7 @@ public class HalFormsPayloadMetadataContributor {
             metadata.forEachOrdered(builder::add);
         }
         for (var relation : application.getRelationsForSourceEntity(entity)) {
-            relationToCreatePropertyMetadata(relation).ifPresent(builder::add);
+            relationToCreatePropertyMetadata(application, relation).ifPresent(builder::add);
         }
         return builder.build();
     }
@@ -58,12 +53,16 @@ public class HalFormsPayloadMetadataContributor {
         var builder = Stream.<PropertyMetadata>builder();
         for (var searchFilter : entity.getSearchFilters()) {
             if (Objects.requireNonNull(searchFilter) instanceof AttributeSearchFilter attributeSearchFilter) {
-                builder.add(searchFilterToSearchPropertyMetadata(attributeSearchFilter));
+                var propertyMetadata = searchFilterToSearchPropertyMetadata(attributeSearchFilter);
+                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                builder.add(addAllowedValues(propertyMetadata, attribute, true));
             } else {
                 throw new IllegalStateException("Unexpected value: " + searchFilter);
             }
         }
-        entityToSortPropertyMetadata(entity).ifPresent(builder::add);
+        if (!entity.getSortableFields().isEmpty()) {
+            builder.add(new SortPropertyMetadata(entity.getSortableFields()));
+        }
         return builder.build();
     }
 
@@ -118,22 +117,25 @@ public class HalFormsPayloadMetadataContributor {
     }
 
     private PropertyMetadata simpleAttributeToPropertyMetadata(String prefix, SimpleAttribute attribute) {
-        return new BasicPropertyMetadata(prefix + attribute.getName().getValue(), attributeTypeToResolvableType(attribute.getType()))
+        var propertyMetadata = new BasicPropertyMetadata(prefix + attribute.getName().getValue(), attributeTypeToResolvableType(attribute.getType()))
                 .withRequired(attribute.hasConstraint(RequiredConstraint.class))
                 .withReadOnly(false);
+        return addAllowedValues(propertyMetadata, attribute, false);
     }
 
-    private Optional<PropertyMetadata> relationToCreatePropertyMetadata(Relation relation) {
-        var sourceEndPoint = relation.getSourceEndPoint();
-        if (sourceEndPoint.getName() == null) {
+    private PropertyMetadata addAllowedValues(PropertyMetadata propertyMetadata, SimpleAttribute attribute, boolean unbounded) {
+        return attribute.getConstraint(AllowedValuesConstraint.class)
+                .map(AllowedValuesConstraint::getValues)
+                .map(values -> new PropertyMetadataWithInlineValues(propertyMetadata, values, unbounded))
+                .map(PropertyMetadata.class::cast)
+                .orElse(propertyMetadata);
+    }
+
+    private Optional<PropertyMetadata> relationToCreatePropertyMetadata(Application application, Relation relation) {
+        if (relation.getSourceEndPoint().getName() == null) {
             return Optional.empty();
         } else {
-            return Optional.of(
-                    new BasicPropertyMetadata(sourceEndPoint.getName().getValue(), ResolvableType.forClass(URI.class))
-                            .withInputType(HtmlInputType.URL_VALUE)
-                            .withRequired(sourceEndPoint.isRequired())
-                            .withReadOnly(false)
-            );
+            return Optional.of(new RelationPropertyMetadata(application, relation));
         }
     }
 
@@ -150,24 +152,6 @@ public class HalFormsPayloadMetadataContributor {
                 .withRequired(false);
     }
 
-    private Optional<PropertyMetadata> entityToSortPropertyMetadata(Entity entity) {
-        var sortOptions = new ArrayList<SortOption>();
-        for (var sortableField : entity.getSortableFields()) {
-            sortableToSortOptions(sortableField).forEachOrdered(sortOptions::add);
-        }
-        if (sortOptions.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(new SortPropertyMetadata(sortOptions));
-        }
-    }
-
-    private Stream<SortOption> sortableToSortOptions(SortableField sortableField) {
-        // TODO: sort Direction is a query engine dependency
-        return Stream.of(Direction.ASC, Direction.DESC)
-                .map(direction -> new SortOption(sortableField.getPropertyPath().toString(), direction.name().toLowerCase(), null, sortableField.getName().getValue()));
-    }
-
     private static ResolvableType attributeTypeToResolvableType(Type type) {
         return ResolvableType.forClass(attributeTypeToClass(type));
     }
@@ -181,52 +165,6 @@ public class HalFormsPayloadMetadataContributor {
             case DATETIME -> Instant.class;
             case UUID -> UUID.class;
         };
-    }
-
-    @Value
-    public static class SortOption {
-        String property;
-        String direction;
-        String prompt;
-        String value;
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    public static class SortPropertyMetadata implements PropertyMetadata {
-
-        private final List<SortOption> sortOptions;
-
-        @Override
-        public String getName() {
-            return EntityRestController.SORT_NAME;
-        }
-
-        @Override
-        public boolean isRequired() {
-            return false;
-        }
-
-        @Override
-        public boolean isReadOnly() {
-            return false;
-        }
-
-        @Override
-        public Optional<String> getPattern() {
-            return Optional.empty();
-        }
-
-        @Override
-        public ResolvableType getType() {
-            return ResolvableType.forClass(Object.class);
-        }
-
-        @Override
-        public String getInputType() {
-            return HtmlInputType.TEXT_VALUE;
-        }
-
     }
 
 }
