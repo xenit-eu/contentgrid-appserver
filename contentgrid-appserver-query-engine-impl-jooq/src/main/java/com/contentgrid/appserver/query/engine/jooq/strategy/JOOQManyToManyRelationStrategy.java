@@ -3,8 +3,8 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.Set;
 import java.util.UUID;
@@ -101,12 +101,11 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
 
         var deleted = dslContext.deleteFrom(table)
                 .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
-                .execute();
+                .returning(targetRef)
+                .fetchSet(targetRef);
 
-        if (deleted < refs.size()) {
-            throw new EntityNotFoundException("Some provided target entities of relation '%s' not found"
-                    .formatted(relation.getSourceEndPoint().getName()));
-        }
+        checkModifiedItems(refs, deleted, targetId -> new RelationLinkNotFoundException(relation, id, targetId));
+
     }
 
     @Override
@@ -119,6 +118,7 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
                 .execute();
 
         if (deleted == 0) {
+            // Check if the entity exists, but there just was no data in the many-to-many relation
             assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
         }
     }

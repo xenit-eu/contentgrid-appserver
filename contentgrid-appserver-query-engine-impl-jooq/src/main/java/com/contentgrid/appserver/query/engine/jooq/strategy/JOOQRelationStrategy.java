@@ -26,7 +26,7 @@ public abstract sealed class JOOQRelationStrategy<R extends Relation>
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         if (!dslContext.fetchExists(table, primaryKey.eq(id.getValue()))) {
-            throw new EntityNotFoundException("Entity '%s' with primary key '%s' does not exist.".formatted(entity.getName(), id));
+            throw new EntityNotFoundException(entity.getName(), id);
         }
     }
 

@@ -252,13 +252,13 @@ public class JOOQQueryEngine implements QueryEngine {
 
         try {
             var oldValue = findById(application, entity, data.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id)));
+                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
 
             var newValue = step.where(primaryKey.eq(id.getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
-                    .orElseThrow(() -> new EntityNotFoundException("Entity with primary key '%s' was not updated".formatted(id)));
+                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
 
             return new UpdateResult(
                     oldValue,

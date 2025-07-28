@@ -1,13 +1,8 @@
 package com.contentgrid.appserver.query.engine.api.exception;
 
-public class QueryEngineException extends RuntimeException {
+import lombok.experimental.StandardException;
 
-    public QueryEngineException(String message) {
-        super(message);
-    }
-
-    public QueryEngineException(String message, Throwable cause) {
-        super(message, cause);
-    }
+@StandardException
+public abstract class QueryEngineException extends RuntimeException {
 
 }

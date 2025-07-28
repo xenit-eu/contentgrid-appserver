@@ -13,6 +13,7 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.converter.UriListHttpServletRequestConverter;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
@@ -138,7 +139,7 @@ public class XToOneRelationRequestHandler extends AbstractPropertyRequestHandler
     ) {
         try {
             datamodelApi.deleteRelation(application, property, instanceId);
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

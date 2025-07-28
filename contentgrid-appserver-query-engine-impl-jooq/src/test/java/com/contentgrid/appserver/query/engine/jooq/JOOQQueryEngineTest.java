@@ -1502,17 +1502,17 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validUnsetRelationData() {
         return Stream.of(
-                // Non-empty owning *-to-one relation
+                // Non-empty owning one-to-one relation
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS),
-                // Empty owning *-to-one relation
+                // Empty owning one-to-one relation
                 Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS),
-                // Non-empty non-owning *-to-one relation
+                // Non-empty non-owning one-to-one relation
                 Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse()),
-                // Empty non-owning *-to-one relation
+                // Empty non-owning one-to-one relation
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
-                // Non-empty *-to-many relation
+                // Non-empty many-to-many relation
                 Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS),
-                // Empty *-to-many relation
+                // Empty one-to-many relation
                 Arguments.of(JOHN_ID, INVOICE_CUSTOMER.inverse())
         );
     }

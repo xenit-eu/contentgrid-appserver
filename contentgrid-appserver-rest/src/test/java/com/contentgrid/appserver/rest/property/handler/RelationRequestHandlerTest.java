@@ -21,6 +21,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.TestApplication;
@@ -512,13 +513,12 @@ class RelationRequestHandlerTest {
     @Nested
     class DatabaseFailures {
 
-        private static final EntityNotFoundException ENTITY_ID_NOT_FOUND = new EntityNotFoundException("Entity id not found");
         private static final ConstraintViolationException FOREIGN_KEY_NOT_FOUND = new ConstraintViolationException("Foreign key not found");
         private static final ConstraintViolationException FOREIGN_KEY_REQUIRED = new ConstraintViolationException("Foreign key is required");
 
         @Test
         void followToOneRelationSourceIdNotFound() throws Exception {
-            Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
+            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
                     .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
@@ -563,7 +563,7 @@ class RelationRequestHandlerTest {
         void setRelationEntityIdNotFound() throws Exception {
             var targetId = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
+            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), targetId)).when(datamodelApi)
                     .setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
@@ -592,7 +592,7 @@ class RelationRequestHandlerTest {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
+            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), invoice1)).when(datamodelApi)
                     .addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
@@ -621,7 +621,7 @@ class RelationRequestHandlerTest {
 
         @Test
         void clearRelationEntityIdNotFound() throws Exception {
-            Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
+            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
                     .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
@@ -641,7 +641,7 @@ class RelationRequestHandlerTest {
 
         @Test
         void removeRelationDataEntityIdNotFound() throws Exception {
-            Mockito.doThrow(ENTITY_ID_NOT_FOUND).when(datamodelApi)
+            Mockito.doThrow(new RelationLinkNotFoundException(TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID)).when(datamodelApi)
                     .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID);
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))

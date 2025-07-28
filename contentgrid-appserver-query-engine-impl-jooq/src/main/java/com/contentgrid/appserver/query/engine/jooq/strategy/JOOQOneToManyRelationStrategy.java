@@ -5,6 +5,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.Collection;
 import java.util.Set;
@@ -80,11 +81,12 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
             var updated = dslContext.update(table)
                     .set(sourceRef, id.getValue())
                     .where(targetRef.in(refs))
-                    .execute();
+                    .returning(targetRef)
+                    .fetchSet(targetRef);
 
-            if (updated < refs.size()) {
-                throw new EntityNotFoundException("Some entities from provided data not found");
-            }
+            checkModifiedItems(refs, updated, targetId -> new EntityNotFoundException(relation.getTargetEndPoint().getEntity()
+                    .getName(), targetId));
+
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
         }
@@ -102,13 +104,11 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
             var updated = dslContext.update(table)
                     .set(sourceRef, (UUID) null)
                     .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
-                    .execute();
+                    .returning(targetRef)
+                    .fetchSet(targetRef);
 
-            if (updated < refs.size()) {
-                throw new EntityNotFoundException(
-                        "Entities provided that are not linked to entity '%s' with primary key '%s'"
-                                .formatted(relation.getTargetEndPoint().getEntity(), id));
-            }
+            checkModifiedItems(refs, updated, targetId -> new RelationLinkNotFoundException(relation, id, targetId));
+
         } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
             if (relation.getTargetEndPoint().isRequired()) {
                 throw new ConstraintViolationException(
@@ -132,6 +132,9 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
                     .execute();
 
             if (updated == 0) {
+                // When nothing is updated; that may be because there is no target entity
+                // that links to the source entity.
+                // We still need to check that the source entity exists before throwing
                 assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {

@@ -61,8 +61,7 @@ public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrat
                     .execute();
 
             if (updated == 0) {
-                throw new EntityNotFoundException(
-                        "Entity with primary key '%s' not found".formatted(id));
+                throw new EntityNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
