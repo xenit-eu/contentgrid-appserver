@@ -56,7 +56,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
-        return queryEngine.create(application, data);
+        return queryEngine.create(application, data).getId();
     }
 
     @Override

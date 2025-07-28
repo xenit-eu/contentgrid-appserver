@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
@@ -127,7 +128,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public EntityId create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
+    public EntityData create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
@@ -185,8 +186,12 @@ public class JOOQQueryEngine implements QueryEngine {
             }
         }
 
+        EntityData insertedData;
         try {
-            step.execute();
+            var insertedRecord = step
+                    .returning(JOOQUtils.resolveAttributeFields(entity))
+                    .fetchSingleMap();
+            insertedData = EntityDataMapper.from(entity, insertedRecord);
         } catch (DuplicateKeyException e) {
             throw new ConstraintViolationException("Provided value for unique field already exists. " + e.getMessage(), e);
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
@@ -203,7 +208,7 @@ public class JOOQQueryEngine implements QueryEngine {
             }
         }
 
-        return id;
+        return insertedData;
     }
 
     private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
@@ -222,7 +227,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
+    public UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
@@ -246,12 +251,19 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         try {
-            var updated = step.where(primaryKey.eq(id.getValue()))
-                    .execute();
+            var oldValue = findById(application, entity, data.getId())
+                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
 
-            if (updated == 0) {
-                throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-            }
+            var newValue = step.where(primaryKey.eq(id.getValue()))
+                    .returning(JOOQUtils.resolveAttributeFields(entity))
+                    .fetchOptionalMap()
+                    .map(result -> EntityDataMapper.from(entity, result))
+                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
+
+            return new UpdateResult(
+                    oldValue,
+                    newValue
+            );
         } catch (DuplicateKeyException e) {
             throw new ConstraintViolationException("Provided value for unique field already exists" + e.getMessage(), e);
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
@@ -260,20 +272,19 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
+    public Optional<EntityData> delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
         try {
-            var deleted = dslContext.deleteFrom(table)
+            return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(id.getValue()))
-                    .execute();
+                    .returning(JOOQUtils.resolveAttributeFields(entity))
+                    .fetchOptionalMap()
+                    .map(result -> EntityDataMapper.from(entity, result));
 
-            if (deleted == 0) {
-                throw new EntityNotFoundException("Entity with primary key '%s' not found".formatted(id));
-            }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         }

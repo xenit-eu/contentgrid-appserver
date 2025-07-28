@@ -74,8 +74,7 @@ public final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelation
                     .execute();
 
             if (updated == 0) {
-                throw new EntityNotFoundException(
-                        "Entity with primary key '%s' not found".formatted(id));
+                throw new EntityNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
             }
         } catch (DuplicateKeyException e) {
             throw new ConstraintViolationException("Target %s already linked".formatted(targetId), e);

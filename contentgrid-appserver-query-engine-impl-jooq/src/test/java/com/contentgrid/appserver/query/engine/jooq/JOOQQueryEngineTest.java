@@ -807,16 +807,17 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validCreateData")
     void createEntityValidData(EntityCreateData data) {
-        var id = queryEngine.create(APPLICATION, data);
+        var createdEntity = queryEngine.create(APPLICATION, data);
         var entity = APPLICATION.getEntityByName(data.getEntityName()).orElseThrow();
-        var actual = queryEngine.findById(APPLICATION, entity, id).orElseThrow();
+        var actual = queryEngine.findById(APPLICATION, entity, createdEntity.getId()).orElseThrow();
 
         // Create EntityData with same structure for comparison
         var expectedEntityData = EntityData.builder()
-                .id(id)
+                .id(createdEntity.getId())
                 .name(data.getEntityName())
                 .attributes(data.getAttributes())
                 .build();
+        assertEntityDataEquals(expectedEntityData, createdEntity);
         assertEntityDataEquals(expectedEntityData, actual);
 
         for (var relationData : data.getRelations()) {
@@ -824,11 +825,11 @@ class JOOQQueryEngineTest {
             if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
                 var xToManyRelationData = assertInstanceOf(XToManyRelationData.class, relationData);
                 for (var ref : xToManyRelationData.getRefs()) {
-                    assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref));
+                    assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), ref));
                 }
             } else {
                 var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, relationData);
-                assertTrue(queryEngine.isLinked(APPLICATION, relation, id, xToOneRelationData.getRef()));
+                assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), xToOneRelationData.getRef()));
             }
         }
     }
@@ -1244,12 +1245,13 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validUpdateData")
     void updateEntityValidData(EntityData data) {
-        queryEngine.update(APPLICATION, data);
         var entity = APPLICATION.getEntityByName(data.getName()).orElseThrow();
-        var id = data.getId();
-        var actual = queryEngine.findById(APPLICATION, entity, id).orElseThrow();
+        var old = queryEngine.findById(APPLICATION, entity, data.getId()).orElseThrow();
+        var updateResult = queryEngine.update(APPLICATION, data);
+        var updated = queryEngine.findById(APPLICATION, entity, data.getId()).orElseThrow();
 
-        assertEntityDataEquals(data, actual);
+        assertEntityDataEquals(updateResult.getOriginal(), old);
+        assertEntityDataEquals(updateResult.getUpdated(), updated);
     }
 
     static Stream<EntityData> invalidUpdateData() {
@@ -1388,14 +1390,26 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validDeleteData")
     void deleteEntityValidId(Entity entity, EntityId id) {
-        queryEngine.delete(APPLICATION, entity, id);
+        var originalData = queryEngine.findById(APPLICATION, entity, id).orElseThrow();
+        var deletedData = queryEngine.delete(APPLICATION, entity, id);
         var maybeData = queryEngine.findById(APPLICATION, entity, id);
+
+        assertTrue(deletedData.isPresent());
         assertTrue(maybeData.isEmpty());
+
+        assertEntityDataEquals(deletedData.get(), originalData);
+    }
+
+    @Test
+    void deleteEntityNonExistingId() {
+        var deleted = queryEngine.delete(APPLICATION, INVOICE, EntityId.of(UUID.randomUUID()));
+
+        assertTrue(deleted.isEmpty());
+        assertNothingChanged();
     }
 
     static Stream<Arguments> invalidDeleteData() {
         return Stream.of(
-                Arguments.of(INVOICE, ALICE_ID), // ALICE_ID is not an invoice
                 Arguments.of(PERSON, ALICE_ID), // ALICE_ID is present in required relation customer
                 Arguments.of(INVOICE, INVOICE1_ID), // INVOICE1_ID is still present in join-table of relation products
                 Arguments.of(PRODUCT, PRODUCT1_ID) // PRODUCT1_ID is still present in join-table of relation invoices
@@ -1488,17 +1502,17 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validUnsetRelationData() {
         return Stream.of(
-                // Non-empty owning *-to-one relation
+                // Non-empty owning one-to-one relation
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS),
-                // Empty owning *-to-one relation
+                // Empty owning one-to-one relation
                 Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS),
-                // Non-empty non-owning *-to-one relation
+                // Non-empty non-owning one-to-one relation
                 Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse()),
-                // Empty non-owning *-to-one relation
+                // Empty non-owning one-to-one relation
                 Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
-                // Non-empty *-to-many relation
+                // Non-empty many-to-many relation
                 Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS),
-                // Empty *-to-many relation
+                // Empty one-to-many relation
                 Arguments.of(JOHN_ID, INVOICE_CUSTOMER.inverse())
         );
     }

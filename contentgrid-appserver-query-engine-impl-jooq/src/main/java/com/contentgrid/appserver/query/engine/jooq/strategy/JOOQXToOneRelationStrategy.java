@@ -76,6 +76,8 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
 
         if (result == null) {
             // no rows found matching where clause
+            // This may be because there is no target entity nothing linking to this source entity
+            // We still need to check that the source entity exists before throwing
             assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
             return Optional.empty();
         } else if (result.value1() == null) {
@@ -101,6 +103,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
                     .execute();
 
             if (updated == 0) {
+                // When nothing is updated; that may be because there is no target entity
+                // that links to the source entity.
+                // We still need to check that the source entity exists before throwing
                 assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
