@@ -11,12 +11,16 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_BEFORE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_RECEIVED;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;

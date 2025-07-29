@@ -51,6 +51,12 @@ public class ModelTestFixtures {
             .constraint(Constraint.unique())
             .build();
 
+    public static final SimpleAttribute PERSON_AGE = SimpleAttribute.builder()
+            .name(AttributeName.of("age"))
+            .column(ColumnName.of("age"))
+            .type(Type.LONG)
+            .build();
+
     public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -58,6 +64,7 @@ public class ModelTestFixtures {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_AGE)
             .searchFilter(ExactSearchFilter.builder()
                     .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))

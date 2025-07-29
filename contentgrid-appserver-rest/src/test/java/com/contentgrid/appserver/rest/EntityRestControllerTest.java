@@ -16,6 +16,7 @@ import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
@@ -142,6 +143,38 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.type", notNullValue()))
                 .andExpect(jsonPath("$.title", notNullValue()))
                 .andExpect(jsonPath("$.status", is(400)));
+    }
+
+    @Test
+    void failToCreateEntityWithDoubleForLong() throws Exception {
+        mockMvc.perform(post("/persons")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                        "name", "test_user",
+                        "vat", "XYZ",
+                        "age", 12.3
+                )))
+        ).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
+                .andExpect(jsonPath("$.property-path", is(List.of("age"))));
+    }
+
+    @Test
+    void succeedToCreateEntityWithLongForDouble() throws Exception {
+        var url = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "test product",
+                                "price", 5
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+
+        mockMvc.perform(get(url).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price", is(5)));
     }
 
     @Test
