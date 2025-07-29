@@ -236,6 +236,33 @@ class DatamodelApiImplTest {
                 );
             });
 
+        }
+
+        @Test
+        void inverseRelation_unmapped_ignored() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+            var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
+                    "name", "test",
+                    "vat", "123456"
+                    // person also has a uni-directional "friends" relation that we don't provide here.
+                    // The inverse relation is unnamed, so it should also not be processed
+            )));
+
+            assertThat(result.getId()).isEqualTo(entityId);
+
+            assertThat(createDataCaptor.getValue()).satisfies(createData -> {
+                assertThat(createData.getEntityName()).isEqualTo(PERSON.getName());
+                assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                        new SimpleAttributeData<>(PERSON_NAME.getName(), "test"),
+                        new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
+                        new SimpleAttributeData<>(PERSON_AGE.getName(), null)
+                );
+
+                assertThat(createData.getRelations()).isEmpty();
+            });
 
         }
 

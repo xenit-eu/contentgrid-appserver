@@ -45,6 +45,10 @@ public class RequestInputDataMapper {
         var data = new ArrayList<RelationData>(relations.size());
         var exceptionCollector = new ValidationExceptionCollector();
         for (var relation : relations) {
+            // Relations that don't have a name on this side can't be mapped from input at all, so skip them immediately
+            if(relation.getSourceEndPoint().getName() == null) {
+                continue;
+            }
             exceptionCollector.use(() -> relationMapper.mapRelation(relation, requestInputData)
                     .ifPresent(data::add));
         }
