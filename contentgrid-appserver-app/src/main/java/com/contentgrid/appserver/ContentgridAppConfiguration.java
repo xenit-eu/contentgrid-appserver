@@ -34,10 +34,6 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
-import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
-import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -45,11 +41,8 @@ import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.format.FormatterRegistry;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Slf4j
 @Configuration
@@ -77,22 +70,6 @@ public class ContentgridAppConfiguration {
         return new JOOQQueryEngine(dslContextResolver);
     }
 
-    @Bean
-    WebMvcConfigurer webMvcConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addFormatters(FormatterRegistry registry) {
-                if(registry instanceof ConversionService conversionService) {
-                    registry.addConverter(new StringDataEntryToBooleanDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToDecimalDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToInstantDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToLongDataEntryConverter(conversionService));
-                } else {
-                    throw new IllegalStateException("Registry is not a ConversionService");
-                }
-            }
-        };
-    }
 
     @Bean
     ApplicationResolver applicationResolver() {
