@@ -23,6 +23,8 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.content.api.ContentStore;
+import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
@@ -34,6 +36,11 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ContentGridRestConfiguration;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.EnumSet;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.InitializingBean;
@@ -52,8 +59,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 public class ContentgridAppConfiguration {
 
     @Bean
-    public DatamodelApi api(QueryEngine queryEngine) {
-        return new DatamodelApiImpl(queryEngine);
+    public DatamodelApi api(QueryEngine queryEngine, ContentStore contentStore) {
+        return new DatamodelApiImpl(queryEngine, contentStore);
     }
 
     @Bean
@@ -75,6 +82,14 @@ public class ContentgridAppConfiguration {
     @Bean
     public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
         return new JOOQQueryEngine(dslContextResolver);
+    }
+
+    @Bean
+    public ContentStore filesystemContentStore() throws IOException {
+        var permissions = EnumSet.of(
+                PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE
+        );
+        return new FilesystemContentStore(Files.createTempDirectory("contentgrid", PosixFilePermissions.asFileAttribute(permissions)));
     }
 
 

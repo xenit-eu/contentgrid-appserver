@@ -9,11 +9,13 @@ dependencies {
 
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
+    api project(':contentgrid-appserver-content-api')
     api project(':contentgrid-appserver-query-engine-impl-jooq')
     api project(':contentgrid-appserver-rest')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+    implementation project(':contentgrid-appserver-content-impl-fs')
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

@@ -5,10 +5,12 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
@@ -42,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
+    private final ContentStore contentStore;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -60,6 +63,12 @@ public class DatamodelApiImpl implements DatamodelApi {
                         AttributeAndRelationMapper.from(
                                 new AttributeConstraintValidationDataMapper<>(new RequiredAttributeConstraintValidator()),
                                 new RelationRequiredValidationDataMapper()
+                        )
+                ))
+                .andThen(new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                                new ContentUploadAttributeMapper(contentStore),
+                                (rel, value) -> Optional.of(value)
                         )
                 ))
                 .andThen(queryEngineMapper);

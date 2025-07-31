@@ -4,14 +4,17 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -74,9 +77,18 @@ public class MultipartRequestInputData implements RequestInputData {
             if(requestParams.containsKey(key)) {
                 throw new InvalidDataTypeException(TechnicalDataType.CONTENT, TechnicalDataType.STRING);
             }
-            return files.getAll(key).stream()
-                    .map(file -> new FileDataEntry(file.getOriginalFilename(), file.getContentType(), file.getSize(), file::getInputStream))
-                    .toList();
+            var uploadedFiles = files.getAll(key);
+            var fileData = new ArrayList<FileDataEntry>(uploadedFiles.size());
+            for (var uploadedFile : uploadedFiles) {
+                fileData.add(new FileDataEntry(
+                        uploadedFile.getOriginalFilename(),
+                        Optional.ofNullable(uploadedFile.getContentType())
+                                .orElseThrow(() -> new InvalidDataFormatException(TechnicalDataType.CONTENT, new IllegalArgumentException("Content-Type is required"))),
+                        uploadedFile.getSize(),
+                        uploadedFile::getInputStream
+                ));
+            }
+            return fileData;
         }
 
         // Only FileDataEntry can be derived from files; the rest below can not be derived from files

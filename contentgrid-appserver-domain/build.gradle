@@ -11,6 +11,8 @@ dependencies {
     api 'com.contentgrid.hateoas:contentgrid-pagination-api:0.0.3'
 
     implementation 'org.slf4j:slf4j-api'
+    implementation project(':contentgrid-appserver-content-api')
+    implementation 'org.springframework:spring-core'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'

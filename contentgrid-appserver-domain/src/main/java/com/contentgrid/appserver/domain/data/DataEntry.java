@@ -192,6 +192,7 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
     class FileDataEntry implements DataEntry {
 
         String filename;
+        @NonNull
         String contentType;
 
         long size;
