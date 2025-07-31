@@ -9,8 +9,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
 import org.springframework.hateoas.RepresentationModel;
 
+@EqualsAndHashCode(callSuper = true)
 public class RepresentationModelWithTemplates<T extends RepresentationModelWithTemplates<T>> extends RepresentationModel<T> {
 
     @JsonIgnore

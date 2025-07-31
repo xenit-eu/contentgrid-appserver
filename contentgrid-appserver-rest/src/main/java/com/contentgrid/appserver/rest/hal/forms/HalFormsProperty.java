@@ -23,9 +23,13 @@ public class HalFormsProperty {
     String regex;
     Object value;
     boolean templated;
-    Integer cols, rows;
-    Number min, max, step;
-    Integer minLength, maxLength;
+    Integer cols;
+    Integer rows;
+    Number min;
+    Number max;
+    Number step;
+    Integer minLength;
+    Integer maxLength;
     String type;
     String placeholder;
     HalFormsOptions options;

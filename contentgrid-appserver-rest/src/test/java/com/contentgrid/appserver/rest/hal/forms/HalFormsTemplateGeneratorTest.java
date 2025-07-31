@@ -77,8 +77,8 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(1L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isOne();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 content -> {
@@ -94,8 +94,8 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(customer.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(customer.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(1L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isOne();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 products -> {
@@ -105,7 +105,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(products.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(products.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/products?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -116,8 +116,8 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(previous.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(previous.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(0L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 next -> {
@@ -127,8 +127,8 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(next.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(next.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(0L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 }
         );
@@ -169,8 +169,8 @@ class HalFormsTemplateGeneratorTest {
                                 value1 -> assertThat(value1).isEqualTo("female"),
                                 value2 -> assertThat(value2).isEqualTo("male")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 invoices -> {
@@ -180,7 +180,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(invoices.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(invoices.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -191,7 +191,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(friends.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(friends.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
                         assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 }
@@ -247,8 +247,8 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(1L);
-                        assertThat(options.getMaxItems()).isEqualTo(1L);
+                        assertThat(options.getMinItems()).isOne();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 contentFilename -> {
@@ -290,7 +290,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -329,7 +329,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -350,7 +350,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -378,7 +378,7 @@ class HalFormsTemplateGeneratorTest {
                                         .contains("property=confidentiality")
                                         .contains("direction=desc")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 }
@@ -433,7 +433,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
@@ -461,7 +461,7 @@ class HalFormsTemplateGeneratorTest {
                                         .contains("property=name")
                                         .contains("direction=desc")
                         );
-                        assertThat(options.getMinItems()).isEqualTo(0L);
+                        assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
                 }
