@@ -22,7 +22,11 @@ public class HalFormsTemplate {
 
     @NonNull
     @Builder.Default
-    String title = DEFAULT_KEY;
+    @JsonIgnore
+    String key = DEFAULT_KEY;
+
+    @JsonInclude(Include.NON_NULL)
+    String title;
 
     @JsonIgnore
     HttpMethod httpMethod;

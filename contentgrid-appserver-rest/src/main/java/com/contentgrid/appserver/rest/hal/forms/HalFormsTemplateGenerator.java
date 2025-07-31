@@ -31,7 +31,7 @@ public class HalFormsTemplateGenerator {
         var hasFiles = properties.stream().anyMatch(prop -> Objects.equals(HtmlInputType.FILE_VALUE, prop.getType()));
 
         return HalFormsTemplate.builder()
-                .title(IanaLinkRelations.CREATE_FORM_VALUE)
+                .key(IanaLinkRelations.CREATE_FORM_VALUE)
                 .httpMethod(HttpMethod.POST)
                 .contentType(hasFiles? MediaType.MULTIPART_FORM_DATA:MediaType.APPLICATION_JSON)
                 .properties(properties)
@@ -46,7 +46,7 @@ public class HalFormsTemplateGenerator {
                 .forEachOrdered(properties::add);
 
         return HalFormsTemplate.builder()
-                .title(HalFormsTemplate.DEFAULT_KEY)
+                .key(HalFormsTemplate.DEFAULT_KEY)
                 .httpMethod(HttpMethod.PUT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .properties(properties)
@@ -60,7 +60,7 @@ public class HalFormsTemplateGenerator {
                 .forEachOrdered(properties::add);
 
         return HalFormsTemplate.builder()
-                .title(IanaLinkRelations.SEARCH_VALUE)
+                .key(IanaLinkRelations.SEARCH_VALUE)
                 .httpMethod(HttpMethod.GET)
                 .properties(properties)
                 .target(getCollectionSelfLink(application, entity).toString())
