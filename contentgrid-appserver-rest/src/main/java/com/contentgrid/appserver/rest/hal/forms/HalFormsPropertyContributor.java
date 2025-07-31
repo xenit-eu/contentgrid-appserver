@@ -37,7 +37,7 @@ public class HalFormsPropertyContributor {
             properties.forEachOrdered(builder::add);
         }
         for (var relation : application.getRelationsForSourceEntity(entity)) {
-            relationToCreateProperty(application, relation).ifPresent(builder::add);
+            relationToProperty(application, relation).ifPresent(builder::add);
         }
         return builder.build();
     }
@@ -133,7 +133,7 @@ public class HalFormsPropertyContributor {
                 .orElse(property);
     }
 
-    private Optional<HalFormsProperty> relationToCreateProperty(Application application, Relation relation) {
+    Optional<HalFormsProperty> relationToProperty(Application application, Relation relation) {
         if (relation.getSourceEndPoint().getName() == null) {
             return Optional.empty();
         }

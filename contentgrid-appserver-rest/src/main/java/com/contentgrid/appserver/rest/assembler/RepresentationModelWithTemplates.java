@@ -24,11 +24,15 @@ public class RepresentationModelWithTemplates<T extends RepresentationModelWithT
         return Collections.unmodifiableMap(templates);
     }
 
-    public void addTemplate(HalFormsTemplate template) {
+    @SuppressWarnings("unchecked")
+    public T addTemplate(HalFormsTemplate template) {
         this.templates.putLast(template.getKey(), template);
+        return (T) this;
     }
 
-    public void addTemplates(List<HalFormsTemplate> templates) {
+    @SuppressWarnings("unchecked")
+    public T addTemplates(List<HalFormsTemplate> templates) {
         templates.forEach(this::addTemplate);
+        return (T) this;
     }
 }

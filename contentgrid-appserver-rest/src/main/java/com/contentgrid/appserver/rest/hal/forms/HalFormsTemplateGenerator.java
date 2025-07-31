@@ -5,6 +5,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.rest.EntityRestController;
 import java.net.URI;
 import java.util.ArrayList;
@@ -65,6 +69,45 @@ public class HalFormsTemplateGenerator {
                 .properties(properties)
                 .target(getCollectionSelfLink(application, entity).toString())
                 .build();
+    }
+
+    public List<HalFormsTemplate> generateRelationTemplates(Application application, Relation relation, String relationLink) {
+        var maybeProperty = contributor.relationToProperty(application, relation);
+        if (maybeProperty.isEmpty()) {
+            return List.of();
+        }
+
+        var result = new ArrayList<HalFormsTemplate>();
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            result.add(HalFormsTemplate.builder()
+                    .key("add-" + relation.getSourceEndPoint().getLinkName())
+                    .httpMethod(HttpMethod.POST)
+                    .target(relationLink)
+                    .contentType(MediaType.parseMediaType("text/uri-list"))
+                    .property(maybeProperty.get())
+                    .build());
+        } else {
+            result.add(HalFormsTemplate.builder()
+                    .key("set-" + relation.getSourceEndPoint().getLinkName())
+                    .httpMethod(HttpMethod.PUT)
+                    .target(relationLink)
+                    .contentType(MediaType.parseMediaType("text/uri-list"))
+                    .property(maybeProperty.get())
+                    .build());
+        }
+        if (!relation.getSourceEndPoint().isRequired() && !relation.getTargetEndPoint().isRequired()) {
+            // A relation that is required on any side can't be cleared, because it would give a constraint violation error
+            result.add(HalFormsTemplate.builder()
+                    .key("clear-" + relation.getSourceEndPoint().getLinkName())
+                    .httpMethod(HttpMethod.DELETE)
+                    .target(relationLink)
+                    .build());
+        }
+        return result;
+    }
+
+    public List<HalFormsTemplate> generateContentTemplates(Application application, Entity entity, ContentAttribute content, String contentLink) {
+        return List.of(); // no templates yet
     }
 
     private URI getCollectionSelfLink(Application application, Entity entity) {

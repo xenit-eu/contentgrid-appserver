@@ -281,10 +281,29 @@ class EntityRestControllerTest {
                                 },
                                 delete: {
                                     method: "DELETE"
+                                },
+                                add-invoices: {
+                                    method: "POST",
+                                    target: "http://localhost/products/${ENTITY_ID}/invoices",
+                                    contentType: "text/uri-list",
+                                    properties: [{
+                                        name: "invoices",
+                                        type: "url",
+                                        options: {
+                                            link: {
+                                                href: "http://localhost/invoices?page=0" // TODO: remove page=0 (ACC-2200)
+                                            },
+                                            minItems: 0
+                                        }
+                                    }]
+                                },
+                                clear-invoices: {
+                                    method: "DELETE",
+                                    target: "http://localhost/products/${ENTITY_ID}/invoices"
                                 }
                             }
                         }
-                        """));
+                        """.replace("${ENTITY_ID}", id)));
     }
 
     @ParameterizedTest

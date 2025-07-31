@@ -19,15 +19,20 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.EntityRestController;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.Inline;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.Remote;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
 class HalFormsTemplateGeneratorTest {
+
+    private static final EntityId ENTITY_ID = EntityId.of(UUID.randomUUID());
 
     HalFormsTemplateGenerator generator = new HalFormsTemplateGenerator(new HalFormsPropertyContributor());
 
@@ -539,5 +544,122 @@ class HalFormsTemplateGeneratorTest {
             assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
             assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
         });
+    }
+
+    @Test
+    void generateRelationTemplate_oneToOne() {
+        var relationLink = "/invoices/%s/invoice-previous".formatted(ENTITY_ID);
+        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_PREVIOUS, relationLink);
+
+        assertThat(templates).satisfiesExactlyInAnyOrder(
+                setPrevious -> {
+                    assertThat(setPrevious.getKey()).isEqualTo("set-previous_invoice");
+                    assertThat(setPrevious.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+                    assertThat(setPrevious.getTarget()).isEqualTo(relationLink);
+                    assertThat(setPrevious.getContentType()).hasToString("text/uri-list");
+                    assertThat(setPrevious.getProperties()).singleElement().satisfies(property -> {
+                        assertThat(property.getName()).isEqualTo("previous_invoice");
+                        assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                        assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getMinItems()).isZero();
+                            assertThat(options.getMaxItems()).isOne();
+                        });
+                    });
+                },
+                clearPrevious -> {
+                    assertThat(clearPrevious.getKey()).isEqualTo("clear-previous_invoice");
+                    assertThat(clearPrevious.getHttpMethod()).isEqualTo(HttpMethod.DELETE);
+                    assertThat(clearPrevious.getTarget()).isEqualTo(relationLink);
+                    assertThat(clearPrevious.getProperties()).isEmpty();
+                }
+        );
+    }
+
+    @Test
+    void generateRelationTemplate_manyToOne() {
+        var relationLink = "/invoices/%s/customer".formatted(ENTITY_ID);
+        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_CUSTOMER, relationLink);
+
+        assertThat(templates).satisfiesExactlyInAnyOrder(
+                setCustomer -> {
+                    assertThat(setCustomer.getKey()).isEqualTo("set-customer");
+                    assertThat(setCustomer.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+                    assertThat(setCustomer.getTarget()).isEqualTo(relationLink);
+                    assertThat(setCustomer.getContentType()).hasToString("text/uri-list");
+                    assertThat(setCustomer.getProperties()).singleElement().satisfies(property -> {
+                        assertThat(property.getName()).isEqualTo("customer");
+                        assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                        assertThat(property.isRequired()).isTrue();
+                        assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                            assertThat(options.getMinItems()).isOne();
+                            assertThat(options.getMaxItems()).isOne();
+                        });
+                    });
+                }
+        );
+    }
+
+    @Test
+    void generateRelationTemplate_oneToMany() {
+        var relationLink = "/persons/%s/invoices".formatted(ENTITY_ID);
+        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON_INVOICES, relationLink);
+
+        assertThat(templates).satisfiesExactlyInAnyOrder(
+                addInvoices -> {
+                    assertThat(addInvoices.getKey()).isEqualTo("add-invoices");
+                    assertThat(addInvoices.getHttpMethod()).isEqualTo(HttpMethod.POST);
+                    assertThat(addInvoices.getTarget()).isEqualTo(relationLink);
+                    assertThat(addInvoices.getContentType()).hasToString("text/uri-list");
+                    assertThat(addInvoices.getProperties()).singleElement().satisfies(property -> {
+                        assertThat(property.getName()).isEqualTo("invoices");
+                        assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                        assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getMinItems()).isZero();
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
+                }
+        );
+    }
+
+    @Test
+    void generateRelationTemplate_manyToMany() {
+        var relationLink = "/invoices/%s/products".formatted(ENTITY_ID);
+        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_PRODUCTS, relationLink);
+
+        assertThat(templates).satisfiesExactlyInAnyOrder(
+                addProducts -> {
+                    assertThat(addProducts.getKey()).isEqualTo("add-products");
+                    assertThat(addProducts.getHttpMethod()).isEqualTo(HttpMethod.POST);
+                    assertThat(addProducts.getTarget()).isEqualTo(relationLink);
+                    assertThat(addProducts.getContentType()).hasToString("text/uri-list");
+                    assertThat(addProducts.getProperties()).singleElement().satisfies(property -> {
+                        assertThat(property.getName()).isEqualTo("products");
+                        assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                        assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                            assertThat(options.getLink().getHref()).isEqualTo("/products?page=0");
+                            assertThat(options.getMinItems()).isZero();
+                            assertThat(options.getMaxItems()).isNull();
+                        });
+                    });
+                },
+                clearProducts -> {
+                    assertThat(clearProducts.getKey()).isEqualTo("clear-products");
+                    assertThat(clearProducts.getHttpMethod()).isEqualTo(HttpMethod.DELETE);
+                    assertThat(clearProducts.getTarget()).isEqualTo(relationLink);
+                    assertThat(clearProducts.getProperties()).isEmpty();
+                }
+        );
+    }
+
+    @Test
+    void generateContentTemplates() {
+        var contentLink = "/invoices/%s/content";
+        var templates = generator.generateContentTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE, ModelTestFixtures.INVOICE_CONTENT, contentLink);
+
+        assertThat(templates).isEmpty();
     }
 }

@@ -39,15 +39,17 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         for (var relation : application.getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
                 var relationLink = getRelationLink(application, relation, id);
-                model.add(relationLink);
+                var relationTemplates = templateGenerator.generateRelationTemplates(application, relation, relationLink.getHref());
+                model.add(relationLink).addTemplates(relationTemplates);
             }
         }
         for (var content : entity.getContentAttributes()) {
-            model.add(getContentLink(application, entity, id, content));
+            var contentLink = getContentLink(application, entity, id, content);
+            var contentTemplates = templateGenerator.generateContentTemplates(application, entity, content, contentLink.getHref());
+            model.add(contentLink).addTemplates(contentTemplates);
         }
-        model.addTemplate(getUpdateTemplate(application, entity));
-        model.addTemplate(getDeleteTemplate());
-        return model;
+        return model.addTemplate(getUpdateTemplate(application, entity))
+                .addTemplate(getDeleteTemplate());
     }
 
     private Link getSelfLink(Application application, Entity entity, EntityId id) {
