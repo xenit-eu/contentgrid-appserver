@@ -13,13 +13,12 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 @EqualsAndHashCode(callSuper = true)
 @Relation(collectionRelation = IanaLinkRelations.ITEM_VALUE)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class EntityDataRepresentationModel extends RepresentationModel<EntityDataRepresentationModel> {
+public class EntityDataRepresentationModel extends RepresentationModelWithTemplates<EntityDataRepresentationModel> {
 
     private final Map<String, Object> data;
 

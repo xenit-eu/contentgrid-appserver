@@ -7,6 +7,7 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDa
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
+import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -27,8 +28,8 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration(proxyBeanMethods = false)
-@EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
-@Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class})
+@EnableHypermediaSupport(type = { HypermediaType.HAL })
+@Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class, HalFormsMediaTypeConfiguration.class})
 public class ContentGridRestConfiguration {
     @Bean
     WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor) {
