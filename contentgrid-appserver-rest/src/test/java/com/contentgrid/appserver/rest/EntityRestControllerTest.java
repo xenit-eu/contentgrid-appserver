@@ -218,9 +218,10 @@ class EntityRestControllerTest {
         // Extract ID from created entity
         String id = objectMapper.readTree(responseContent).get("id").asText();
 
-        // Then retrieve it
+        // Then retrieve it with application/hal+json
         mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaTypes.HAL_JSON))
                 .andExpect(jsonPath("$.id", is(id)))
                 .andExpect(jsonPath("$.name", is("Retrievable Product")))
                 .andExpect(jsonPath("$.price", is(99.99)))
@@ -230,7 +231,60 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
                 .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
                 .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist())
-                .andExpect(jsonPath("$._links.curies").isArray());
+                .andExpect(jsonPath("$._links.curies").isArray())
+                .andExpect(jsonPath("$._templates").doesNotExist());
+
+        // Then retrieve it with application/prs.hal-forms+json
+        mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(jsonPath("$.id", is(id)))
+                .andExpect(jsonPath("$.name", is("Retrievable Product")))
+                .andExpect(jsonPath("$.price", is(99.99)))
+                .andExpect(jsonPath("$.in_stock", is(true)))
+                .andExpect(jsonPath("$._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
+                .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
+                .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist())
+                .andExpect(jsonPath("$._links.curies").isArray())
+                .andExpect(content().json("""
+                        {
+                            _templates: {
+                                default: {
+                                    method: "PUT",
+                                    contentType: "application/json",
+                                    properties: [{
+                                        name: "name",
+                                        type: "text",
+                                        required: true
+                                    }, {
+                                        name: "description",
+                                        type: "text"
+                                    }, {
+                                        name: "price",
+                                        type: "number",
+                                        required: true
+                                    }, {
+                                        name: "release_date",
+                                        type: "datetime"
+                                    }, {
+                                        name: "in_stock",
+                                        type: "checkbox"
+                                    }, {
+                                        name: "picture.filename",
+                                        type: "text"
+                                    }, {
+                                        name: "picture.mimetype",
+                                        type: "text"
+                                    }]
+                                },
+                                delete: {
+                                    method: "DELETE"
+                                }
+                            }
+                        }
+                        """));
     }
 
     @ParameterizedTest
@@ -349,14 +403,34 @@ class EntityRestControllerTest {
                         .content(objectMapper.writeValueAsString(product2)))
                 .andExpect(status().isCreated());
 
-        // Now test the list endpoint
+        // Test the list endpoint with application/hal+json
         mockMvc.perform(get("/products")
                 .accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaTypes.HAL_JSON))
                 .andExpect(jsonPath("$._embedded.item", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item.length()", is(2)))
                 .andExpect(jsonPath("$._embedded.item[0].name", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[1].name", notNullValue()))
+                .andExpect(jsonPath("$._embedded.item[0]._templates").doesNotExist())
+                .andExpect(jsonPath("$._embedded.item[1]._templates").doesNotExist())
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')].price", is(List.of(19.99))))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
+                .andExpect(jsonPath("$._links.curies").isArray());
+
+        // Test the list endpoint with application/prs.hal-forms+json
+        mockMvc.perform(get("/products")
+                        .accept(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(jsonPath("$._embedded.item", notNullValue()))
+                .andExpect(jsonPath("$._embedded.item.length()", is(2)))
+                .andExpect(jsonPath("$._embedded.item[0].name", notNullValue()))
+                .andExpect(jsonPath("$._embedded.item[1].name", notNullValue()))
+                .andExpect(jsonPath("$._embedded.item[0]._templates").exists())
+                .andExpect(jsonPath("$._embedded.item[1]._templates").exists())
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')].price", is(List.of(19.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))

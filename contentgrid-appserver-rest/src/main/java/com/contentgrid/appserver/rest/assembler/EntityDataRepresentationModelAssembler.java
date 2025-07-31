@@ -9,15 +9,25 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
+import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
 import com.contentgrid.appserver.rest.property.ContentRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
+import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
 
+@Component
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, Application> {
+
+    private final HalFormsTemplateGenerator templateGenerator;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull Application application) {
@@ -28,12 +38,15 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         model.add(getSelfLink(application, entity, id));
         for (var relation : application.getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
-                model.add(getRelationLink(application, relation, id));
+                var relationLink = getRelationLink(application, relation, id);
+                model.add(relationLink);
             }
         }
         for (var content : entity.getContentAttributes()) {
             model.add(getContentLink(application, entity, id, content));
         }
+        model.addTemplate(getUpdateTemplate(application, entity));
+        model.addTemplate(getDeleteTemplate());
         return model;
     }
 
@@ -58,5 +71,16 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .getContent(application, entity.getPathSegment(), id, attribute.getPathSegment()))
                 .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());
+    }
+
+    private HalFormsTemplate getUpdateTemplate(Application application, Entity entity) {
+        return templateGenerator.generateUpdateTemplate(application, entity);
+    }
+
+    private HalFormsTemplate getDeleteTemplate() {
+        return HalFormsTemplate.builder()
+                .key("delete")
+                .httpMethod(HttpMethod.DELETE)
+                .build();
     }
 }

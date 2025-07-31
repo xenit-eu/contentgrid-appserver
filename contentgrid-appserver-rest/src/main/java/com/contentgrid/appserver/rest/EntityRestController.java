@@ -24,7 +24,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
@@ -56,7 +55,7 @@ public class EntityRestController {
 
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
-    private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
+    private final EntityDataRepresentationModelAssembler assembler;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
