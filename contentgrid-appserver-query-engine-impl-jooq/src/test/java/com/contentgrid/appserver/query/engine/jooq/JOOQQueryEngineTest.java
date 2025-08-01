@@ -1910,6 +1910,42 @@ class JOOQQueryEngineTest {
         assertThat(unspecified.getEntities().size(), lessThan(1000));
     }
 
+    static Stream<Arguments> countExpressions() {
+        return Stream.of(
+                // true
+                Arguments.of(Scalar.of(true), 3L),
+                // false
+                Arguments.of(Scalar.of(false), 0L),
+                // expression that holds for all products
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code_")
+                ), 3L),
+                // expression that holds for none of the products
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code__")
+                ), 0L),
+                // expression that holds for exactly one product
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code_2")
+                ), 1L),
+                // expression over a relation
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("number")),
+                        Scalar.of("invoice_1")
+                ), 2L)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("countExpressions")
+    void testCounting(ThunkExpression<Boolean> expression, long count) {
+        var actual = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
+        assertEquals(count, actual);
+    }
+
     @SpringBootApplication
     static class TestApplication {
         public static void main(String[] args) {
