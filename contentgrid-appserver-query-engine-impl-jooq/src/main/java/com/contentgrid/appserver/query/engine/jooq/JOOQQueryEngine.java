@@ -47,6 +47,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -116,7 +117,7 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         if (!(data instanceof OffsetData offsetData)) {
-            throw new RuntimeException("Only offset-based query paging is implemented");
+            throw new UnsupportedOperationException("Only offset-based query paging is implemented");
         }
 
         return new OffsetAndLimit(offsetData.getOffset(), offsetData.getLimit());
@@ -449,10 +450,9 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity, alias);
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-        var count = dslContext.selectCount().from(table)
-                .where(condition)
-                .fetchOne(0, long.class);
-
-        return count;
+        return Objects.requireNonNull(
+                dslContext.selectCount().from(table)
+                        .where(condition)
+                        .fetchOne(0, long.class));
     }
 }

@@ -5,7 +5,6 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.domain.PageData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -13,7 +12,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -33,7 +31,6 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.http.ETag;
 import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
@@ -90,8 +87,7 @@ public class EntityRestController {
         var models = results.getContent().stream()
                 .map(res -> wrappers.wrap(assembler.withContext(application).toModel(res), IanaLinkRelations.ITEM))
                 .toList();
-        // TODO use page data and count data
-//        return PagedModel.of(models, fromPageInfo(results.getPageInfo()));
+        // TODO use page data and count data (ACC-2200)
         return CollectionModel.of(models);
     }
 
@@ -206,32 +202,6 @@ public class EntityRestController {
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-    }
-
-    // TODO: ACC-2048: support paging
-    private static PageData defaultPageData() {
-        return new PageData() {
-            @Override
-            public int getSize() {
-                return 20;
-            }
-
-            @Override
-            public int getPage() {
-                return 0;
-            }
-        };
-    }
-
-    // TODO: ACC-2048: support paging
-    private static PageMetadata fromPageInfo(PageInfo pageInfo) {
-        return new PageMetadata(
-                pageInfo.getSize() == null ? 20 : pageInfo.getSize(),
-                pageInfo.getStart() == null ? 0 : pageInfo.getStart(),
-                pageInfo.getExactCount() == null
-                        ? pageInfo.getEstimatedCount() == null ? 0 : pageInfo.getEstimatedCount()
-                        : pageInfo.getExactCount()
-        );
     }
 
     private SortData parseSortData(String[] sort) {
