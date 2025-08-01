@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -107,6 +105,8 @@ import org.springframework.test.context.ContextConfiguration;
 })
 @ContextConfiguration(classes = {TestApplication.class})
 class JOOQQueryEngineTest {
+
+    private static final OffsetData DEFAULT_PAGE_DATA = new OffsetData(20, 0);
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
@@ -466,7 +466,7 @@ class JOOQQueryEngineTest {
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
-        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, null);
+        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         var resultList = results.getEntities().stream().map(EntityData::getId).toList();
         assertEquals(expected.size(), resultList.size());
         assertTrue(resultList.containsAll(expected));
@@ -606,7 +606,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validExpressions")
     void findAllValidExpression(ThunkExpression<Boolean> expression) {
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -692,7 +692,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidExpressions")
     void findAllInvalidExpression(ThunkExpression<Boolean> expression) {
-        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, null));
+        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA));
     }
 
     static Stream<EntityCreateData> validCreateData() {
@@ -1578,7 +1578,7 @@ class JOOQQueryEngineTest {
 
         // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         assertTrue(slice.getEntities().isEmpty());
 
         // unlink relations for person
@@ -1587,7 +1587,7 @@ class JOOQQueryEngineTest {
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
-        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, null);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         assertTrue(slice.getEntities().isEmpty());
     }
 
@@ -1694,7 +1694,7 @@ class JOOQQueryEngineTest {
                     );
                 }
                 var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
-                        null, null);
+                        null, DEFAULT_PAGE_DATA);
                 assertTrue(slice.getEntities().isEmpty());
             } else {
                 // TODO: How do we validate this?
@@ -1833,7 +1833,7 @@ class JOOQQueryEngineTest {
                 // Bob -> invoice 2 -> invoice 1 -> Alice
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
         );
-        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, null);
+        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, DEFAULT_PAGE_DATA);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -1847,28 +1847,28 @@ class JOOQQueryEngineTest {
         // Ascending by invoice number
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.ASC, SortableName.of("invoice_num"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
 
         // Descending by invoice number
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.DESC, SortableName.of("invoice_num"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
 
         // Ascending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.ASC, SortableName.of("amount"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
 
         // Descending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.DESC, SortableName.of("amount"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
     }
@@ -1905,9 +1905,9 @@ class JOOQQueryEngineTest {
         assertEquals("code_9990", getCode.apply(lastPage.getEntities().getFirst()));
         assertEquals("code_9999", getCode.apply(lastPage.getEntities().getLast()));
 
-        // Validate default limits (not fetching all 10k by default)
-        var unspecified = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, null);
-        assertThat(unspecified.getEntities().size(), lessThan(1000));
+        // Validate page info beyond end is empty
+        var emptyPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 10_010));
+        assertEquals(0, emptyPage.getEntities().size());
     }
 
     static Stream<Arguments> countExpressions() {

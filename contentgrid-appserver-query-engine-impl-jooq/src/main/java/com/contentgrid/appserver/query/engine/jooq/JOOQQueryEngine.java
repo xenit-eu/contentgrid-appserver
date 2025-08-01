@@ -79,7 +79,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression, SortData sortData, QueryPageData page) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> expression, SortData sortData, @NonNull QueryPageData page) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
@@ -111,16 +111,10 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private record OffsetAndLimit(long offset, int limit) {}
 
-    private static OffsetAndLimit convertPageData(QueryPageData data)  {
-        if (data == null) {
-            return new OffsetAndLimit(0, 20); // defaults
-        }
-
-        if (!(data instanceof OffsetData offsetData)) {
-            throw new UnsupportedOperationException("Only offset-based query paging is implemented");
-        }
-
-        return new OffsetAndLimit(offsetData.getOffset(), offsetData.getLimit());
+    private static OffsetAndLimit convertPageData(@NonNull QueryPageData data)  {
+        return switch (data) {
+            case OffsetData offsetData -> new OffsetAndLimit(offsetData.getOffset(), offsetData.getLimit());
+        };
     }
 
     private static SortField<Object> convert(Entity entity, FieldSort field) {

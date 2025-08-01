@@ -44,7 +44,7 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     SliceData findAll(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression,
-            SortData sortData, QueryPageData page) throws QueryEngineException;
+            SortData sortData, @NonNull QueryPageData page) throws QueryEngineException;
 
     /**
      * Finds an entity that matches the requested identity

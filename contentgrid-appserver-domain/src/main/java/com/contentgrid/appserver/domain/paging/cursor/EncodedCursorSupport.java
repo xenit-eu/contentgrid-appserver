@@ -19,8 +19,8 @@ public class EncodedCursorSupport {
             OffsetData offsetData,
             int size
     ) {
-        int pageSize = EncodedCursorPagination.PAGE_SIZE;
         if (pagination == null) {
+            int pageSize = EncodedCursorPagination.PAGE_SIZE;
             var current = codec.encodeCursor(new PageBasedPagination(pageSize, 0), entity.getValue(), sort, params).cursor();
             var next = (size > offsetData.getLimit())
                     ? codec.encodeCursor(new PageBasedPagination(pageSize, 1), entity.getValue(), sort, params).cursor()

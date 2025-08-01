@@ -106,7 +106,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         // Request one extra row, so we can see if it's present → there is a next page
         var page = new OffsetData(offsetData.getLimit() + 1, offsetData.getOffset());
         var result = queryEngine.findAll(application, entity, filter, sort, page);
-        // Get a total count of how many items match these params (to be replaced with an estimate count at some point)
+        // Get a total count of how many items match these params
+        // TODO: to be replaced with an estimate count at some point (ACC-2208)
         var count = ItemCount.exact(queryEngine.exactCount(application, entity, filter));
         var size = result.getEntities().size();
 
