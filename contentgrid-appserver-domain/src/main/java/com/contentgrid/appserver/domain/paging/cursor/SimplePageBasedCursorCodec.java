@@ -9,7 +9,6 @@ import java.util.Map;
  * Page-based cursor: Re-implementation of the standard numeric page-based strategy
  */
 public class SimplePageBasedCursorCodec implements CursorCodec {
-    private final static int DEFAULT_PAGE_SIZE = 20;
 
     @Override
     public PageBasedPagination decodeCursor(CursorContext context, String entityName, Map<String, String> params) throws CursorDecodeException {
@@ -24,7 +23,7 @@ public class SimplePageBasedCursorCodec implements CursorCodec {
                 throw new CursorDecodeException("must be a number", ex);
             }
         }
-        return new PageBasedPagination(DEFAULT_PAGE_SIZE, pageNumber);
+        return new PageBasedPagination(context.pageSize(), pageNumber);
     }
 
     @Override
