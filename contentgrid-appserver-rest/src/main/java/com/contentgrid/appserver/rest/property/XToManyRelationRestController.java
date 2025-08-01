@@ -1,10 +1,9 @@
-package com.contentgrid.appserver.rest.property.handler;
+package com.contentgrid.appserver.rest.property;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -15,41 +14,39 @@ import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationE
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
-import com.contentgrid.appserver.rest.converter.UriListHttpServletRequestConverter;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.MethodNotAllowedException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-@Component
-public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHandler<List<URI>, Relation> {
-
-    private static final Set<HttpMethod> SUPPORTED_PROPERTY_METHODS = Set.of(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.DELETE);
-    private static final Set<HttpMethod> SUPPORTED_PROPERTY_ITEM_METHODS = Set.of(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.DELETE);
+@RestController
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@SpecializedOnPropertyType(type = PropertyType.TO_MANY_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
+@RequestMapping("/{entityName}/{instanceId}/{propertyName}")
+public class XToManyRelationRestController {
 
     @NonNull
     private final DatamodelApi datamodelApi;
 
-    @Autowired
-    public XToManyRelationRequestHandler(@NonNull DatamodelApi datamodelApi) {
-        super(new UriListHttpServletRequestConverter());
-        this.datamodelApi = datamodelApi;
-    }
-
-    @Override
-    protected Optional<Relation> findProperty(Application application, Entity entity, PathSegmentName propertyName) {
-        return application.getRelationForPath(entity.getPathSegment(), propertyName)
+    private Optional<Relation> findProperty(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
+        return application.getRelationForPath(entityName, propertyName)
                 .filter(relation -> relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation);
     }
 
@@ -62,18 +59,19 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
                 .build();
     }
 
-    @Override
-    protected ResponseEntity<Object> getProperty(
+    @GetMapping
+    public ResponseEntity<Object> getRelation(
             Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName
     ) {
-        var targetPathSegment = property.getTargetEndPoint().getEntity().getPathSegment();
-        datamodelApi.findById(application, property.getSourceEndPoint().getEntity(), instanceId)
+        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
+        datamodelApi.findById(application, relation.getSourceEndPoint().getEntity(), instanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
         // TODO: ACC-2149 use FilterName of relation
-        var filterName = property.getTargetEndPoint().getName();
+        var filterName = relation.getTargetEndPoint().getName();
         if (filterName != null) {
             var redirectUrl = linkTo(methodOn(EntityRestController.class)
                     .listEntity(application, targetPathSegment, 0, null, Map.of(filterName.getValue(), instanceId.toString())))
@@ -85,18 +83,19 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         }
     }
 
-    @Override
-    protected ResponseEntity<Object> postProperty(
+    @PostMapping
+    public ResponseEntity<Object> addRelationItems(
             Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            List<URI> body
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName,
+            @RequestBody List<URI> body
     ) {
         if (body.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
-        var matcher = getMatcherForTargetEntity(application, property);
+        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var matcher = getMatcherForTargetEntity(application, relation);
         var targetIds = new java.util.HashSet<EntityId>();
 
         for (var element : body) {
@@ -107,7 +106,7 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
             targetIds.add(maybeId.get());
         }
         try {
-            datamodelApi.addRelationItems(application, property, instanceId, targetIds);
+            datamodelApi.addRelationItems(application, relation, instanceId, targetIds);
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -116,37 +115,16 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    protected ResponseEntity<Object> putProperty(
+    @DeleteMapping
+    public ResponseEntity<Object> deleteRelation(
             Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            List<URI> body
-    ) {
-        throw new MethodNotAllowedException(HttpMethod.PUT, SUPPORTED_PROPERTY_METHODS);
-    }
-
-    @Override
-    protected ResponseEntity<Object> patchProperty(
-            Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            List<URI> body
-    ) {
-        throw new MethodNotAllowedException(HttpMethod.PATCH, SUPPORTED_PROPERTY_METHODS);
-    }
-
-    @Override
-    protected ResponseEntity<Object> deleteProperty(
-            Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName
     ) {
         try {
-            datamodelApi.deleteRelation(application, property, instanceId);
+            var relation = findProperty(application, entityName, propertyName).orElseThrow();
+            datamodelApi.deleteRelation(application, relation, instanceId);
         } catch (EntityNotFoundException|RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -155,68 +133,34 @@ public class XToManyRelationRequestHandler extends AbstractPropertyItemRequestHa
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    protected ResponseEntity<Object> getPropertyItem(
+    @GetMapping("/{itemId}")
+    public ResponseEntity<Object> getRelationItem(
             Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            EntityId itemId
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName,
+            @PathVariable EntityId itemId
     ) {
-        if (datamodelApi.hasRelationTarget(application, property, instanceId, itemId)) {
-            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, property.getTargetEndPoint().getEntity().getPathSegment(), itemId)).toUri();
+        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId)) {
+            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
     }
 
-    @Override
-    protected ResponseEntity<Object> postPropertyItem(
+    @DeleteMapping("/{itemId}")
+    public ResponseEntity<Object> deleteRelationItem(
             Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            EntityId itemId,
-            List<URI> body
-    ) {
-        throw new MethodNotAllowedException(HttpMethod.POST, SUPPORTED_PROPERTY_ITEM_METHODS);
-    }
-
-    @Override
-    protected ResponseEntity<Object> putPropertyItem(
-            Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            EntityId itemId,
-            List<URI> body
-    ) {
-        throw new MethodNotAllowedException(HttpMethod.PUT, SUPPORTED_PROPERTY_ITEM_METHODS);
-    }
-
-    @Override
-    protected ResponseEntity<Object> patchPropertyItem(
-            Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            EntityId itemId,
-            List<URI> body
-    ) {
-        throw new MethodNotAllowedException(HttpMethod.PATCH, SUPPORTED_PROPERTY_ITEM_METHODS);
-    }
-
-    @Override
-    protected ResponseEntity<Object> deletePropertyItem(
-            Application application,
-            Entity entity,
-            EntityId instanceId,
-            Relation property,
-            EntityId itemId
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName,
+            @PathVariable EntityId itemId
     ) {
         try {
-            datamodelApi.removeRelationItem(application, property, instanceId, itemId);
+            var relation = findProperty(application, entityName, propertyName).orElseThrow();
+            datamodelApi.removeRelationItem(application, relation, instanceId, itemId);
         } catch (EntityNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

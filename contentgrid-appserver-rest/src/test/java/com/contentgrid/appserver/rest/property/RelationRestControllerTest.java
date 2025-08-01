@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.property.handler;
+package com.contentgrid.appserver.rest.property;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -51,11 +51,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Test class for both {@link XToOneRelationRequestHandler} and {@link XToManyRelationRequestHandler}.
+ * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
 @SpringBootTest
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
-class RelationRequestHandlerTest {
+class RelationRestControllerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());
     private static final EntityId INVOICE_ID = EntityId.of(UUID.randomUUID());
@@ -375,7 +375,7 @@ class RelationRequestHandlerTest {
         @Test
         void setRelationMissingContent() throws Exception {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
@@ -425,7 +425,7 @@ class RelationRequestHandlerTest {
         @Test
         void addRelationMissingContent() throws Exception {
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID))
-                    .andExpect(status().isUnsupportedMediaType())
+                    .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
