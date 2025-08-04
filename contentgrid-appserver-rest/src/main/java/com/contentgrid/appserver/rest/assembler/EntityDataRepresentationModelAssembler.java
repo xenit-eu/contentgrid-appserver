@@ -10,9 +10,9 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.rest.property.ContentRestController;
-import com.contentgrid.appserver.rest.property.PropertyRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
+import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.lang.NonNull;
@@ -44,8 +44,10 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
-        return linkTo(methodOn(PropertyRestController.class)
-                .getProperty(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
+        // Links for *-to-many relations are the same as links for *-to-one relations,
+        // no need to switch based on relation type
+        return linkTo(methodOn(XToOneRelationRestController.class)
+                .getRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
                         relation.getSourceEndPoint().getPathSegment()))
                 .withRel(ContentGridLinkRelations.RELATION)
                 .withName(relation.getSourceEndPoint().getLinkName().getValue());
