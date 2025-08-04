@@ -54,7 +54,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
 
-        var combinedMapper = inputMapper.andThen(mapper)
+        var combinedMapper = inputMapper.andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
                 // Validate that required attributes and relations are present
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(

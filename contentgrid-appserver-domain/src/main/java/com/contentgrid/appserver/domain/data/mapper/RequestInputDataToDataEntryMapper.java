@@ -30,24 +30,29 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 
 /**
  * Basic mapper performing the conversion of {@link RequestInputData} to {@link DataEntry} (without any validation)
  */
 @RequiredArgsConstructor
-public class RequestInputDataToDataEntryMapper implements AttributeMapper<RequestInputData, DataEntry>, RelationMapper<RequestInputData, DataEntry> {
+public class RequestInputDataToDataEntryMapper implements AttributeMapper<RequestInputData, Optional<DataEntry>>, RelationMapper<RequestInputData, Optional<DataEntry>> {
 
     @Override
-    public DataEntry mapAttribute(Attribute attribute, RequestInputData inputData)
+    public Optional<DataEntry> mapAttribute(Attribute attribute, RequestInputData inputData)
             throws InvalidPropertyDataException {
+        if(attribute.isReadOnly() || attribute.isIgnored()) {
+            // Completely skip readonly/ignored attributes
+            return Optional.empty();
+        }
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
         };
     }
 
-    private DataEntry mapSimpleAttribute(SimpleAttribute simpleAttribute,
+    private Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute,
             RequestInputData inputData) throws InvalidPropertyDataException{
         var attributeName = simpleAttribute.getName();
         var entryType = switch (simpleAttribute.getType()) {
@@ -58,27 +63,28 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             case DATETIME -> InstantDataEntry.class;
         };
         try {
-            return inputData.get(attributeName.getValue(), entryType);
+            return Optional.of(inputData.get(attributeName.getValue(), entryType));
         } catch (InvalidDataException e) {
             throw e.withinProperty(attributeName);
         }
     }
 
-    private DataEntry mapCompositeAttribute(CompositeAttribute compositeAttribute,
+    private Optional<DataEntry> mapCompositeAttribute(CompositeAttribute compositeAttribute,
             RequestInputData inputData) throws InvalidPropertyDataException {
         var attributeName = compositeAttribute.getName();
         try {
             var nestedInputData = inputData.nested(attributeName.getValue());
             return switch (nestedInputData) {
-                case MissingResult<RequestInputData> ignored -> MissingDataEntry.INSTANCE;
-                case NullResult<RequestInputData> ignored -> NullDataEntry.INSTANCE;
+                case MissingResult<RequestInputData> ignored -> Optional.of(MissingDataEntry.INSTANCE);
+                case NullResult<RequestInputData> ignored -> Optional.of(NullDataEntry.INSTANCE);
                 case DataResult<RequestInputData> data -> {
                     var builder = MapDataEntry.builder();
                     for (var attr : compositeAttribute.getAttributes()) {
-                        builder.item(attr.getName().getValue(), (PlainDataEntry) mapAttribute(attr, data.get()));
+                        mapAttribute(attr, data.get())
+                                .ifPresent(attrData -> builder.item(attr.getName().getValue(), (PlainDataEntry)attrData));
                     }
 
-                    yield builder.build();
+                    yield Optional.of(builder.build());
                 }
             };
         } catch (InvalidDataException e) {
@@ -87,7 +93,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
     }
 
     @Override
-    public DataEntry mapRelation(Relation relation, RequestInputData inputData)
+    public Optional<DataEntry> mapRelation(Relation relation, RequestInputData inputData)
             throws InvalidPropertyDataException {
         return switch (relation) {
             case OneToOneRelation ignored -> mapToOneRelation(relation, inputData);
@@ -97,7 +103,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         };
     }
 
-    private DataEntry mapToOneRelation(Relation relation, RequestInputData inputData)
+    private Optional<DataEntry> mapToOneRelation(Relation relation, RequestInputData inputData)
             throws InvalidPropertyDataException {
         var relationName = relation.getSourceEndPoint().getName();
         try {
@@ -107,13 +113,13 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                     throw new InvalidDataTypeException(DataType.of(relation), DataType.of(e));
                 }
             }
-            return entry;
+            return Optional.of(entry);
         } catch (InvalidDataException e) {
             throw e.withinProperty(relationName);
         }
     }
 
-    private DataEntry mapToManyRelation(Relation relation, RequestInputData inputData)
+    private Optional<DataEntry> mapToManyRelation(Relation relation, RequestInputData inputData)
             throws InvalidPropertyDataException {
         var relationName = relation.getSourceEndPoint().getName();
 
@@ -130,7 +136,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                             if(!Objects.equals(targetEntity, entry.getTargetEntity())) {
                                 throw new InvalidDataTypeException(
                                         DataType.of(relation),
-                                        // We need to create a MultipleRelationDataEntry, so the the exception correctly reports this to be a multiple relations entry
+                                        // We need to create a MultipleRelationDataEntry, so the exception correctly reports this to be a multiple relations entry
                                         DataType.of(MultipleRelationDataEntry.builder().targetEntity(entry.getTargetEntity()).build())
                                 );
                             }
@@ -142,10 +148,10 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                             );
                         }
                     }
-                    yield builder.build();
+                    yield Optional.of(builder.build());
                 }
-                case MissingResult<List<? extends DataEntry>> v -> MissingDataEntry.INSTANCE;
-                case NullResult<List<? extends DataEntry>> v -> NullDataEntry.INSTANCE;
+                case MissingResult<List<? extends DataEntry>> v -> Optional.of(MissingDataEntry.INSTANCE);
+                case NullResult<List<? extends DataEntry>> v -> Optional.of(NullDataEntry.INSTANCE);
             };
         } catch (InvalidDataException e) {
             throw e.withinProperty(relationName);
