@@ -9,16 +9,17 @@ import lombok.NonNull;
 import lombok.experimental.StandardException;
 
 /**
- * Encoder and decoder for pagination query parameters
+ * Encoder and decoder for cursors
  */
 public interface CursorCodec {
 
     /**
-     * Decodes a cursor to a spring pageable
+     * Decodes a cursor to a contentgrid-hateoas pagination
      *
      * @param context The cursor to decode
-     * @param uriComponents The rest of the URI, without cursor, page size or sort parameters
-     * @return Spring pageable, decoded from the cursor
+     * @param entityName The entity path segment of the URI
+     * @param params The query parameters of the URI, without cursor, page size or sort parameters
+     * @return Contentgrid-hateoas pagination, decoded from the cursor
      * @throws CursorDecodeException When a cursor can not be decoded
      */
     Pagination decodeCursor(CursorContext context, String entityName, Map<String, String> params) throws CursorDecodeException;
@@ -27,7 +28,8 @@ public interface CursorCodec {
      * Encodes a contentgrid hateoas pagination to a cursor
      *
      * @param pagination The contentgrid hateoas pagination
-     * @param uriComponents The rest of the URI, without cursor, page size or sort parameters
+     * @param entityName The entity path segment of the URI
+     * @param params The query parameters of the URI, without cursor, page size or sort parameters
      * @return The cursor that can be used in a request
      */
     CursorContext encodeCursor(Pagination pagination, String entityName, SortData sort, Map<String, String> params);
