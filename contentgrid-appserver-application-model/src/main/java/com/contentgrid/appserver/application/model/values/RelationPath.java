@@ -6,7 +6,7 @@ import lombok.Value;
 @Value
 public class RelationPath implements PropertyPath {
     @NonNull RelationName relation;
-    @NonNull PropertyPath rest;
+    PropertyPath rest;
 
     @Override
     public @NonNull PropertyName getFirst() {

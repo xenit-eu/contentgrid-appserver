@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest;
+package com.contentgrid.appserver.application.model.fixtures;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -34,7 +34,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 
-public class TestApplication {
+public class ModelTestFixtures {
 
     public static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
@@ -51,6 +51,12 @@ public class TestApplication {
             .constraint(Constraint.unique())
             .build();
 
+    public static final SimpleAttribute PERSON_AGE = SimpleAttribute.builder()
+            .name(AttributeName.of("age"))
+            .column(ColumnName.of("age"))
+            .type(Type.LONG)
+            .build();
+
     public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -58,6 +64,7 @@ public class TestApplication {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_AGE)
             .searchFilter(ExactSearchFilter.builder()
                     .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))

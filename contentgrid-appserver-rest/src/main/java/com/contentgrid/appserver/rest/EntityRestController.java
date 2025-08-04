@@ -2,39 +2,44 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
+import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
+import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.hateoas.RepresentationModel;
-import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -48,6 +53,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class EntityRestController {
 
     private final DatamodelApi datamodelApi;
+    private final ConversionService conversionService;
     private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
@@ -63,7 +69,7 @@ public class EntityRestController {
     }
 
     @GetMapping("/{entityName}")
-    public CollectionModel<?> listEntity(
+    public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
@@ -75,15 +81,11 @@ public class EntityRestController {
 
         var results = datamodelApi.findAll(application, entity, params, sortData, defaultPageData());
 
-        EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
-        var models = results.getEntities().stream()
-                .map(res -> wrappers.wrap(assembler.withContext(application).toModel(res), IanaLinkRelations.ITEM))
-                .toList();
-        return PagedModel.of(models, fromPageInfo(results.getPageInfo()));
+        return assembler.withContext(application).toCollectionModel(results.getEntities());
     }
 
     @GetMapping("/{entityName}/{instanceId}")
-    public RepresentationModel<?> getEntity(
+    public RepresentationModel<EntityDataRepresentationModel> getEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId
@@ -97,75 +99,70 @@ public class EntityRestController {
     }
 
     @PostMapping("/{entityName}")
-    public ResponseEntity<?> createEntity(
+    public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @RequestBody Map<String, Object> data
-    ) {
+            @RequestBody RequestInputData data
+    ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
-        var converted = EntityDataValidator.validate(entity, data);
-        var entityData = createEntityData(converted, entity);
+        GenericConversionService conversionService = new GenericConversionService();
+        conversionService.addConverter(new StringDataEntryToRelationDataEntryConverter(application));
 
-        var id = datamodelApi.create(application, entityData);
-        var result = datamodelApi.findById(application, entity, id).orElseThrow();
+        var result = datamodelApi.create(
+                application,
+                entity.getName(),
+                new ConversionServiceRequestInputData(data, conversionService)
+        );
 
-        RepresentationModel<?> model = assembler.withContext(application).toModel(result);
+        var model = assembler.withContext(application).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .body(model);
     }
 
+    @PostMapping(value = "/{entityName}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+    public ResponseEntity<EntityDataRepresentationModel> createEntity(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            HttpServletRequest request
+    ) throws InvalidPropertyDataException {
+        return createEntity(application, entityName, new ConversionServiceRequestInputData(MultipartRequestInputData.fromRequest(request), conversionService));
+    }
+
     @PutMapping("/{entityName}/{id}")
-    public ResponseEntity<?> update(
+    public EntityDataRepresentationModel update(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            @RequestBody Map<String, Object> data
-    ) {
+            @RequestBody RequestInputData data
+    ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
-        var converted = EntityDataValidator.validate(entity, data);
-        var entityCreateData = createEntityData(converted, entity);
-        var entityData = EntityData.builder()
-                .name(entityCreateData.getEntityName())
-                .attributes(entityCreateData.getAttributes())
-                .id(id)
-                .build();
-
         try {
-            datamodelApi.update(application, id, entityData);
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            var updateResult = datamodelApi.update(application, entity.getName(), id, data);
+            return assembler.withContext(application).toModel(updateResult);
+        } catch(EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-        var result = datamodelApi.findById(application, entity, id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        RepresentationModel<?> model = assembler.withContext(application).toModel(result);
-        return ResponseEntity
-                .ok()
-                .location(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .body(model);
     }
 
-    private static EntityCreateData createEntityData(Map<String, Object> data, Entity entity) {
-        // Should this just be rolled into the EntityDataValidator? 🤔
-        return EntityCreateData.builder()
-                .entityName(entity.getName())
-                .attributes(data.entrySet().stream()
-                .map(entry -> {
-                    var providedAttributeName = entry.getKey();
-                    var attributeData = entry.getValue();
-                    var attribute = entity.getAttributeByName(AttributeName.of(providedAttributeName)).orElseThrow();
+    @PatchMapping("/{entityName}/{id}")
+    public EntityDataRepresentationModel updatePartial(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @RequestBody RequestInputData data
+    ) throws InvalidPropertyDataException {
+        var entity = getEntityOrThrow(application, entityName);
 
-                    if (attribute instanceof SimpleAttribute simp) {
-                        return SimpleAttributeData.builder().name(simp.getName()).value(attributeData).build();
-                    }
-                    // POSTing CompositeAttributes is for when we support content
-                    return null;
+        try {
+            var updateResult = datamodelApi.updatePartial(application, entity.getName(), id, data);
 
-                }).toList()
-        ).build();
+            return assembler.withContext(application).toModel(updateResult);
+        } catch(EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
+        }
     }
 
     // TODO: ACC-2048: support paging

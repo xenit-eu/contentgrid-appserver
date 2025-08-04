@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.property;
 
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
@@ -24,7 +25,6 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundExcept
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.TestApplication;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -73,7 +73,7 @@ class RelationRestControllerTest {
         @Bean
         @Primary
         public ApplicationResolver testApplicationResolver() {
-            return new SingleApplicationResolver(TestApplication.APPLICATION);
+            return new SingleApplicationResolver(APPLICATION);
         }
 
         @Bean
@@ -106,7 +106,7 @@ class RelationRestControllerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doReturn(Optional.of(targetId)).when(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+                    .findRelationTarget(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isFound())
@@ -114,7 +114,7 @@ class RelationRestControllerTest {
                             header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
 
             Mockito.verify(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+                    .findRelationTarget(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
         }
 
         @Test
@@ -122,7 +122,7 @@ class RelationRestControllerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doReturn(Optional.of(targetId)).when(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID);
+                    .findRelationTarget(APPLICATION, INVOICE_CUSTOMER, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/customer", INVOICE_ID))
                     .andExpect(status().isFound())
@@ -130,17 +130,17 @@ class RelationRestControllerTest {
                             header().string(HttpHeaders.LOCATION, "http://localhost/persons/%s".formatted(targetId)));
 
             Mockito.verify(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID);
+                    .findRelationTarget(APPLICATION, INVOICE_CUSTOMER, INVOICE_ID);
         }
 
         @Test
         void followOneToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(TestApplication.PERSON.getName())
+                            .name(PERSON.getName())
                             .id(PERSON_ID)
                             .build()))
                     .when(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+                    .findById(APPLICATION, PERSON, PERSON_ID);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isFound())
@@ -148,17 +148,17 @@ class RelationRestControllerTest {
                             "http://localhost/invoices?page=0&customer=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+                    .findById(APPLICATION, PERSON, PERSON_ID);
         }
 
         @Test
         void followManyToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(TestApplication.PRODUCT.getName())
+                            .name(PRODUCT.getName())
                             .id(PRODUCT_ID)
                             .build()))
                     .when(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PRODUCT, PRODUCT_ID);
+                    .findById(APPLICATION, PRODUCT, PRODUCT_ID);
 
             mockMvc.perform(get("/products/{sourceId}/invoices", PRODUCT_ID))
                     .andExpect(status().isFound())
@@ -166,18 +166,18 @@ class RelationRestControllerTest {
                             "http://localhost/invoices?page=0&products=%s".formatted(PRODUCT_ID)));
 
             Mockito.verify(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PRODUCT, PRODUCT_ID);
+                    .findById(APPLICATION, PRODUCT, PRODUCT_ID);
         }
 
         @Test
         @Disabled("Following unidirectional *-to-many relations not implemented")
         void followUnidirectionalToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
-                    .name(TestApplication.PERSON.getName())
+                    .name(PERSON.getName())
                     .id(PERSON_ID)
                     .build()))
                     .when(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+                    .findById(APPLICATION, PERSON, PERSON_ID);
 
             mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
                     .andExpect(status().isFound())
@@ -185,7 +185,7 @@ class RelationRestControllerTest {
                             "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID))); // TODO: ACC-2149 change url
 
             Mockito.verify(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+                    .findById(APPLICATION, PERSON, PERSON_ID);
         }
 
         @Test
@@ -193,7 +193,7 @@ class RelationRestControllerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doReturn(true).when(datamodelApi)
-                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+                    .hasRelationTarget(APPLICATION, PERSON_INVOICES, PERSON_ID, targetId);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
                     .andExpect(status().isFound())
@@ -201,7 +201,7 @@ class RelationRestControllerTest {
                             header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
 
             Mockito.verify(datamodelApi)
-                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+                    .hasRelationTarget(APPLICATION, PERSON_INVOICES, PERSON_ID, targetId);
         }
 
         @Test
@@ -209,7 +209,7 @@ class RelationRestControllerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doReturn(true).when(datamodelApi)
-                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, targetId);
+                    .hasRelationTarget(APPLICATION, PRODUCT_INVOICES, PRODUCT_ID, targetId);
 
             mockMvc.perform(get("/products/{sourceId}/invoices/{targetId}", PRODUCT_ID, targetId))
                     .andExpect(status().isFound())
@@ -217,7 +217,7 @@ class RelationRestControllerTest {
                             header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
 
             Mockito.verify(datamodelApi)
-                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, targetId);
+                    .hasRelationTarget(APPLICATION, PRODUCT_INVOICES, PRODUCT_ID, targetId);
         }
 
         @Test
@@ -229,7 +229,7 @@ class RelationRestControllerTest {
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
+            Mockito.verify(datamodelApi).setRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID, targetId);
         }
 
         @Test
@@ -241,7 +241,7 @@ class RelationRestControllerTest {
                             .content("http://localhost/persons/%s%n".formatted(targetId)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID, targetId);
+            Mockito.verify(datamodelApi).setRelation(APPLICATION, INVOICE_CUSTOMER, INVOICE_ID, targetId);
         }
 
         @Test
@@ -250,7 +250,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+                    .deleteRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
         }
 
         @Test
@@ -259,7 +259,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_CUSTOMER, INVOICE_ID);
+                    .deleteRelation(APPLICATION, INVOICE_CUSTOMER, INVOICE_ID);
         }
 
         @Test
@@ -268,7 +268,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID);
+                    .deleteRelation(APPLICATION, PERSON_INVOICES, PERSON_ID);
         }
 
         @Test
@@ -277,7 +277,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID);
+                    .deleteRelation(APPLICATION, PRODUCT_INVOICES, PRODUCT_ID);
         }
 
         @Test
@@ -291,7 +291,7 @@ class RelationRestControllerTest {
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
+            Mockito.verify(datamodelApi).addRelationItems(APPLICATION, PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
         }
 
         @Test
@@ -305,7 +305,7 @@ class RelationRestControllerTest {
                                     invoice2)))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID, Set.of(invoice1, invoice2));
+            Mockito.verify(datamodelApi).addRelationItems(APPLICATION, PRODUCT_INVOICES, PRODUCT_ID, Set.of(invoice1, invoice2));
         }
 
         @Test
@@ -314,7 +314,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID,
+                    .removeRelationItem(APPLICATION, PERSON_INVOICES, PERSON_ID,
                             INVOICE_ID);
         }
 
@@ -324,7 +324,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             Mockito.verify(datamodelApi)
-                    .removeRelationItem(TestApplication.APPLICATION, TestApplication.PRODUCT_INVOICES, PRODUCT_ID,
+                    .removeRelationItem(APPLICATION, PRODUCT_INVOICES, PRODUCT_ID,
                             INVOICE_ID);
         }
     }
@@ -518,8 +518,8 @@ class RelationRestControllerTest {
 
         @Test
         void followToOneRelationSourceIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
+                    .findRelationTarget(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isNotFound())
@@ -529,7 +529,7 @@ class RelationRestControllerTest {
         @Test
         void followToOneRelationTargetIdNotFound() throws Exception {
             Mockito.doReturn(Optional.empty()).when(datamodelApi)
-                    .findRelationTarget(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+                    .findRelationTarget(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isNotFound())
@@ -539,7 +539,7 @@ class RelationRestControllerTest {
         @Test
         void followToManyRelationSourceIdNotFound() throws Exception {
             Mockito.doReturn(Optional.empty()).when(datamodelApi)
-                    .findById(TestApplication.APPLICATION, TestApplication.PERSON, PERSON_ID);
+                    .findById(APPLICATION, PERSON, PERSON_ID);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isNotFound())
@@ -552,7 +552,7 @@ class RelationRestControllerTest {
 
             // Returns false if sourceId or targetId does not exist, or if there is no relation between sourceId and targetId
             Mockito.doReturn(false).when(datamodelApi)
-                    .hasRelationTarget(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, targetId);
+                    .hasRelationTarget(APPLICATION, PERSON_INVOICES, PERSON_ID, targetId);
 
             mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
                     .andExpect(status().isNotFound())
@@ -563,8 +563,8 @@ class RelationRestControllerTest {
         void setRelationEntityIdNotFound() throws Exception {
             var targetId = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), targetId)).when(datamodelApi)
-                    .setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
+            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), targetId)).when(datamodelApi)
+                    .setRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
@@ -578,7 +578,7 @@ class RelationRestControllerTest {
             var targetId = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .setRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID, targetId);
+                    .setRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
                             .contentType("text/uri-list")
@@ -592,8 +592,8 @@ class RelationRestControllerTest {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), invoice1)).when(datamodelApi)
-                    .addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
+            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), invoice1)).when(datamodelApi)
+                    .addRelationItems(APPLICATION, PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
@@ -609,7 +609,7 @@ class RelationRestControllerTest {
             var invoice2 = EntityId.of(UUID.randomUUID());
 
             Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .addRelationItems(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
+                    .addRelationItems(APPLICATION, PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
                             .contentType("text/uri-list")
@@ -621,8 +621,8 @@ class RelationRestControllerTest {
 
         @Test
         void clearRelationEntityIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityNotFoundException(TestApplication.INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
+                    .deleteRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isNotFound())
@@ -632,7 +632,7 @@ class RelationRestControllerTest {
         @Test
         void clearRelationForeignKeyRequired() throws Exception {
             Mockito.doThrow(FOREIGN_KEY_REQUIRED).when(datamodelApi)
-                    .deleteRelation(TestApplication.APPLICATION, TestApplication.INVOICE_PREVIOUS, INVOICE_ID);
+                    .deleteRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isBadRequest())
@@ -641,8 +641,8 @@ class RelationRestControllerTest {
 
         @Test
         void removeRelationDataEntityIdNotFound() throws Exception {
-            Mockito.doThrow(new RelationLinkNotFoundException(TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID)).when(datamodelApi)
-                    .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID);
+            Mockito.doThrow(new RelationLinkNotFoundException(PERSON_INVOICES, PERSON_ID, INVOICE_ID)).when(datamodelApi)
+                    .removeRelationItem(APPLICATION, PERSON_INVOICES, PERSON_ID, INVOICE_ID);
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
                     .andExpect(status().isNotFound())
@@ -652,7 +652,7 @@ class RelationRestControllerTest {
         @Test
         void removeRelationDataForeignKeyRequired() throws Exception {
             Mockito.doThrow(FOREIGN_KEY_REQUIRED).when(datamodelApi)
-                    .removeRelationItem(TestApplication.APPLICATION, TestApplication.PERSON_INVOICES, PERSON_ID, INVOICE_ID);
+                    .removeRelationItem(APPLICATION, PERSON_INVOICES, PERSON_ID, INVOICE_ID);
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
                     .andExpect(status().isBadRequest())

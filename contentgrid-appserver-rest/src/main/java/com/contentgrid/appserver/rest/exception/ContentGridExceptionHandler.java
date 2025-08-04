@@ -1,11 +1,13 @@
 package com.contentgrid.appserver.rest.exception;
 
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.Map;
 import java.util.Objects;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -88,6 +90,24 @@ public class ContentGridExceptionHandler {
                 problemFactory.createProblem(ProblemType.INVALID_SORT_PARAMETER)
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
+        );
+    }
+
+    @ExceptionHandler(InvalidPropertyDataException.class)
+    ResponseEntity<Problem> handleInvalidPropertyDataException(@NonNull InvalidPropertyDataException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_TYPE)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+                        .withProperties(Map.of(
+                                "property-path", exception.getPath().toList(),
+                                "all-errors", exception.allExceptions()
+                                        .map(ex -> Map.of(
+                                                "detail", ex.getMessage(),
+                                                "property-path", ex.getPath().toList()
+                                        ))
+                                        .toList()
+                        ))
         );
     }
 

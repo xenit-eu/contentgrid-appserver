@@ -8,8 +8,14 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
+    api 'com.contentgrid.hateoas:contentgrid-pagination-api:0.0.3'
+
+    implementation 'org.slf4j:slf4j-api'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
+    testImplementation 'org.assertj:assertj-core'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

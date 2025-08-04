@@ -210,6 +210,8 @@ public class Application {
                 results.add(relation.inverse());
             }
         }
+        // TODO: Should we filter down this list to only consider relations that have a name on the source side?
+        // It is a recipe for NPEs to sometimes suddenly receive an entity that has no name/path segment/...
         return results;
     }
 
@@ -232,6 +234,8 @@ public class Application {
                 results.add(relation.inverse());
             }
         }
+        // TODO: These are incoming relations. Should we also filter down this list to only consider relations that have a name on the source side?
+        // This function is currently unused, but I can imagine it being used for collection filters
         return results;
     }
 
