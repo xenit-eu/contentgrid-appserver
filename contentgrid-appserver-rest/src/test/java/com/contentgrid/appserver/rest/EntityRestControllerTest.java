@@ -13,18 +13,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,8 +37,14 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.util.LinkedMultiValueMap;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -60,6 +71,101 @@ class EntityRestControllerTest {
         }
     }
 
+    interface MediaTypeConfiguration {
+        MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder, Map<String, Object> requestData) throws Exception;
+    }
+
+    private static Stream<Map.Entry<String, Object>> flattenMap(Map<String, Object> map) {
+        return map.entrySet()
+                .stream()
+                .flatMap(entry -> {
+                    if(entry.getValue() instanceof Map<?,?> m) {
+                        return flattenMap((Map<String, Object>) m).map(e  -> Map.entry(entry.getKey()+"."+e.getKey(), e.getValue()));
+                    }
+                    if(entry.getValue() instanceof List<?> l) {
+                        return l.stream().map(item -> Map.entry(entry.getKey(), item));
+                    }
+                    return Stream.of(entry);
+                });
+    }
+
+    static Stream<MediaTypeConfiguration> supportedMediaTypes() {
+        var objectMapper = new ObjectMapper();
+        return Stream.of(
+                new MediaTypeConfiguration() {
+                    @Override
+                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                            Map<String, Object> requestData) throws Exception {
+                        return builder.contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(requestData));
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "json";
+                    }
+                },
+                new MediaTypeConfiguration() {
+                    @Override
+                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                            Map<String, Object> requestData) throws Exception {
+                        var fieldMap = new LinkedMultiValueMap<String, String>();
+                        flattenMap(requestData)
+                                .forEachOrdered(entry -> {
+                                    fieldMap.add(entry.getKey(), entry.getValue().toString());
+                                });
+
+                        return builder.contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                                .formFields(fieldMap);
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "form-urlencoded";
+                    }
+                },
+                new MediaTypeConfiguration() {
+                    @Override
+                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                            Map<String, Object> requestData) throws Exception {
+                        var request = builder.buildRequest(new MockServletContext());
+                        var multipartRequestBuilder = MockMvcRequestBuilders.multipart(
+                                HttpMethod.valueOf(request.getMethod()), request.getRequestURI());
+
+                        var fieldMap = new LinkedMultiValueMap<String, String>();
+
+                        flattenMap(requestData)
+                                .forEachOrdered(entry -> {
+                                    if (entry.getValue() instanceof FileDataEntry fileDataEntry) {
+                                        try {
+                                            multipartRequestBuilder.file(new MockMultipartFile(
+                                                    entry.getKey(),
+                                                    fileDataEntry.getFilename(),
+                                                    fileDataEntry.getContentType(),
+                                                    fileDataEntry.getInputStream()
+                                            ));
+                                        } catch (IOException e) {
+                                            throw new UncheckedIOException(e);
+                                        }
+                                    } else {
+                                        fieldMap.add(entry.getKey(), entry.getValue().toString());
+                                    }
+                                });
+
+                        multipartRequestBuilder.params(fieldMap);
+
+                        return multipartRequestBuilder;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "form-multipart";
+                    }
+                }
+        );
+
+    }
+
     @Autowired
     TableCreator tableCreator;
 
@@ -72,17 +178,16 @@ class EntityRestControllerTest {
         tableCreator.dropTables(APPLICATION);
     }
 
-    @Test
-    void testSuccessfullyCreateEntityInstance() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testSuccessfullyCreateEntityInstance(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Test Product");
         product.put("price", 29.99);
         product.put("release_date", "2023-01-15T10:00:00Z");
         product.put("in_stock", true);
 
-        mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product))
+        mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
                         .accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", notNullValue()))
@@ -93,6 +198,7 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._links.curies").isArray());
     }
+
 
     @Test
     void testSuccessfullyRetrieveEntityInstance() throws Exception {
@@ -127,8 +233,9 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.curies").isArray());
     }
 
-    @Test
-    void testFailToCreateEntityWithInvalidPayloadStructure() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testFailToCreateEntityWithInvalidPayloadStructure(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         Map<String, Object> invalidProduct = new HashMap<>();
         invalidProduct.put("id", UUID.randomUUID());
         invalidProduct.put("name", "Invalid Product");
@@ -136,37 +243,33 @@ class EntityRestControllerTest {
         invalidProduct.put("release_date", "2023-03-10T09:15:00Z");
         invalidProduct.put("in_stock", true);
 
-        mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidProduct)))
+        mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), invalidProduct))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type", notNullValue()))
                 .andExpect(jsonPath("$.title", notNullValue()))
                 .andExpect(jsonPath("$.status", is(400)));
     }
 
-    @Test
-    void failToCreateEntityWithDoubleForLong() throws Exception {
-        mockMvc.perform(post("/persons")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of(
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void failToCreateEntityWithDoubleForLong(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+        mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), Map.of(
                         "name", "test_user",
                         "vat", "XYZ",
                         "age", 12.3
-                )))
+                ))
         ).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
                 .andExpect(jsonPath("$.property-path", is(List.of("age"))));
     }
 
-    @Test
-    void succeedToCreateEntityWithLongForDouble() throws Exception {
-        var url = mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "name", "test product",
-                                "price", 5
-                        ))))
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void succeedToCreateEntityWithLongForDouble(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+        var url = mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), Map.of(
+                        "name", "test product",
+                        "price", 5
+                )))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -208,15 +311,14 @@ class EntityRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void testCreateNonExistentEntityType() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testCreateNonExistentEntityType(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         Map<String, Object> payload = new HashMap<>();
         payload.put("name", "fake");
         payload.put("value", 123);
 
-        mockMvc.perform(post("/foobars")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(payload)))
+        mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
                 .andExpect(status().isNotFound());
     }
 
@@ -262,8 +364,9 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.curies").isArray());
     }
 
-    @Test
-    void testUpdateEntityInstance() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testUpdateEntityInstance(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         // Initial values
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Initial Product");
@@ -271,9 +374,7 @@ class EntityRestControllerTest {
         product.put("release_date", "2001-02-03T04:05:06Z");
         product.put("in_stock", true);
 
-        String responseContent = mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product)))
+        String responseContent = mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
@@ -299,8 +400,9 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.self.href", notNullValue()));
     }
 
-    @Test
-    void testUpdateNonExistentEntityType() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testUpdateNonExistentEntityType(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         // Initial values
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Initial Product");
@@ -308,9 +410,7 @@ class EntityRestControllerTest {
         product.put("release_date", "2001-02-03T04:05:06Z");
         product.put("in_stock", true);
 
-        String responseContent = mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product)))
+        String responseContent = mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
@@ -329,8 +429,9 @@ class EntityRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void testUpdateWithWrongId() throws Exception {
+    @ParameterizedTest
+    @MethodSource("supportedMediaTypes")
+    void testUpdateWithWrongId(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
         // Create valid product
         Map<String, Object> product = new HashMap<>();
         product.put("name", "Initial Product");
@@ -338,9 +439,7 @@ class EntityRestControllerTest {
         product.put("release_date", "2023-01-01T00:00:00Z");
         product.put("in_stock", true);
 
-        mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product)))
+        mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product))
                 .andExpect(status().isCreated());
 
         // Now try to PUT to a non-existent ID
