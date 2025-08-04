@@ -13,8 +13,7 @@ import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
-import com.contentgrid.appserver.domain.data.mapper.TransformingDataEntryMapper;
-import com.contentgrid.appserver.domain.data.transformers.FilterDataEntryTransformer;
+import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeConstraintValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
@@ -109,7 +108,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 entityName,
                 // All missing fields are regarded as null
-                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
+                FilterDataEntryMapper.missingAsNull()
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -141,7 +140,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 entityName,
                 // All missing fields are regarded as null
-                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.missingAsNull())
+                FilterDataEntryMapper.missingAsNull()
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -170,7 +169,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 entityName,
                 // Missing fields are omitted, so they are not updated
-                new TransformingDataEntryMapper<>(FilterDataEntryTransformer.omitMissing())
+                FilterDataEntryMapper.omitMissing()
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);

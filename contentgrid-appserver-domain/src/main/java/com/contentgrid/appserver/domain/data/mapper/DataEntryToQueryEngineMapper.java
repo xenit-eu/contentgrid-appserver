@@ -8,9 +8,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.data.AnyRelationDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.AnyRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
@@ -22,10 +20,10 @@ import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
-import com.contentgrid.appserver.domain.data.transformers.AsTypeDataEntryTransformer;
+import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
-import com.contentgrid.appserver.domain.data.transformers.result.Result;
+import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
@@ -44,55 +42,54 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
 
     @Override
     public Optional<AttributeData> mapAttribute(Attribute attribute, DataEntry inputData) throws InvalidPropertyDataException {
+        if(inputData instanceof MissingDataEntry) {
+            return Optional.empty();
+        }
         try {
             return switch (attribute) {
-                case SimpleAttribute simpleAttribute -> inputData
-                        .map(new AsTypeDataEntryTransformer<>(getTypeForAttribute(simpleAttribute.getType())) {
-                            @Override
-                            public Result<ScalarDataEntry> transform(MissingDataEntry missingDataEntry) {
-                                return Result.empty();
-                            }
-
-                            @Override
-                            public Result<ScalarDataEntry> transform(NullDataEntry nullDataEntry) {
-                                return Result.of(nullDataEntry);
-                            }
-                        })
-                        .asOptional()
+                case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData)
                         .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
-                case CompositeAttribute compositeAttribute -> inputData
-                        .map(new AsTypeDataEntryTransformer<>(MapDataEntry.class) {
-                            @Override
-                            public Result<MapDataEntry> transform(MissingDataEntry missingDataEntry) {
-                                return Result.empty();
-                            }
-
-                            @Override
-                            public Result<MapDataEntry> transform(NullDataEntry nullDataEntry) {
-                                var builder = MapDataEntry.builder();
-                                for (var nestedAttr : compositeAttribute.getAttributes()) {
-                                    // All values are set to null, so a proper composite attribute is built,
-                                    // but with all attributes set to null
-                                    builder.item(nestedAttr.getName().getValue(), NullDataEntry.INSTANCE);
-                                }
-                                return Result.of(builder.build());
-                            }
-                        })
-                        .map(dataEntry -> {
-                            var builder = CompositeAttributeData.builder()
-                                    .name(attribute.getName());
-                            for (var nestedAttr : compositeAttribute.getAttributes()) {
-                                mapAttribute(nestedAttr, dataEntry.get(nestedAttr.getName().getValue()))
-                                        .ifPresent(builder::attribute);
-                            }
-
-                            return (AttributeData) builder.build();
-                        })
-                        .asOptional();
+                case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {
             throw e.withinProperty(attribute.getName());
         }
+    }
+
+    private Optional<AttributeData> mapCompositeAttribute(CompositeAttribute attribute, DataEntry inputData)
+            throws InvalidDataException {
+        if(inputData instanceof NullDataEntry) {
+            var builder = MapDataEntry.builder();
+            for (var nestedAttr : attribute.getAttributes()) {
+                // All values are set to null, so a proper composite attribute is built,
+                // but with all attributes set to null
+                builder.item(nestedAttr.getName().getValue(), NullDataEntry.INSTANCE);
+            }
+            inputData = builder.build();
+        }
+        if(inputData instanceof MapDataEntry mapDataEntry) {
+            var builder = CompositeAttributeData.builder()
+                    .name(attribute.getName());
+            for (var nestedAttr : attribute.getAttributes()) {
+                mapAttribute(nestedAttr, mapDataEntry.get(nestedAttr.getName().getValue()))
+                        .ifPresent(builder::attribute);
+            }
+
+            return Optional.of(builder.build());
+        }
+        throw new InvalidDataTypeException(DataType.of(attribute), DataType.of(inputData));
+    }
+
+    private Optional<ScalarDataEntry> mapSimpleAttribute(SimpleAttribute attribute, DataEntry inputData)
+            throws InvalidDataTypeException {
+        if(inputData instanceof NullDataEntry nullDataEntry) {
+            return Optional.of(nullDataEntry);
+        }
+        var expectedType = getTypeForAttribute(attribute.getType());
+        if(expectedType.isInstance(inputData)) {
+            return Optional.of((ScalarDataEntry) inputData);
+        }
+        throw new InvalidDataTypeException(DataType.of(expectedType), DataType.of(inputData));
     }
 
     private Class<ScalarDataEntry> getTypeForAttribute(@NonNull SimpleAttribute.Type type) {
@@ -108,50 +105,50 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
     @Override
     public Optional<RelationData> mapRelation(Relation relation, DataEntry inputData)
             throws InvalidPropertyDataException {
-        try {
-            return inputData
-                    .map(new AsTypeDataEntryTransformer<>(getTypeForRelation(relation)) {
-                        @Override
-                        public Result<AnyRelationDataEntry> transform(NullDataEntry nullDataEntry) {
-                            // TODO: If relations can ever be used for entity updates; don't discard null values
-                            // Instead, there should be a complete split between to-one and to-many relations.
-                            // The null value would be valid to clear a to-one relation, but would be invalid to clear a to-many relation
-                            // (that would require an empty list)
-                            return Result.empty();
-                        }
-                    })
-                    .map(dataEntry -> dataEntry.map(
-                            new AnyRelationDataEntryTransformer<RelationData>() {
-                                @Override
-                                public RelationData transform(RelationDataEntry relationDataEntry) {
-                                    return XToOneRelationData.builder()
-                                            .name(relation.getSourceEndPoint().getName())
-                                            .ref(relationDataEntry.getTargetId())
-                                            .build();
-                                }
+        if(inputData instanceof MissingDataEntry) {
+            return Optional.empty();
+        }
+        if(inputData instanceof NullDataEntry) {
+            // TODO: If relations can ever be used for entity updates; don't discard null values
+            // Instead, there should be a complete split between to-one and to-many relations.
+            // The null value would be valid to clear a to-one relation, but would be invalid to clear a to-many relation
+            // (that would require an empty list)
+            return Optional.empty();
+        }
 
-                                @Override
-                                public RelationData transform(
-                                        MultipleRelationDataEntry multipleRelationDataEntry) {
-                                    return XToManyRelationData.builder()
-                                            .name(relation.getSourceEndPoint().getName())
-                                            .refs(multipleRelationDataEntry.getTargetIds())
-                                            .build();
-                                }
-                            }))
-                    .asOptional();
+        try {
+            return switch (relation) {
+                case OneToOneRelation ignored -> mapToOneRelation(relation, inputData);
+                case ManyToOneRelation ignored -> mapToOneRelation(relation, inputData);
+                case OneToManyRelation ignored -> mapToManyRelation(relation, inputData);
+                case ManyToManyRelation ignored -> mapToManyRelation(relation, inputData);
+            };
         } catch (InvalidDataException e) {
             throw e.withinProperty(relation.getSourceEndPoint().getName());
         }
 
     }
 
-    private Class<AnyRelationDataEntry> getTypeForRelation(Relation relation) {
-        return (Class<AnyRelationDataEntry>) switch (relation) {
-            case OneToOneRelation ignored -> RelationDataEntry.class;
-            case ManyToOneRelation ignored -> RelationDataEntry.class;
-            case OneToManyRelation ignored -> MultipleRelationDataEntry.class;
-            case ManyToManyRelation ignored -> MultipleRelationDataEntry.class;
-        };
+    private Optional<RelationData> mapToOneRelation(Relation relation, DataEntry inputData) throws InvalidDataException {
+        if(inputData instanceof RelationDataEntry relationDataEntry) {
+            return Optional.of(XToOneRelationData.builder()
+                    .name(relation.getSourceEndPoint().getName())
+                    .ref(relationDataEntry.getTargetId())
+                    .build());
+        }
+        throw new InvalidDataTypeException(DataType.of(relation), DataType.of(inputData));
+
     }
+
+    private Optional<RelationData> mapToManyRelation(Relation relation, DataEntry inputData) throws InvalidDataException {
+        if(inputData instanceof MultipleRelationDataEntry multipleRelationDataEntry) {
+            return Optional.of(XToManyRelationData.builder()
+                    .name(relation.getSourceEndPoint().getName())
+                    .refs(multipleRelationDataEntry.getTargetIds())
+                    .build());
+        }
+
+        throw new InvalidDataTypeException(DataType.of(relation), DataType.of(inputData));
+    }
+
 }

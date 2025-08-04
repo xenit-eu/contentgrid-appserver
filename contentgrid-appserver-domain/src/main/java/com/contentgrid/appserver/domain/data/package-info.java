@@ -30,14 +30,6 @@
  *     <li><strong>FileDataEntry</strong> - File content and metadata</li>
  * </ul>
  *
- * <h2>Data Transformation</h2>
- * <ul>
- *     <li>{@link com.contentgrid.appserver.domain.data.DataEntryTransformer} - Transforms DataEntry to different values</li>
- *     <li>{@link com.contentgrid.appserver.domain.data.PlainDataEntryTransformer} - Specialized for plain data entries</li>
- *     <li>{@link com.contentgrid.appserver.domain.data.ScalarDataEntryTransformer} - Specialized for scalar data entries</li>
- *     <li>{@link com.contentgrid.appserver.domain.data.AnyRelationDataEntryTransformer} - Specialized for relation data entries</li>
- * </ul>
- *
  * <h2>Request Input Data Implementations</h2>
  * <ul>
  *     <li>{@link com.contentgrid.appserver.domain.data.MapRequestInputData} - Map-based implementation</li>
@@ -53,8 +45,7 @@
  * </ul>
  *
  * <p>This package is designed around type safety using sealed interfaces, ensuring that all possible
- * data types are known at compile time and can be handled exhaustively through pattern matching
- * and the visitor pattern implemented via transformers.
+ * data types are known at compile time and can be handled exhaustively through pattern matching.
  *
  * @see com.contentgrid.appserver.domain.data.mapper
  * @see com.contentgrid.appserver.domain.data.type

@@ -15,7 +15,7 @@
  * <ul>
  *     <li>{@link com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper} - Converts request input data to domain data entries</li>
  *     <li>{@link com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper} - Converts domain data entries to query engine format</li>
- *     <li>{@link com.contentgrid.appserver.domain.data.mapper.TransformingDataEntryMapper} - Applies transformations to data entries</li>
+ *     <li>{@link com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper} - Applies transformations to data entries</li>
  * </ul>
  *
  * <h2>Utility Classes</h2>

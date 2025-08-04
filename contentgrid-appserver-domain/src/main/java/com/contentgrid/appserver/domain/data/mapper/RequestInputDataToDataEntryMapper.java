@@ -24,7 +24,6 @@ import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.RequestInputData.DataResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.MissingResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.NullResult;
-import com.contentgrid.appserver.domain.data.transformers.AsTypeDataEntryTransformer;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -127,18 +126,21 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                             .targetEntity(targetEntity);
 
                     for (var item : v.get()) {
-                        item.map(new AsTypeDataEntryTransformer<>(RelationDataEntry.class))
-                                .validate(entry -> {
-                                    if(!Objects.equals(targetEntity, entry.getTargetEntity())) {
-                                        throw new InvalidDataTypeException(
-                                                DataType.of(relation),
-                                                // We need to create a MultipleRelationDataEntry, so the the exception correctly reports this to be a multiple relations entry
-                                                DataType.of(MultipleRelationDataEntry.builder().targetEntity(entry.getTargetEntity()).build())
-                                        );
-                                    }
-                                })
-                                .map(RelationDataEntry::getTargetId)
-                                .ifPresent(builder::targetId);
+                        if(item instanceof RelationDataEntry entry) {
+                            if(!Objects.equals(targetEntity, entry.getTargetEntity())) {
+                                throw new InvalidDataTypeException(
+                                        DataType.of(relation),
+                                        // We need to create a MultipleRelationDataEntry, so the the exception correctly reports this to be a multiple relations entry
+                                        DataType.of(MultipleRelationDataEntry.builder().targetEntity(entry.getTargetEntity()).build())
+                                );
+                            }
+                            builder.targetId(entry.getTargetId());
+                        } else {
+                            throw new InvalidDataTypeException(
+                                    DataType.of(relation),
+                                    DataType.of(item)
+                            );
+                        }
                     }
                     yield builder.build();
                 }

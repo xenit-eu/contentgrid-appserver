@@ -27,8 +27,6 @@ import lombok.Value;
  */
 public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, PlainDataEntry {
 
-    <T> T map(DataEntryTransformer<T> transformer);
-
     /**
      * A plain data value; a value trivially representable in structured input (e.g. JSON).
      * <p>
@@ -37,12 +35,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
     sealed interface PlainDataEntry extends DataEntry permits ListDataEntry, MapDataEntry, MissingDataEntry,
             ScalarDataEntry {
 
-        @Override
-        default <T> T map(DataEntryTransformer<T> transformer) {
-            return map((PlainDataEntryTransformer<T>) transformer);
-        }
-
-        <T> T map(PlainDataEntryTransformer<T> transformer);
     }
 
     /**
@@ -53,12 +45,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
         Object getValue();
 
-        @Override
-        default <T> T map(PlainDataEntryTransformer<T> transformer) {
-            return map((ScalarDataEntryTransformer<T>) transformer);
-        }
-
-        <T> T map(ScalarDataEntryTransformer<T> transformer);
     }
 
     /**
@@ -67,12 +53,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
     sealed interface AnyRelationDataEntry extends DataEntry permits RelationDataEntry, MultipleRelationDataEntry {
         EntityName getTargetEntity();
 
-        @Override
-        default <T> T map(DataEntryTransformer<T> transformer) {
-            return map((AnyRelationDataEntryTransformer<T>) transformer);
-        }
-
-        <T> T map(AnyRelationDataEntryTransformer<T> transformer);
     }
 
     @Value
@@ -81,10 +61,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         String value;
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -93,10 +69,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         Long value;
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -105,10 +77,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         BigDecimal value;
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -117,10 +85,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         Instant value;
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -133,10 +97,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
             return value;
         }
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     /**
@@ -155,10 +115,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
             return null;
         }
 
-        @Override
-        public <T> T map(ScalarDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     /**
@@ -172,10 +128,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
         public static final MissingDataEntry INSTANCE = new MissingDataEntry();
 
-        @Override
-        public <T> T map(PlainDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -186,11 +138,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         @Singular
         List<PlainDataEntry> items;
-
-        @Override
-        public <T> T map(PlainDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
 
     }
 
@@ -211,11 +158,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
             return items.getOrDefault(key, MissingDataEntry.INSTANCE);
         }
 
-        @Override
-        public <T> T map(PlainDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
-
         public int size() {
             return items.size();
         }
@@ -230,10 +172,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         EntityId targetId;
 
-        @Override
-        public <T> T map(AnyRelationDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -248,10 +186,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @Singular
         List<EntityId> targetIds;
 
-        @Override
-        public <T> T map(AnyRelationDataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
-        }
     }
 
     @Value
@@ -269,11 +203,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
         public InputStream getInputStream() throws IOException {
             return inputStream.getInputStream();
-        }
-
-        @Override
-        public <T> T map(DataEntryTransformer<T> transformer) {
-            return transformer.transform(this);
         }
 
         public interface InputStreamSupplier {
