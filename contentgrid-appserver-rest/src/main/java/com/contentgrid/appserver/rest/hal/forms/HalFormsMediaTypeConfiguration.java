@@ -37,13 +37,8 @@ public class HalFormsMediaTypeConfiguration implements HypermediaMappingInformat
     }
 
     @Bean
-    public HalFormsPropertyContributor halFormsPropertyContributor() {
-        return new HalFormsPropertyContributor();
-    }
-
-    @Bean
-    public HalFormsTemplateGenerator halFormsTemplateGenerator(HalFormsPropertyContributor halFormsPropertyContributor) {
-        return new HalFormsTemplateGenerator(halFormsPropertyContributor);
+    public HalFormsTemplateGenerator halFormsTemplateGenerator() {
+        return new HalFormsTemplateGenerator();
     }
 
     /**

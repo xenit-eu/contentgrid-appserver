@@ -34,7 +34,7 @@ class HalFormsTemplateGeneratorTest {
 
     private static final EntityId ENTITY_ID = EntityId.of(UUID.randomUUID());
 
-    HalFormsTemplateGenerator generator = new HalFormsTemplateGenerator(new HalFormsPropertyContributor());
+    HalFormsTemplateGenerator generator = new HalFormsTemplateGenerator();
 
     @Test
     void generateCreateTemplate() {
