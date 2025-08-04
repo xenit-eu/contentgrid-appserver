@@ -5,7 +5,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.validation.AttributeConstraintValidationDataMapper.ConstraintValidator;
+import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.ConstraintValidator;
 
 public class RequiredAttributeConstraintValidator implements ConstraintValidator<RequiredConstraint> {
 

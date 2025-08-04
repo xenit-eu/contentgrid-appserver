@@ -32,7 +32,7 @@ public class RequestInputDataMapper {
 
     public List<AttributeData> mapAttributes(RequestInputData requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<AttributeData>(attributes.size());
-        var exceptionCollector = new ValidationExceptionCollector();
+        var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         for (var attribute : attributes) {
             exceptionCollector.use(() -> attributeMapper.mapAttribute(attribute, requestInputData)
                     .ifPresent(data::add));
@@ -43,7 +43,7 @@ public class RequestInputDataMapper {
 
     public List<RelationData> mapRelations(RequestInputData requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<RelationData>(relations.size());
-        var exceptionCollector = new ValidationExceptionCollector();
+        var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         for (var relation : relations) {
             // Relations that don't have a name on this side can't be mapped from input at all, so skip them immediately
             if(relation.getSourceEndPoint().getName() == null) {

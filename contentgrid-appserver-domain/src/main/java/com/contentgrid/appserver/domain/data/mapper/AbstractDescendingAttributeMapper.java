@@ -3,6 +3,8 @@ package com.contentgrid.appserver.domain.data.mapper;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
@@ -24,37 +26,42 @@ public abstract class AbstractDescendingAttributeMapper implements AttributeMapp
     @Override
     public Optional<DataEntry> mapAttribute(Attribute attribute, DataEntry inputData)
             throws InvalidPropertyDataException {
+        return mapAttribute(new SimpleAttributePath(attribute.getName()), attribute, inputData);
+    }
+
+    protected Optional<DataEntry> mapAttribute(AttributePath path, Attribute attribute, DataEntry inputData)
+            throws InvalidPropertyDataException {
         try {
             return switch (attribute) {
-                case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
-                case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
+                case SimpleAttribute simpleAttribute -> mapSimpleAttribute(path, simpleAttribute, inputData);
+                case CompositeAttribute compositeAttribute -> mapCompositeAttribute(path, compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {
             throw e.withinProperty(attribute.getName());
         }
     }
 
-    protected abstract Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute, DataEntry inputData)
+    protected abstract Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData)
             throws InvalidDataException;
 
-    protected abstract Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(CompositeAttribute attribute,
+    protected abstract Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute,
             DataEntry inputData) throws InvalidDataException;
 
-    protected Optional<DataEntry> mapCompositeAttribute(CompositeAttribute compositeAttribute, DataEntry inputData)
+    protected Optional<DataEntry> mapCompositeAttribute(AttributePath path, CompositeAttribute compositeAttribute, DataEntry inputData)
             throws InvalidDataException {
         if (inputData instanceof MapDataEntry mapDataEntry) {
             var builder = MapDataEntry.builder();
-            var collector = new ValidationExceptionCollector();
+            var collector = new ValidationExceptionCollector<>(InvalidDataException.class);
             for (var attribute : compositeAttribute.getAttributes()) {
                 var entry = mapDataEntry.get(attribute.getName().getValue());
-                collector.use(() -> mapAttribute(attribute, entry)
+                collector.use(() -> mapAttribute(path.withSuffix(attribute.getName()), attribute, entry)
                         .ifPresent(
                                 dataEntry -> builder.item(attribute.getName().getValue(), (PlainDataEntry) dataEntry)));
             }
             collector.rethrow();
             return Optional.of(builder.build());
         } else {
-            return mapCompositeAttributeUnsupportedDatatype(compositeAttribute, inputData);
+            return mapCompositeAttributeUnsupportedDatatype(path, compositeAttribute, inputData);
         }
     }
 }

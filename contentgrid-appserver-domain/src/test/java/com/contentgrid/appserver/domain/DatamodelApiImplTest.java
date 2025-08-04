@@ -20,19 +20,22 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.ContentWriter;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
-import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
@@ -52,10 +55,10 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -107,6 +110,29 @@ class DatamodelApiImplTest {
                 queryEngine,
                 contentStore
         );
+    }
+
+    void setupEntityQuery() {
+        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> Optional.of(
+                EntityData.builder()
+                        .name(args.getArgument(1, Entity.class).getName())
+                        .id(args.getArgument(2, EntityId.class))
+                        .build()
+        ));
+    }
+
+    void setupEntityQueryWithContent(String contentId) {
+        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> Optional.of(
+                EntityData.builder()
+                        .name(args.getArgument(1, Entity.class).getName())
+                        .id(args.getArgument(2, EntityId.class))
+                        .attribute(CompositeAttributeData.builder()
+                                .name(INVOICE_CONTENT.getName())
+                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), contentId))
+                                .build())
+                        .build()
+        ));
+
     }
 
     @Nested
@@ -386,7 +412,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled("Checks for content attributes being set without having content is not yet implemented")
         void contentAttributes_fails() {
             var personId = EntityId.of(UUID.randomUUID());
             assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -422,8 +447,10 @@ class DatamodelApiImplTest {
     @Nested
     class UpdateEntity {
 
+
         @Test
         void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
+            setupEntityQuery();
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entity = EntityData.builder()
@@ -465,6 +492,7 @@ class DatamodelApiImplTest {
 
         @Test
         void missingRequiredProperties_fails() {
+            setupEntityQuery();
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, INVOICE.getName(), EntityId.of(UUID.randomUUID()),
                         MapRequestInputData.fromMap(Map.of(
@@ -483,7 +511,8 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verifyNoInteractions(contentStore, queryEngine);
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any());
+            Mockito.verifyNoInteractions(contentStore);
         }
 
         @Test
@@ -494,6 +523,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
+            setupEntityQueryWithContent("content.bin");
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
@@ -531,21 +561,13 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled("Checks for content attributes being set without having content is not yet implemented")
-        void contentAttributes_without_content_fails() {
-            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+        void contentAttributes_withoutContent_fails() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entity = EntityData.builder()
-                    .name(INVOICE.getName())
-                    .id(entityId)
-                    .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
-                    .thenReturn(new UpdateResult(entity, entity));
+            setupEntityQueryWithContent(null);
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
                         "amount", 1.50,
-                        "confidentiality", "public",
                         "content", Map.of(
                                 "filename", "file-123.pdf",
                                 "mimetype", "application/pdf",
@@ -553,15 +575,90 @@ class DatamodelApiImplTest {
                                 "length", 0xbad
                         )
                 )));
-            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, ex -> {
-
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .anySatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(ContentMissingInvalidDataException.class);
+                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content"));
+                        });
             });
+        }
 
+        static Stream<DataEntry> missingAndNullDataEntry() {
+            return Stream.of(MissingDataEntry.INSTANCE, NullDataEntry.INSTANCE);
+        }
+
+        @ParameterizedTest
+        @MethodSource("missingAndNullDataEntry")
+        void contentAttributes_missingMimetype_fails(DataEntry dataEntry) {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThatThrownBy(() -> {
+                datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                        "number", "invoice-1",
+                        "amount", 1.50,
+                        "content", Map.of(
+                                "filename", "file-123.pdf",
+                                "mimetype", dataEntry
+                        )
+                )));
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .anySatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content", "mimetype"));
+                        });
+            });
+        }
+
+        @ParameterizedTest
+        @MethodSource("missingAndNullDataEntry")
+        void contentAttributes_missingFilename_succeeds(DataEntry dataEntry) throws InvalidPropertyDataException {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "content", Map.of(
+                            "filename", dataEntry,
+                            "mimetype", "application/pdf"
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                    new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    // Missing values are set to null
+                    new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
+                    new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Content ID and size are kept/not overwritten, so they are not present here
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .build(),
+                    getAuditMetadataData()
+            );
         }
 
         @Test
         void contentFile_succeeds() throws InvalidPropertyDataException, UnwritableContentException {
 
+            setupEntityQuery();
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var fileId = "my-file-123.bin";
@@ -603,6 +700,7 @@ class DatamodelApiImplTest {
                             .build(),
                     getAuditMetadataData()
             );
+
         }
     }
 
@@ -617,6 +715,8 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
+
+            setupEntityQuery();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
@@ -644,6 +744,7 @@ class DatamodelApiImplTest {
 
         @Test
         void nullRequiredProperties_fails() {
+            setupEntityQuery();
             assertThatThrownBy(() -> {
                 datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), EntityId.of(UUID.randomUUID()),
                         MapRequestInputData.fromMap(Map.of(
@@ -660,11 +761,13 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verifyNoInteractions(contentStore, queryEngine);
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any());
+            Mockito.verifyNoInteractions(contentStore);
         }
 
         @Test
         void nullRequiredRelation_ignored() throws InvalidPropertyDataException {
+            setupEntityQuery();
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entity = EntityData.builder()
@@ -692,6 +795,9 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
+
+            setupEntityQueryWithContent("content.bin");
+
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
@@ -719,16 +825,9 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled("Checks for content attributes being set without having content is not yet implemented")
         void contentAttributes_without_content_fails() {
-            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            var entity = EntityData.builder()
-                    .name(INVOICE.getName())
-                    .id(entityId)
-                    .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
-                    .thenReturn(new UpdateResult(entity, entity));
+            setupEntityQuery();
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
@@ -741,14 +840,137 @@ class DatamodelApiImplTest {
                                 "length", 0xbad
                         )
                 )));
-            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, ex -> {
-
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .anySatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(ContentMissingInvalidDataException.class);
+                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content"));
+                        });
             });
+
+            Mockito.verify(queryEngine).findById(Mockito.any(), Mockito.any(), Mockito.any());
+
+            Mockito.verifyNoMoreInteractions(queryEngine, contentStore);
 
         }
 
         @Test
+        void contentAttributes_nullMimetype_fails() {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThatThrownBy(() -> {
+                datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                        "content", Map.of(
+                                "filename", "file-123.pdf",
+                                "mimetype", NullDataEntry.INSTANCE
+                        )
+                )));
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .anySatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content", "mimetype"));
+                        });
+            });
+        }
+
+        @Test
+        void contentAttributes_missingMimetype_succeeds() throws InvalidPropertyDataException {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "content", Map.of(
+                            "filename", "test132.pdf",
+                            "mimetype", MissingDataEntry.INSTANCE
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Content ID and size are kept/not overwritten, so they are not present here
+                            // Mimetype is not overwritten, so it's also not present here
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(),
+                                    "test132.pdf"))
+                            .build()
+            );
+        }
+
+        @Test
+        void contentAttributes_nullFilename_succeeds() throws InvalidPropertyDataException {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "content", Map.of(
+                            "filename", NullDataEntry.INSTANCE,
+                            "mimetype", "application/pdf"
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Content ID and size are kept/not overwritten, so they are not present here
+                            .attribute(
+                                    new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .build()
+            );
+        }
+
+        @Test
+        void contentAttributes_missingFilename_succeeds() throws InvalidPropertyDataException {
+            setupEntityQueryWithContent("content.bin");
+            var entityId = EntityId.of(UUID.randomUUID());
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
+                    "content", Map.of(
+                            "filename", MissingDataEntry.INSTANCE,
+                            "mimetype", "application/pdf"
+                    )
+            )));
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            // Content ID and size are kept/not overwritten, so they are not present here
+                            // Filename is not overwritten, so it's also not present here
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .build()
+            );
+        }
+
+        @Test
         void contentFile_succeeds() throws InvalidPropertyDataException, UnwritableContentException {
+            setupEntityQuery();
 
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
