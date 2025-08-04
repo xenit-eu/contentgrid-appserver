@@ -47,7 +47,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             var contentTemplates = templateGenerator.generateContentTemplates(application, entity, content, contentLink.getHref());
             model.add(contentLink).addTemplates(contentTemplates);
         }
-        return model.addTemplate(getUpdateTemplate(application, entity))
+        return model.addTemplate(templateGenerator.generateUpdateTemplate(application, entity))
                 .addTemplate(getDeleteTemplate());
     }
 
@@ -72,10 +72,6 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .getContent(application, entity.getPathSegment(), id, attribute.getPathSegment()))
                 .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());
-    }
-
-    private HalFormsTemplate getUpdateTemplate(Application application, Entity entity) {
-        return templateGenerator.generateUpdateTemplate(application, entity);
     }
 
     private HalFormsTemplate getDeleteTemplate() {
