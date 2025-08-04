@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.converter;
 
+import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -15,7 +16,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<List<URI>> {
+public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<URIList> {
 
     public UriListHttpMessageConverter() {
         super(MediaType.parseMediaType("text/uri-list"));
@@ -23,14 +24,14 @@ public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<Li
 
     @Override
     protected boolean supports(Class<?> clazz) {
-        return List.class.isAssignableFrom(clazz);
+        return URIList.class.isAssignableFrom(clazz);
     }
 
     @Override
-    protected List<URI> readInternal(Class<? extends List<URI>> clazz, HttpInputMessage inputMessage)
+    protected URIList readInternal(Class<? extends URIList> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputMessage.getBody(), StandardCharsets.UTF_8))) {
-            return reader.lines()
+            return new URIList(reader.lines()
                     .map(String::trim)
                     .filter(line -> !line.isEmpty() && !line.startsWith("#")) // Ignore empty lines and comments
                     .map(line -> {
@@ -40,15 +41,17 @@ public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<Li
                             throw new HttpMessageNotReadableException("Invalid URI in text/uri-list: " + line, e, inputMessage);
                         }
                     })
-                    .toList();
+                    .toList());
         }
     }
 
     @Override
-    protected void writeInternal(List<URI> uris, HttpOutputMessage outputMessage)
+    protected void writeInternal(URIList list, HttpOutputMessage outputMessage)
             throws IOException, HttpMessageNotWritableException {
-        for (URI uri : uris) {
+        for (URI uri : list.uris()) {
             outputMessage.getBody().write((uri.toASCIIString() + "\n").getBytes(StandardCharsets.UTF_8));
         }
     }
+
+    public record URIList(List<URI> uris) {}
 }

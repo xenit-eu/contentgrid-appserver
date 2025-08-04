@@ -14,15 +14,13 @@ import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationE
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
-import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 @SpecializedOnPropertyType(type = PropertyType.TO_ONE_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
 @RequestMapping("/{entityName}/{instanceId}/{propertyName}")
 public class XToOneRelationRestController {
@@ -84,16 +82,17 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            @RequestBody List<URI> body
+            @RequestBody URIList body
     ) {
-        if (body.isEmpty()) {
+        var uris = body.uris();
+        if (uris.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
-        if (body.size() > 1) {
+        if (uris.size() > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
         }
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var element = body.getFirst();
+        var element = uris.getFirst();
         var maybeId = getMatcherForTargetEntity(application, relation).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");

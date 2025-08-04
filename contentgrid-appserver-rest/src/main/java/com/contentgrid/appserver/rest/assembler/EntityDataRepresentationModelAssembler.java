@@ -44,6 +44,8 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
+        // Links for *-to-many relations are the same as links for *-to-one relations,
+        // no need to switch based on relation type
         return linkTo(methodOn(XToOneRelationRestController.class)
                 .getRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
                         relation.getSourceEndPoint().getPathSegment()))
