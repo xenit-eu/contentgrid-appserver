@@ -33,21 +33,16 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextR
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.ArgumentResolverConfigurer;
-import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
-import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import com.contentgrid.appserver.rest.ContentGridRestConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.hateoas.config.EnableHypermediaSupport;
-import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
 
 @Slf4j
 @Configuration
-@EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
-@Import({ContentgridProblemDetailConfiguration.class, ArgumentResolverConfigurer.class, ContentGridLinksConfiguration.class})
+@Import(ContentGridRestConfiguration.class)
 public class ContentgridAppConfiguration {
 
     @Bean

@@ -1,22 +1,44 @@
 package com.contentgrid.appserver.rest;
 
+import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.registry.ApplicationNameExtractor;
+import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
+import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
+import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.format.Formatter;
 import org.springframework.format.FormatterRegistry;
+import org.springframework.hateoas.config.EnableHypermediaSupport;
+import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration(proxyBeanMethods = false)
+@EnableHypermediaSupport(type = { HypermediaType.HAL, HypermediaType.HAL_FORMS })
+@Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class})
 public class ContentGridRestConfiguration {
     @Bean
-    WebMvcConfigurer contentgridRestWebmvcConfigurer() {
+    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor) {
         return new WebMvcConfigurer() {
+
+            @Override
+            public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+                resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
+            }
+
             @Override
             public void addFormatters(FormatterRegistry registry) {
                 if(registry instanceof ConversionService conversionService) {
@@ -27,6 +49,17 @@ public class ContentGridRestConfiguration {
                 } else {
                     throw new IllegalStateException("Registry is not a ConversionService");
                 }
+                registry.addFormatter(new Formatter<EntityId>() {
+                    @Override
+                    public EntityId parse(String text, Locale locale) throws ParseException {
+                        return EntityId.of(UUID.fromString(text));
+                    }
+
+                    @Override
+                    public String print(EntityId entityId, Locale locale) {
+                        return entityId.getValue().toString();
+                    }
+                });
             }
         };
     }
