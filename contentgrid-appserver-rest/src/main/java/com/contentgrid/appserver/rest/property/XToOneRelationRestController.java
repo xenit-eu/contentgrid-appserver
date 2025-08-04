@@ -4,7 +4,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -20,13 +19,10 @@ import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.Property
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -47,9 +43,10 @@ public class XToOneRelationRestController {
     @NonNull
     private final DatamodelApi datamodelApi;
 
-    private Optional<Relation> findProperty(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
+    private Relation getRequiredRelation(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         return application.getRelationForPath(entityName, propertyName)
-                .filter(relation -> relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation);
+                .filter(relation -> relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
@@ -68,7 +65,7 @@ public class XToOneRelationRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName
     ) {
-        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var relation = getRequiredRelation(application, entityName, propertyName);
         var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         try {
             var targetId = datamodelApi.findRelationTarget(application, relation, instanceId)
@@ -95,7 +92,7 @@ public class XToOneRelationRestController {
         if (body.size() > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
         }
-        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var relation = getRequiredRelation(application, entityName, propertyName);
         var element = body.getFirst();
         var maybeId = getMatcherForTargetEntity(application, relation).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
@@ -119,7 +116,7 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName propertyName
     ) {
         try {
-            var relation = findProperty(application, entityName, propertyName).orElseThrow();
+            var relation = getRequiredRelation(application, entityName, propertyName);
             datamodelApi.deleteRelation(application, relation, instanceId);
         } catch (EntityNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);

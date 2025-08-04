@@ -20,7 +20,6 @@ import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -45,9 +44,10 @@ public class XToManyRelationRestController {
     @NonNull
     private final DatamodelApi datamodelApi;
 
-    private Optional<Relation> findProperty(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
+    private Relation getRequiredRelation(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         return application.getRelationForPath(entityName, propertyName)
-                .filter(relation -> relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation);
+                .filter(relation -> relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
@@ -66,7 +66,7 @@ public class XToManyRelationRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName
     ) {
-        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var relation = getRequiredRelation(application, entityName, propertyName);
         var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         datamodelApi.findById(application, relation.getSourceEndPoint().getEntity(), instanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
@@ -94,7 +94,7 @@ public class XToManyRelationRestController {
         if (body.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
-        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var relation = getRequiredRelation(application, entityName, propertyName);
         var matcher = getMatcherForTargetEntity(application, relation);
         var targetIds = new java.util.HashSet<EntityId>();
 
@@ -123,7 +123,7 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName propertyName
     ) {
         try {
-            var relation = findProperty(application, entityName, propertyName).orElseThrow();
+            var relation = getRequiredRelation(application, entityName, propertyName);
             datamodelApi.deleteRelation(application, relation, instanceId);
         } catch (EntityNotFoundException|RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
@@ -141,7 +141,7 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName propertyName,
             @PathVariable EntityId itemId
     ) {
-        var relation = findProperty(application, entityName, propertyName).orElseThrow();
+        var relation = getRequiredRelation(application, entityName, propertyName);
         if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId)) {
             var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
@@ -159,7 +159,7 @@ public class XToManyRelationRestController {
             @PathVariable EntityId itemId
     ) {
         try {
-            var relation = findProperty(application, entityName, propertyName).orElseThrow();
+            var relation = getRequiredRelation(application, entityName, propertyName);
             datamodelApi.removeRelationItem(application, relation, instanceId, itemId);
         } catch (EntityNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
