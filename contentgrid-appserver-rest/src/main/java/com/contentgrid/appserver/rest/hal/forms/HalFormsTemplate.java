@@ -32,7 +32,7 @@ public class HalFormsTemplate {
     HttpMethod httpMethod;
 
     @JsonInclude(Include.NON_NULL)
-    MediaType contentType;
+    String contentType;
 
     @JsonInclude(Include.NON_NULL)
     String target;

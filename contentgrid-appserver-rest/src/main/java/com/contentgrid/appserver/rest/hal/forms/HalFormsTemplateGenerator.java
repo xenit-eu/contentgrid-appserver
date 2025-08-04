@@ -37,7 +37,7 @@ public class HalFormsTemplateGenerator {
         return HalFormsTemplate.builder()
                 .key(IanaLinkRelations.CREATE_FORM_VALUE)
                 .httpMethod(HttpMethod.POST)
-                .contentType(hasFiles? MediaType.MULTIPART_FORM_DATA:MediaType.APPLICATION_JSON)
+                .contentType(hasFiles? MediaType.MULTIPART_FORM_DATA_VALUE:MediaType.APPLICATION_JSON_VALUE)
                 .properties(properties)
                 .target(getCollectionSelfLink(application, entity).toString())
                 .build();
@@ -52,7 +52,7 @@ public class HalFormsTemplateGenerator {
         return HalFormsTemplate.builder()
                 .key(HalFormsTemplate.DEFAULT_KEY)
                 .httpMethod(HttpMethod.PUT)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .properties(properties)
                 .build();
     }
@@ -83,7 +83,7 @@ public class HalFormsTemplateGenerator {
                     .key("add-" + relation.getSourceEndPoint().getLinkName())
                     .httpMethod(HttpMethod.POST)
                     .target(relationLink)
-                    .contentType(MediaType.parseMediaType("text/uri-list"))
+                    .contentType("text/uri-list")
                     .property(maybeProperty.get())
                     .build());
         } else {
@@ -91,7 +91,7 @@ public class HalFormsTemplateGenerator {
                     .key("set-" + relation.getSourceEndPoint().getLinkName())
                     .httpMethod(HttpMethod.PUT)
                     .target(relationLink)
-                    .contentType(MediaType.parseMediaType("text/uri-list"))
+                    .contentType("text/uri-list")
                     .property(maybeProperty.get())
                     .build());
         }

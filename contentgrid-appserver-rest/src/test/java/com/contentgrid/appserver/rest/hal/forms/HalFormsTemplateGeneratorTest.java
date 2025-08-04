@@ -138,7 +138,7 @@ class HalFormsTemplateGeneratorTest {
                 }
         );
 
-        assertThat(template.getContentType()).isEqualTo(MediaType.MULTIPART_FORM_DATA);
+        assertThat(template.getContentType()).isEqualTo(MediaType.MULTIPART_FORM_DATA_VALUE);
     }
 
     @Test
@@ -203,7 +203,7 @@ class HalFormsTemplateGeneratorTest {
         );
 
         // No File input; use JSON for mediatype
-        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test
@@ -270,7 +270,7 @@ class HalFormsTemplateGeneratorTest {
                 }
         );
 
-        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test
