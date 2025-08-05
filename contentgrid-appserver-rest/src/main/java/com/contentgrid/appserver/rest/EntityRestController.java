@@ -24,8 +24,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
@@ -49,12 +47,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 public class EntityRestController {
+
+    public static final String SORT_NAME = "_sort";
 
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
-    private final EntityDataRepresentationModelAssembler assembler = new EntityDataRepresentationModelAssembler();
+    private final EntityDataRepresentationModelAssembler assembler;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -73,7 +73,7 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false, name = "_sort") String[] sort,
+            @RequestParam(required = false, name = SORT_NAME) String[] sort,
             @RequestParam Map<String, String> params
     ) {
         var entity = getEntityOrThrow(application, entityName);
