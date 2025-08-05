@@ -173,6 +173,7 @@ class EntityRestControllerTest {
     void setup() {
         tableCreator.createTables(APPLICATION);
     }
+
     @AfterEach
     void teardown() {
         tableCreator.dropTables(APPLICATION);

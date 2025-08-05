@@ -36,12 +36,18 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.ContentGridRestConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.type.AnnotatedTypeMetadata;
 
 @Slf4j
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @Import(ContentGridRestConfiguration.class)
 public class ContentgridAppConfiguration {
 
@@ -58,6 +64,12 @@ public class ContentgridAppConfiguration {
     @Bean
     public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
         return new JOOQTableCreator(dslContextResolver);
+    }
+
+    @Bean
+    @Conditional(NotTest.class)
+    InitializingBean bootstrapTables(TableCreator tableCreator, ApplicationResolver applicationResolver) {
+        return () -> tableCreator.createTables(applicationResolver.resolve(ApplicationName.of("default")));
     }
 
     @Bean
@@ -271,4 +283,14 @@ public class ContentgridAppConfiguration {
         );
     }
 
+    private static class NotTest implements Condition {
+
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            if(context.getEnvironment() instanceof ConfigurableEnvironment configurableEnvironment) {
+                return !configurableEnvironment.getPropertySources().contains("test");
+            }
+            return true;
+        }
+    }
 }
