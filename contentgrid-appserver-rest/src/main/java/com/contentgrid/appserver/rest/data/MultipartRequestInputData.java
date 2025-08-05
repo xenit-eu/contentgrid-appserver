@@ -84,7 +84,6 @@ public class MultipartRequestInputData implements RequestInputData {
                         uploadedFile.getOriginalFilename(),
                         Optional.ofNullable(uploadedFile.getContentType())
                                 .orElseThrow(() -> new InvalidDataFormatException(TechnicalDataType.CONTENT, new IllegalArgumentException("Content-Type is required"))),
-                        uploadedFile.getSize(),
                         uploadedFile::getInputStream
                 ));
             }

@@ -195,7 +195,6 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
         @NonNull
         String contentType;
 
-        long size;
         @Getter(value = AccessLevel.NONE)
         @EqualsAndHashCode.Exclude
         @ToString.Exclude

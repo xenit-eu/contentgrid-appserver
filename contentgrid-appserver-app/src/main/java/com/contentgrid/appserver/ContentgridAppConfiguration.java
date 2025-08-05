@@ -25,6 +25,8 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
+import com.contentgrid.appserver.domain.ContentApi;
+import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
@@ -61,6 +63,11 @@ public class ContentgridAppConfiguration {
     @Bean
     public DatamodelApi api(QueryEngine queryEngine, ContentStore contentStore) {
         return new DatamodelApiImpl(queryEngine, contentStore);
+    }
+
+    @Bean
+    public ContentApi contentApi(DatamodelApi datamodelApi, ContentStore contentStore) {
+        return new ContentApiImpl(datamodelApi, contentStore);
     }
 
     @Bean

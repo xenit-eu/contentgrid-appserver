@@ -1,22 +1,6 @@
 package com.contentgrid.appserver.domain;
 
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AMOUNT;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AUDIT_METADATA;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONFIDENTIALITY;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONTENT;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CUSTOMER;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_IS_PAID;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_NUMBER;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_BEFORE;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_RECEIVED;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -379,7 +363,7 @@ class DatamodelApiImplTest {
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", 120, InputStream::nullInputStream)
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
             )));
 
             assertThat(result.getId()).isEqualTo(entityId);
@@ -675,7 +659,7 @@ class DatamodelApiImplTest {
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", 120, InputStream::nullInputStream)
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf",  InputStream::nullInputStream)
             )));
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -983,7 +967,7 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 150));
             datamodelApi.updatePartial(APPLICATION, INVOICE.getName(), entityId, MapRequestInputData.fromMap(Map.of(
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", 120, InputStream::nullInputStream)
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
             )));
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
