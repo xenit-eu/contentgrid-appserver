@@ -95,9 +95,10 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, String> params, SortData sort, EncodedCursorPagination pagination)
+            @NonNull Map<String, String> params, @NonNull EncodedCursorPagination pagination)
             throws EntityNotFoundException, InvalidThunkExpressionException {
 
+        var sort = pagination.getSort();
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
         validateSortData(entity, sort);
 
@@ -122,11 +123,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
     }
 
-    private OffsetData convertPaginationToOffset(Pagination pagination, EntityName entityName, Map<String, String> params) {
-        if (pagination == null) {
-            // use defaults
-            return new OffsetData(EncodedCursorPagination.PAGE_SIZE, 0);
-        }
+    private OffsetData convertPaginationToOffset(@NonNull Pagination pagination, EntityName entityName, Map<String, String> params) {
         return switch(pagination) {
             case OffsetPagination o -> new OffsetData(o.getPageSize(), o.getPageNumber() * o.getPageSize());
             case EncodedCursorPagination e -> convertPaginationToOffset(cursorCodec.decodeCursor(e.getCursorContext(), entityName.getValue(), params), null, null);

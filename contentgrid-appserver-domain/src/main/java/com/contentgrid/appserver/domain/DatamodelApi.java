@@ -12,7 +12,6 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.Slice;
@@ -39,7 +38,7 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
-            SortData sort, EncodedCursorPagination pagination)
+            @NonNull EncodedCursorPagination pagination)
             throws EntityNotFoundException, InvalidThunkExpressionException, CursorDecodeException;
 
     /**

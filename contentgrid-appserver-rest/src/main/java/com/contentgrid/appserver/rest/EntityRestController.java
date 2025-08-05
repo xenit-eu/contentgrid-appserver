@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
@@ -80,8 +81,9 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
         var sortData = parseSortData(sort);
+        var pagination = new EncodedCursorPagination(null, sortData);
 
-        var results = datamodelApi.findAll(application, entity, params, sortData, null);
+        var results = datamodelApi.findAll(application, entity, params, pagination);
 
         EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
         var models = results.getContent().stream()

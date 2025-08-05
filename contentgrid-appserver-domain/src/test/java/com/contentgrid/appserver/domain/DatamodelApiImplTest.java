@@ -1079,8 +1079,8 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
-            // page `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new SortData(List.of()), null);
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1090,7 +1090,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new SortData(List.of()), nextPageRequest);
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
             assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1099,9 +1099,40 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new SortData(List.of()), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
             assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingAndLimits() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50));
+            assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
+            assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
+
+            assertNotNull(firstPage.next().orElse(null));
+            assertNull(firstPage.previous().orElse(null));
+
+            // get the cursor for the next page from the result of the first page
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
+            assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
+
+            assertNotNull(secondPage.next().orElse(null));
+            assertNotNull(secondPage.previous().orElse(null));
+
+            nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
+
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
+            assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
         }
 
         @Test
@@ -1113,21 +1144,21 @@ class DatamodelApiImplTest {
                             data -> getConfidentiality(data).equals("public")
                     ));
 
-            // page `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new SortData(List.of()), null);
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null));
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new SortData(List.of()), nextPageRequest);
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new SortData(List.of()), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
             assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1139,23 +1170,52 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.findAll(any(), any(), any(), eq(sort), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
 
-            // page `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), sort, null);
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, sort));
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), sort, nextPageRequest);
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), sort, nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
             assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingNavigation() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            // cursor `null` -> first page
+            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
+
+            // Navigate to third page (next page is tested in other tests)
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow());
+            var thirdPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow());
+
+            // Verify that navigating to current page remains the same
+            var currentPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current());
+            assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
+            assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
+
+            // Verify that previous page is the same as second page
+            var prevPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow());
+            assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
+            assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
+
+            // Verify that first page is the same as starting page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first());
+            assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
+            assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
         }
 
         private double getAmount(EntityData entity) {

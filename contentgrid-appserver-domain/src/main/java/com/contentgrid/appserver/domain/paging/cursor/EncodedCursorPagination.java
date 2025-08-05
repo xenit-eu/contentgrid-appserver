@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -16,12 +17,29 @@ public class EncodedCursorPagination implements Pagination {
 
     private final String cursor;
 
-    private final Integer limit;
+    private final int size;
 
     private final SortData sort;
 
+    public EncodedCursorPagination(String cursor) {
+        this(cursor, PAGE_SIZE);
+    }
+
+    public EncodedCursorPagination(String cursor, int size) {
+        this(cursor, size, new SortData(List.of()));
+    }
+
+    public EncodedCursorPagination(String cursor, SortData sort) {
+        this(cursor, PAGE_SIZE, sort);
+    }
+
     public CursorContext getCursorContext() {
-        return new CursorContext(cursor, limit == null ? PAGE_SIZE : limit, sort);
+        return new CursorContext(cursor, size, sort);
+    }
+
+    @Override
+    public Integer getLimit() {
+        return size;
     }
 
     @Override
@@ -36,7 +54,7 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public Map<String, Object> getParameters() {
-        return Map.of("cursor", cursor, "size", limit, "sort", sort);
+        return Map.of("cursor", cursor, "size", size, "sort", sort);
     }
 
     @StandardException
