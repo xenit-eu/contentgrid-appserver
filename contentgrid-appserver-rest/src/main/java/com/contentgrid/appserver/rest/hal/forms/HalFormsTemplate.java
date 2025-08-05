@@ -11,7 +11,6 @@ import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 
 @Value
 @Builder

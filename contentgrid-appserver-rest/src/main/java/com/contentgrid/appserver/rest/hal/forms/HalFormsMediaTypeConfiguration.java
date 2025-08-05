@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +19,6 @@ import org.springframework.http.MediaType;
 @RequiredArgsConstructor
 public class HalFormsMediaTypeConfiguration implements HypermediaMappingInformation {
 
-    @Autowired
     private final HalMediaTypeConfiguration halMediaTypeConfiguration;
 
     @Override
