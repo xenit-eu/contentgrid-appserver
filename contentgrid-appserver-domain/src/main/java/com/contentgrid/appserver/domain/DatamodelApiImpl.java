@@ -126,7 +126,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private OffsetData convertPaginationToOffset(@NonNull Pagination pagination, EntityName entityName, Map<String, String> params) {
         return switch(pagination) {
             case OffsetPagination o -> new OffsetData(o.getPageSize(), o.getPageNumber() * o.getPageSize());
-            case EncodedCursorPagination e -> convertPaginationToOffset(cursorCodec.decodeCursor(e.getCursorContext(), entityName.getValue(), params), null, null);
+            case EncodedCursorPagination e -> convertPaginationToOffset(cursorCodec.decodeCursor(e.getCursorContext(), entityName.getValue(), params), entityName, params);
             case PageBasedPagination p -> new OffsetData(p.getSize(), p.getPage() * p.getSize());
             default -> throw new IllegalStateException("Unexpected value: " + pagination);
         };

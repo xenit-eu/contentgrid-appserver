@@ -27,7 +27,6 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
@@ -103,9 +102,6 @@ public class JOOQQueryEngine implements QueryEngine {
                 .entities(results.stream()
                         .map(result -> EntityDataMapper.from(entity, result))
                         .toList())
-                .pageInfo(PageInfo.builder()
-                        // TODO: ACC-2048: support paging
-                        .build())
                 .build();
     }
 
@@ -122,9 +118,8 @@ public class JOOQQueryEngine implements QueryEngine {
         if (!(path instanceof AttributePath attrPath)) {
             throw new IllegalArgumentException("Sorting by complex property paths is not supported.");
         }
-        var attr = entity.getAttributeByName(attrPath.getFirst()).orElseThrow();
-        // TODO multi-column attributes should get some way to mark which one is suitable for sorting...
-        var dslField = DSL.field(attr.getColumns().getFirst().getValue());
+        var attr = entity.resolveAttributePath(attrPath);
+        var dslField = DSL.field(attr.getColumn().getValue());
         return switch (field.getDirection()) {
             case ASC -> dslField.asc();
             case DESC -> dslField.desc();

@@ -13,7 +13,6 @@ import lombok.Value;
 public class ResultSlice implements Slice<EntityData> {
     List<EntityData> entities;
 
-    // Should be an EncodedCursorPaginationControls (new implementation)
     PaginationControls controls;
 
     @NonNull

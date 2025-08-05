@@ -43,7 +43,6 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -1260,11 +1259,6 @@ class DatamodelApiImplTest {
 
             return SliceData.builder()
                     .entities(entities)
-                    .pageInfo(PageInfo.builder()
-                            .start((long) offset)
-                            .size((long) limit)
-                            .exactCount(1_000_000L)
-                            .build())
                     .build();
         }
 
