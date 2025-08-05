@@ -109,12 +109,12 @@ public class DatamodelApiImpl implements DatamodelApi {
         // Get a total count of how many items match these params
         // TODO: to be replaced with an estimate count at some point (ACC-2208)
         var count = ItemCount.exact(queryEngine.exactCount(application, entity, filter));
-        var size = result.getEntities().size();
+        var hasNext = result.getEntities().size() > offsetData.getLimit();
 
         PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
-                sort, params, offsetData, size);
+                sort, params, hasNext);
 
-        if (size > offsetData.getLimit()) {
+        if (hasNext) {
             // Remove the extra row again
             return new ResultSlice(result.getEntities().subList(0, offsetData.getLimit()), controls, count);
         } else {

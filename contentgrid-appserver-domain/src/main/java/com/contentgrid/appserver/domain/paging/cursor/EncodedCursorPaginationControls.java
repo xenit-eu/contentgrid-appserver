@@ -15,6 +15,9 @@ public class EncodedCursorPaginationControls implements PaginationControls {
     EncodedCursorPagination next;
     EncodedCursorPagination previous;
 
+    @NonNull
+    EncodedCursorPagination first;
+
     @Override
     public Pagination current() {
         return pagination;
@@ -32,6 +35,6 @@ public class EncodedCursorPaginationControls implements PaginationControls {
 
     @Override
     public Pagination first() {
-        return null;
+        return first;
     }
 }

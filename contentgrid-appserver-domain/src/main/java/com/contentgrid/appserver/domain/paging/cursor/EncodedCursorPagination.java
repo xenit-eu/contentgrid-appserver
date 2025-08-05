@@ -7,24 +7,21 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.StandardException;
 
+@Getter
 @RequiredArgsConstructor
 public class EncodedCursorPagination implements Pagination {
     public static final int PAGE_SIZE = 20;
 
-    @Getter
     private final String cursor;
 
-    @Getter
+    private final Integer limit;
+
     private final SortData sort;
 
     public CursorContext getCursorContext() {
-        return new CursorContext(cursor, PAGE_SIZE, sort);
-    }
-
-    @Override
-    public Integer getLimit() {
-        return PAGE_SIZE;
+        return new CursorContext(cursor, limit == null ? PAGE_SIZE : limit, sort);
     }
 
     @Override
@@ -34,11 +31,16 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public boolean isFirstPage() {
-        return cursor.endsWith("0");
+        throw new EncodedCursorException("Cursor is encoded, decode it first with CursorCodec#decodeCursor");
     }
 
     @Override
     public Map<String, Object> getParameters() {
-        return Map.of("cursor", cursor, "size", PAGE_SIZE, "sort", sort);
+        return Map.of("cursor", cursor, "size", limit, "sort", sort);
+    }
+
+    @StandardException
+    public static class EncodedCursorException extends RuntimeException {
+
     }
 }
