@@ -33,7 +33,6 @@ import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.ETag;
-import org.springframework.hateoas.server.core.EmbeddedWrappers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +71,7 @@ public class EntityRestController {
     }
 
     @GetMapping("/{entityName}")
-    public CollectionModel<?> listEntity(
+    public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestParam(defaultValue = "0") int page,
@@ -86,12 +85,9 @@ public class EntityRestController {
 
         var results = datamodelApi.findAll(application, entity, params, pagination);
 
-        EmbeddedWrappers wrappers = new EmbeddedWrappers(false);
-        var models = results.getContent().stream()
-                .map(res -> wrappers.wrap(assembler.withContext(application).toModel(res), IanaLinkRelations.ITEM))
-                .toList();
         // TODO use page data and count data (ACC-2200)
-        return CollectionModel.of(models);
+        return assembler.withContext(application, entity)
+                .toCollectionModel(results);
     }
 
     @GetMapping("/{entityName}/{instanceId}")
@@ -115,7 +111,7 @@ public class EntityRestController {
 
         return ResponseEntity.ok()
                 .eTag(calculateETag(result))
-                .body(assembler.withContext(application).toModel(result));
+                .body(assembler.withContext(application, entity).toModel(result));
     }
 
     private String calculateETag(EntityData result) {
@@ -141,7 +137,7 @@ public class EntityRestController {
                 new ConversionServiceRequestInputData(data, conversionService)
         );
 
-        var model = assembler.withContext(application).toModel(result);
+        var model = assembler.withContext(application, entity).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .eTag(calculateETag(result))
@@ -175,7 +171,7 @@ public class EntityRestController {
                     data);
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application).toModel(updateResult));
+                    .body(assembler.withContext(application, entity).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
@@ -201,7 +197,7 @@ public class EntityRestController {
 
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application).toModel(updateResult));
+                    .body(assembler.withContext(application, entity).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
