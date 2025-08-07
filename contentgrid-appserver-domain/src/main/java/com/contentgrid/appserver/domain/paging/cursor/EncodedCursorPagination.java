@@ -56,17 +56,17 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public Map<String, Object> getParameters() {
-        // TODO: fix names (ACC-2200)
+        var namingStrategy = new EncodedCursorPaginationNamingStrategy();
         var result = new HashMap<String, Object>();
-        result.put("size", size);
+        result.put(namingStrategy.getSizeName(), size);
 
         // omit cursor if null
         if (cursor != null) {
-            result.put("cursor", cursor);
+            result.put(namingStrategy.getPageName(), cursor);
         }
         // omit sort if empty
         if (!sort.getSortedFields().isEmpty()) {
-            result.put("sort", sort.toList());
+            result.put(namingStrategy.getSortName(), sort.toList());
         }
         return result;
     }
