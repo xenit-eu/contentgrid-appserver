@@ -313,6 +313,46 @@ class ContentRestControllerTest {
         Mockito.verifyNoInteractions(contentStoreSpy);
     }
 
+    @Test
+    void head_success() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        mockMvc.perform(head("/invoices/{instanceId}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
+                        .toString()))
+                .andExpect(header().string(HttpHeaders.CONTENT_LENGTH, String.valueOf(INVOICE_CONTENT_FILE.getBytes().length)));
+
+        // for a HEAD request, nothing got read from the content store
+        Mockito.verifyNoInteractions(contentStoreSpy);
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonExistentPaths")
+    void head_nonexistent_fails(String uriTemplate) throws Exception {
+        String invoiceId = createInvoice(null);
+
+        mockMvc.perform(head(uriTemplate, invoiceId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void head_range_success() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        mockMvc.perform(head("/invoices/{instanceId}/content", invoiceId)
+                        .header(HttpHeaders.RANGE, "bytes=0-4"))
+                .andExpect(status().isPartialContent())
+                .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-4/17"))
+                .andExpect(header().string(HttpHeaders.CONTENT_LENGTH, "5"));
+
+        // for a HEAD request, nothing got read from the content store
+        Mockito.verifyNoInteractions(contentStoreSpy);
+    }
+
     @ParameterizedTest
     @CsvSource({"PUT", "POST"})
     void upload_plain_success(HttpMethod method) throws Exception {

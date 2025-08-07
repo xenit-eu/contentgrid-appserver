@@ -18,13 +18,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.Delegate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -137,6 +140,36 @@ public class ContentRestController {
         }
 
         return new ContentResource(content.withByteRange(start, end));
+    }
+
+    /*
+     * Doing a custom implementation for HEAD here instead of the default that calls the GET method and
+     * discards the body.
+     *
+     * HEAD requests are supposed to be a 'cheap' way to check what would be the answer to a GET request,
+     * without retrieving the body.
+     * Since no body is being written, and we have all the metadata stored in our database,
+     * we can avoid retrieving the content from the ContentStore at all, which saves some processing time and data transfer.
+     * We can completely avoid doing some of the work by not making any request to the ContentStore to receive content.
+     * Note that we still do need to return a properly-sized InputStream, because Spring does read the body.
+     * Especially when servicing Range requests, Spring will want to skip a certain number of bytes, and will throw
+     * when that doesn't happen.
+     * It's only Tomcat, after the whole Spring stack has finished, that copies the InputStream to a discard OutputStream
+     * (instead of the actual HTTP response body as done for a GET).
+     */
+    @RequestMapping(method = {RequestMethod.HEAD})
+    public ResponseEntity<Resource> headContent(
+            @RequestHeader HttpHeaders httpHeaders,
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId instanceId,
+            @PathVariable PathSegmentName propertyName
+    ) {
+        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName);
+
+        return ResponseEntity.status(response.getStatusCode())
+                .headers(response.getHeaders())
+                .body(new EmptyContentResourceProxy(response.getBody()));
     }
 
     @RequestMapping(method = {RequestMethod.POST, RequestMethod.PUT}, consumes = "*/*")
@@ -258,6 +291,67 @@ public class ContentRestController {
         @Override
         public boolean exists() {
             return true;
+        }
+    }
+
+    @RequiredArgsConstructor
+    private static class EmptyContentResourceProxy implements Resource {
+        @Delegate(types = Resource.class, excludes = InputStreamSource.class)
+        @NonNull
+        private final Resource delegate;
+
+        @Override
+        public InputStream getInputStream() throws IOException {
+            return new ZeroInputStream(delegate.contentLength());
+        }
+
+        /**
+         * InputStream that emulates the same length as the original content object, but filled with NUL-bytes instead of
+         * the actual file contents.
+         * <p>
+         * We can't use {@link InputStream#nullInputStream()} instead, because that is a stream with a length of 0 bytes,
+         * which doesn't match the size of the original input stream closely enough to make Content-Length and byte-ranges work properly
+         */
+        @RequiredArgsConstructor
+        private static class ZeroInputStream extends InputStream {
+            private final long size;
+            private long currentPosition = 0;
+
+            @Override
+            public int read() {
+                if(currentPosition < size) {
+                    currentPosition++;
+                    return 0;
+                }
+                return -1;
+            }
+
+            @Override
+            public int available() {
+                return (int)Math.min(Integer.MAX_VALUE, size - currentPosition);
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                Objects.checkFromIndexSize(off, len, b.length);
+                if(currentPosition >= size) {
+                    return -1;
+                }
+                var skipped = (int)skip(len);
+                for(int i = off; i<skipped;i++)
+                    b[i] = 0;
+                return skipped;
+            }
+
+            @Override
+            public long skip(long n) {
+                if(n<=0) {
+                    return 0;
+                }
+                var toSkip = Math.min(n, available());
+                currentPosition+=toSkip;
+                return toSkip;
+            }
         }
     }
 
