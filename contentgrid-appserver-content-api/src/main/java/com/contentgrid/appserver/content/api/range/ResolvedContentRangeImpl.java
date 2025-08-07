@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.content.api.range;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
+@EqualsAndHashCode
 final class ResolvedContentRangeImpl implements ResolvedContentRange {
     long startByte;
     long endByteInclusive;
