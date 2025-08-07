@@ -321,7 +321,7 @@ class EntityRestControllerTest {
                                         type: "url",
                                         options: {
                                             link: {
-                                                href: "http://localhost/invoices?page=0" // TODO: remove page=0 (ACC-2200)
+                                                href: "http://localhost/invoices"
                                             },
                                             minItems: 0
                                         }

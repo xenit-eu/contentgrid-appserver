@@ -145,7 +145,7 @@ class RelationRestControllerTest {
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/invoices?page=0&customer=%s".formatted(PERSON_ID)));
+                            "http://localhost/invoices?customer=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
                     .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
@@ -163,7 +163,7 @@ class RelationRestControllerTest {
             mockMvc.perform(get("/products/{sourceId}/invoices", PRODUCT_ID))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/invoices?page=0&products=%s".formatted(PRODUCT_ID)));
+                            "http://localhost/invoices?products=%s".formatted(PRODUCT_ID)));
 
             Mockito.verify(datamodelApi)
                     .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID)), Mockito.any());
@@ -181,7 +181,7 @@ class RelationRestControllerTest {
             mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID)));
+                            "http://localhost/persons?_internal_person__friends=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
                     .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());

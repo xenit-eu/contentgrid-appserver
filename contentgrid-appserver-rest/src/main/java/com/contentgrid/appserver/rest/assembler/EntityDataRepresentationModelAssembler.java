@@ -76,7 +76,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private Link getCollectionSelfLink(Application application, PathSegmentName entityPathSegment) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entityPathSegment, null, 0, null, Map.of())
+                .listEntity(application, entityPathSegment, null, Map.of(), null)
         ).withSelfRel();
     }
 

@@ -228,7 +228,6 @@ class ProfileRestControllerTest {
     void getProfileEntity_linksAndTemplates() throws Exception {
         mockMvc.perform(get("/profile/invoices").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
-                // TODO: remove '?page=0' in all links (ACC-2200)
                 .andExpect(content().json("""
                         {
                             _links: {
@@ -236,7 +235,7 @@ class ProfileRestControllerTest {
                                     href: "http://localhost/profile/invoices"
                                 },
                                 describes: [{
-                                    href: "http://localhost/invoices?page=0",
+                                    href: "http://localhost/invoices",
                                     name: "collection"
                                 }, {
                                     href: "http://localhost/invoices/{instanceId}",
@@ -247,11 +246,11 @@ class ProfileRestControllerTest {
                             _templates: {
                                 default: {
                                     method: "HEAD",
-                                    target: "http://localhost/invoices?page=0"
+                                    target: "http://localhost/invoices"
                                 },
                                 search: {
                                     method: "GET",
-                                    target: "http://localhost/invoices?page=0",
+                                    target: "http://localhost/invoices",
                                     properties: [{
                                         name: "number",
                                         type: "text"
@@ -322,7 +321,7 @@ class ProfileRestControllerTest {
                                 },
                                 create-form: {
                                     method: "POST",
-                                    target: "http://localhost/invoices?page=0",
+                                    target: "http://localhost/invoices",
                                     contentType: "multipart/form-data",
                                     properties: [{
                                         name: "number",
@@ -359,7 +358,7 @@ class ProfileRestControllerTest {
                                         type: "url",
                                         options: {
                                             link: {
-                                                href: "http://localhost/persons?page=0"
+                                                href: "http://localhost/persons"
                                             },
                                             minItems: 1,
                                             maxItems: 1
@@ -369,7 +368,7 @@ class ProfileRestControllerTest {
                                         type: "url",
                                         options: {
                                             link: {
-                                                href: "http://localhost/products?page=0"
+                                                href: "http://localhost/products"
                                             },
                                             minItems: 0
                                         }
@@ -378,7 +377,7 @@ class ProfileRestControllerTest {
                                         type: "url",
                                         options: {
                                             link: {
-                                                href: "http://localhost/invoices?page=0"
+                                                href: "http://localhost/invoices"
                                             },
                                             minItems: 0,
                                             maxItems: 1
@@ -388,7 +387,7 @@ class ProfileRestControllerTest {
                                         type: "url",
                                         options: {
                                             link: {
-                                                href: "http://localhost/invoices?page=0"
+                                                href: "http://localhost/invoices"
                                             },
                                             minItems: 0,
                                             maxItems: 1

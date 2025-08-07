@@ -34,7 +34,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class, BlueprintLinkRelationsConfiguration.class, HalFormsMediaTypeConfiguration.class})
 public class ContentGridRestConfiguration {
     @Bean
-    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor, AbacContextSupplier abacContextSupplier) {
+    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor,
+            AbacContextSupplier abacContextSupplier, EncodedCursorPaginationHandlerMethodArgumentResolver paginationHandlerMethodArgumentResolver) {
         return new WebMvcConfigurer() {
 
             @Override
@@ -42,6 +43,7 @@ public class ContentGridRestConfiguration {
                 resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
                 resolvers.add(new VersionConstraintArgumentResolver());
                 resolvers.add(new PermissionPredicateArgumentResolver(abacContextSupplier));
+                resolvers.add(paginationHandlerMethodArgumentResolver);
             }
 
             @Override
@@ -77,4 +79,8 @@ public class ContentGridRestConfiguration {
         };
     }
 
+    @Bean
+    EncodedCursorPaginationHandlerMethodArgumentResolver encodedCursorPaginationHandlerMethodArgumentResolver() {
+        return new EncodedCursorPaginationHandlerMethodArgumentResolver();
+    }
 }
