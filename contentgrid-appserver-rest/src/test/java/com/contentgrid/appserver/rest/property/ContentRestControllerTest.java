@@ -440,6 +440,22 @@ class ContentRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
+    @MethodSource("nonExistentPaths")
+    void upload_nonexistent_multipart_fails(String pathTemplate) throws Exception {
+        String instanceId = createInvoice(null);
+
+        mockMvc.perform(multipart(pathTemplate, instanceId)
+                        .file(new MockMultipartFile(
+                                "file",
+                                INVOICE_CONTENT_FILE.getOriginalFilename(),
+                                INVOICE_CONTENT_FILE.getContentType(),
+                                INVOICE_CONTENT_FILE.getInputStream()
+                        ))
+                )
+                .andExpect(status().isNotFound());
+    }
+
     @Test
     void upload_no_content_type_fails() throws Exception {
         String invoiceId = createInvoice(null);
@@ -499,6 +515,20 @@ class ContentRestControllerTest {
 
         mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
                         .file(file))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verifyNoInteractions(contentStoreSpy);
+
+        mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void upload_multipart_no_file_fails() throws Exception {
+        String invoiceId = createInvoice(null);
+
+        mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoInteractions(contentStoreSpy);

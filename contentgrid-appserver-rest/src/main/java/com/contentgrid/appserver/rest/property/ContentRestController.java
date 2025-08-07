@@ -269,11 +269,6 @@ public class ContentRestController {
         }
 
         @Override
-        public String getFilename() {
-            return content.getFilename();
-        }
-
-        @Override
         public long contentLength() {
             return content.getLength();
         }
