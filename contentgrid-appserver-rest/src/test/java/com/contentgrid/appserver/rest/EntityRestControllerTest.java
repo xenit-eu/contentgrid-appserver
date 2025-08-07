@@ -531,10 +531,9 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_21')].price", is(List.of(420.00))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_22')].price", is(List.of(440.00))))
                 .andExpect(jsonPath("$._links.curies").isArray())
-                // TODO: fix self link
-//                .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
-//                .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
-//                .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
+                .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
+                .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
+                .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_sort=price,asc&_sort=name,desc")))

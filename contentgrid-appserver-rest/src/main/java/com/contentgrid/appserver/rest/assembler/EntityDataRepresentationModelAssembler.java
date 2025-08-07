@@ -8,8 +8,10 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler.EntityContext;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
@@ -23,8 +25,11 @@ import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.With;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.UriTemplate;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
@@ -36,6 +41,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private final HalFormsTemplateGenerator templateGenerator;
     private final SlicedResourcesAssembler<EntityData> slicedResourcesAssembler;
+    private final EncodedCursorPaginationHandlerMethodArgumentResolver paginationResolver;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull EntityContext context) {
@@ -61,7 +67,11 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     public CollectionModel<EntityDataRepresentationModel> toSlicedModel(Slice<? extends EntityData> slice, EntityContext context) {
-        Link selfLink = this.getCollectionSelfLink(context.application(), context.entityPathSegment());
+        if (slice.current() instanceof EncodedCursorPagination pagination) {
+            // use current pagination instead of pagination from request
+            context = context.withPagination(pagination);
+        }
+        Link selfLink = this.getCollectionSelfLink(context);
         return slicedResourcesAssembler.toModel((Slice<EntityData>) slice, this.withContext(context), Optional.of(selfLink));
     }
 
@@ -72,12 +82,16 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             return toSlicedModel(slice, context);
         }
         var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context);
-        result.add(getCollectionSelfLink(context.application(), context.entityPathSegment()));
+        result.add(getCollectionSelfLink(context));
         return result;
     }
 
     public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment) {
-        return withContext(new EntityContext(application, entityPathSegment));
+        return withContext(application, entityPathSegment, Map.of(), null);
+    }
+
+    public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment, Map<String, String> params, EncodedCursorPagination pagination) {
+        return withContext(new EntityContext(application, entityPathSegment, params, pagination));
     }
 
     private Link getSelfLink(Application application, Entity entity, EntityId id) {
@@ -86,10 +100,14 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         ).withSelfRel();
     }
 
-    private Link getCollectionSelfLink(Application application, PathSegmentName entityPathSegment) {
-        return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entityPathSegment, null, Map.of(), null)
-        ).withSelfRel();
+    private Link getCollectionSelfLink(EntityContext context) {
+        // using toUriComponentsBuilder() instead of withSelfRel()
+        // to be able to put multiple values per query parameter (needed for _sort)
+        var builder = linkTo(methodOn(EntityRestController.class)
+                .listEntity(context.application(), context.entityPathSegment(), null, context.params(), null))
+                .toUriComponentsBuilder();
+        paginationResolver.enhance(builder, null, context.pagination());
+        return Link.of(UriTemplate.of(builder.build().toString()), IanaLinkRelations.SELF);
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
@@ -116,5 +134,5 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .build();
     }
 
-    public record EntityContext(Application application, PathSegmentName entityPathSegment) {}
+    public record EntityContext(Application application, PathSegmentName entityPathSegment, Map<String, String> params, @With EncodedCursorPagination pagination) {}
 }

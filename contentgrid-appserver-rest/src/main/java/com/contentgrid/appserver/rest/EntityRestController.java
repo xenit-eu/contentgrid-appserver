@@ -79,7 +79,7 @@ public class EntityRestController {
                 permissionPredicate);
 
         // TODO use page data and count data (ACC-2200)
-        return assembler.withContext(application, entityName)
+        return assembler.withContext(application, entityName, params, pagination)
                 .toCollectionModel(results);
     }
 
