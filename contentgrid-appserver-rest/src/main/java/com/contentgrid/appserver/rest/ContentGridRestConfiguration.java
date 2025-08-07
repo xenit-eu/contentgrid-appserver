@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
@@ -11,6 +12,8 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataE
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
+import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import java.text.ParseException;
@@ -77,6 +80,11 @@ public class ContentGridRestConfiguration {
         return builder -> {
             builder.featuresToDisable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
         };
+    }
+
+    @Bean
+    SlicedResourcesAssembler<EntityData> slicedResourcesAssembler(PaginationHandlerMethodArgumentResolver resolver) {
+        return new SlicedResourcesAssembler<>(resolver);
     }
 
     @Bean

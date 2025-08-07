@@ -17,8 +17,11 @@ import com.contentgrid.appserver.rest.property.ContentRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
+import com.contentgrid.hateoas.pagination.api.Slice;
+import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.Link;
@@ -32,6 +35,7 @@ import org.springframework.stereotype.Component;
 public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, EntityContext> {
 
     private final HalFormsTemplateGenerator templateGenerator;
+    private final SlicedResourcesAssembler<EntityData> slicedResourcesAssembler;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull EntityContext context) {
@@ -56,9 +60,17 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .addTemplate(getDeleteTemplate());
     }
 
+    public CollectionModel<EntityDataRepresentationModel> toSlicedModel(Slice<? extends EntityData> slice, EntityContext context) {
+        Link selfLink = this.getCollectionSelfLink(context.application(), context.entityPathSegment());
+        return slicedResourcesAssembler.toModel((Slice<EntityData>) slice, this.withContext(context), Optional.of(selfLink));
+    }
+
     @Override
     public CollectionModel<EntityDataRepresentationModel> toCollectionModel(Iterable<? extends EntityData> entities,
             EntityContext context) {
+        if (entities instanceof Slice<? extends EntityData> slice) {
+            return toSlicedModel(slice, context);
+        }
         var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context);
         result.add(getCollectionSelfLink(context.application(), context.entityPathSegment()));
         return result;

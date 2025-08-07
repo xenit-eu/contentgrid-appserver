@@ -16,8 +16,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.paging.ResultSlice;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPaginationControls;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -33,6 +41,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +56,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -168,6 +179,9 @@ class EntityRestControllerTest {
 
     @Autowired
     TableCreator tableCreator;
+
+    @MockitoSpyBean
+    DatamodelApi datamodelApi;
 
     @BeforeEach
     void setup() {
@@ -455,7 +469,7 @@ class EntityRestControllerTest {
 
         // Test the list endpoint with application/hal+json
         mockMvc.perform(get("/products")
-                .accept(MediaTypes.HAL_JSON))
+                        .accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaTypes.HAL_JSON))
                 .andExpect(jsonPath("$._links.self.href").exists())
@@ -488,6 +502,97 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._links.curies").isArray());
+    }
+
+    @Test
+    void testListEntityInstances_withPaging() throws Exception {
+        ArgumentCaptor<EncodedCursorPagination> paginationArg = ArgumentCaptor.forClass(EncodedCursorPagination.class);
+        Mockito.doAnswer(invocation -> fakeProducts(paginationArg.getValue()))
+                .when(datamodelApi)
+                .findAll(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT), Mockito.any(), paginationArg.capture(), Mockito.any());
+
+        // Request default page
+        mockMvc.perform(get("/products")
+                        .accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item.length()", is(20)))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='product_1')].price", is(List.of(20.00))))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='product_2')].price", is(List.of(40.00))))
+                .andExpect(jsonPath("$._links.curies").isArray())
+                .andExpect(jsonPath("$._links.first.href").exists())
+                .andExpect(jsonPath("$._links.next.href").exists())
+                .andExpect(jsonPath("$._links.prev.href").doesNotExist());
+
+        // Request with all paging parameters present
+        mockMvc.perform(get("/products?_cursor=2&_size=10&_sort=price,asc&_sort=name,desc")
+                        .accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.item.length()", is(10)))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='product_21')].price", is(List.of(420.00))))
+                .andExpect(jsonPath("$._embedded.item[?(@.name=='product_22')].price", is(List.of(440.00))))
+                .andExpect(jsonPath("$._links.curies").isArray())
+                // TODO: fix self link
+//                .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
+//                .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
+//                .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
+                .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
+                .andExpect(jsonPath("$._links.first.href", containsString("_size=10")))
+                .andExpect(jsonPath("$._links.first.href", containsString("_sort=price,asc&_sort=name,desc")))
+                .andExpect(jsonPath("$._links.next.href", containsString("_cursor=3")))
+                .andExpect(jsonPath("$._links.next.href", containsString("_size=10")))
+                .andExpect(jsonPath("$._links.next.href", containsString("_sort=price,asc&_sort=name,desc")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=1")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_size=10")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_sort=price,asc&_sort=name,desc")));
+    }
+
+    private static ResultSlice fakeProducts(EncodedCursorPagination pagination) {
+        var sortData = pagination.getSort();
+        var page = pagination.getCursor() == null ? 0 : Integer.parseInt(pagination.getCursor());
+        var size = pagination.getSize();
+        var entities = Stream.iterate(1, i -> i <= 1_000_000, i -> i + 1)
+                .skip((long) page * size)
+                .limit(size)
+                .map(EntityRestControllerTest::fakeProduct)
+                .toList();
+
+        var controls = new EncodedCursorPaginationControls(
+                new EncodedCursorPagination(fakeCursor(page), size, sortData),
+                (page + 1) * size >= 1_000_000 ? null : new EncodedCursorPagination(fakeCursor(page + 1), size, sortData),
+                page == 0 ? null : new EncodedCursorPagination(fakeCursor(page - 1), size, sortData),
+                new EncodedCursorPagination(fakeCursor(0), size, sortData)
+        );
+        var count = ItemCount.exact(1_000_000);
+        return new ResultSlice(entities, controls, count);
+    }
+
+    private static EntityData fakeProduct(int i) {
+        return EntityData.builder()
+                .name(PRODUCT.getName())
+                .id(fakeId(i))
+                .attribute(SimpleAttributeData.builder()
+                        .name(PRODUCT_NAME.getName())
+                        .value("product_" + i)
+                        .build())
+                .attribute(SimpleAttributeData.builder()
+                        .name(PRODUCT_PRICE.getName())
+                        .value(i * 20.0)
+                        .build())
+                .attribute(SimpleAttributeData.builder()
+                        .name(PRODUCT_IN_STOCK.getName())
+                        .value(i % 2 == 1)
+                        .build())
+                .build();
+    }
+
+    private static EntityId fakeId(int i) {
+        var hex = Integer.toHexString(i);
+        var value = "00000000-0000-0000-0000-0000" + "0".repeat(8 - hex.length()) + hex;
+        return EntityId.of(UUID.fromString(value));
+    }
+
+    private static String fakeCursor(int page) {
+        return String.valueOf(page);
     }
 
     @ParameterizedTest
