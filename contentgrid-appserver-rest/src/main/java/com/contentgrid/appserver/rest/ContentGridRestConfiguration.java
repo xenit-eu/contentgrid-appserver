@@ -11,6 +11,8 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDa
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
+import com.contentgrid.appserver.rest.paging.ItemCountPageMetadata;
+import com.contentgrid.appserver.rest.paging.ItemCountPageMetadataOmitLegacyPropertiesMixin;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
@@ -79,6 +81,7 @@ public class ContentGridRestConfiguration {
     Jackson2ObjectMapperBuilderCustomizer contentgridRestObjectMapperCustomizer() {
         return builder -> {
             builder.featuresToDisable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
+            builder.mixIn(ItemCountPageMetadata.class, ItemCountPageMetadataOmitLegacyPropertiesMixin.class);
         };
     }
 

@@ -8,6 +8,8 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -15,6 +17,8 @@ import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgume
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler.EntityContext;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
+import com.contentgrid.appserver.rest.paging.CursorPageMetadata;
+import com.contentgrid.appserver.rest.paging.ItemCountPageMetadata;
 import com.contentgrid.appserver.rest.property.ContentRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
@@ -29,6 +33,8 @@ import lombok.With;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.hateoas.UriTemplate;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.http.HttpMethod;
@@ -72,7 +78,9 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             context = context.withPagination(pagination);
         }
         Link selfLink = this.getCollectionSelfLink(context);
-        return slicedResourcesAssembler.toModel((Slice<EntityData>) slice, this.withContext(context), Optional.of(selfLink));
+        var slicedModel = slicedResourcesAssembler.toModel((Slice<EntityData>) slice, this.withContext(context), Optional.of(selfLink));
+        var pageMetadata = getPageMetadata(slice);
+        return PagedModel.of(slicedModel.getContent(), pageMetadata, slicedModel.getLinks());
     }
 
     @Override
@@ -132,6 +140,36 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .key("delete")
                 .httpMethod(HttpMethod.DELETE)
                 .build();
+    }
+
+    private ItemCountPageMetadata getPageMetadata(Slice<?> slice) {
+        var itemCount = getTotalItemCount(slice);
+        int limit = slice.getLimit() != null ? slice.getLimit() : slice.getSize();
+        // Fake numbers because we lost page context in domain-layer
+        var pageMetadata = new PageMetadata(limit, 0, itemCount.map(ItemCount::count).orElse(0L));
+        var cursorMetadata = getCursorPageMetadata(slice);
+        return new ItemCountPageMetadata(pageMetadata, itemCount.orElse(null), cursorMetadata);
+    }
+
+    private Optional<ItemCount> getTotalItemCount(Slice<?> slice) {
+        if (slice instanceof ResultSlice resultSlice) {
+            return Optional.of(resultSlice.getTotalItemCount());
+        }
+        return Optional.empty();
+    }
+
+    private CursorPageMetadata getCursorPageMetadata(Slice<?> slice) {
+        var nextCursor = slice.next()
+                .filter(EncodedCursorPagination.class::isInstance)
+                .map(EncodedCursorPagination.class::cast)
+                .map(EncodedCursorPagination::getCursor)
+                .orElse(null);
+        var prevCursor = slice.previous()
+                .filter(EncodedCursorPagination.class::isInstance)
+                .map(EncodedCursorPagination.class::cast)
+                .map(EncodedCursorPagination::getCursor)
+                .orElse(null);
+        return new CursorPageMetadata(prevCursor, nextCursor);
     }
 
     public record EntityContext(Application application, PathSegmentName entityPathSegment, Map<String, String> params, @With EncodedCursorPagination pagination) {}

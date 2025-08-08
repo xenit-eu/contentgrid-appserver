@@ -483,7 +483,8 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
-                .andExpect(jsonPath("$._links.curies").isArray());
+                .andExpect(jsonPath("$._links.curies").isArray())
+                .andExpect(jsonPath("$.page").exists());
 
         // Test the list endpoint with application/prs.hal-forms+json
         mockMvc.perform(get("/products")
@@ -501,7 +502,8 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')].price", is(List.of(49.99))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='First Product')]._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
-                .andExpect(jsonPath("$._links.curies").isArray());
+                .andExpect(jsonPath("$._links.curies").isArray())
+                .andExpect(jsonPath("$.page").exists());
     }
 
     @Test
@@ -518,10 +520,25 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item.length()", is(20)))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_1')].price", is(List.of(20.00))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_2')].price", is(List.of(40.00))))
-                .andExpect(jsonPath("$._links.curies").isArray())
+
+                // Check pagination links
+                .andExpect(jsonPath("$._links.self.href").exists())
                 .andExpect(jsonPath("$._links.first.href").exists())
+                .andExpect(jsonPath("$._links.prev.href").doesNotExist())
                 .andExpect(jsonPath("$._links.next.href").exists())
-                .andExpect(jsonPath("$._links.prev.href").doesNotExist());
+                .andExpect(jsonPath("$._links.last.href").doesNotExist())
+
+                // Check pagination metadata
+                .andExpect(jsonPath("$.page.size", is(20)))
+                .andExpect(jsonPath("$.page.prev_cursor").doesNotExist())
+                .andExpect(jsonPath("$.page.next_cursor", is("1")))
+                .andExpect(jsonPath("$.page.total_items_estimate", is(1_000_000)))
+                .andExpect(jsonPath("$.page.total_items_exact", is(1_000_000)))
+                // Check legacy properties don't exist
+                .andExpect(jsonPath("$.page.number").doesNotExist())
+                .andExpect(jsonPath("$.page.totalElements").doesNotExist())
+                .andExpect(jsonPath("$.page.totalPages").doesNotExist());
+
 
         // Request with all paging parameters present
         mockMvc.perform(get("/products?_cursor=2&_size=10&_sort=price,asc&_sort=name,desc")
@@ -530,19 +547,32 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._embedded.item.length()", is(10)))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_21')].price", is(List.of(420.00))))
                 .andExpect(jsonPath("$._embedded.item[?(@.name=='product_22')].price", is(List.of(440.00))))
-                .andExpect(jsonPath("$._links.curies").isArray())
+
+                // Check pagination links
                 .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
                 .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_sort=price,asc&_sort=name,desc")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=1")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_size=10")))
+                .andExpect(jsonPath("$._links.prev.href", containsString("_sort=price,asc&_sort=name,desc")))
                 .andExpect(jsonPath("$._links.next.href", containsString("_cursor=3")))
                 .andExpect(jsonPath("$._links.next.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.next.href", containsString("_sort=price,asc&_sort=name,desc")))
-                .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=1")))
-                .andExpect(jsonPath("$._links.prev.href", containsString("_size=10")))
-                .andExpect(jsonPath("$._links.prev.href", containsString("_sort=price,asc&_sort=name,desc")));
+                .andExpect(jsonPath("$._links.last.href").doesNotExist())
+
+                // Check pagination metadata
+                .andExpect(jsonPath("$.page.size", is(10)))
+                .andExpect(jsonPath("$.page.prev_cursor", is("1")))
+                .andExpect(jsonPath("$.page.next_cursor", is("3")))
+                .andExpect(jsonPath("$.page.total_items_estimate", is(1_000_000)))
+                .andExpect(jsonPath("$.page.total_items_exact", is(1_000_000)))
+                // Check legacy properties don't exist
+                .andExpect(jsonPath("$.page.number").doesNotExist())
+                .andExpect(jsonPath("$.page.totalElements").doesNotExist())
+                .andExpect(jsonPath("$.page.totalPages").doesNotExist());
     }
 
     private static ResultSlice fakeProducts(EncodedCursorPagination pagination) {
