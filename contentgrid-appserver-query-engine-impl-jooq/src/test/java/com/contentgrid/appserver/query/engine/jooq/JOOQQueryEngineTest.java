@@ -572,6 +572,11 @@ class JOOQQueryEngineTest {
                 // across relation, to many
                 StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
                         Scalar.of("code_1")
+                ),
+                // across relation, to many, id
+                StringComparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")),
+                        Scalar.of(PRODUCT1_ID.getValue())
                 )
         );
     }
