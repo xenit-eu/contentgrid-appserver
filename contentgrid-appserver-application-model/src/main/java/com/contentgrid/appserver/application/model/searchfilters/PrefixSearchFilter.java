@@ -27,23 +27,24 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
      *
      * @param name the name of the search filter
      * @param attributePath the path to the attribute to apply the filter on
-     * @param attributeType the type of the target attribute (must be of TEXT type)
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    PrefixSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
-        super(name, attributePath, attributeType);
+    PrefixSearchFilter(
+            @NonNull FilterName name,
+            @NonNull PropertyPath attributePath
+    ) throws InvalidSearchFilterException {
+        super(name, attributePath);
     }
 
     @Override
-    protected boolean supports(Type type) {
-        return Type.TEXT.equals(type);
+    public boolean supports(SimpleAttribute attribute) {
+        return attribute.getType().equals(Type.TEXT);
     }
 
     public static class PrefixSearchFilterBuilder {
         public PrefixSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
             this.attributePath = PropertyPath.of(attribute.getName());
-            this.attributeType = attribute.getType();
             return this;
         }
     }

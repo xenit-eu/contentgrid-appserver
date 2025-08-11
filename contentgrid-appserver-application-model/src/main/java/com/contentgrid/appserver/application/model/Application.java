@@ -1,9 +1,11 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -243,18 +245,13 @@ public class Application {
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
             if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                try {
                     var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                    if (resolvedAttribute.getType() != attributeSearchFilter.getAttributeType()) {
-                        throw new InvalidArgumentModelException(
-                            "SearchFilter %s does not match the type of attribute %s (%s != %s)".formatted(
-                                    attributeSearchFilter.getName(), resolvedAttribute.getName(),
-                                    attributeSearchFilter.getAttributeType(), resolvedAttribute.getType()));
+                    if(!attributeSearchFilter.supports(resolvedAttribute)) {
+                        throw new InvalidSearchFilterException(
+                            "SearchFilter %s does not support the attribute %s".formatted(
+                                    attributeSearchFilter.getName(), resolvedAttribute
+                            ));
                     }
-                } catch (IllegalArgumentException e) {
-                    throw new InvalidArgumentModelException("SearchFilter %s does not have a valid attribute path"
-                            .formatted(attributeSearchFilter.getName()), e);
-                }
             }
         });
     }
@@ -272,7 +269,7 @@ public class Application {
                 case RelationPath relationPath -> {
                     final String entityName = currentEntity.getName().getValue(); // Make final for lambda
                     var relation = getRelationForEntity(currentEntity, relationPath.getRelation())
-                        .orElseThrow(() -> new IllegalArgumentException(
+                        .orElseThrow(() -> new RelationNotFoundException(
                             "Relation '%s' not found on entity '%s'"
                                 .formatted(relationPath.getFirst().getValue(), entityName)));
 
@@ -283,7 +280,7 @@ public class Application {
             }
         }
 
-        throw new IllegalArgumentException("Invalid property path: path ended without reaching an attribute");
+        throw new AttributeNotFoundException("Invalid property path: path ended without reaching an attribute");
     }
 
 }

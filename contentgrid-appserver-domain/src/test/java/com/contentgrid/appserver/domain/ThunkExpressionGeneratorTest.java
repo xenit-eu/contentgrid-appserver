@@ -145,12 +145,10 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("audit.modified_by.name"))
                     .attributePath(PropertyPath.of(AttributeName.of("audit"), AttributeName.of("modified_by"), AttributeName.of("name")))
-                    .attributeType(Type.TEXT)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("shipment.destination"))
                     .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("destination")))
-                    .attributeType(Type.TEXT)
                     .build())
             .build();
 
@@ -190,7 +188,6 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("parcel.barcode"))
                     .attributePath(PropertyPath.of(RelationName.of("parcel"), AttributeName.of("barcode")))
-                    .attributeType(Type.TEXT)
                     .build())
             .build();
 
@@ -230,12 +227,10 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("shipments.destination"))
                     .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("destination")))
-                    .attributeType(Type.TEXT)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("wishlist.description"))
                     .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
-                    .attributeType(Type.TEXT)
                     .build())
             .build();
 

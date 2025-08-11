@@ -74,8 +74,9 @@ public class HalFormsTemplateGenerator {
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var searchFilter : entity.getSearchFilters()) {
             if (Objects.requireNonNull(searchFilter) instanceof AttributeSearchFilter attributeSearchFilter) {
-                var property = searchFilterToSearchProperty(attributeSearchFilter);
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
+                        .withAttributeType(attribute.getType());
                 properties.add(addAllowedValues(property, attribute, true));
             } else {
                 throw new IllegalStateException("Unexpected value: " + searchFilter);
@@ -221,11 +222,6 @@ public class HalFormsTemplateGenerator {
     private HalFormsProperty contentToCreateProperty(String prefix, ContentAttribute attribute) {
         return HalFormsProperty.named(prefix + attribute.getName().getValue())
                 .withType(HtmlInputType.FILE_VALUE);
-    }
-
-    private HalFormsProperty searchFilterToSearchProperty(AttributeSearchFilter attributeSearchFilter) {
-        return HalFormsProperty.named(attributeSearchFilter.getName().getValue())
-                .withAttributeType(attributeSearchFilter.getAttributeType());
     }
 
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {

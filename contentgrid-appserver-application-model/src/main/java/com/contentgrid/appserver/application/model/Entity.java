@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
@@ -323,19 +324,19 @@ public class Entity implements HasAttributes {
         return switch (attributePath) {
             case SimpleAttributePath simpleAttributePath -> {
                 var attr = container.getAttributeByName(simpleAttributePath.getFirst())
-                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + simpleAttributePath.getFirst()));
+                        .orElseThrow(() -> new AttributeNotFoundException("Attribute not found: " + simpleAttributePath.getFirst()));
                 if (attr instanceof SimpleAttribute simpleAttribute) {
                     yield simpleAttribute;
                 }
-                throw new IllegalArgumentException("SimpleAttributePath didn't end up at SimpleAttribute: " + attributePath);
+                throw new InvalidArgumentModelException("SimpleAttributePath didn't end up at SimpleAttribute: " + attributePath);
             }
             case CompositeAttributePath compositeAttributePath -> {
                 var attr = container.getAttributeByName(compositeAttributePath.getFirst())
-                        .orElseThrow(() -> new IllegalArgumentException("Attribute not found: " + compositeAttributePath.getFirst()));
+                        .orElseThrow(() -> new AttributeNotFoundException("Attribute not found: " + compositeAttributePath.getFirst()));
                 if (attr instanceof CompositeAttribute compAttribute) {
                     yield resolveAttributePath(compAttribute, compositeAttributePath.getRest());
                 }
-                throw new IllegalArgumentException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
+                throw new AttributeNotFoundException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
             }
         };
     }

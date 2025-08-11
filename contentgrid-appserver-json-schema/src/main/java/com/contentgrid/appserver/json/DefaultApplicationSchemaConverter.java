@@ -13,7 +13,6 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -82,8 +81,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var schema = getApplicationSchema(json);
         Set<com.contentgrid.appserver.application.model.Entity> entities = new HashSet<>();
         for (Entity entity : schema.getEntities()) {
-            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity,
-                    schema.getEntities(), schema.getRelations());
+            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity);
             entities.add(convertEntity);
         }
         Set<com.contentgrid.appserver.application.model.relations.Relation> relations;
@@ -117,7 +115,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
-            Entity jsonEntity, List<Entity> jsonEntities, List<Relation> jsonRelations) throws InValidJsonException {
+            Entity jsonEntity) throws InValidJsonException {
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = fromJsonSimpleAttribute(
                 jsonEntity.getPrimaryKey());
         List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes;
@@ -132,8 +130,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } else {
             List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> list = new ArrayList<>();
             for (SearchFilter sf : jsonEntity.getSearchFilters()) {
-                com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(
-                        sf, jsonEntity, jsonEntities, jsonRelations);
+                com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(sf);
                 list.add(searchFilter);
             }
             searchFilters = list;
@@ -270,10 +267,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonSearchFilter(
-            SearchFilter jsonFilter,
-            Entity jsonEntity,
-            List<Entity> jsonEntities,
-            List<Relation> jsonRelations
+            SearchFilter jsonFilter
     ) throws InValidJsonException {
         var type = jsonFilter.getType();
         List<PropertyName> attrPath = jsonFilter.getAttributePath().stream()
@@ -282,55 +276,17 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
 
-        // Finding the type of the attribute pointed to by the path, traversing the path if there's multiple elements
-        var currentContainer = jsonEntity.getAttributes();
-        var currentEntity = jsonEntity;
-        Attribute attribute = null;
-        for (PropertyName prop : attrPath) {
-            var propName = prop.getValue();
-            var entityName = currentEntity.getName();
-            var attr = currentContainer.stream().filter(a -> a.getName().equals(propName)).findFirst().orElse(null);
-            // If our entity name matches one of the endpoints of a relation, we need the other endpoint to actually
-            // follow the relation to the next entity.
-            // Turn every relation into 2 pairs of endpoints, source to target and target to source
-            var rel = jsonRelations.stream().flatMap(r -> Stream.of(
-                            new Endpoints(r.getSourceEndpoint(), r.getTargetEndpoint()),
-                            new Endpoints(r.getTargetEndpoint(), r.getSourceEndpoint())
-                    ))
-                    .filter(e -> propName.equals(e.source().getName()) && e.source().getEntityName().equals(entityName))
-                    .map(Endpoints::target)
-                    .findFirst().orElse(null);
-            if (attr == null && rel == null) {
-                throw new InvalidSearchFilterException("Attribute or relation for filter not found: " + propName);
-            } else if (attr != null) {
-                if (attr instanceof CompositeAttribute composite) {
-                    currentContainer = composite.getAttributes();
-                } else {
-                    attribute = attr;
-                }
-            } else {
-                currentEntity = jsonEntities.stream().filter(e -> e.getName().equals(rel.getEntityName()))
-                        .findFirst().orElseThrow(() -> new InvalidSearchFilterException("Entity from path not found"));
-                currentContainer = currentEntity.getAttributes();
-            }
-
-        }
-
-        if (attribute == null) {
-            throw new InvalidSearchFilterException("Attribute for filter not found: " + propertyPath.toList());
-        }
-
-        var targetAttribute = fromJsonAttribute(attribute);
-
-        if (!(targetAttribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute simpleAttribute)) {
-            throw new InvalidSearchFilterException("Attribute for filter is not a simple attribute: " + attribute.getName());
-        } else {
-            return switch (type) {
-                case "prefix" -> PrefixSearchFilter.builder().name(filterName).attributePath(propertyPath).attributeType(simpleAttribute.getType()).build();
-                case "exact" -> ExactSearchFilter.builder().name(filterName).attributePath(propertyPath).attributeType(simpleAttribute.getType()).build();
-                default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
-            };
-        }
+        return switch (type) {
+            case "prefix" -> PrefixSearchFilter.builder()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .build();
+            case "exact" -> ExactSearchFilter.builder()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .build();
+            default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
+        };
     }
 
     private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {

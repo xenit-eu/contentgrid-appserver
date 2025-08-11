@@ -47,8 +47,10 @@ public class ThunkExpressionGenerator {
 
             // currently only handle exact search TODO support prefix, case insensitive, ...
             if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
+                var attribute = application.resolvePropertyPath(entity, exactSearchFilter.getAttributePath());
+
                 try {
-                    Scalar<?> parsedValue = parseValueToScalar(exactSearchFilter.getAttributeType(), entry.getValue());
+                    Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), entry.getValue());
                     Stream<PathElement> pathElements = convertPath(application, entity, exactSearchFilter.getAttributePath());
                     ThunkExpression<Boolean> expression = createEqualityExpression(
                             pathElements,
@@ -57,7 +59,7 @@ public class ThunkExpressionGenerator {
                     expressions.add(expression);
                 } catch (Exception e) {
                     throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                            exactSearchFilter.getAttributeType(), entry.getValue(), e);
+                            attribute.getType(), entry.getValue(), e);
                 }
             }
         }
