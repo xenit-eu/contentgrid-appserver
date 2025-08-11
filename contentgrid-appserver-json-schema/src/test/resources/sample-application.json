@@ -222,6 +222,12 @@
           "name": "subordinates.lastNameFilter",
           "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "_internal_projects",
+          "attributePath": [{ "name": "projects", "type": "rel" }, { "name": "id", "type": "attr" }],
+          "type": "exact",
+          "flags": ["hidden"]
         }
       ],
       "sortableFields": [

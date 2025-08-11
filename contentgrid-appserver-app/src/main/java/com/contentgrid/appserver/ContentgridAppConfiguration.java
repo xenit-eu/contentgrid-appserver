@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -141,6 +142,7 @@ public class ContentgridAppConfiguration {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("_internal_person__friends"))
                         .attributePath(PropertyPath.of(RelationName.of("__inverse_friends"), AttributeName.of("id")))
+                        .flag(HiddenSearchFilterFlag.INSTANCE)
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("first_name"))

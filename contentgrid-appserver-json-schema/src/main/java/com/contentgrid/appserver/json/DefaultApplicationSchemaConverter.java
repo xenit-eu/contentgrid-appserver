@@ -22,6 +22,8 @@ import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpo
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -280,13 +282,31 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             case "prefix" -> PrefixSearchFilter.builder()
                     .name(filterName)
                     .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
                     .build();
             case "exact" -> ExactSearchFilter.builder()
                     .name(filterName)
                     .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
                     .build();
             default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
         };
+    }
+
+    private Set<SearchFilterFlag> fromJsonSearchFilterFlags(
+            List<String> flags
+    ) throws UnknownFlagException {
+        if(flags == null) {
+            return Set.of();
+        }
+        Set<SearchFilterFlag> set = new HashSet<>();
+        for (String flag : flags) {
+            set.add(switch (flag) {
+                case "hidden" -> HiddenSearchFilterFlag.INSTANCE;
+                default -> throw new UnknownFlagException("Unknown flag '%s'".formatted(flag));
+            });
+        }
+        return Collections.unmodifiableSet(set);
     }
 
     private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {
@@ -528,6 +548,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             com.contentgrid.appserver.application.model.searchfilters.SearchFilter filter) {
         var jsonFilter = new SearchFilter();
         jsonFilter.setName(filter.getName().getValue());
+        jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
         switch (filter) {
             case PrefixSearchFilter prefixFilter -> {
                 jsonFilter.setAttributePath(toJsonPropertyPath(prefixFilter.getAttributePath()));
@@ -540,6 +561,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
+    }
+
+    public List<String> toJsonSearchFilterFlags(Set<SearchFilterFlag> flags) {
+        return flags.stream()
+                .map(flag -> switch (flag) {
+                    case HiddenSearchFilterFlag ignored -> "hidden";
+                    default -> throw new IllegalArgumentException("Unknown flag: %s".formatted(flag));
+                })
+                .toList();
     }
 
     private SortableField toJsonSortableField(

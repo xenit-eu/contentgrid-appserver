@@ -22,6 +22,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -94,6 +95,7 @@ public class ModelTestFixtures {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("_internal_person__friends"))
                     .attributePath(PropertyPath.of(RelationName.of("__inverse_friends"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("invoices.number"))
@@ -218,6 +220,7 @@ public class ModelTestFixtures {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("customer"))
                     .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(PrefixSearchFilter.builder()
                     .name(FilterName.of("customer.name~prefix"))
@@ -246,6 +249,7 @@ public class ModelTestFixtures {
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("products"))
                     .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("products.code"))

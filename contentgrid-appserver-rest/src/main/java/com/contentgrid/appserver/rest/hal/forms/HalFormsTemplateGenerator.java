@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.rest.EntityRestController;
@@ -73,7 +74,10 @@ public class HalFormsTemplateGenerator {
     public HalFormsTemplate generateSearchTemplate(Application application, Entity entity) {
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var searchFilter : entity.getSearchFilters()) {
-            if (Objects.requireNonNull(searchFilter) instanceof AttributeSearchFilter attributeSearchFilter) {
+            if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
+                continue;
+            }
+            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                 var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
                         .withAttributeType(attribute.getType());

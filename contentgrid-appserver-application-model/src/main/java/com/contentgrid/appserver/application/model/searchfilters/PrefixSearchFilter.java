@@ -3,13 +3,14 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
-import java.util.List;
+import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+import lombok.Singular;
 import lombok.Value;
 
 /**
@@ -32,9 +33,10 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
     @Builder
     PrefixSearchFilter(
             @NonNull FilterName name,
-            @NonNull PropertyPath attributePath
+            @NonNull PropertyPath attributePath,
+            @NonNull @Singular Set<SearchFilterFlag> flags
     ) throws InvalidSearchFilterException {
-        super(name, attributePath);
+        super(name, attributePath, flags);
     }
 
     @Override

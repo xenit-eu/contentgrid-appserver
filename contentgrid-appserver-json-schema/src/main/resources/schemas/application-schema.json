@@ -69,6 +69,16 @@
                     "exact",
                     "prefix"
                   ]
+                },
+                "flags": {
+                  "type": "array",
+                  "description": "A list of flags for the search filter",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "hidden"
+                    ]
+                  }
                 }
               },
               "required": [

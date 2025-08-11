@@ -2,8 +2,10 @@ package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import java.util.Set;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -20,7 +22,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      * The name of the search filter.
      */
     @NonNull
-    FilterName name;
+    private final FilterName name;
 
     /**
      * The path to the attribute this search filter operates on.
@@ -31,18 +33,31 @@ public abstract class AttributeSearchFilter implements SearchFilter {
     private final PropertyPath attributePath;
 
     /**
+     * Flags on the search filter
+     */
+    @NonNull
+    private final Set<SearchFilterFlag> flags;
+
+
+
+    /**
      * Constructs an AttributeSearchFilter with the specified parameters.
      *
      * @param name the name of the search filter
      * @param attributePath the path to the attribute to apply the filter on
+     * @param flags
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     protected AttributeSearchFilter(
             @NonNull FilterName name,
-            @NonNull PropertyPath attributePath
+            @NonNull PropertyPath attributePath,
+            @NonNull Set<SearchFilterFlag> flags
     ) {
         this.name = name;
         this.attributePath = attributePath;
+        this.flags = Set.copyOf(flags);
+
+        flags.forEach(flag -> flag.checkSupported(this));
     }
 
     /**
