@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -200,7 +201,7 @@ public class HalFormsTemplateGenerator {
     }
 
     private Optional<HalFormsProperty> relationToProperty(Application application, Relation relation) {
-        if (relation.getSourceEndPoint().getName() == null) {
+        if (relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
             return Optional.empty();
         }
         var required = relation.getSourceEndPoint().isRequired();

@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -367,6 +368,8 @@ public class ModelTestFixtures {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
+                    .name(RelationName.of("__inverse_friends"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
                     .build())
             .joinTable(TableName.of("person__friends"))
             .sourceReference(ColumnName.of("person_src_id"))

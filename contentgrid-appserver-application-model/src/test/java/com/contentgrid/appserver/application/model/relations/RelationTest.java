@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -56,7 +57,16 @@ class RelationTest {
     @ParameterizedTest
     @MethodSource("invalidRelationEndPoints")
     void relationEndPoint_invalid(RelationEndPoint.RelationEndPointBuilder builder) {
-        assertThrows(InvalidRelationException.class, builder::build);
+        var otherSide = RelationEndPoint.builder()
+                .name(RelationName.of("other-side"))
+                .entity(TARGET)
+                .pathSegment(PathSegmentName.of("other-side"))
+                .linkName(LinkName.of("other-side"))
+                .build();
+        assertThrows(InvalidFlagException.class, () -> {
+            // This relation type was chosen, because it does not put additional constraints on the source RelationEndpoint
+            new SourceOneToOneRelation(builder.build(), otherSide, ColumnName.of("test"));
+        });
     }
 
     @Test
@@ -210,7 +220,7 @@ class RelationTest {
                         .required(true)
                         .build())
                 .targetReference(ColumnName.of("target"));
-        assertThrows(InvalidRelationException.class, builder::build);
+        assertThrows(InvalidFlagException.class, builder::build);
     }
 
     @Test
@@ -273,7 +283,7 @@ class RelationTest {
                         .linkName(LinkName.of("source"))
                         .build())
                 .targetReference(ColumnName.of("source"));
-        assertThrows(InvalidRelationException.class, builder::build);
+        assertThrows(InvalidFlagException.class, builder::build);
     }
 
     @Test
@@ -293,7 +303,7 @@ class RelationTest {
                         .required(true)
                         .build())
                 .sourceReference(ColumnName.of("source"));
-        assertThrows(InvalidRelationException.class, builder::build);
+        assertThrows(InvalidFlagException.class, builder::build);
     }
 
     @Test

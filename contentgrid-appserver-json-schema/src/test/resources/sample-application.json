@@ -551,7 +551,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Department",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "employees",
@@ -591,7 +592,8 @@
       },
       "targetEndpoint": {
         "entityName": "Project",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "sourceReference": "dept_id"
     },
@@ -599,7 +601,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Employee",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "manager",
@@ -614,7 +617,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Project",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "project",

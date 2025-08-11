@@ -73,7 +73,7 @@ public class XToManyRelationRestController {
         var targetEntity = relation.getTargetEndPoint().getEntity();
 
         if(relation.getTargetEndPoint().getName() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unidirectional *-to-many relation not implemented.");
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
         }
 
         var relationPath = new RelationPath(

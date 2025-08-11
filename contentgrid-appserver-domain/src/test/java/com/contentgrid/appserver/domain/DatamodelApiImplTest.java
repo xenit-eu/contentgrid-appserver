@@ -277,6 +277,38 @@ class DatamodelApiImplTest {
         }
 
         @Test
+        void hidden_relation_ignored() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+            var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
+                    "name", "Test person",
+                    "vat", "XXXX",
+                    "friends", List.of(new DataEntry.RelationDataEntry(
+                            PERSON.getName(),
+                            personId
+                    )),
+                    "__inverse_friends", List.of(new RelationDataEntry(
+                            PERSON.getName(),
+                            personId
+                    ))
+            )));
+
+            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue()).satisfies(createData -> {
+                assertThat(createData.getRelations()).containsExactlyInAnyOrder(
+                        XToManyRelationData.builder()
+                                .name(RelationName.of("friends"))
+                                .ref(personId)
+                                .build()
+                        // Note: __inverse_friends is not present here
+                );
+            });
+        }
+
+        @Test
         void inverseRelation_unmapped_ignored() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
@@ -430,7 +462,6 @@ class DatamodelApiImplTest {
 
     @Nested
     class UpdateEntity {
-
 
         @Test
         void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
