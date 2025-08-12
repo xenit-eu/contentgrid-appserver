@@ -7,6 +7,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
@@ -21,6 +23,7 @@ import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -81,7 +84,14 @@ public class XToManyRelationRestController {
                 new SimpleAttributePath(targetEntity.getPrimaryKey().getName())
         );
 
-        var targetFilter = targetEntity.getFilterByPath(relationPath)
+        var targetFilter = targetEntity.getSearchFilters().stream()
+                .filter(searchFilter -> {
+                    if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
+                        return Objects.equals(exactSearchFilter.getAttributePath(), relationPath);
+                    }
+                    return false;
+                })
+                .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
         var redirectUrl = linkTo(methodOn(EntityRestController.class)

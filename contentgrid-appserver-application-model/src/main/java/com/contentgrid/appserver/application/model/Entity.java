@@ -11,7 +11,6 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -22,7 +21,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -30,7 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -277,23 +274,6 @@ public class Entity implements HasAttributes {
      */
     public Optional<SearchFilter> getFilterByName(FilterName filterName) {
         return Optional.ofNullable(searchFilters.get(filterName));
-    }
-
-    /**
-     * Finds a SearchFilter by the property path that it filters on
-     *
-     * @param propertyPath path the filter will filter on
-     * @return an Optional containing the searchFilter if found, or empty if not found
-     */
-    public Optional<SearchFilter> getFilterByPath(PropertyPath propertyPath) {
-        return searchFilters.values().stream()
-                .filter(searchFilter -> {
-                    if(searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                        return Objects.equals(attributeSearchFilter.getAttributePath(), propertyPath);
-                    }
-                    return false;
-                })
-                .findFirst();
     }
 
     /**
