@@ -21,6 +21,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -202,7 +203,7 @@ class JOOQThunkExpressionVisitorTest {
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
                     .linkName(LinkName.of("customer"))
-                    .required(true)
+                    .flag(RequiredEndpointFlag.INSTANCE)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)

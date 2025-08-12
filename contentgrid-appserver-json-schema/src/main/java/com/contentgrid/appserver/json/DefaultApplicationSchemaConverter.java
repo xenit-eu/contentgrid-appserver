@@ -70,6 +70,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -353,25 +354,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 : null;
         var sourceLink = sourceEp.getLinkName() != null ? LinkName.of(sourceEp.getLinkName()) : null;
         var targetLink = targetEp.getLinkName() != null ? LinkName.of(targetEp.getLinkName()) : null;
-        var sourceRequired = sourceEp.isRequired();
-        var targetRequired = targetEp.isRequired();
         var sourceEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
                 .entity(sourceEntity)
                 .name(sourceName)
                 .pathSegment(sourcePath)
                 .linkName(sourceLink)
-                .required(sourceRequired)
                 .description(sourceEp.getDescription())
-                .flags(fromJsonRelationEndpointFlags(sourceEp.getFlags()))
+                .flags(fromJsonRelationEndpointFlags(sourceEp))
                 .build();
         var targetEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
                 .entity(targetEntity)
                 .name(targetName)
                 .pathSegment(targetPath)
                 .linkName(targetLink)
-                .required(targetRequired)
                 .description(targetEp.getDescription())
-                .flags(fromJsonRelationEndpointFlags(targetEp.getFlags()))
+                .flags(fromJsonRelationEndpointFlags(targetEp))
                 .build();
 
         return switch (jsonRelation) {
@@ -397,12 +394,12 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         };
     }
 
-    private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(List<String> flags) throws UnknownFlagException {
-        if(flags == null) {
-            return Set.of();
-        }
+    private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
         Set<RelationEndpointFlag> set = new HashSet<>();
-        for (String flag : flags) {
+        if(endPoint.isRequired()) {
+            set.add(RequiredEndpointFlag.INSTANCE);
+        }
+        for (String flag : Objects.requireNonNullElseGet(endPoint.getFlags(), List::<String>of)) {
             RelationEndpointFlag relationEndpointFlag = switch (flag) {
                 case "hidden" -> HiddenEndpointFlag.INSTANCE;
                 case "required" -> RequiredEndpointFlag.INSTANCE;

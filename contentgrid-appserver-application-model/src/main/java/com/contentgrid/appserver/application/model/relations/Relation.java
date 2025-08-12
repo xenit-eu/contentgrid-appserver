@@ -156,18 +156,6 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             return getFlags().stream().anyMatch(flagClass::isInstance);
         }
 
-        public static class RelationEndPointBuilder {
-            public RelationEndPointBuilder required(boolean required) {
-                if(required) {
-                    return flag(RequiredEndpointFlag.INSTANCE);
-                } else {
-                    // Unlikely case where required() is called with false to remove a required flag again
-                    var flagsCopy = new HashSet<>(build().getFlags());
-                    flagsCopy.remove(RequiredEndpointFlag.INSTANCE);
-                    return flags(flagsCopy);
-                }
-            }
-        }
     }
 
     public abstract Relation inverse();

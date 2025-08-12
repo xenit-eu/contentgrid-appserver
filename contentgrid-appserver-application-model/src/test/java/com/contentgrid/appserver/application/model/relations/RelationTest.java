@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -49,7 +50,7 @@ class RelationTest {
                 RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).linkName(LinkName.of("target")),
                 RelationEndPoint.builder().entity(SOURCE).name(RelationName.of("target")).pathSegment(PathSegmentName.of("target")),
                 RelationEndPoint.builder().entity(SOURCE).linkName(LinkName.of("target")),
-                RelationEndPoint.builder().entity(SOURCE).required(true),
+                RelationEndPoint.builder().entity(SOURCE).flag(RequiredEndpointFlag.INSTANCE),
                 RelationEndPoint.builder().entity(SOURCE).description(SOURCE_DESCRIPTION)
         );
     }
@@ -111,7 +112,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("target"))
                         .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -209,7 +210,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("target"))
                         .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -217,7 +218,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("source"))
                         .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidFlagException.class, builder::build);
@@ -239,7 +240,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("source"))
                         .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
@@ -253,7 +254,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("target"))
                         .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -274,7 +275,7 @@ class RelationTest {
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("other"))
                         .linkName(LinkName.of("other"))
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(SOURCE)
@@ -300,7 +301,7 @@ class RelationTest {
                         .name(RelationName.of("other"))
                         .pathSegment(PathSegmentName.of("other"))
                         .linkName(LinkName.of("other"))
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .sourceReference(ColumnName.of("source"));
         assertThrows(InvalidFlagException.class, builder::build);
@@ -346,7 +347,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("target"))
                         .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -394,7 +395,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("sources"))
                         .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetReference(ColumnName.of("target"));
         assertThrows(InvalidRelationException.class, builder::build);
@@ -449,7 +450,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("source"))
                         .linkName(LinkName.of("source"))
                         .description(TARGET_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
@@ -483,7 +484,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("targets"))
                         .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -666,7 +667,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("targets"))
                         .linkName(LinkName.of("targets"))
                         .description(SOURCE_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(RelationEndPoint.builder()
                         .entity(TARGET)
@@ -697,7 +698,7 @@ class RelationTest {
                         .pathSegment(PathSegmentName.of("sources"))
                         .linkName(LinkName.of("sources"))
                         .description(TARGET_DESCRIPTION)
-                        .required(true)
+                        .flag(RequiredEndpointFlag.INSTANCE)
                         .build())
                 .joinTable(TableName.of("source__targets"))
                 .sourceReference(ColumnName.of("source_id"))
