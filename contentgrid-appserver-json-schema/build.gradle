@@ -8,7 +8,5 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.networknt:json-schema-validator'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'uk.co.datumedge:hamcrest-json'
 }

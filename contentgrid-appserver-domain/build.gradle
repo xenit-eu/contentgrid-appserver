@@ -12,10 +12,8 @@ dependencies {
     implementation project(':contentgrid-appserver-content-api')
     implementation 'org.springframework:spring-core'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.assertj:assertj-core'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

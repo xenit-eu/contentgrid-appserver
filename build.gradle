@@ -31,6 +31,9 @@ allprojects {
 
         dependencies {
             api platform(project(":contentgrid-appserver-platform"))
+
+            testImplementation 'org.junit.jupiter:junit-jupiter'
+            testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
         }
 
         tasks.named('test').configure {
