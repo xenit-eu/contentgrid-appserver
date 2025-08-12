@@ -7,10 +7,13 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -131,12 +134,15 @@ public class ContentgridAppConfiguration {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("first_name"))
                         .attributePath(PropertyPath.of(AttributeName.of("first_name")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("last_name"))
                         .attributePath(PropertyPath.of(AttributeName.of("last_name")))
-                        .attributeType(Type.TEXT)
+                        .build())
+                .searchFilter(ExactSearchFilter.builder()
+                        .name(FilterName.of("_internal_person__friends"))
+                        .attributePath(PropertyPath.of(RelationName.of("__inverse_friends"), AttributeName.of("id")))
+                        .flag(HiddenSearchFilterFlag.INSTANCE)
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("first_name"))
@@ -186,27 +192,22 @@ public class ContentgridAppConfiguration {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("address.city"))
                         .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("city")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("address.country"))
                         .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("country")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("address.residence.street"))
                         .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("street")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("address.residence.number"))
                         .attributePath(PropertyPath.of(AttributeName.of("address"), AttributeName.of("residence"), AttributeName.of("number")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("invoice.number"))
                         .attributePath(PropertyPath.of(RelationName.of("invoice"), AttributeName.of("number")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
         var invoice = Entity.builder()
@@ -241,17 +242,14 @@ public class ContentgridAppConfiguration {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("number"))
                         .attributePath(PropertyPath.of(AttributeName.of("number")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("amount"))
                         .attributePath(PropertyPath.of(AttributeName.of("amount")))
-                        .attributeType(Type.DOUBLE)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("shipments.address.country"))
                         .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("address"), AttributeName.of("country")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("number"))
@@ -293,6 +291,28 @@ public class ContentgridAppConfiguration {
                 .sourceReference(ColumnName.of("customer"))
                 .build();
 
+        var personFriends = ManyToManyRelation.builder()
+                .sourceEndPoint(
+                        RelationEndPoint.builder()
+                                .name(RelationName.of("friends"))
+                                .entity(person)
+                                .pathSegment(PathSegmentName.of("friends"))
+                                .linkName(LinkName.of("friends"))
+                                .build()
+                )
+                .targetEndPoint(
+                        RelationEndPoint.builder()
+                                .name(RelationName.of("__inverse_friends"))
+                                .entity(person)
+                                .flag(HiddenEndpointFlag.INSTANCE)
+                                .build()
+                )
+                .joinTable(TableName.of("person__friends"))
+                .sourceReference(ColumnName.of("person_src_id"))
+                .targetReference(ColumnName.of("person_tgt_id"))
+                .build();
+
+
         return new SingleApplicationResolver(
                 Application.builder()
                         .name(ApplicationName.of("test"))
@@ -301,6 +321,7 @@ public class ContentgridAppConfiguration {
                         .entity(invoice)
                         .relation(shipmentToInvoice)
                         .relation(customerToInvoice)
+                        .relation(personFriends)
                         .build()
         );
     }

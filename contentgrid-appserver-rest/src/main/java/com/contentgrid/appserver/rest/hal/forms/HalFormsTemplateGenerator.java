@@ -15,7 +15,9 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.rest.EntityRestController;
@@ -72,9 +74,13 @@ public class HalFormsTemplateGenerator {
     public HalFormsTemplate generateSearchTemplate(Application application, Entity entity) {
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var searchFilter : entity.getSearchFilters()) {
-            if (Objects.requireNonNull(searchFilter) instanceof AttributeSearchFilter attributeSearchFilter) {
-                var property = searchFilterToSearchProperty(attributeSearchFilter);
+            if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
+                continue;
+            }
+            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
+                        .withAttributeType(attribute.getType());
                 properties.add(addAllowedValues(property, attribute, true));
             } else {
                 throw new IllegalStateException("Unexpected value: " + searchFilter);
@@ -200,7 +206,7 @@ public class HalFormsTemplateGenerator {
     }
 
     private Optional<HalFormsProperty> relationToProperty(Application application, Relation relation) {
-        if (relation.getSourceEndPoint().getName() == null) {
+        if (relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
             return Optional.empty();
         }
         var required = relation.getSourceEndPoint().isRequired();
@@ -220,11 +226,6 @@ public class HalFormsTemplateGenerator {
     private HalFormsProperty contentToCreateProperty(String prefix, ContentAttribute attribute) {
         return HalFormsProperty.named(prefix + attribute.getName().getValue())
                 .withType(HtmlInputType.FILE_VALUE);
-    }
-
-    private HalFormsProperty searchFilterToSearchProperty(AttributeSearchFilter attributeSearchFilter) {
-        return HalFormsProperty.named(attributeSearchFilter.getName().getValue())
-                .withAttributeType(attributeSearchFilter.getAttributeType());
     }
 
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {

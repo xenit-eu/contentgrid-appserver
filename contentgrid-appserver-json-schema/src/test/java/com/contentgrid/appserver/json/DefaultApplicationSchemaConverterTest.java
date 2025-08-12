@@ -214,7 +214,8 @@ class DefaultApplicationSchemaConverterTest {
                             "targetEndpoint":
                                 {
                                     "entityName": "source",
-                                    "required": false
+                                    "required": false,
+                                    "flags": ["hidden"]
                                 },
                             "targetReference":"source_ref"
                         }
@@ -327,7 +328,8 @@ class DefaultApplicationSchemaConverterTest {
                             "targetEndpoint":
                                 {
                                     "entityName": "source",
-                                    "required": false
+                                    "required": false,
+                                    "flags": [ "hidden" ]
                                 },
                             "sourceReference":"target_ref"
                         }

@@ -14,9 +14,12 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -37,6 +40,8 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ApplicationTest {
 
@@ -61,7 +66,6 @@ class ApplicationTest {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
-                    .attributeType(Type.TEXT)
                     .name(FilterName.of("invoiceNumber"))
                     .build())
             .build();
@@ -77,7 +81,6 @@ class ApplicationTest {
                     .description("The email of the customer").type(Type.TEXT).build())
             .searchFilter(PrefixSearchFilter.builder()
                     .attributePath(PropertyPath.of(AttributeName.of("name")))
-                    .attributeType(Type.TEXT)
                     .name(FilterName.of("name~prefix"))
                     .build())
             .build();
@@ -324,7 +327,6 @@ class ApplicationTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("nonexistent.name"))
                         .attributePath(PropertyPath.of(RelationName.of("nonexistent"), AttributeName.of("name")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
 
@@ -332,7 +334,7 @@ class ApplicationTest {
                 .name(ApplicationName.of("testApp"))
                 .entity(entity);
 
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+        assertThrows(RelationNotFoundException.class, applicationBuilder::build);
     }
 
     @Test
@@ -351,7 +353,6 @@ class ApplicationTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("target.nonexistent"))
                         .attributePath(PropertyPath.of(RelationName.of("target"), AttributeName.of("nonexistent")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
 
@@ -395,7 +396,38 @@ class ApplicationTest {
                 .entity(targetEntity)
                 .relation(relation);
 
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+        assertThrows(AttributeNotFoundException.class, applicationBuilder::build);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
+    })
+    void application_searchFilterInvalidAttributeType(Type type) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(type)
+                        .build()
+                )
+                .searchFilter(
+                        PrefixSearchFilter.builder().name(FilterName.of("filter~prefix"))
+                                .attributePath(PropertyPath.of(AttributeName.of("test")))
+                                .build()
+                )
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
     }
 
     /**
@@ -438,7 +470,6 @@ class ApplicationTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("orders.order_number"))
                         .attributePath(PropertyPath.of(RelationName.of("orders"), AttributeName.of("order_number")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
 
@@ -513,12 +544,10 @@ class ApplicationTest {
                 .searchFilter(PrefixSearchFilter.builder()
                         .name(FilterName.of("products.name"))
                         .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("name")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("products.category"))
                         .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("category")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
 

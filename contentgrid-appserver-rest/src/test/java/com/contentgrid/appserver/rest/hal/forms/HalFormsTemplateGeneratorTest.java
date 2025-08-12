@@ -495,7 +495,6 @@ class HalFormsTemplateGeneratorTest {
                 .searchFilter(PrefixSearchFilter.builder()
                         .name(FilterName.of("one~prefix"))
                         .attributePath(PropertyPath.of(AttributeName.of("one")))
-                        .attributeType(Type.TEXT)
                         .build())
                 .build();
         var application = Application.builder()

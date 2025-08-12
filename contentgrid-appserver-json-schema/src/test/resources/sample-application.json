@@ -222,6 +222,12 @@
           "name": "subordinates.lastNameFilter",
           "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "_internal_projects",
+          "attributePath": [{ "name": "projects", "type": "rel" }, { "name": "id", "type": "attr" }],
+          "type": "exact",
+          "flags": ["hidden"]
         }
       ],
       "sortableFields": [
@@ -551,7 +557,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Department",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "employees",
@@ -591,7 +598,8 @@
       },
       "targetEndpoint": {
         "entityName": "Project",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "sourceReference": "dept_id"
     },
@@ -599,7 +607,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Employee",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "manager",
@@ -614,7 +623,8 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Project",
-        "required": false
+        "required": false,
+        "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "project",

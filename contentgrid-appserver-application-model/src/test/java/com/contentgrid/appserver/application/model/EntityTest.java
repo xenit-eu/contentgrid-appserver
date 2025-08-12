@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
@@ -95,7 +96,6 @@ class EntityTest {
         assertEquals(FilterName.of("filter1"), filter.getName());
         var attrSearchFilter = assertInstanceOf(PrefixSearchFilter.class, filter);
         assertEquals(AttributeName.of("attribute1"), attrSearchFilter.getAttributePath().getFirst());
-        assertEquals(Type.TEXT, attrSearchFilter.getAttributeType());
 
         // getContentByPathSegment
         var content = entity.getContentByPathSegment(PathSegmentName.of("content1")).orElseThrow();
@@ -315,30 +315,7 @@ class EntityTest {
                 .name(ApplicationName.of("testApp"))
                 .entity(entity);
 
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
-    }
-
-    @Test
-    void entity_filterWithWrongType() {
-        var entity = Entity.builder()
-                .name(EntityName.of("entity"))
-                .pathSegment(PathSegmentName.of("segment"))
-                .linkName(LinkName.of("link"))
-                .table(TableName.of("table"))
-                .attribute(ATTRIBUTE1)
-                .searchFilter(ExactSearchFilter.builder()
-                        .name(FilterName.of("filter"))
-                        .attributePath(PropertyPath.of(ATTRIBUTE1.getName()))
-                        .attributeType(Type.BOOLEAN)
-                        .build()
-                )
-                .build();
-
-        var applicationBuilder = Application.builder()
-                .name(ApplicationName.of("testApp"))
-                .entity(entity);
-
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+        assertThrows(AttributeNotFoundException.class, applicationBuilder::build);
     }
 
     @Test
@@ -352,7 +329,6 @@ class EntityTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName()))
-                        .attributeType(Type.TEXT)
                         .build()
                 ).build();
     }
@@ -368,7 +344,6 @@ class EntityTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(ATTRIBUTE1.getName(), AttributeName.of("foo")))
-                        .attributeType(Type.TEXT)
                         .build()
                 )
                 .build();
@@ -377,7 +352,7 @@ class EntityTest {
                 .name(ApplicationName.of("testApp"))
                 .entity(entity);
 
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+        assertThrows(AttributeNotFoundException.class, applicationBuilder::build);
     }
 
     @Test
@@ -391,7 +366,6 @@ class EntityTest {
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(COMPOSITE.getName()))
-                        .attributeType(Type.TEXT)
                         .build()
                 )
                 .build();

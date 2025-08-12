@@ -13,12 +13,17 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -45,6 +50,7 @@ import com.contentgrid.appserver.json.model.ManyToManyRelation;
 import com.contentgrid.appserver.json.model.OneToManyRelation;
 import com.contentgrid.appserver.json.model.OneToOneRelation;
 import com.contentgrid.appserver.json.model.PropertyPathElement;
+import com.contentgrid.appserver.json.model.PropertyPathElement.PropertyPathElementType;
 import com.contentgrid.appserver.json.model.Relation;
 import com.contentgrid.appserver.json.model.RelationEndPoint;
 import com.contentgrid.appserver.json.model.RequiredConstraint;
@@ -60,11 +66,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
@@ -77,14 +84,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var schema = getApplicationSchema(json);
         Set<com.contentgrid.appserver.application.model.Entity> entities = new HashSet<>();
         for (Entity entity : schema.getEntities()) {
-            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity,
-                    schema.getEntities(), schema.getRelations());
+            com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity);
             entities.add(convertEntity);
         }
-        Set<com.contentgrid.appserver.application.model.relations.Relation> relations =
-                schema.getRelations() == null ? Set.of() : schema.getRelations().stream()
-                        .map(rel -> fromJsonRelation(rel, entities))
-                        .collect(Collectors.toSet());
+        Set<com.contentgrid.appserver.application.model.relations.Relation> relations;
+        if (schema.getRelations() == null) {
+            relations = Set.of();
+        } else {
+            Set<com.contentgrid.appserver.application.model.relations.Relation> set = new HashSet<>();
+            for (Relation rel : schema.getRelations()) {
+                com.contentgrid.appserver.application.model.relations.Relation relation = fromJsonRelation(rel,
+                        entities);
+                set.add(relation);
+            }
+            relations = set;
+        }
         return Application.builder()
                 .name(ApplicationName.of(
                         schema.getApplicationName()))
@@ -104,7 +118,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
-            Entity jsonEntity, List<Entity> jsonEntities, List<Relation> jsonRelations) throws InValidJsonException {
+            Entity jsonEntity) throws InValidJsonException {
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = fromJsonSimpleAttribute(
                 jsonEntity.getPrimaryKey());
         List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes;
@@ -119,8 +133,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } else {
             List<com.contentgrid.appserver.application.model.searchfilters.SearchFilter> list = new ArrayList<>();
             for (SearchFilter sf : jsonEntity.getSearchFilters()) {
-                com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(
-                        sf, jsonEntity, jsonEntities, jsonRelations);
+                com.contentgrid.appserver.application.model.searchfilters.SearchFilter searchFilter = fromJsonSearchFilter(sf);
                 list.add(searchFilter);
             }
             searchFilters = list;
@@ -170,7 +183,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .description(jsonAttr.getDescription())
                 .column(ColumnName.of(jsonAttr.getColumnName()))
                 .type(Type.valueOf(jsonAttr.getDataType().toUpperCase()))
-                .flags(fromJsonFlags(jsonAttr.getFlags()))
+                .flags(fromJsonAttributeFlags(jsonAttr.getFlags()))
                 .constraints(constraints)
                 .build();
     }
@@ -180,7 +193,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return CompositeAttributeImpl.builder()
                 .name(AttributeName.of(ca.getName()))
                 .description(ca.getDescription())
-                .flags(fromJsonFlags(ca.getFlags()))
+                .flags(fromJsonAttributeFlags(ca.getFlags()))
                 .attributes(fromJsonAttributes(ca.getAttributes()))
                 .build();
     }
@@ -201,7 +214,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return com.contentgrid.appserver.application.model.attributes.ContentAttribute.builder()
                 .name(AttributeName.of(ca.getName()))
                 .description(ca.getDescription())
-                .flags(fromJsonFlags(ca.getFlags()))
+                .flags(fromJsonAttributeFlags(ca.getFlags()))
                 .pathSegment(PathSegmentName.of(ca.getPathSegment()))
                 .linkName(LinkName.of(ca.getLinkName()))
                 .idColumn(ColumnName.of(ca.getIdColumn()))
@@ -216,26 +229,26 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return com.contentgrid.appserver.application.model.attributes.UserAttribute.builder()
                 .name(AttributeName.of(ua.getName()))
                 .description(ua.getDescription())
-                .flags(fromJsonFlags(ua.getFlags()))
+                .flags(fromJsonAttributeFlags(ua.getFlags()))
                 .idColumn(ColumnName.of(ua.getIdColumn()))
                 .namespaceColumn(ColumnName.of(ua.getNamespaceColumn()))
                 .usernameColumn(ColumnName.of(ua.getUserNameColumn()))
                 .build();
     }
 
-    private Set<AttributeFlag> fromJsonFlags(List<String> flags) throws UnknownFlagException {
+    private Set<AttributeFlag> fromJsonAttributeFlags(List<String> flags) throws UnknownFlagException {
         if (flags == null) {
             return Set.of();
         }
         Set<AttributeFlag> set = new HashSet<>();
         for (String flag : flags) {
-            AttributeFlag convertFlag = fromJsonFlag(flag);
+            AttributeFlag convertFlag = fromJsonAttributeFlag(flag);
             set.add(convertFlag);
         }
         return set;
     }
 
-    private AttributeFlag fromJsonFlag(String flag) throws UnknownFlagException {
+    private AttributeFlag fromJsonAttributeFlag(String flag) throws UnknownFlagException {
         return switch (flag) {
             case "ignored" -> IgnoredFlag.INSTANCE;
             case "readOnly" -> ReadOnlyFlag.INSTANCE;
@@ -257,77 +270,50 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonSearchFilter(
-            SearchFilter jsonFilter,
-            Entity jsonEntity,
-            List<Entity> jsonEntities,
-            List<Relation> jsonRelations
+            SearchFilter jsonFilter
     ) throws InValidJsonException {
         var type = jsonFilter.getType();
         List<PropertyName> attrPath = jsonFilter.getAttributePath().stream()
-                .map(element -> element.getType().equals("attr")
-                        ? AttributeName.of(element.getName())
-                        : RelationName.of(element.getName())
-                ).toList();
+                .map(PropertyPathElement::toPropertyName)
+                .toList();
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
 
-        // Finding the type of the attribute pointed to by the path, traversing the path if there's multiple elements
-        var currentContainer = jsonEntity.getAttributes();
-        var currentEntity = jsonEntity;
-        Attribute attribute = null;
-        for (PropertyName prop : attrPath) {
-            var propName = prop.getValue();
-            var entityName = currentEntity.getName();
-            var attr = currentContainer.stream().filter(a -> a.getName().equals(propName)).findFirst().orElse(null);
-            // If our entity name matches one of the endpoints of a relation, we need the other endpoint to actually
-            // follow the relation to the next entity.
-            // Turn every relation into 2 pairs of endpoints, source to target and target to source
-            var rel = jsonRelations.stream().flatMap(r -> Stream.of(
-                            new Endpoints(r.getSourceEndpoint(), r.getTargetEndpoint()),
-                            new Endpoints(r.getTargetEndpoint(), r.getSourceEndpoint())
-                    ))
-                    .filter(e -> propName.equals(e.source().getName()) && e.source().getEntityName().equals(entityName))
-                    .map(Endpoints::target)
-                    .findFirst().orElse(null);
-            if (attr == null && rel == null) {
-                throw new InvalidSearchFilterException("Attribute or relation for filter not found: " + propName);
-            } else if (attr != null) {
-                if (attr instanceof CompositeAttribute composite) {
-                    currentContainer = composite.getAttributes();
-                } else {
-                    attribute = attr;
-                }
-            } else {
-                currentEntity = jsonEntities.stream().filter(e -> e.getName().equals(rel.getEntityName()))
-                        .findFirst().orElseThrow(() -> new InvalidSearchFilterException("Entity from path not found"));
-                currentContainer = currentEntity.getAttributes();
-            }
+        return switch (type) {
+            case "prefix" -> PrefixSearchFilter.builder()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
+            case "exact" -> ExactSearchFilter.builder()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
+            default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
+        };
+    }
 
+    private Set<SearchFilterFlag> fromJsonSearchFilterFlags(
+            List<String> flags
+    ) throws UnknownFlagException {
+        if(flags == null) {
+            return Set.of();
         }
-
-        if (attribute == null) {
-            throw new InvalidSearchFilterException("Attribute for filter not found: " + propertyPath.toList());
+        Set<SearchFilterFlag> set = new HashSet<>();
+        for (String flag : flags) {
+            set.add(switch (flag) {
+                case "hidden" -> HiddenSearchFilterFlag.INSTANCE;
+                default -> throw new UnknownFlagException("Unknown flag '%s'".formatted(flag));
+            });
         }
-
-        var targetAttribute = fromJsonAttribute(attribute);
-
-        if (!(targetAttribute instanceof com.contentgrid.appserver.application.model.attributes.SimpleAttribute simpleAttribute)) {
-            throw new InvalidSearchFilterException("Attribute for filter is not a simple attribute: " + attribute.getName());
-        } else {
-            return switch (type) {
-                case "prefix" -> PrefixSearchFilter.builder().name(filterName).attributePath(propertyPath).attributeType(simpleAttribute.getType()).build();
-                case "exact" -> ExactSearchFilter.builder().name(filterName).attributePath(propertyPath).attributeType(simpleAttribute.getType()).build();
-                default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
-            };
-        }
+        return Collections.unmodifiableSet(set);
     }
 
     private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {
         List<PropertyName> attrPath = jsonSortableField.getAttributePath().stream()
-                .map(element -> element.getType().equals("attr")
-                        ? AttributeName.of(element.getName())
-                        : RelationName.of(element.getName())
-                ).toList();
+                .map(PropertyPathElement::toPropertyName)
+                .toList();
         var propertyPath = PropertyPath.of(attrPath);
         var sortableName = SortableName.of(jsonSortableField.getName());
 
@@ -349,7 +335,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.relations.Relation fromJsonRelation(
             Relation jsonRelation,
-            Set<com.contentgrid.appserver.application.model.Entity> entities) {
+            Set<com.contentgrid.appserver.application.model.Entity> entities) throws UnknownFlagException {
         var sourceEp = jsonRelation.getSourceEndpoint();
         var targetEp = jsonRelation.getTargetEndpoint();
         var sourceEntity = findEntity(sourceEp.getEntityName(), entities);
@@ -368,23 +354,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 : null;
         var sourceLink = sourceEp.getLinkName() != null ? LinkName.of(sourceEp.getLinkName()) : null;
         var targetLink = targetEp.getLinkName() != null ? LinkName.of(targetEp.getLinkName()) : null;
-        var sourceRequired = sourceEp.isRequired();
-        var targetRequired = targetEp.isRequired();
         var sourceEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
                 .entity(sourceEntity)
                 .name(sourceName)
                 .pathSegment(sourcePath)
                 .linkName(sourceLink)
-                .required(sourceRequired)
                 .description(sourceEp.getDescription())
+                .flags(fromJsonRelationEndpointFlags(sourceEp))
                 .build();
         var targetEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
                 .entity(targetEntity)
                 .name(targetName)
                 .pathSegment(targetPath)
                 .linkName(targetLink)
-                .required(targetRequired)
                 .description(targetEp.getDescription())
+                .flags(fromJsonRelationEndpointFlags(targetEp))
                 .build();
 
         return switch (jsonRelation) {
@@ -408,6 +392,22 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                             .targetReference(ColumnName.of(mtm.getTargetReference()))
                             .build();
         };
+    }
+
+    private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
+        Set<RelationEndpointFlag> set = new HashSet<>();
+        if(endPoint.isRequired()) {
+            set.add(RequiredEndpointFlag.INSTANCE);
+        }
+        for (String flag : Objects.requireNonNullElseGet(endPoint.getFlags(), List::<String>of)) {
+            RelationEndpointFlag relationEndpointFlag = switch (flag) {
+                case "hidden" -> HiddenEndpointFlag.INSTANCE;
+                case "required" -> RequiredEndpointFlag.INSTANCE;
+                default -> throw new UnknownFlagException("Unknown relation endpoint flag '%s'".formatted(flag));
+            };
+            set.add(relationEndpointFlag);
+        }
+        return Collections.unmodifiableSet(set);
     }
 
     /**
@@ -545,6 +545,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             com.contentgrid.appserver.application.model.searchfilters.SearchFilter filter) {
         var jsonFilter = new SearchFilter();
         jsonFilter.setName(filter.getName().getValue());
+        jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
         switch (filter) {
             case PrefixSearchFilter prefixFilter -> {
                 jsonFilter.setAttributePath(toJsonPropertyPath(prefixFilter.getAttributePath()));
@@ -557,6 +558,15 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             default -> throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
+    }
+
+    public List<String> toJsonSearchFilterFlags(Set<SearchFilterFlag> flags) {
+        return flags.stream()
+                .map(flag -> switch (flag) {
+                    case HiddenSearchFilterFlag ignored -> "hidden";
+                    default -> throw new IllegalArgumentException("Unknown flag: %s".formatted(flag));
+                })
+                .toList();
     }
 
     private SortableField toJsonSortableField(
@@ -576,8 +586,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             var jsonElement = new PropertyPathElement();
             jsonElement.setName(element.getValue());
             jsonElement.setType(switch(element) {
-                case RelationName ignored -> "rel";
-                case AttributeName ignored -> "attr";
+                case RelationName ignored -> PropertyPathElementType.RELATION;
+                case AttributeName ignored -> PropertyPathElementType.ATTRIBUTE;
             });
             result.add(jsonElement);
             path = path.getRest();
@@ -633,6 +643,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         rep.setLinkName(relationEndPoint.getLinkName() != null ? relationEndPoint.getLinkName().getValue() : null);
         rep.setRequired(relationEndPoint.isRequired());
         rep.setDescription(relationEndPoint.getDescription());
+        rep.setFlags(toJsonRelationEndpointFlags(relationEndPoint.getFlags()));
         return rep;
+    }
+
+    private List<String> toJsonRelationEndpointFlags(Set<RelationEndpointFlag> flags) {
+        return flags.stream()
+                .flatMap(flag -> switch (flag) {
+                    case HiddenEndpointFlag ignored -> Stream.of("hidden");
+                    case VisibleEndpointFlag ignored -> Stream.empty(); // Is just the implicit inverse of "HiddenEndpointFlag"
+                    case RequiredEndpointFlag ignored -> Stream.empty(); // Already explicitly set as a property
+                    default -> throw new IllegalArgumentException("Unknown flag %s".formatted(flag));
+        }).toList();
+
     }
 }

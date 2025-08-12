@@ -7,7 +7,11 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
@@ -19,6 +23,7 @@ import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -65,20 +70,34 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName propertyName
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         datamodelApi.findById(application, relation.getSourceEndPoint().getEntity(), instanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
-        // TODO: ACC-2149 use FilterName of relation
-        var filterName = relation.getTargetEndPoint().getName();
-        if (filterName != null) {
-            var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                    .listEntity(application, targetPathSegment, 0, null, Map.of(filterName.getValue(), instanceId.toString())))
-                    .toUri();
 
-            return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unidirectional *-to-many relation not implemented.");
+        var targetEntity = relation.getTargetEndPoint().getEntity();
+
+        if(relation.getTargetEndPoint().getName() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
         }
+
+        var relationPath = new RelationPath(
+                relation.getTargetEndPoint().getName(),
+                new SimpleAttributePath(targetEntity.getPrimaryKey().getName())
+        );
+
+        var targetFilter = targetEntity.getSearchFilters().stream()
+                .filter(searchFilter -> {
+                    if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
+                        return Objects.equals(exactSearchFilter.getAttributePath(), relationPath);
+                    }
+                    return false;
+                })
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
+
+        var redirectUrl = linkTo(methodOn(EntityRestController.class)
+                .listEntity(application, targetEntity.getPathSegment(), 0, null, Map.of(targetFilter.getName().getValue(), instanceId.toString())))
+                .toUri();
+        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }
 
     @PostMapping

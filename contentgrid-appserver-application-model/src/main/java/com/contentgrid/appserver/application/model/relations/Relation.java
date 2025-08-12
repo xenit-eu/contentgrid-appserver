@@ -2,14 +2,22 @@ package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Singular;
 import lombok.Value;
 
 /**
@@ -24,23 +32,17 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         OneToOneRelation {
 
     protected Relation(@NonNull RelationEndPoint sourceEndPoint, @NonNull RelationEndPoint targetEndPoint) {
-        if (sourceEndPoint.getName() == null && targetEndPoint.getName() == null) {
-            throw new InvalidRelationException("At least one endpoint must have a name");
-        }
         if (sourceEndPoint.collides(targetEndPoint)) {
             throw new InvalidRelationException("Source and target endpoints must not collide when on the same entity");
         }
-        if (sourceEndPoint.isRequired() && targetEndPoint.isRequired()) {
-            // Chicken and egg problem
-            throw new InvalidRelationException("Source and target endpoints can not be both required");
-        }
-        if (sourceEndPoint.getEntity().getName().equals(targetEndPoint.getEntity().getName())
-                && (sourceEndPoint.isRequired() || targetEndPoint.isRequired())) {
-            // Chicken and egg problem
-            throw new InvalidRelationException("Source or target endpoint can not be required when on the same entity");
-        }
         this.sourceEndPoint = sourceEndPoint;
         this.targetEndPoint = targetEndPoint;
+
+
+        sourceEndPoint.getFlags()
+                .forEach(flag -> flag.checkSupported(this, sourceEndPoint));
+        targetEndPoint.getFlags()
+                .forEach(flag -> flag.checkSupported(this, targetEndPoint));
     }
 
     /**
@@ -83,35 +85,32 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
         @NonNull
         Entity entity;
 
-        boolean required;
+        @NonNull
+        Set<RelationEndpointFlag> flags;
 
         @Builder
-        RelationEndPoint(@NonNull Entity entity, RelationName name, PathSegmentName pathSegment, LinkName linkName, String description, boolean required) {
-            if (name != null && pathSegment == null) {
-                throw new InvalidRelationException("Relation endpoint with name %s does not have a pathSegment".formatted(name));
-            }
-            if (name == null && pathSegment != null) {
-                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a name".formatted(pathSegment));
-            }
-            if (name == null && description != null) {
-                throw new InvalidRelationException("Relation endpoint can not have a description without a name");
-            }
-            if (name == null && required) {
-                throw new InvalidRelationException("Relation endpoint can not be required without name");
-            }
-            if (pathSegment == null && linkName != null) {
-                throw new InvalidRelationException("Relation endpoint with linkName %s does not have a pathSegment".formatted(
-                        linkName));
-            }
-            if (pathSegment != null && linkName == null) {
-                throw new InvalidRelationException("Relation endpoint with pathSegment %s does not have a linkName".formatted(pathSegment));
-            }
+        RelationEndPoint(
+                @NonNull Entity entity,
+                RelationName name,
+                PathSegmentName pathSegment,
+                LinkName linkName,
+                String description,
+                @Singular @NonNull Set<RelationEndpointFlag> flags
+        ) {
             this.entity = entity;
             this.name = name;
             this.pathSegment = pathSegment;
             this.linkName = linkName;
             this.description = description;
-            this.required = required;
+            this.flags = new HashSet<>(flags);
+            if(name == null) {
+                this.flags.add(HiddenEndpointFlag.INSTANCE);
+            }
+
+            // If endpoint is not explicitly marked as hidden; it is visible
+            if(!hasFlag(HiddenEndpointFlag.class)) {
+                this.flags.add(VisibleEndpointFlag.INSTANCE);
+            }
         }
 
         /**
@@ -137,6 +136,24 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                             && Objects.equals(this.entity.getName(), other.entity.getName())
                             && Objects.equals(this.linkName, other.linkName)
             );
+        }
+
+        public boolean isRequired() {
+            return hasFlag(RequiredEndpointFlag.class);
+        }
+
+        public @NonNull Set<RelationEndpointFlag> getFlags() {
+            return Collections.unmodifiableSet(flags);
+        }
+
+        /**
+         * Returns whether this relation endpoint has a flag of the specified type.
+         *
+         * @param flagClass the class object representing the flag type
+         * @return whether this relation endpoint has the flag
+         */
+        public boolean hasFlag(Class<? extends RelationEndpointFlag> flagClass) {
+            return getFlags().stream().anyMatch(flagClass::isInstance);
         }
 
     }

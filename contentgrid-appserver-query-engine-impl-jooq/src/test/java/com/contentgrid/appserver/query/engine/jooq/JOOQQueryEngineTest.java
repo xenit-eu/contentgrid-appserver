@@ -26,6 +26,7 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -261,7 +262,7 @@ class JOOQQueryEngineTest {
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
                     .linkName(LinkName.of("customer"))
-                    .required(true)
+                    .flag(RequiredEndpointFlag.INSTANCE)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON)
@@ -572,6 +573,11 @@ class JOOQQueryEngineTest {
                 // across relation, to many
                 StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
                         Scalar.of("code_1")
+                ),
+                // across relation, to many, id
+                StringComparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")),
+                        Scalar.of(PRODUCT1_ID.getValue())
                 )
         );
     }

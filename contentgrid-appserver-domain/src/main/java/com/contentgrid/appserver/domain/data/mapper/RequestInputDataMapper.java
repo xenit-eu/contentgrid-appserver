@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
@@ -45,8 +46,8 @@ public class RequestInputDataMapper {
         var data = new ArrayList<RelationData>(relations.size());
         var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         for (var relation : relations) {
-            // Relations that don't have a name on this side can't be mapped from input at all, so skip them immediately
-            if(relation.getSourceEndPoint().getName() == null) {
+            // Relations that are hidden on this side can't be mapped from input at all, so skip them immediately
+            if(relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
                 continue;
             }
             exceptionCollector.use(() -> relationMapper.mapRelation(relation, requestInputData)

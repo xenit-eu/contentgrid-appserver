@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -170,7 +169,6 @@ class RelationRestControllerTest {
         }
 
         @Test
-        @Disabled("Following unidirectional *-to-many relations not implemented")
         void followUnidirectionalToManyRelation() throws Exception {
             Mockito.doReturn(Optional.of(EntityData.builder()
                     .name(PERSON.getName())
@@ -182,7 +180,7 @@ class RelationRestControllerTest {
             mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID))); // TODO: ACC-2149 change url
+                            "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
                     .findById(APPLICATION, PERSON, PERSON_ID);
