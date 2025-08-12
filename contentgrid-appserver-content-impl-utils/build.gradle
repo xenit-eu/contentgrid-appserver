@@ -6,10 +6,6 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-content-api')
 
-    testImplementation platform('org.junit:junit-bom:5.13.4')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
     testImplementation 'commons-io:commons-io:2.18.0'
 }
 
