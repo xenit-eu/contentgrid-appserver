@@ -5,17 +5,20 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
-import com.contentgrid.appserver.domain.data.validation.AttributeConstraintValidationDataMapper;
+import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
+import com.contentgrid.appserver.domain.data.validation.ContentAttributeModificationValidator;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
@@ -42,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
+    private final ContentStore contentStore;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -58,8 +62,14 @@ public class DatamodelApiImpl implements DatamodelApi {
                 // Validate that required attributes and relations are present
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new AttributeConstraintValidationDataMapper<>(new RequiredAttributeConstraintValidator()),
+                                new AttributeValidationDataMapper(new RequiredAttributeConstraintValidator()),
                                 new RelationRequiredValidationDataMapper()
+                        )
+                ))
+                .andThen(new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                                new ContentUploadAttributeMapper(contentStore),
+                                (rel, value) -> Optional.of(value)
                         )
                 ))
                 .andThen(queryEngineMapper);
@@ -109,11 +119,18 @@ public class DatamodelApiImpl implements DatamodelApi {
                 entityName,
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
+                        // Validate that content attribute is not partially set
+                        .andThen(new OptionalFlatMapAdaptingMapper<>(
+                                AttributeAndRelationMapper.from(
+                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(null)),
+                                        (rel, data) -> Optional.of(data)
+                                )
+                        ))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
 
-        var exceptionCollector = new ValidationExceptionCollector();
+        var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         var attributes = exceptionCollector.use(() -> inputMapper.mapAttributes(usageTrackingRequestData));
         var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
         exceptionCollector.rethrow();
@@ -136,11 +153,19 @@ public class DatamodelApiImpl implements DatamodelApi {
     public EntityData update(@NonNull Application application,
             @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
+        var existingEntity = queryEngine.findById(application, application.getRequiredEntityByName(entityName), id).orElse(null);
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
+                        // Validate that content attribute is not partially set
+                        .andThen(new OptionalFlatMapAdaptingMapper<>(
+                                AttributeAndRelationMapper.from(
+                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        (rel, d) -> Optional.of(d)
+                                )
+                        ))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -156,6 +181,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
+        // TODO: For concurrency safety; the version of existingEntity must be passed during the update
         var updateData = queryEngine.update(application, entityData);
 
         return updateData.getUpdated();
@@ -165,11 +191,19 @@ public class DatamodelApiImpl implements DatamodelApi {
     public EntityData updatePartial(@NonNull Application application,
             @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
+        var existingEntity = queryEngine.findById(application, application.getRequiredEntityByName(entityName), id).orElse(null);
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
+                        // Validate that content attribute is not partially set
+                        .andThen(new OptionalFlatMapAdaptingMapper<>(
+                                AttributeAndRelationMapper.from(
+                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        (rel, d) -> Optional.of(d)
+                                )
+                        ))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -185,6 +219,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
+        // TODO: For concurrency safety; the version of existingEntity must be passed during the update
         var updateData = queryEngine.update(application, entityData);
 
         return updateData.getUpdated();

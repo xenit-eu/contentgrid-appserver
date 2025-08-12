@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -11,6 +12,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
@@ -48,8 +50,25 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         }
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
+            case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, inputData);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
         };
+    }
+
+    private Optional<DataEntry> mapContentAttribute(ContentAttribute contentAttribute, RequestInputData inputData) throws InvalidPropertyDataException{
+        var attributeName = contentAttribute.getName();
+        try {
+            var dataEntry = inputData.get(attributeName.getValue(), FileDataEntry.class);
+            if(dataEntry instanceof FileDataEntry fileDataEntry) {
+                return Optional.of(fileDataEntry);
+            }
+        } catch (InvalidDataTypeException e) {
+            // The input data is not a File type, map to composite attribute
+            // Fallthrough to mapping a composite attribute
+        } catch (InvalidDataException e) {
+            throw e.withinProperty(attributeName);
+        }
+        return mapCompositeAttribute(contentAttribute, inputData);
     }
 
     private Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute,

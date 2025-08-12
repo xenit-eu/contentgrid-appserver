@@ -18,6 +18,11 @@ public class SimpleAttributePath implements AttributePath {
     }
 
     @Override
+    public AttributePath withSuffix(AttributeName attributeName) {
+        return new CompositeAttributePath(attribute, new SimpleAttributePath(attributeName));
+    }
+
+    @Override
     public String toString() {
         return attribute.toString();
     }

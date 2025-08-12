@@ -46,18 +46,14 @@ class EntityTest {
             .mimetypeColumn(ColumnName.of("content1__mimetype"))
             .lengthColumn(ColumnName.of("content1__length"))
             .build();
-    private static final ContentAttribute CONTENT2 = ContentAttribute.builder()
-            .name(AttributeName.of("content2"))
-            .pathSegment(PathSegmentName.of("content2"))
-            .linkName(LinkName.of("content2"))
-            .idColumn(ColumnName.of("content2__id"))
-            .filenameColumn(ColumnName.of("content2__filename"))
-            .mimetypeColumn(ColumnName.of("content2__mimetype"))
-            .lengthColumn(ColumnName.of("content2__length"))
+    private static final SimpleAttribute NESTED_ATTRIBUTE = SimpleAttribute.builder()
+            .name(AttributeName.of("nested_attribute"))
+            .column(ColumnName.of("nested_attr"))
+            .type(Type.TEXT)
             .build();
     private static final CompositeAttribute COMPOSITE = CompositeAttributeImpl.builder()
             .name(AttributeName.of("composite"))
-            .attribute(CONTENT2)
+            .attribute(NESTED_ATTRIBUTE)
             .build();
     private static final SearchFilter FILTER1 = PrefixSearchFilter.builder().name(FilterName.of("filter1")).attribute(ATTRIBUTE1).build();
     private static final SearchFilter FILTER2 = ExactSearchFilter.builder().name(FilterName.of("filter2")).attribute(ATTRIBUTE2).build();
@@ -102,9 +98,9 @@ class EntityTest {
         assertEquals(Type.TEXT, attrSearchFilter.getAttributeType());
 
         // getContentByPathSegment
-        var content = entity.getContentByPathSegment(PathSegmentName.of("content2")).orElseThrow();
-        assertEquals(AttributeName.of("content2"), content.getName());
-        assertEquals(LinkName.of("content2"), content.getLinkName());
+        var content = entity.getContentByPathSegment(PathSegmentName.of("content1")).orElseThrow();
+        assertEquals(AttributeName.of("content1"), content.getName());
+        assertEquals(LinkName.of("content1"), content.getLinkName());
 
         // Can not use column name or filter name for finding attribute by name
         assertTrue(entity.getAttributeByName(AttributeName.of("column1")).isEmpty());
@@ -355,7 +351,7 @@ class EntityTest {
                 .attribute(COMPOSITE)
                 .searchFilter(ExactSearchFilter.builder()
                         .name(FilterName.of("filter"))
-                        .attributePath(PropertyPath.of(COMPOSITE.getName(), CONTENT2.getName(), AttributeName.of("filename")))
+                        .attributePath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName()))
                         .attributeType(Type.TEXT)
                         .build()
                 ).build();
@@ -411,7 +407,7 @@ class EntityTest {
     void entity_duplicateContentPathSegment() {
         var duplicate = ContentAttribute.builder()
                 .name(AttributeName.of("content3"))
-                .pathSegment(CONTENT2.getPathSegment())
+                .pathSegment(CONTENT1.getPathSegment())
                 .linkName(LinkName.of("content3"))
                 .idColumn(ColumnName.of("content3__id"))
                 .filenameColumn(ColumnName.of("content3__filename"))
@@ -424,7 +420,6 @@ class EntityTest {
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(CONTENT1)
-                .attribute(COMPOSITE)
                 .attribute(duplicate);
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -434,7 +429,7 @@ class EntityTest {
         var duplicate = ContentAttribute.builder()
                 .name(AttributeName.of("content3"))
                 .pathSegment(PathSegmentName.of("content3"))
-                .linkName(CONTENT2.getLinkName())
+                .linkName(CONTENT1.getLinkName())
                 .idColumn(ColumnName.of("content3__id"))
                 .filenameColumn(ColumnName.of("content3__filename"))
                 .mimetypeColumn(ColumnName.of("content3__mimetype"))
@@ -446,7 +441,6 @@ class EntityTest {
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(CONTENT1)
-                .attribute(COMPOSITE)
                 .attribute(duplicate);
         assertThrows(DuplicateElementException.class, builder::build);
     }
@@ -486,7 +480,7 @@ class EntityTest {
     @Test
     void entity_sortableOnCompositeAttribute() {
         var sortableComposite = SortableField.builder().name(SortableName.of("sortable2"))
-                .propertyPath(PropertyPath.of(COMPOSITE.getName(), CONTENT2.getName())).build();
+                .propertyPath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName())).build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))

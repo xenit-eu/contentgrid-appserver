@@ -5,20 +5,19 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
@@ -58,11 +57,6 @@ class EntityRestControllerTest {
 
     @TestConfiguration
     static class TestConfig {
-        @Bean
-        @Primary
-        public DatamodelApi dmapi(QueryEngine queryEngine) {
-            return new DatamodelApiImpl(queryEngine);
-        }
 
         @Bean
         @Primary
@@ -173,6 +167,7 @@ class EntityRestControllerTest {
     void setup() {
         tableCreator.createTables(APPLICATION);
     }
+
     @AfterEach
     void teardown() {
         tableCreator.dropTables(APPLICATION);
@@ -197,6 +192,30 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.in_stock", is(true)))
                 .andExpect(jsonPath("$._links.self.href", notNullValue()))
                 .andExpect(jsonPath("$._links.curies").isArray());
+    }
+
+    @Test
+    void testCreateEntityInstanceMultipartFileUpload() throws Exception {
+        mockMvc.perform(multipart("/products")
+                        .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg", InputStream.nullInputStream()))
+                        .param("name", "My product")
+                        .param("price", "120")
+                ).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
+                .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
+                .andExpect(jsonPath("$.picture.length", is(0)))
+        ;
+    }
+
+    @Test
+    void testFailToCreateEntityInstanceMultipartMissingContentType() throws Exception {
+        mockMvc.perform(multipart("/products")
+                        .file(new MockMultipartFile("picture", "IMG_456.jpg", null, InputStream.nullInputStream()))
+                        .param("name", "My product")
+                        .param("price", "120")
+                ).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail", is("Invalid property data at picture: Invalid format for type CONTENT: Content-Type is required")))
+        ;
     }
 
 

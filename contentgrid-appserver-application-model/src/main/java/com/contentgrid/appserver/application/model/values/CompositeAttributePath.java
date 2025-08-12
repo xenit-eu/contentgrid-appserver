@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.values;
 
+import java.util.ArrayList;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -11,6 +12,11 @@ public class CompositeAttributePath implements AttributePath {
     @Override
     public @NonNull AttributeName getFirst() {
         return attribute;
+    }
+
+    @Override
+    public AttributePath withSuffix(AttributeName attributeName) {
+        return new CompositeAttributePath(attribute, rest.withSuffix(attributeName));
     }
 
     @Override

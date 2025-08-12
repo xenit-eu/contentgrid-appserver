@@ -192,9 +192,9 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
     class FileDataEntry implements DataEntry {
 
         String filename;
+        @NonNull
         String contentType;
 
-        long size;
         @Getter(value = AccessLevel.NONE)
         @EqualsAndHashCode.Exclude
         @ToString.Exclude

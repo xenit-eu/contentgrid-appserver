@@ -21,3 +21,9 @@ include 'contentgrid-appserver-app'
 include 'contentgrid-appserver-json-schema'
 include 'contentgrid-appserver-rest'
 include 'contentgrid-appserver-domain'
+
+include 'contentgrid-appserver-content-api'
+include 'contentgrid-appserver-content-impl-utils'
+include 'contentgrid-appserver-content-impl-fs'
+//include 'contentgrid-appserver-content-impl-s3' TODO: ACC-2210
+//include 'contentgrid-appserver-content-impl-encryption' TODO: ACC-2098
