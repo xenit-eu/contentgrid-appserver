@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,9 @@ public class CompositeAttributeImpl implements CompositeAttribute {
         this.description = description;
         this.flags = flags;
         for (var attribute : attributes) {
+            if(attribute instanceof ContentAttribute) {
+                throw new InvalidAttributeTypeException("Composite attribute '%s' can not contain content attributes".formatted(name));
+            }
             if (this.attributes.put(attribute.getName(), attribute) != null) {
                 throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
             }

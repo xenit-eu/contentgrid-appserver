@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -24,7 +23,6 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -118,14 +116,16 @@ public class Entity implements HasAttributes {
 
         var contentLinks = new HashSet<LinkName>();
 
-        getContentAttributes(attributes).forEach(attribute -> {
-            if (this.contentAttributes.put(attribute.getPathSegment(), attribute) != null) {
-                throw new DuplicateElementException("Duplicate content with path segment %s".formatted(attribute.getPathSegment()));
-            }
-            if (!contentLinks.add(attribute.getLinkName())) {
-                throw new DuplicateElementException("Duplicate content with link name %s".formatted(attribute.getLinkName()));
-            }
-        });
+        attributes.stream()
+                .flatMap(attr -> attr instanceof ContentAttribute contentAttribute?Stream.of(contentAttribute):Stream.empty())
+                .forEach(attribute -> {
+                    if (this.contentAttributes.put(attribute.getPathSegment(), attribute) != null) {
+                        throw new DuplicateElementException("Duplicate content with path segment %s".formatted(attribute.getPathSegment()));
+                    }
+                    if (!contentLinks.add(attribute.getLinkName())) {
+                        throw new DuplicateElementException("Duplicate content with link name %s".formatted(attribute.getLinkName()));
+                    }
+                });
 
         searchFilters.forEach(
                 searchFilter -> {
@@ -287,26 +287,12 @@ public class Entity implements HasAttributes {
 
     /**
      * Finds a content attribute by its path segment name.
-     * Is also able to find content attributes that are nested under CompositeAttributeImpl.
      *
      * @param pathSegment the path segment name of the content to find
      * @return an Optional containing the content attribute if found, or empty if not found
      */
     public Optional<ContentAttribute> getContentByPathSegment(PathSegmentName pathSegment) {
         return Optional.ofNullable(contentAttributes.get(pathSegment));
-    }
-
-    private static List<ContentAttribute> getContentAttributes(List<Attribute> attributes) {
-        var result = new ArrayList<ContentAttribute>();
-        for (var attribute : attributes) {
-            if (attribute instanceof ContentAttribute contentAttribute) {
-                result.add(contentAttribute);
-            }
-            if (attribute instanceof CompositeAttributeImpl compositeAttribute) {
-                result.addAll(getContentAttributes(compositeAttribute.getAttributes()));
-            }
-        }
-        return result;
     }
 
     public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {
