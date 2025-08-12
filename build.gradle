@@ -29,6 +29,10 @@ allprojects {
             }
         }
 
+        dependencies {
+            api platform(project(":contentgrid-appserver-platform"))
+        }
+
         tasks.named('test').configure {
             useJUnitPlatform()
             finalizedBy tasks.named('jacocoTestReport')

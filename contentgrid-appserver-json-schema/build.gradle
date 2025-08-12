@@ -5,11 +5,10 @@ plugins {
 
 dependencies {
     api project(':contentgrid-appserver-application-model')
-    implementation platform('org.springframework.boot:spring-boot-dependencies:3.5.4')
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.networknt:json-schema-validator:1.5.8'
+    implementation 'com.networknt:json-schema-validator'
 
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'uk.co.datumedge:hamcrest-json:0.3'
+    testImplementation 'uk.co.datumedge:hamcrest-json'
 }

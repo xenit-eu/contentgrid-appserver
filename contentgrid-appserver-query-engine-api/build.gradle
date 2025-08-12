@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
     api project(':contentgrid-appserver-application-model')
-    api 'com.contentgrid.thunx:thunx-model:0.12.0'
+    api 'com.contentgrid.thunx:thunx-model'
 }
