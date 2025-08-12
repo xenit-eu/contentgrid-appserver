@@ -13,11 +13,12 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
@@ -114,14 +115,15 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) {
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityIdentity identity) {
         var dslContext = resolver.resolve(application);
+        var entity = application.getRequiredEntityByName(identity.getEntityName());
         var alias = getRootAlias(entity);
         var table = JOOQUtils.resolveTable(entity, alias);
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         return dslContext.selectFrom(table)
-                .where(primaryKey.eq(id.getValue()))
+                .where(primaryKey.eq(identity.getEntityId().getValue()))
                 .fetchOptional()
                 .map(Record::intoMap)
                 .map(result -> EntityDataMapper.from(entity, result));
@@ -272,15 +274,16 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
+    public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityIdentity identity)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
+        var entity = application.getRequiredEntityByName(identity.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
         try {
             return dslContext.deleteFrom(table)
-                    .where(primaryKey.eq(id.getValue()))
+                    .where(primaryKey.eq(identity.getEntityId().getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result));

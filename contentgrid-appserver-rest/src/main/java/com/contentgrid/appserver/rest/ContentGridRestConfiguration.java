@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.rest;
 
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;

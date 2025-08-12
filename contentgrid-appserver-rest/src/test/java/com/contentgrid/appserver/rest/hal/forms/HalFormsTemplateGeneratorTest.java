@@ -19,7 +19,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.rest.EntityRestController;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

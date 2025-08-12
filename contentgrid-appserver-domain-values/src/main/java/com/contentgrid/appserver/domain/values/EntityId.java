@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.api.data;
+package com.contentgrid.appserver.domain.values;
 
 import java.util.UUID;
 import lombok.NonNull;
