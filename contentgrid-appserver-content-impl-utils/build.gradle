@@ -6,6 +6,6 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-content-api')
 
-    testImplementation 'commons-io:commons-io:2.18.0'
+    testImplementation 'commons-io:commons-io:2.20.0'
 }
 
