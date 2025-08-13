@@ -25,10 +25,12 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.query.engine.api.IndexCreator;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
+import com.contentgrid.appserver.query.engine.jooq.fts.dialects.paradedb.ParadeDbJOOQIndexCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -58,6 +60,11 @@ public class ContentgridAppConfiguration {
     @Bean
     public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
         return new JOOQTableCreator(dslContextResolver);
+    }
+
+    @Bean
+    public IndexCreator paradeDbJooqTableCreator(DSLContextResolver dslContextResolver) {
+        return new ParadeDbJOOQIndexCreator(dslContextResolver);
     }
 
     @Bean
