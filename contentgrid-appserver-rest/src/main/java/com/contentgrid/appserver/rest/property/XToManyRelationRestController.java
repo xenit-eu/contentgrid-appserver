@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
@@ -70,7 +71,7 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName propertyName
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        datamodelApi.findById(application, relation.getSourceEndPoint().getEntity(), instanceId)
+        datamodelApi.findById(application, EntityIdentity.forEntity(relation.getSourceEndPoint().getEntity().getName(), instanceId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
         var targetEntity = relation.getTargetEndPoint().getEntity();

@@ -16,6 +16,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.io.IOException;
@@ -40,7 +41,7 @@ public class ContentApiImpl implements ContentApi {
                 .map(ContentAttribute.class::cast)
                 .orElseThrow(); // TODO: throw a properly typed exception when the wrong attribute name is given
 
-        return datamodelApi.findById(application, application.getRequiredEntityByName(entityName), id)
+        return datamodelApi.findById(application, EntityIdentity.forEntity(entityName, id))
                 .flatMap(entity -> entity.getAttributeByName(attributeName))
                 .map(CompositeAttributeData.class::cast)
                 .map(attributeData -> {
@@ -55,7 +56,7 @@ public class ContentApiImpl implements ContentApi {
             @NonNull AttributeName attributeName, @NonNull DataEntry.FileDataEntry file)
             throws InvalidPropertyDataException {
 
-        datamodelApi.updatePartial(application, entityName, id, MapRequestInputData.fromMap(Map.of(
+        datamodelApi.updatePartial(application, EntityIdentity.forEntity(entityName, id), MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), file
         )));
 
@@ -64,7 +65,7 @@ public class ContentApiImpl implements ContentApi {
     @Override
     public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
             @NonNull AttributeName attributeName) throws InvalidPropertyDataException {
-        datamodelApi.updatePartial(application, entityName, id, MapRequestInputData.fromMap(Map.of(
+        datamodelApi.updatePartial(application, EntityIdentity.forEntity(entityName, id), MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), NullDataEntry.INSTANCE
         )));
     }

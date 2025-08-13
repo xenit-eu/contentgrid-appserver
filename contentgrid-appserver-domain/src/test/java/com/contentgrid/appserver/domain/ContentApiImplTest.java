@@ -14,6 +14,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
@@ -52,7 +53,7 @@ class ContentApiImplTest {
     @Test
     void findContentPresent() throws UnreadableContentException {
         var entityId = EntityId.of(UUID.randomUUID());
-        Mockito.when(datamodelApi.findById(APPLICATION, PRODUCT, entityId))
+        Mockito.when(datamodelApi.findById(APPLICATION, EntityIdentity.forEntity(PRODUCT.getName(), entityId)))
                 .thenReturn(Optional.of(EntityData.builder()
                         .name(PRODUCT.getName())
                         .id(entityId)
@@ -98,7 +99,7 @@ class ContentApiImplTest {
     @Test
     void findContentAbsent() {
         var entityId = EntityId.of(UUID.randomUUID());
-        Mockito.when(datamodelApi.findById(APPLICATION, PRODUCT, entityId))
+        Mockito.when(datamodelApi.findById(APPLICATION, EntityIdentity.forEntity(PRODUCT.getName(), entityId)))
                 .thenReturn(Optional.of(EntityData.builder()
                         .name(PRODUCT.getName())
                         .id(entityId)
@@ -125,8 +126,7 @@ class ContentApiImplTest {
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
-                Mockito.eq(PRODUCT.getName()),
-                Mockito.eq(entityId),
+                Mockito.eq(EntityIdentity.forEntity(PRODUCT.getName(), entityId)),
                 Mockito.assertArg(inputData -> {
                     assertThat(inputData.get("picture", FileDataEntry.class)).isEqualTo(file);
                 }));
@@ -142,8 +142,7 @@ class ContentApiImplTest {
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
-                Mockito.eq(PRODUCT.getName()),
-                Mockito.eq(entityId),
+                Mockito.eq(EntityIdentity.forEntity(PRODUCT.getName(), entityId)),
                 Mockito.assertArg(inputData -> {
                     assertThat(inputData.get("picture", FileDataEntry.class)).isEqualTo(NullDataEntry.INSTANCE);
                 }));

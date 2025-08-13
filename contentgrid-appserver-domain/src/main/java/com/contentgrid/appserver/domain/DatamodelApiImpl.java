@@ -22,6 +22,7 @@ import com.contentgrid.appserver.domain.data.validation.ContentAttributeModifica
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -102,10 +103,11 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application,
-            @NonNull Entity entity, @NonNull EntityId id)
-            throws EntityNotFoundException {
-        return queryEngine.findById(application, entity, id);
+    public Optional<EntityData> findById(
+            @NonNull Application application,
+            @NonNull EntityIdentity identity
+    ) throws EntityNotFoundException {
+        return queryEngine.findById(application, identity);
     }
 
     @Override
@@ -151,12 +153,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData update(@NonNull Application application,
-            @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
+            @NonNull EntityIdentity identity, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, application.getRequiredEntityByName(entityName), id).orElse(null);
+        var existingEntity = queryEngine.findById(application, identity).orElse(null);
         var inputMapper = createInputDataMapper(
                 application,
-                entityName,
+                identity.getEntityName(),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -170,18 +172,13 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
-        var entityData = EntityData.builder()
-                .name(entityName)
-                .id(id)
-                .attributes(inputMapper.mapAttributes(usageTrackingRequestData))
-                .build();
+        var entityData = new EntityData(identity, inputMapper.mapAttributes(usageTrackingRequestData));
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        // TODO: For concurrency safety; the version of existingEntity must be passed during the update
         var updateData = queryEngine.update(application, entityData);
 
         return updateData.getUpdated();
@@ -189,12 +186,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData updatePartial(@NonNull Application application,
-            @NonNull EntityName entityName, @NonNull EntityId id, @NonNull RequestInputData data)
+            @NonNull EntityIdentity identity, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, application.getRequiredEntityByName(entityName), id).orElse(null);
+        var existingEntity = queryEngine.findById(application, identity).orElse(null);
         var inputMapper = createInputDataMapper(
                 application,
-                entityName,
+                identity.getEntityName(),
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
                         // Validate that content attribute is not partially set
@@ -208,18 +205,13 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
-        var entityData = EntityData.builder()
-                .name(entityName)
-                .id(id)
-                .attributes(inputMapper.mapAttributes(usageTrackingRequestData))
-                .build();
+        var entityData = new EntityData(identity, inputMapper.mapAttributes(usageTrackingRequestData));
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        // TODO: For concurrency safety; the version of existingEntity must be passed during the update
         var updateData = queryEngine.update(application, entityData);
 
         return updateData.getUpdated();

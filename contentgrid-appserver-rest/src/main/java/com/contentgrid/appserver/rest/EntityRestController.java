@@ -8,6 +8,7 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
@@ -92,7 +93,7 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        var result = datamodelApi.findById(application, entity, instanceId);
+        var result = datamodelApi.findById(application, EntityIdentity.forEntity(entity.getName(), instanceId));
 
         return result.map(res -> assembler.withContext(application).toModel(res))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -140,7 +141,7 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
-            var updateResult = datamodelApi.update(application, entity.getName(), id, data);
+            var updateResult = datamodelApi.update(application, EntityIdentity.forEntity(entity.getName(), id), data);
             return assembler.withContext(application).toModel(updateResult);
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
@@ -157,7 +158,7 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
-            var updateResult = datamodelApi.updatePartial(application, entity.getName(), id, data);
+            var updateResult = datamodelApi.updatePartial(application, EntityIdentity.forEntity(entity.getName(), id), data);
 
             return assembler.withContext(application).toModel(updateResult);
         } catch(EntityNotFoundException e) {
