@@ -14,6 +14,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -31,25 +34,27 @@ import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationE
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
 import org.jooq.SortField;
-import org.jooq.UpdateSetFirstStep;
-import org.jooq.UpdateSetMoreStep;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -64,6 +69,10 @@ public class JOOQQueryEngine implements QueryEngine {
     private final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     private final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
+
+    private static final long VERSION_MODULUS = 1L << 32;
+
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
@@ -126,7 +135,20 @@ public class JOOQQueryEngine implements QueryEngine {
                 .where(primaryKey.eq(identity.getEntityId().getValue()))
                 .fetchOptional()
                 .map(Record::intoMap)
-                .map(result -> EntityDataMapper.from(entity, result));
+                .map(result -> EntityDataMapper.from(entity, result))
+                .map(checkVersionSatisfied(identity));
+    }
+
+    private static @NotNull Function<EntityData, EntityData> checkVersionSatisfied(@NotNull EntityIdentity identity) {
+        return entityData -> {
+            if (!identity.getVersion().isSatisfiedBy(entityData.getIdentity().getVersion())) {
+                throw new UnsatisfiedVersionException(
+                        entityData.getIdentity().getVersion(),
+                        identity.getVersion()
+                );
+            }
+            return entityData;
+        };
     }
 
     @Override
@@ -140,6 +162,13 @@ public class JOOQQueryEngine implements QueryEngine {
         var step = dslContext.insertInto(table)
                 .set(primaryKey, id.getValue());
 
+        var maybeVersionField = JOOQUtils.resolveVersionField(entity);
+
+        if(maybeVersionField.isPresent()) {
+            // Set version field to initial, random value
+            step = step.set(maybeVersionField.get(), secureRandom.nextLong(1, VERSION_MODULUS));
+        }
+
         var entityData = EntityData.builder()
                 .name(data.getEntityName())
                 .id(id)
@@ -147,6 +176,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 .build();
 
         var list = EntityDataConverter.convert(entityData, entity);
+
         for (var entry : list) {
             step = step.set(entry.field(), entry.value());
         }
@@ -236,31 +266,53 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
 
-        UpdateSetFirstStep<?> update = dslContext.update(table);
-        UpdateSetMoreStep<?> step = null;
+        var updatedFields = dslContext.newRecord(JOOQUtils.resolveAttributeFields(entity));
 
-        var list = EntityDataConverter.convert(data, entity);
-        for (var entry : list) {
-            if (step == null) {
-                step = update.set(entry.field(), entry.value());
-            } else {
-                step = step.set(entry.field(), entry.value());
-            }
+        for (var pair : EntityDataConverter.convert(data, entity)) {
+            updatedFields.set(pair.field(), pair.value());
         }
 
-        if (step == null) {
+        if(!updatedFields.changed()) {
+            // Check that at least one field is updated
             throw new InvalidDataException("Provided data is empty");
         }
 
+        var update = dslContext.update(table)
+                .set(updatedFields);
+
+        // Increment version
+        var maybeVersionField = JOOQUtils.resolveVersionField(entity);
+        // Randomize the increase a bit, so its clear for consumers that it is not a number or monotonically increasing field to be dependent on
+        // Instead, due to the large possibility of version increments, it will wrap around very soon and very often
+        var versionIncrement = secureRandom.nextLong(1, VERSION_MODULUS >> 1);
+        if(maybeVersionField.isPresent()) {
+            update = update.set(maybeVersionField.get(), maybeVersionField.get().plus(versionIncrement).modulo(VERSION_MODULUS));
+        }
+
         try {
-            var oldValue = findById(application, entity, data.getId())
+            var oldValue = findById(application, data.getIdentity())
                     .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
 
-            var newValue = step.where(primaryKey.eq(id.getValue()))
+            var newValue = update
+                    .where(primaryKey.eq(id.getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
                     .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
+
+            // When the update is done properly, the value of the new version field will be one higher
+            // than the previous value, so restore it back to the previous value to check against the requested version
+            var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
+
+            // If the update was done, and it has violated the version requirement, throw an exception.
+            // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
+            // so the update will not actually be committed
+            if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
+                throw new UnsatisfiedVersionException(
+                        data.getIdentity().getVersion(),
+                        previousVersion
+                );
+            }
 
             return new UpdateResult(
                     oldValue,
@@ -271,6 +323,18 @@ public class JOOQQueryEngine implements QueryEngine {
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         }
+    }
+
+    private Version previousVersion(@NonNull Version version, long versionIncrement) {
+        return switch (version) {
+            case UnspecifiedVersion unspecifiedVersion -> unspecifiedVersion;
+            case ExactlyVersion exactlyVersion -> {
+                var current = Long.parseLong(exactlyVersion.getVersion(), Character.MAX_RADIX);
+                // Note: needs floorMod, so we always have a positive modulus, even when current is small and versionIncrement is large
+                var previousVersion = Math.floorMod(current - versionIncrement, VERSION_MODULUS);
+                yield Version.exactly(Long.toString(previousVersion, Character.MAX_RADIX));
+            }
+        };
     }
 
     @Override
@@ -286,7 +350,8 @@ public class JOOQQueryEngine implements QueryEngine {
                     .where(primaryKey.eq(identity.getEntityId().getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchOptionalMap()
-                    .map(result -> EntityDataMapper.from(entity, result));
+                    .map(result -> EntityDataMapper.from(entity, result))
+                    .map(checkVersionSatisfied(identity));
 
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e);

@@ -46,18 +46,6 @@ public interface QueryEngine {
             SortData sortData, PageData pageData) throws QueryEngineException;
 
     /**
-     * Finds an entity that matches the given id.
-     *
-     * @param application the application context
-     * @param entity the entity type to query
-     * @param id the primary key value of the entity to find
-     * @return an Optional containing the entity data if found, empty otherwise
-     */
-    default Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) {
-        return findById(application, EntityIdentity.forEntity(entity.getName(), id));
-    }
-
-    /**
      * Finds an entity that matches the requested identity
      * @param application the application context
      * @param identity the identity of the entity to query
@@ -84,21 +72,6 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the update operation
      */
     UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException;
-
-    /**
-     * Deletes the entity that matches the given id.
-     *
-     * @param application the application context
-     * @param entity the entity type to delete from
-     * @param id the primary key value of the entity to delete
-     * @return The entity data that was deleted, if any was deleted
-     * @throws QueryEngineException if an error occurs during the delete operation
-     * @deprecated Because it does not support versioning. Use {@link #delete(Application, EntityIdentity)} instead
-     */
-    @Deprecated(forRemoval = true)
-    default Optional<EntityData> delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) throws QueryEngineException {
-        return delete(application, EntityIdentity.forEntity(entity.getName(), id));
-    }
 
     /**
      * Deletes the entity that matches the given identity

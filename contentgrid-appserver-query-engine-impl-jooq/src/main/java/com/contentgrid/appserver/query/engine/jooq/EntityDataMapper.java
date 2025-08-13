@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -30,6 +31,8 @@ public class EntityDataMapper {
                 ).withVersion(getEntityVersion(entity, data)),
                 entity.getAttributes()
                         .stream()
+                        // Skip attribute containing version (it's already part of EntityIdentity)
+                        .filter(attr -> !attr.hasFlag(ETagFlag.class))
                         .map(attr -> from(attr, data))
                         .toList()
         );
