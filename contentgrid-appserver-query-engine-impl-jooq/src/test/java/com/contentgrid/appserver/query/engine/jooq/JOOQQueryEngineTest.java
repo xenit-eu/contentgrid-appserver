@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -27,6 +28,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -73,6 +75,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -253,6 +256,10 @@ class JOOQQueryEngineTest {
                     .name(FilterName.of("code"))
                     .attribute(PRODUCT_CODE)
                     .build())
+            .searchFilter(FullTextSearchFilter.builder()
+                    .name(FilterName.of("description"))
+                    .attribute(PRODUCT_DESCRIPTION)
+                    .build())
             .build();
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
@@ -342,6 +349,9 @@ class JOOQQueryEngineTest {
     private static final EntityId PRODUCT1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId PRODUCT4_ID = EntityId.of(UUID_GENERATOR.generate());
+
+
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -435,6 +445,7 @@ class JOOQQueryEngineTest {
                 .values(PRODUCT1_ID.getValue(), "code_1", "test description")
                 .values(PRODUCT2_ID.getValue(), "code_2", "")
                 .values(PRODUCT3_ID.getValue(), "code_3", null)
+                .values(PRODUCT4_ID.getValue(), "code_4", "another test description")
                 .execute();
         dslContext.insertInto(DSL.table("invoice__products"),
                         DSL.field("invoice_id", UUID.class), DSL.field("product_id", UUID.class))
@@ -453,7 +464,7 @@ class JOOQQueryEngineTest {
     void assertNothingChanged() {
         assertEntitiesUnchanged(PERSON, List.of(ALICE_ID, BOB_ID, JOHN_ID));
         assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID));
-        assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
+        assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID, PRODUCT4_ID));
 
         assertTrue(queryEngine.isLinked(APPLICATION, PERSON_FRIENDS, BOB_ID, ALICE_ID));
         assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE1_ID, ALICE_ID));
@@ -468,7 +479,7 @@ class JOOQQueryEngineTest {
         assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT3_ID));
     }
 
-    static Stream<ThunkExpression<Boolean>> validExpressions() {
+    static Stream<ThunkExpression<Boolean>> validExpressionsInvoice() {
         return Stream.of(
                 // equals (double)
                 Comparison.areEqual(
@@ -577,8 +588,8 @@ class JOOQQueryEngineTest {
     }
 
     @ParameterizedTest
-    @MethodSource("validExpressions")
-    void findAllValidExpression(ThunkExpression<Boolean> expression) {
+    @MethodSource("validExpressionsInvoice")
+    void findAllValidExpressionInvoice(ThunkExpression<Boolean> expression) {
         var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, null);
         var results = slice.getEntities();
 
@@ -586,6 +597,26 @@ class JOOQQueryEngineTest {
         var result = results.getFirst();
         var primaryKey = result.getId();
         assertEquals(INVOICE1_ID, primaryKey);
+    }
+
+    static Stream<ThunkExpression<Boolean>> validExpressionsProduct() {
+        return Stream.of(
+                // contentgrid full-text search
+                StringComparison.contentGridFullTextSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("description")),
+                        Scalar.of("test")
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validExpressionsProduct")
+    void findAllValidExpressionProduct(ThunkExpression<Boolean> expression) {
+        var slice = queryEngine.findAll(APPLICATION, PRODUCT, expression, null, null);
+        var results = slice.getEntities();
+
+        assertEquals(2, results.size());
+        assertThat(results.stream().map(EntityData::getId).toList()).contains(PRODUCT1_ID, PRODUCT4_ID);
     }
 
     static Stream<ThunkExpression<Boolean>> invalidExpressions() {

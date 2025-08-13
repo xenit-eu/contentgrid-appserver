@@ -47,6 +47,10 @@ public sealed class StringFunctionExpression implements CustomFunctionExpression
         return new ContentGridPrefixSearchNormalizeExpression(term);
     }
 
+    public static ContentGridFullTextSearchNormalizeExpression contentGridFullTextSearchNormalizeExpression(@NonNull ThunkExpression<?> term) {
+        return new ContentGridFullTextSearchNormalizeExpression(term);
+    }
+
     public static final class NormalizeExpression extends StringFunctionExpression {
 
         private NormalizeExpression(@NonNull ThunkExpression<?> term) {
@@ -58,6 +62,12 @@ public sealed class StringFunctionExpression implements CustomFunctionExpression
 
         private ContentGridPrefixSearchNormalizeExpression(@NonNull ThunkExpression<?> term) {
             super("cg_prefix_search_normalize", term);
+        }
+    }
+
+    public static final class ContentGridFullTextSearchNormalizeExpression extends StringFunctionExpression {
+        public ContentGridFullTextSearchNormalizeExpression(@NonNull ThunkExpression<?> term) {
+            super("cg_fulltext_search_normalize", term);
         }
     }
 }

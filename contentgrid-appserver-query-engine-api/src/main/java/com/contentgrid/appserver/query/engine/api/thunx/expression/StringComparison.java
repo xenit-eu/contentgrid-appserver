@@ -26,6 +26,10 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new StartsWith(leftTerm, rightTerm);
     }
 
+    public static Comparison fulltext(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        return new Fulltext(leftTerm, rightTerm);
+    }
+
     public static Comparison normalizedEqual(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
         return Comparison.areEqual(
                 StringFunctionExpression.normalize(leftTerm),
@@ -40,10 +44,23 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         );
     }
 
+    public static Comparison contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        return fulltext(
+                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(leftTerm),
+                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(rightTerm)
+        );
+    }
+
     public static final class StartsWith extends StringComparison {
 
         private StartsWith(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
             super("starts_with", leftTerm, rightTerm);
+        }
+    }
+
+    public static final class Fulltext extends StringComparison {
+        private Fulltext(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
+            super("fulltext", leftTerm, rightTerm);
         }
     }
 }
