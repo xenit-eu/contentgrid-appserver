@@ -11,12 +11,12 @@ import lombok.NonNull;
 import lombok.Value;
 
 /**
- * A search filter that performs full text search on the given attribute for the given value.
- * It supports text-type attributes
+ * A search filter that performs full text search on the given attribute for the given value. It supports text-type
+ * attributes
  */
 @EqualsAndHashCode(callSuper = true)
 @Value
-public class FullTextSearchFilter extends AttributeSearchFilter{
+public class FullTextSearchFilter extends AttributeSearchFilter {
 
     /**
      * Constructa a FullTextSearchFilter with specified parameters.
@@ -27,7 +27,8 @@ public class FullTextSearchFilter extends AttributeSearchFilter{
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
     @Builder
-    FullTextSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType) throws InvalidSearchFilterException {
+    FullTextSearchFilter(@NonNull FilterName name, @NonNull PropertyPath attributePath, @NonNull Type attributeType)
+            throws InvalidSearchFilterException {
         super(name, attributePath, attributeType);
     }
 
@@ -37,6 +38,7 @@ public class FullTextSearchFilter extends AttributeSearchFilter{
     }
 
     public static class FullTextSearchFilterBuilder {
+
         public FullTextSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
             this.attributePath = PropertyPath.of(attribute.getName());
             this.attributeType = attribute.getType();
