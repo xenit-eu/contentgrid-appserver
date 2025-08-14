@@ -43,6 +43,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -242,6 +244,15 @@ class JOOQTableCreatorTest {
             .targetReference(ColumnName.of("next_invoice"))
             .build();
 
+    private static final List<String> PARADEDB_META_TABLES = List.of(
+            "spatial_ref_sys_pkey",
+            "spatial_ref_sys",
+            "geometry_dump",
+            "valid_detail",
+            "geography_columns",
+            "geometry_columns"
+    );
+
     @Autowired
     private DSLContext dslContext;
 
@@ -251,19 +262,19 @@ class JOOQTableCreatorTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-
     private List<String> getTables(String dbSchema) {
         // Get all tables for the given schema
         return jdbcTemplate.execute((Connection con) -> {
             List<String> result = new ArrayList<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for tables in schema: %s%n", dbSchema);
+            log.debug("Querying metadata for tables in schema: {}", dbSchema);
 
             try (ResultSet columns = metaData.getTables(null, dbSchema, null, null)) {
                 while (columns.next()) {
                     String table = columns.getString("TABLE_NAME");
                     result.add(table);
+                    log.debug("Found table: {}", table);
                 }
             }
             return result; // Return the list from the callback
@@ -278,7 +289,7 @@ class JOOQTableCreatorTest {
             Map<String, String> columnData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for columns in table: %s.%s%n", dbSchema, tableName);
+            log.debug("Querying metadata for columns in table: {}.{}", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getColumns(null, dbSchema, tableName, null)) {
                 boolean foundColumn = false;
@@ -288,7 +299,7 @@ class JOOQTableCreatorTest {
                     String typeName = columns.getString("TYPE_NAME");
                     int dataType = columns.getInt("DATA_TYPE");
 
-                   log.debug("Found column: %s, DB Type: %s, SQL Type: %d%n",
+                   log.debug("Found column: {}, DB Type: {}, SQL Type: {}",
                             columnName, typeName, dataType);
 
                     // Store details (lowercase key for consistent comparison)
@@ -309,7 +320,7 @@ class JOOQTableCreatorTest {
             Map<String, String> foreignKeyData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for foreign keys in table: %s.%s%n", dbSchema, tableName);
+            log.debug("Querying metadata for foreign keys in table: {}.{}", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getImportedKeys(null, dbSchema, tableName)) {
                 while (columns.next()) {
@@ -341,7 +352,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     @Test
@@ -378,7 +389,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     // Decimal and numeric are synonyms in PostgreSQL
@@ -430,7 +441,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     @Test
@@ -459,7 +470,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     static Stream<Relation> oneToOneRelations() {
@@ -490,7 +501,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     @Test
@@ -519,11 +530,11 @@ class JOOQTableCreatorTest {
         assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
 
         // Drop tables should fail too
         assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
-        assertTrue(getTables("public").isEmpty());
+        assertTrue(getTables("public").stream().filter(table -> !PARADEDB_META_TABLES.contains(table)).toList().isEmpty());
     }
 
     @SpringBootApplication
