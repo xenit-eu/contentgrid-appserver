@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.jooq;
+package com.contentgrid.appserver.test.testcontainers;
 
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.ImageNameSubstitutor;
