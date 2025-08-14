@@ -452,12 +452,13 @@ class JOOQQueryEngineTest {
                 .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
                 .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
                 .execute();
-//        dslContext.query("CREATE INDEX :idxName ON :targetTable USING :paradeBm25Func (:indexColumnNames) WITH (key_field=:keyField) ",
-//                DSL.field("idx_fts_product"),
-//                DSL.table("product"),
-//                DSL.field("bm25"),
-//                DSL.field("description"),
-//                DSL.field("id")).execute();
+        // TODO replace with IndexCreator in setup once implemented?
+        dslContext.query("CREATE INDEX :idxName ON :targetTable USING :paradeBm25Func (:indexColumnNames) WITH (:keyField) ",
+                DSL.field("idx_fts_product"),
+                DSL.table("product"),
+                DSL.field("bm25"),
+                DSL.field("id, description"),
+                DSL.field("key_field='id'")).execute();
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {

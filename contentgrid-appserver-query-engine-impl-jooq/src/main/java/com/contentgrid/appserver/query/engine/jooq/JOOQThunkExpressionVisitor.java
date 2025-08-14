@@ -13,7 +13,9 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.CustomFunctionExpression;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.Fulltext;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.StartsWith;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.ContentGridFullTextSearchNormalizeExpression;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.ContentGridPrefixSearchNormalizeExpression;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.NormalizeExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
@@ -174,6 +176,11 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             var rightField = startsWith.getRightTerm().accept(this, context);
                             yield ((Field<Object>) leftField).startsWith((Field<Object>) rightField);
                         }
+                        case Fulltext fulltext -> {
+                            var leftField = fulltext.getLeftTerm().accept(this, context);
+                            var rightField = fulltext.getRightTerm().accept(this, context);
+                            yield DSL.field(DSL.sql(":leftField @@@ :rightField", leftField, rightField), String.class);
+                        }
                         case NormalizeExpression normalizeExpression -> {
                             var field = normalizeExpression.getTerm().accept(this, context);
                             yield DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
@@ -181,6 +188,11 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         case ContentGridPrefixSearchNormalizeExpression expression -> {
                             var field = expression.getTerm().accept(this, context);
                             yield DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
+                        }
+                        case ContentGridFullTextSearchNormalizeExpression expression -> {
+                            // TODO: Do we actually need/want to normalize input for fts
+                            var field = expression.getTerm().accept(this, context);
+                            yield DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
                         }
                         default -> throw new InvalidThunkExpressionException(
                                 "Function expression with type %s is not supported.".formatted(

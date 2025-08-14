@@ -65,6 +65,7 @@ public sealed class StringFunctionExpression implements CustomFunctionExpression
         }
     }
 
+    // TODO: Do we actually need/want to normalize input for fts
     public static final class ContentGridFullTextSearchNormalizeExpression extends StringFunctionExpression {
         public ContentGridFullTextSearchNormalizeExpression(@NonNull ThunkExpression<?> term) {
             super("cg_fulltext_search_normalize", term);

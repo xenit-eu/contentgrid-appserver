@@ -45,9 +45,13 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
     }
 
     public static Comparison contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        // TODO: Do we actually need/want to normalize input for fts
         return fulltext(
-                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(leftTerm),
-                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(rightTerm)
+//                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(leftTerm),
+//                StringFunctionExpression.contentGridFullTextSearchNormalizeExpression(rightTerm)
+//                StringFunctionExpression.normalize(leftTerm),
+//                StringFunctionExpression.normalize(rightTerm)
+                leftTerm, rightTerm
         );
     }
 

@@ -7,7 +7,7 @@ public class ContainerImageNameSubstitutor extends ImageNameSubstitutor {
 
     @Override
     public DockerImageName apply(DockerImageName originalImageName) {
-        if (originalImageName.getRepository().contains("postgresql")) {
+        if (originalImageName.getRepository().contains("postgres")) {
             return DockerImageName.parse("paradedb/paradedb:latest");
         } else {
             return originalImageName;
