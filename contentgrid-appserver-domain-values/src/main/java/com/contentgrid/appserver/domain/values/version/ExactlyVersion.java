@@ -13,7 +13,7 @@ import lombok.Value;
  * otherwise the request must be rejected.
  * When used in responses from the query engine, it indicates the version of the object at the time the operation was performed.
  */
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Value
 public class ExactlyVersion implements Version {
 
@@ -22,12 +22,12 @@ public class ExactlyVersion implements Version {
 
     @Override
     public String toString() {
-        return "exactly version '%s'".formatted(version);
+        return "exactly '%s'".formatted(version);
     }
 
     @Override
     public boolean isSatisfiedBy(@NonNull Version otherVersion) {
-        return otherVersion instanceof com.contentgrid.appserver.domain.values.version.ExactlyVersion exactlyEntityVersion && Objects.equals(
-                exactlyEntityVersion.getVersion(), version);
+        return otherVersion instanceof ExactlyVersion exactlyEntityVersion
+                && Objects.equals(exactlyEntityVersion.getVersion(), version);
     }
 }

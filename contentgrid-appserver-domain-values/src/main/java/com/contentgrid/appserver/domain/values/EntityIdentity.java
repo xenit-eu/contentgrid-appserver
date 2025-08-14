@@ -32,4 +32,8 @@ public class EntityIdentity {
     public String toString() {
         return "Entity '%s' %s (%s)".formatted(entityName, entityId, version);
     }
+
+    public EntityRequest toRequest() {
+        return new EntityRequest(entityName, entityId, version);
+    }
 }

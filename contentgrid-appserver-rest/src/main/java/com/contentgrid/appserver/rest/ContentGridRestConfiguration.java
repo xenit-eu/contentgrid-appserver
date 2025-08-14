@@ -38,6 +38,7 @@ public class ContentGridRestConfiguration {
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
                 resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
+                resolvers.add(new VersionConstraintArgumentResolver());
             }
 
             @Override
@@ -61,6 +62,7 @@ public class ContentGridRestConfiguration {
                         return entityId.getValue().toString();
                     }
                 });
+                registry.addConverter(new VersionConstraintArgumentResolver());
             }
         };
     }

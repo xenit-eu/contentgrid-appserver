@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -110,6 +111,13 @@ public class ContentgridAppConfiguration {
                 .table(TableName.of("person"))
                 .pathSegment(PathSegmentName.of("persons"))
                 .linkName(LinkName.of("persons"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("_version"))
+                        .column(ColumnName.of("_version"))
+                        .type(Type.LONG)
+                        .flag(ETagFlag.INSTANCE)
+                        .build()
+                )
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("first_name"))
                         .description("First name")

@@ -43,16 +43,16 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.domain.values.EntityIdentity;
-import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -832,7 +832,7 @@ class JOOQQueryEngineTest {
     void createEntityValidData(EntityCreateData data) {
         var createdEntity = queryEngine.create(APPLICATION, data);
         var entity = APPLICATION.getEntityByName(data.getEntityName()).orElseThrow();
-        var actual = queryEngine.findById(APPLICATION, createdEntity.getIdentity()).orElseThrow();
+        var actual = queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest()).orElseThrow();
 
         // Create EntityData with same structure for comparison
         var expectedEntityData = new EntityData(createdEntity.getIdentity(), data.getAttributes());
@@ -1264,9 +1264,9 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validUpdateData")
     void updateEntityValidData(EntityData data) {
-        var old = queryEngine.findById(APPLICATION, data.getIdentity()).orElseThrow();
+        var old = queryEngine.findById(APPLICATION, data.getIdentity().toRequest()).orElseThrow();
         var updateResult = queryEngine.update(APPLICATION, data);
-        var updated = queryEngine.findById(APPLICATION, data.getIdentity()).orElseThrow();
+        var updated = queryEngine.findById(APPLICATION, data.getIdentity().toRequest()).orElseThrow();
 
         assertEntityDataEquals(updateResult.getOriginal(), old);
         assertEntityDataEquals(updateResult.getUpdated(), updated);
@@ -1399,7 +1399,7 @@ class JOOQQueryEngineTest {
 
     @Test
     void updateEntityInvalidVersion() {
-        var existingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID))
+        var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
                 .orElseThrow();
 
         assertThrows(UnsatisfiedVersionException.class, () -> queryEngine.update(APPLICATION, EntityData.builder()
@@ -1411,14 +1411,15 @@ class JOOQQueryEngineTest {
                 .build())
         );
 
-        var newEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)).orElseThrow();
+        var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
+                .orElseThrow();
 
         assertEntityDataEquals(existingEntity, newEntity);
     }
 
     @Test
     void updateEntityValidVersion() {
-        var existingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID))
+        var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
                 .orElseThrow();
 
         var newValue = "NEW VALUE";
@@ -1429,7 +1430,8 @@ class JOOQQueryEngineTest {
                 .attribute(new SimpleAttributeData<>(INVOICE_NUMBER.getName(), newValue))
                 .build());
 
-        var newEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)).orElseThrow();
+        var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
+                .orElseThrow();
 
         assertEntityDataEquals(existingEntity, updateResult.getOriginal());
         assertEntityDataEquals(newEntity, updateResult.getUpdated());
@@ -1442,7 +1444,7 @@ class JOOQQueryEngineTest {
 
     @Test
     void updateVersionedEntityMultipleTimes() {
-        var existingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID))
+        var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
                 .orElseThrow();
         var newValue = "NEW VALUE";
         var identity = existingEntity.getIdentity();
@@ -1463,7 +1465,8 @@ class JOOQQueryEngineTest {
             versions.add(identity.getVersion());
         }
 
-        var newEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)).orElseThrow();
+        var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
+                .orElseThrow();
         var newAttributeData = newEntity.getAttributeByName(INVOICE_NUMBER.getName()).orElseThrow();
 
         assertEquals("NEW VALUE24", ((SimpleAttributeData<String>)newAttributeData).getValue());
@@ -1495,9 +1498,10 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validDeleteData")
     void deleteEntityValidId(Entity entity, EntityId id) {
-        var originalData = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(entity.getName(), id)).orElseThrow();
-        var deletedData = queryEngine.delete(APPLICATION, EntityIdentity.forEntity(entity.getName(), id));
-        var maybeData = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(entity.getName(), id));
+        var originalData = queryEngine.findById(APPLICATION, EntityRequest.forEntity(entity.getName(), id))
+                .orElseThrow();
+        var deletedData = queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id));
+        var maybeData = queryEngine.findById(APPLICATION, EntityRequest.forEntity(entity.getName(), id));
 
         assertTrue(deletedData.isPresent());
         assertTrue(maybeData.isEmpty());
@@ -1507,7 +1511,8 @@ class JOOQQueryEngineTest {
 
     @Test
     void deleteEntityNonExistingId() {
-        var deleted = queryEngine.delete(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())));
+        var deleted = queryEngine.delete(APPLICATION,
+                EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())));
 
         assertTrue(deleted.isEmpty());
         assertNothingChanged();
@@ -1524,38 +1529,40 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidDeleteData")
     void deleteEntityInvalidId(Entity entity, EntityId id) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.delete(APPLICATION, EntityIdentity.forEntity(entity.getName(), id)));
+        assertThrows(QueryEngineException.class,
+                () -> queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id)));
         assertNothingChanged();
     }
 
     @Test
     void deleteEntityInvalidVersion() {
-        var existingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID))
+        var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
                 .orElseThrow();
 
         assertThrows(UnsatisfiedVersionException.class, () -> queryEngine.delete(
                 APPLICATION,
-                EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)
+                EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID)
                         // This does not match the version specified during entity setup
-                        .withVersion(Version.exactly("5"))
+                        .withVersionConstraint(Version.exactly("5"))
         ));
 
-        var keptEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)).orElseThrow();
+        var keptEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
+                .orElseThrow();
 
         assertEntityDataEquals(existingEntity, keptEntity);
     }
 
     @Test
     void deleteEntityValidVersion() {
-        var existingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID))
+        var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID))
                 .orElseThrow();
 
-        var removedData = queryEngine.delete(APPLICATION, existingEntity.getIdentity());
+        var removedData = queryEngine.delete(APPLICATION, existingEntity.getIdentity().toRequest());
 
         assertTrue(removedData.isPresent());
         assertEntityDataEquals(existingEntity, removedData.get());
 
-        var missingEntity = queryEngine.findById(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID));
+        var missingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID));
         assertTrue(missingEntity.isEmpty());
     }
 

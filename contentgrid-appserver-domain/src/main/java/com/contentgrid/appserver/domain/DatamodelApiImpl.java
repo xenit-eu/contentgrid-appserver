@@ -7,27 +7,27 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
+import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
-import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
-import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ContentAttributeModificationValidator;
-import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
+import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
-import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -105,9 +105,9 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public Optional<EntityData> findById(
             @NonNull Application application,
-            @NonNull EntityIdentity identity
+            @NonNull EntityRequest entityRequest
     ) throws EntityNotFoundException {
-        return queryEngine.findById(application, identity);
+        return queryEngine.findById(application, entityRequest);
     }
 
     @Override
@@ -153,12 +153,17 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData update(@NonNull Application application,
-            @NonNull EntityIdentity identity, @NonNull RequestInputData data)
+            @NonNull EntityRequest entityRequest, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, identity).orElse(null);
+        var existingEntity = queryEngine.findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
+                        entityRequest.getEntityName(),
+                        entityRequest.getEntityId()
+                ));
+
         var inputMapper = createInputDataMapper(
                 application,
-                identity.getEntityName(),
+                entityRequest.getEntityName(),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -172,7 +177,8 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
-        var entityData = new EntityData(identity, inputMapper.mapAttributes(usageTrackingRequestData));
+        var entityData = new EntityData(existingEntity.getIdentity(),
+                inputMapper.mapAttributes(usageTrackingRequestData));
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
@@ -186,12 +192,16 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData updatePartial(@NonNull Application application,
-            @NonNull EntityIdentity identity, @NonNull RequestInputData data)
+            @NonNull EntityRequest entityRequest, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, identity).orElse(null);
+        var existingEntity = queryEngine.findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
+                        entityRequest.getEntityName(),
+                        entityRequest.getEntityId()
+                ));
         var inputMapper = createInputDataMapper(
                 application,
-                identity.getEntityName(),
+                entityRequest.getEntityName(),
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
                         // Validate that content attribute is not partially set
@@ -205,7 +215,8 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
-        var entityData = new EntityData(identity, inputMapper.mapAttributes(usageTrackingRequestData));
+        var entityData = new EntityData(existingEntity.getIdentity(),
+                inputMapper.mapAttributes(usageTrackingRequestData));
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {

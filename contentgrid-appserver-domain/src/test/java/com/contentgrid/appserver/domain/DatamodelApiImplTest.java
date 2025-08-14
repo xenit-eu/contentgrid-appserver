@@ -4,7 +4,6 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.content.api.ContentReference;
@@ -21,13 +20,14 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
@@ -98,26 +98,34 @@ class DatamodelApiImplTest {
     }
 
     void setupEntityQuery() {
-        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any())).then(args -> Optional.of(
-                new EntityData(
-                        args.getArgument(1, EntityIdentity.class),
-                        List.of()
-                )
-        ));
+        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any())).then(args -> {
+            var request = args.getArgument(1, EntityRequest.class);
+
+            return Optional.of(
+                    new EntityData(
+                            EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
+                            List.of()
+                    )
+            );
+        });
     }
 
     void setupEntityQueryWithContent(String contentId) {
-        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any())).then(args -> Optional.of(
-                new EntityData(
-                        args.getArgument(1, EntityIdentity.class),
-                        List.of(
-                                CompositeAttributeData.builder()
-                                        .name(INVOICE_CONTENT.getName())
-                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), contentId))
-                                        .build()
-                        )
-                )
-        ));
+        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any())).then(args -> {
+            var request = args.getArgument(1, EntityRequest.class);
+            return Optional.of(
+                    new EntityData(
+                            EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
+                            List.of(
+                                    CompositeAttributeData.builder()
+                                            .name(INVOICE_CONTENT.getName())
+                                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(),
+                                                    contentId))
+                                            .build()
+                            )
+                    )
+            );
+        });
 
     }
 
@@ -476,7 +484,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
                     "received", Instant.now(clock),
@@ -511,7 +520,8 @@ class DatamodelApiImplTest {
         void missingRequiredProperties_fails() {
             setupEntityQuery();
             assertThatThrownBy(() -> {
-                datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
+                datamodelApi.update(APPLICATION,
+                        EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "received", Instant.now(clock),
                                 "confidentiality", "public"
@@ -543,7 +553,8 @@ class DatamodelApiImplTest {
             setupEntityQueryWithContent("content.bin");
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
@@ -582,7 +593,8 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             setupEntityQueryWithContent(null);
             assertThatThrownBy(() -> {
-                datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+                datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                        MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
                         "amount", 1.50,
                         "content", Map.of(
@@ -611,7 +623,8 @@ class DatamodelApiImplTest {
             setupEntityQueryWithContent("content.bin");
             var entityId = EntityId.of(UUID.randomUUID());
             assertThatThrownBy(() -> {
-                datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+                datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                        MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
                         "amount", 1.50,
                         "content", Map.of(
@@ -640,7 +653,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
@@ -688,7 +702,8 @@ class DatamodelApiImplTest {
 
             Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 50));
 
-            datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
@@ -736,7 +751,8 @@ class DatamodelApiImplTest {
             setupEntityQuery();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
                     "confidentiality", "public",
@@ -763,7 +779,8 @@ class DatamodelApiImplTest {
         void nullRequiredProperties_fails() {
             setupEntityQuery();
             assertThatThrownBy(() -> {
-                datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
+                datamodelApi.updatePartial(APPLICATION,
+                        EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "number", NullDataEntry.INSTANCE // Required value set to null
                         )));
@@ -793,7 +810,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
             )));
 
@@ -817,7 +835,8 @@ class DatamodelApiImplTest {
 
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "content", Map.of(
                             "filename", "file-123.pdf",
                             "mimetype", MissingDataEntry.INSTANCE,
@@ -846,7 +865,8 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             setupEntityQuery();
             assertThatThrownBy(() -> {
-                datamodelApi.update(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+                datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                        MapRequestInputData.fromMap(Map.of(
                         "number", "invoice-1",
                         "amount", 1.50,
                         "confidentiality", "public",
@@ -876,7 +896,8 @@ class DatamodelApiImplTest {
             setupEntityQueryWithContent("content.bin");
             var entityId = EntityId.of(UUID.randomUUID());
             assertThatThrownBy(() -> {
-                datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+                datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                        MapRequestInputData.fromMap(Map.of(
                         "content", Map.of(
                                 "filename", "file-123.pdf",
                                 "mimetype", NullDataEntry.INSTANCE
@@ -902,7 +923,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "content", Map.of(
                             "filename", "test132.pdf",
                             "mimetype", MissingDataEntry.INSTANCE
@@ -933,7 +955,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "content", Map.of(
                             "filename", NullDataEntry.INSTANCE,
                             "mimetype", "application/pdf"
@@ -965,7 +988,8 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "content", Map.of(
                             "filename", MissingDataEntry.INSTANCE,
                             "mimetype", "application/pdf"
@@ -999,7 +1023,8 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture()))
                     .thenReturn(new UpdateResult(entity, entity));
             Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 150));
-            datamodelApi.updatePartial(APPLICATION, EntityIdentity.forEntity(INVOICE.getName(), entityId), MapRequestInputData.fromMap(Map.of(
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
             )));
 

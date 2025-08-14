@@ -17,7 +17,7 @@ public final class UnspecifiedVersion implements Version {
 
     @Override
     public String toString() {
-        return "any version";
+        return "unspecified";
     }
 
     @Override

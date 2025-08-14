@@ -13,7 +13,7 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
@@ -124,27 +124,27 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityIdentity identity) {
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest) {
         var dslContext = resolver.resolve(application);
-        var entity = application.getRequiredEntityByName(identity.getEntityName());
+        var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
         var alias = getRootAlias(entity);
         var table = JOOQUtils.resolveTable(entity, alias);
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         return dslContext.selectFrom(table)
-                .where(primaryKey.eq(identity.getEntityId().getValue()))
+                .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
                 .fetchOptional()
                 .map(Record::intoMap)
                 .map(result -> EntityDataMapper.from(entity, result))
-                .map(checkVersionSatisfied(identity));
+                .map(checkVersionSatisfied(entityRequest));
     }
 
-    private static @NotNull Function<EntityData, EntityData> checkVersionSatisfied(@NotNull EntityIdentity identity) {
+    private static @NotNull Function<EntityData, EntityData> checkVersionSatisfied(@NotNull EntityRequest entityRequest) {
         return entityData -> {
-            if (!identity.getVersion().isSatisfiedBy(entityData.getIdentity().getVersion())) {
+            if (!entityRequest.getVersionConstraint().isSatisfiedBy(entityData.getIdentity().getVersion())) {
                 throw new UnsatisfiedVersionException(
                         entityData.getIdentity().getVersion(),
-                        identity.getVersion()
+                        entityRequest.getVersionConstraint()
                 );
             }
             return entityData;
@@ -290,7 +290,7 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         try {
-            var oldValue = findById(application, data.getIdentity())
+            var oldValue = findById(application, data.getIdentity().toRequest())
                     .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
 
             var newValue = update
@@ -338,20 +338,20 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityIdentity identity)
+    public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = application.getRequiredEntityByName(identity.getEntityName());
+        var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
         try {
             return dslContext.deleteFrom(table)
-                    .where(primaryKey.eq(identity.getEntityId().getValue()))
+                    .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
-                    .map(checkVersionSatisfied(identity));
+                    .map(checkVersionSatisfied(entityRequest));
 
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
