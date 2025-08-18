@@ -10,7 +10,9 @@ import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -25,11 +27,13 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
@@ -44,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -54,6 +59,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ContentRestController {
 
     private final ContentApi contentApi;
+    private final ConversionService conversionService;
 
     private EntityAndContentAttribute resolve(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         var entity = application.getEntityByPathSegment(entityName).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -76,7 +82,9 @@ public class ContentRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            @PathVariable PathSegmentName propertyName
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest
     ) {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -86,6 +94,20 @@ public class ContentRestController {
                 instanceId,
                 entityAndContent.attributeName()
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        var eTag = calculateETag(content);
+
+        // First check not-modified for a 304 response before performing If-Match validation (with a 412 response)
+        if(webRequest.checkNotModified(eTag)) {
+            return null;
+        }
+
+        if(!versionConstraint.isSatisfiedBy(content.getVersion())) {
+            throw new UnsatisfiedVersionException(
+                    content.getVersion(),
+                    versionConstraint
+            );
+        }
 
         var resource = toResource(content, parseRanges(httpHeaders));
 
@@ -101,6 +123,7 @@ public class ContentRestController {
 
         return ResponseEntity.ok()
                 .contentType(contentType)
+                .eTag(eTag)
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .body(resource);
     }
@@ -142,6 +165,12 @@ public class ContentRestController {
         return new ContentResource(content.withByteRange(start, end));
     }
 
+    private String calculateETag(Content result) {
+        return Optional.ofNullable(conversionService.convert(result.getVersion(), ETag.class))
+                .map(ETag::formattedTag)
+                .orElse(null);
+    }
+
     /*
      * Doing a custom implementation for HEAD here instead of the default that calls the GET method and
      * discards the body.
@@ -163,9 +192,11 @@ public class ContentRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            @PathVariable PathSegmentName propertyName
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest
     ) {
-        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName);
+        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest);
 
         return ResponseEntity.status(response.getStatusCode())
                 .headers(response.getHeaders())
@@ -179,6 +210,7 @@ public class ContentRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
+            VersionConstraint versionConstraint,
             @RequestBody InputStreamResource requestBody
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
@@ -190,18 +222,20 @@ public class ContentRestController {
         );
 
         try {
-            contentApi.update(
+            var newContent = contentApi.update(
                     application,
                     entityAndContent.entityName(),
                     instanceId,
                     entityAndContent.attributeName(),
+                    versionConstraint,
                     fileData
             );
+            return ResponseEntity.noContent()
+                    .eTag(calculateETag(newContent))
+                    .build();
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-
-        return ResponseEntity.noContent().build();
     }
 
     @RequestMapping(method = {RequestMethod.POST, RequestMethod.PUT}, consumes = "multipart/form-data")
@@ -210,6 +244,7 @@ public class ContentRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
             @RequestParam MultipartFile file
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
@@ -222,18 +257,20 @@ public class ContentRestController {
         );
 
         try {
-            contentApi.update(
+            var newContent = contentApi.update(
                     application,
                     entityAndContent.entityName(),
                     instanceId,
                     entityAndContent.attributeName(),
+                    versionConstraint,
                     fileData
             );
+            return ResponseEntity.noContent()
+                    .eTag(calculateETag(newContent))
+                    .build();
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-
-        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping
@@ -241,7 +278,8 @@ public class ContentRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            @PathVariable PathSegmentName propertyName
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
         try {
@@ -249,7 +287,8 @@ public class ContentRestController {
                     application,
                     entityAndContent.entityName(),
                     instanceId,
-                    entityAndContent.attributeName()
+                    entityAndContent.attributeName(),
+                    versionConstraint
             );
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);

@@ -7,6 +7,8 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -20,11 +22,12 @@ public interface ContentApi {
             @NonNull AttributeName attributeName
     ) throws EntityNotFoundException;
 
-    void update(
+    Content update(
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull EntityId id,
             @NonNull AttributeName attributeName,
+            @NonNull VersionConstraint versionConstraint,
             @NonNull FileDataEntry file
     ) throws InvalidPropertyDataException;
 
@@ -32,7 +35,8 @@ public interface ContentApi {
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull EntityId id,
-            @NonNull AttributeName attributeName
+            @NonNull AttributeName attributeName,
+            @NonNull VersionConstraint versionConstraint
     ) throws InvalidPropertyDataException;
 
     /**
@@ -63,6 +67,7 @@ public interface ContentApi {
 
         InputStream getInputStream() throws IOException;
 
+        Version getVersion();
     }
 
 }

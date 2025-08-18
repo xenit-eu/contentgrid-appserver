@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
@@ -328,6 +329,7 @@ public class JOOQQueryEngine implements QueryEngine {
     private Version previousVersion(@NonNull Version version, long versionIncrement) {
         return switch (version) {
             case UnspecifiedVersion unspecifiedVersion -> unspecifiedVersion;
+            case NonExistingVersion nonExistingVersion -> nonExistingVersion;
             case ExactlyVersion exactlyVersion -> {
                 var current = Long.parseLong(exactlyVersion.getVersion(), Character.MAX_RADIX);
                 // Note: needs floorMod, so we always have a positive modulus, even when current is small and versionIncrement is large

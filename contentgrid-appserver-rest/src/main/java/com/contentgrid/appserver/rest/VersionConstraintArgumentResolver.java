@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.rest;
 
+import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
@@ -14,10 +16,13 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Resolves ETags from If-Match/If-None-Match headers to {@link VersionConstraint} objects
@@ -67,7 +72,14 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
             return Stream.empty();
         }
         return Arrays.stream(headers)
-                .flatMap(header -> ETag.parse(header).stream());
+                .flatMap(header -> {
+                    var parsed = ETag.parse(header);
+                    if(StringUtils.hasText(header) && parsed.isEmpty()) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ETag in header");
+                    }
+
+                    return parsed.stream();
+                });
     }
 
     @Override
@@ -80,6 +92,7 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
             // And since we don't serve partial content in response to range-requests on entity endpoints,
             // a not byte-for-byte identical response with the same ETag should not be a problem.
             case ExactlyVersion exactlyEntityVersion -> new ETag(exactlyEntityVersion.getVersion(), false);
+            case NonExistingVersion ignored -> null;
         };
     }
 

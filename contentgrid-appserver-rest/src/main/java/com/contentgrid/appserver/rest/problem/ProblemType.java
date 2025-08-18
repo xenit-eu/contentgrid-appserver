@@ -17,6 +17,7 @@ public enum ProblemType implements ProblemTypeResolvable {
     INVALID_REQUEST_BODY("invalid-request-body"),
     INVALID_REQUEST_BODY_TYPE("invalid-request-body", "type"),
     INVALID_REQUEST_BODY_JSON("invalid-request-body", "json"),
+    UNSATISFIED_VERSION("unsatisfied-version"),
     ;
 
     ProblemType(String... params) {

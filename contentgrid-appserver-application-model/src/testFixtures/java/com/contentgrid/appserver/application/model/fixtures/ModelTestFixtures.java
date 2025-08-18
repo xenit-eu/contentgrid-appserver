@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.fixtures;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
@@ -11,6 +12,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -197,6 +199,13 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
+    public static final Attribute INVOICE_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("_version"))
+            .type(Type.LONG)
+            .column(ColumnName.of("_version"))
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
     public static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
@@ -204,6 +213,7 @@ public class ModelTestFixtures {
             .linkName(LinkName.of("invoices"))
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
+            .attribute(INVOICE_VERSION)
             .attribute(INVOICE_RECEIVED)
             .attribute(INVOICE_PAY_BEFORE)
             .attribute(INVOICE_IS_PAID)

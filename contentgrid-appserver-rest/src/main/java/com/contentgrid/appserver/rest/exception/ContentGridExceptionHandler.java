@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.rest.exception;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
@@ -82,6 +84,20 @@ public class ContentGridExceptionHandler {
         }
 
         return message + " at " + location.offsetDescription();
+    }
+
+    @ExceptionHandler(UnsatisfiedVersionException.class)
+    ResponseEntity<Problem> handleUnsatisfiedVersionException(UnsatisfiedVersionException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.UNSATISFIED_VERSION)
+                        .withStatus(HttpStatus.PRECONDITION_FAILED)
+                        .withDetail(exception.getMessage())
+                        .withProperties(properties -> {
+                            if(exception.getActualVersion() instanceof ExactlyVersion exactlyVersion) {
+                                properties.put("actual-version", exactlyVersion.getVersion());
+                            }
+                        })
+        );
     }
 
     @ExceptionHandler(InvalidSortParameterException.class)

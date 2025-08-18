@@ -75,7 +75,24 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the update operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData update(@NonNull Application application, @NonNull EntityRequest entityRequest,
+    default EntityData update(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var original = findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+        return update(application, original, data);
+    }
+
+    /**
+     * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
+     *
+     * @param application the application context
+     * @param original the original data of the entity to update
+     * @param data the updated data for the entity
+     * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
+     */
+    EntityData update(@NonNull Application application, @NonNull EntityData original,
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -89,7 +106,25 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the update operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
+    default EntityData updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var original = findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+        return updatePartial(application, original, data);
+    }
+
+    /**
+     * Updates an entity with the given data. Replaces only the attributes present in the given data, other attributes
+     * keep their previous value.
+     *
+     * @param application the application context
+     * @param original the original data of the entity to update
+     * @param data the updated data for the entity
+     * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
+     */
+    EntityData updatePartial(@NonNull Application application, @NonNull EntityData original,
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException;
 

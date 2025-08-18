@@ -153,17 +153,11 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData update(@NonNull Application application,
-            @NonNull EntityRequest entityRequest, @NonNull RequestInputData data)
+            @NonNull EntityData existingEntity, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, entityRequest)
-                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
-                        entityRequest.getEntityName(),
-                        entityRequest.getEntityId()
-                ));
-
         var inputMapper = createInputDataMapper(
                 application,
-                entityRequest.getEntityName(),
+                existingEntity.getIdentity().getEntityName(),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -192,16 +186,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public EntityData updatePartial(@NonNull Application application,
-            @NonNull EntityRequest entityRequest, @NonNull RequestInputData data)
-            throws QueryEngineException, InvalidPropertyDataException {
-        var existingEntity = queryEngine.findById(application, entityRequest)
-                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
-                        entityRequest.getEntityName(),
-                        entityRequest.getEntityId()
-                ));
+            @NonNull EntityData existingEntity,
+            @NonNull RequestInputData data
+    ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
-                entityRequest.getEntityName(),
+                existingEntity.getIdentity().getEntityName(),
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
                         // Validate that content attribute is not partially set

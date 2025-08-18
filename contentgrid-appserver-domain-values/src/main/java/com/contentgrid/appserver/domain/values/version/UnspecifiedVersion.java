@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 /**
- * Places no requirement on the object version.
+ * Places no requirement on the object version, but the object must exist.
  * <p>
  * This type is primarily use for requests to the query engine
  * It may also be returned in a response from the query engine in case that the object does not store version information
@@ -22,6 +22,6 @@ public final class UnspecifiedVersion implements Version {
 
     @Override
     public boolean isSatisfiedBy(@NonNull Version otherVersion) {
-        return true;
+        return otherVersion != NonExistingVersion.INSTANCE;
     }
 }

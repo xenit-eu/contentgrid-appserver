@@ -69,7 +69,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private Link getContentLink(Application application, Entity entity, EntityId id, ContentAttribute attribute) {
         return linkTo(methodOn(ContentRestController.class)
-                .getContent(null, application, entity.getPathSegment(), id, attribute.getPathSegment()))
+                .getContent(null, application, entity.getPathSegment(), id, attribute.getPathSegment(), null, null))
                 .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());
     }
