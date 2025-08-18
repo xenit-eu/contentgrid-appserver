@@ -113,6 +113,11 @@ public class ContentGridExceptionHandler {
                 problemFactory.createProblem(ProblemType.INVALID_SORT_PARAMETER)
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
+                        .withProperties(Map.of(
+                                "all-errors", exception.allExceptions()
+                                        .map(ex -> Map.of("detail", ex.getMessage()))
+                                        .toList()
+                        ))
         );
     }
 

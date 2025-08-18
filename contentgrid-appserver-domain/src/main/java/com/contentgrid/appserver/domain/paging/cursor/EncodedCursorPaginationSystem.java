@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.paging.cursor;
 
 import com.contentgrid.appserver.application.model.values.SortableName;
+import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -27,7 +28,9 @@ public class EncodedCursorPaginationSystem implements PaginationSystem {
     }
 
     private SortData parseSortData(PaginationParameters parameters) {
-        var fields = parameters.getValues(namingStrategy.getSortName(), sort -> {
+        // Use a collector to catch multiple InvalidSortParameterExceptions
+        var collector = new ValidationExceptionCollector<>(InvalidSortParameterException.class);
+        var fields = parameters.getValues(namingStrategy.getSortName(), sort -> collector.use(() -> {
             var split = sort.split(",", 2);
             if (split.length == 2) {
                 try {
@@ -39,7 +42,8 @@ public class EncodedCursorPaginationSystem implements PaginationSystem {
             } else {
                 return new FieldSort(Direction.ASC, SortableName.of(split[0]));
             }
-        });
+        }));
+        collector.rethrow();
         return new SortData(fields);
     }
 }
