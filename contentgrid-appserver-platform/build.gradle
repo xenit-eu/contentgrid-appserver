@@ -13,8 +13,8 @@ dependencies {
     constraints {
         api 'org.hamcrest:hamcrest:3.0'
 
-        api 'com.contentgrid.hateoas:contentgrid-pagination-api:0.0.3'
-        api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.3'
+        api 'com.contentgrid.hateoas:contentgrid-pagination-api:0.0.4'
+        api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:0.0.4'
 
         api 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
 
