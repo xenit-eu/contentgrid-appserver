@@ -81,6 +81,7 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
         var sortData = parseSortData(sort);
+        // TODO use pagination from request parameters (ACC-2200)
         var pagination = new EncodedCursorPagination(null, sortData);
 
         var results = datamodelApi.findAll(application, entity, params, pagination);
