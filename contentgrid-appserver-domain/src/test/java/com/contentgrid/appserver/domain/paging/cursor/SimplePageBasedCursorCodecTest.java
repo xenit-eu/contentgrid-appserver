@@ -70,7 +70,7 @@ class SimplePageBasedCursorCodecTest {
     void encodeCursorFirstPage() {
         var cursor = codec.encodeCursor(new PageBasedPagination(34, 0), ENTITY, SORT, PARAMS);
 
-        assertThat(cursor.cursor()).isEqualTo("0");
+        assertThat(cursor.cursor()).isNull();
         assertThat(cursor.pageSize()).isEqualTo(34);
         assertThat(cursor.sort()).isEqualTo(SORT);
     }

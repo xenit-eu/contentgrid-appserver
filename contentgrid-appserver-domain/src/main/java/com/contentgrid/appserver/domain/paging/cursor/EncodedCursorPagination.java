@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.StandardException;
 
 @Getter
 @RequiredArgsConstructor
@@ -44,21 +43,17 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public Optional<?> getReference() {
-        return Optional.of(cursor);
+        return Optional.ofNullable(cursor);
     }
 
     @Override
     public boolean isFirstPage() {
-        throw new EncodedCursorException("Cursor is encoded, decode it first with CursorCodec#decodeCursor");
+        return cursor == null;
     }
 
     @Override
     public Map<String, Object> getParameters() {
+        // TODO: fix names and filter out null values (see ACC-2200)
         return Map.of("cursor", cursor, "size", size, "sort", sort);
-    }
-
-    @StandardException
-    public static class EncodedCursorException extends RuntimeException {
-
     }
 }
