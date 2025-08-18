@@ -39,7 +39,6 @@ import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.hateoas.pagination.offset.OffsetPagination;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -123,10 +122,10 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
     }
 
-    private OffsetData convertPaginationToOffset(@NonNull Pagination pagination, EntityName entityName, Map<String, String> params) {
+    private OffsetData convertPaginationToOffset(@NonNull EncodedCursorPagination encodedPagination, EntityName entityName, Map<String, String> params) {
+        var pagination = cursorCodec.decodeCursor(encodedPagination.getCursorContext(), entityName, params);
         return switch(pagination) {
-            case OffsetPagination o -> new OffsetData(o.getPageSize(), o.getPageNumber() * o.getPageSize());
-            case EncodedCursorPagination e -> convertPaginationToOffset(cursorCodec.decodeCursor(e.getCursorContext(), entityName.getValue(), params), entityName, params);
+            case OffsetPagination o -> new OffsetData(o.getPageSize(), (int) o.getOffset());
             case PageBasedPagination p -> new OffsetData(p.getSize(), p.getPage() * p.getSize());
             default -> throw new IllegalStateException("Unexpected value: " + pagination);
         };

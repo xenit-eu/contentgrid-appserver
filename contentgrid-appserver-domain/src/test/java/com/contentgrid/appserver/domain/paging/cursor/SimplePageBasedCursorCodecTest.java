@@ -4,6 +4,7 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
@@ -20,7 +21,7 @@ class SimplePageBasedCursorCodecTest {
     CursorCodec codec = new SimplePageBasedCursorCodec();
 
     private static final SortData SORT = new SortData(List.of(new FieldSort(Direction.ASC, SortableName.of("abc")), new FieldSort(Direction.DESC, SortableName.of("def"))));
-    private static final String ENTITY = "test";
+    private static final EntityName ENTITY = EntityName.of("test");
     private static final Map<String, String> PARAMS = Map.of();
 
     @Test

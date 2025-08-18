@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.paging.cursor;
 
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import java.nio.charset.StandardCharsets;
@@ -38,7 +39,7 @@ public class RequestIntegrityCheckCursorCodec implements CursorCodec {
     private static final int CHECKSUM_SIZE = Long.toUnsignedString(0xFF_FF_FF_FFL, Character.MAX_RADIX).length();
 
     @Override
-    public Pagination decodeCursor(CursorContext context, String entityName, Map<String, String> parameters) throws CursorDecodeException {
+    public Pagination decodeCursor(CursorContext context, EntityName entityName, Map<String, String> parameters) throws CursorDecodeException {
 
         return delegate.decodeCursor(context.mapCursor(new UnaryOperator<String>() {
             @Override
@@ -62,7 +63,7 @@ public class RequestIntegrityCheckCursorCodec implements CursorCodec {
     }
 
     @Override
-    public CursorContext encodeCursor(Pagination pagination, String entityName, SortData sort, Map<String, String> params) {
+    public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, String> params) {
         var context = delegate.encodeCursor(pagination, entityName, sort, params);
         return context.mapCursor(c -> {
             var integrityCheck = integrityCheckValue(entityName, params, c, context.pageSize(), context.sort());
@@ -77,11 +78,11 @@ public class RequestIntegrityCheckCursorCodec implements CursorCodec {
      * by older versions of this library. Invalidating existing cursors makes it impossible to perform a zero-downtime
      * deployment of a new version
      */
-    private static String integrityCheckValue(String entityName, Map<String, String> params, String cursor, int pageSize, SortData sort) {
+    private static String integrityCheckValue(EntityName entityName, Map<String, String> params, String cursor, int pageSize, SortData sort) {
         var crc = new CRC32C();
 
         if (entityName != null) {
-            crc.update(entityName.getBytes(StandardCharsets.UTF_8));
+            crc.update(entityName.getValue().getBytes(StandardCharsets.UTF_8));
         }
         crc.update('?');
 

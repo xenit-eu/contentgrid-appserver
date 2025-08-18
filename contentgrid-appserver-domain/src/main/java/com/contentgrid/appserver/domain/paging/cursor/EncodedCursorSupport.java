@@ -19,9 +19,9 @@ public class EncodedCursorSupport {
     ) {
         if (pagination == null) {
             int pageSize = EncodedCursorPagination.PAGE_SIZE;
-            var current = codec.encodeCursor(new PageBasedPagination(pageSize, 0), entity.getValue(), sort, params).cursor();
+            var current = codec.encodeCursor(new PageBasedPagination(pageSize, 0), entity, sort, params).cursor();
             var currentPagination = new EncodedCursorPagination(current, pageSize, sort);
-            var next = codec.encodeCursor(new PageBasedPagination(pageSize, 1), entity.getValue(), sort, params).cursor();
+            var next = codec.encodeCursor(new PageBasedPagination(pageSize, 1), entity, sort, params).cursor();
             return new EncodedCursorPaginationControls(
                     currentPagination,
                     hasNext ? new EncodedCursorPagination(next, pageSize, sort) : null,
@@ -30,12 +30,12 @@ public class EncodedCursorSupport {
             );
         } else {
             var currentPage = (PageBasedPagination)
-                    codec.decodeCursor(pagination.getCursorContext(), entity.getValue(), params);
+                    codec.decodeCursor(pagination.getCursorContext(), entity, params);
             var nextPage = new PageBasedPagination(currentPage.getSize(), currentPage.getPage() + 1);
-            var next = codec.encodeCursor(nextPage, entity.getValue(), sort, params).cursor();
+            var next = codec.encodeCursor(nextPage, entity, sort, params).cursor();
             var prevPage = new PageBasedPagination(currentPage.getSize(), currentPage.getPage() - 1);
-            var prev = codec.encodeCursor(prevPage, entity.getValue(), sort, params).cursor();
-            var first = codec.encodeCursor(new PageBasedPagination(currentPage.getSize(), 0), entity.getValue(), sort, params).cursor();
+            var prev = codec.encodeCursor(prevPage, entity, sort, params).cursor();
+            var first = codec.encodeCursor(new PageBasedPagination(currentPage.getSize(), 0), entity, sort, params).cursor();
             return new EncodedCursorPaginationControls(
                     pagination,
                     hasNext ? new EncodedCursorPagination(next, currentPage.getSize(), sort) : null,
