@@ -3,10 +3,12 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @Getter
@@ -18,6 +20,7 @@ public class EncodedCursorPagination implements Pagination {
 
     private final int size;
 
+    @NonNull
     private final SortData sort;
 
     public EncodedCursorPagination(String cursor) {
@@ -53,7 +56,18 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public Map<String, Object> getParameters() {
-        // TODO: fix names and filter out null values (see ACC-2200)
-        return Map.of("cursor", cursor, "size", size, "sort", sort);
+        // TODO: fix names (ACC-2200)
+        var result = new HashMap<String, Object>();
+        result.put("size", size);
+
+        // omit cursor if null
+        if (cursor != null) {
+            result.put("cursor", cursor);
+        }
+        // omit sort if empty
+        if (!sort.getSortedFields().isEmpty()) {
+            result.put("sort", sort.toList());
+        }
+        return result;
     }
 }

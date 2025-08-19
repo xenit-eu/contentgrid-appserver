@@ -12,7 +12,19 @@ public class SortData {
     public static class FieldSort {
         Direction direction;
         SortableName name;
+
+        @Override
+        public String toString() {
+            if (direction == null) {
+                return name.getValue();
+            }
+            return name.getValue() + "," + direction.name().toLowerCase();
+        }
     }
 
     public enum Direction { ASC, DESC }
+
+    public List<String> toList() {
+        return sortedFields.stream().map(Object::toString).toList();
+    }
 }
