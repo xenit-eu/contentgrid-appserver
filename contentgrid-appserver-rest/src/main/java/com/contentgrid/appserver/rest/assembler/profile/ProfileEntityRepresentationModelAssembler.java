@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler;
+package com.contentgrid.appserver.rest.assembler.profile;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -19,13 +19,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class EntityProfileRepresentationModelAssembler implements RepresentationModelContextAssembler<Entity, EntityProfileRepresentationModel, Application> {
+public class ProfileEntityRepresentationModelAssembler implements RepresentationModelContextAssembler<Entity, ProfileEntityRepresentationModel, Application> {
 
     private final HalFormsTemplateGenerator templateGenerator;
 
     @Override
-    public EntityProfileRepresentationModel toModel(Entity entity, Application application) {
-        var result = new EntityProfileRepresentationModel();
+    public ProfileEntityRepresentationModel toModel(Entity entity, Application application) {
+        var result = new ProfileEntityRepresentationModel();
         var collectionLink = getEntityCollectionLink(application, entity);
 
         // Add links

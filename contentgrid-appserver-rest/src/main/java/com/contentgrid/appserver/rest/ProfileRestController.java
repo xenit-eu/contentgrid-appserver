@@ -3,9 +3,9 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
-import com.contentgrid.appserver.rest.assembler.ProfileRootRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.assembler.EntityProfileRepresentationModel;
-import com.contentgrid.appserver.rest.assembler.EntityProfileRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.profile.ProfileEntityRepresentationModel;
+import com.contentgrid.appserver.rest.assembler.profile.ProfileEntityRepresentationModelAssembler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
@@ -21,7 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProfileRestController {
 
     private final ProfileRootRepresentationModelAssembler profileRootAssembler = new ProfileRootRepresentationModelAssembler();
-    private final EntityProfileRepresentationModelAssembler profileEntityAssembler;
+    private final ProfileEntityRepresentationModelAssembler profileEntityAssembler;
 
     @GetMapping
     public EmptyRepresentationModel getProfile(Application application) {
@@ -29,7 +29,7 @@ public class ProfileRestController {
     }
 
     @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
-    public EntityProfileRepresentationModel getEntityProfile(
+    public ProfileEntityRepresentationModel getEntityProfile(
             Application application, @PathVariable PathSegmentName entityName
     ) {
         var entity = application.getEntityByPathSegment(entityName)

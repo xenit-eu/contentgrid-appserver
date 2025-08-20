@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler;
+package com.contentgrid.appserver.rest.assembler.profile;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -6,6 +6,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.rest.ProfileRestController;
+import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import lombok.NonNull;
 import org.springframework.hateoas.Link;
