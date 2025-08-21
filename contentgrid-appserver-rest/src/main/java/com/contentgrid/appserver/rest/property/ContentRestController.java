@@ -292,7 +292,7 @@ public class ContentRestController {
             );
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-    }
+        }
 
         return ResponseEntity.noContent().build();
     }
