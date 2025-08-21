@@ -4,7 +4,6 @@ import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import java.util.Arrays;
 import java.util.List;
@@ -35,8 +34,8 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
+    public VersionConstraint resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
 
         var matching = createEtags(webRequest.getHeaderValues(HttpHeaders.IF_MATCH))
                 .map(etag -> toVersion(etag, true)) // Strong comparison per RFC 9110 13.1.1
