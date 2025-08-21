@@ -267,7 +267,8 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
 
-        var updatedFields = dslContext.newRecord(JOOQUtils.resolveAttributeFields(entity));
+        var attributeFields = JOOQUtils.resolveAttributeFields(entity);
+        var updatedFields = dslContext.newRecord(attributeFields);
 
         for (var pair : EntityDataConverter.convert(data, entity)) {
             updatedFields.set(pair.field(), pair.value());
@@ -296,7 +297,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
             var newValue = update
                     .where(primaryKey.eq(id.getValue()))
-                    .returning(JOOQUtils.resolveAttributeFields(entity))
+                    .returning(attributeFields)
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
                     .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
