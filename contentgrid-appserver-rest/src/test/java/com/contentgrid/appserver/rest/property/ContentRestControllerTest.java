@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -144,6 +145,7 @@ class ContentRestControllerTest {
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
@@ -174,8 +176,35 @@ class ContentRestControllerTest {
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment"))
+                .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
+    }
+
+    @Test
+    void get_if_none_match_notModified() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        var eTag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse()
+                .getHeader(HttpHeaders.ETAG);
+
+        mockMvc.perform(get("/invoices/{id}/content", invoiceId)
+                .header(HttpHeaders.IF_NONE_MATCH, eTag)
+        ).andExpect(status().isNotModified());
+    }
+
+    @Test
+    void get_if_none_match_ok() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+        mockMvc.perform(get("/invoices/{id}/content", invoiceId)
+                        .header(HttpHeaders.IF_NONE_MATCH, "\"xyz\"")
+                ).andExpect(status().isOk())
+                .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
     }
 
@@ -186,6 +215,7 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=0-4"))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-4/17"))
                 .andExpect(content().bytes("test ".getBytes()));
@@ -195,6 +225,36 @@ class ContentRestControllerTest {
             assertThat(range.getEndByteInclusive()).isEqualTo(4);
         }));
         Mockito.verifyNoMoreInteractions(contentStoreSpy);
+    }
+
+    @Test
+    void get_range_if_match_success() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        var eTag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse()
+                .getHeader(HttpHeaders.ETAG);
+
+        mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
+                        .header(HttpHeaders.RANGE, "bytes=0-4")
+                        .header(HttpHeaders.IF_MATCH, eTag)
+                ).andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-4/17"));
+    }
+
+    @Test
+    void get_range_if_match_fails() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
+                        .header(HttpHeaders.RANGE, "bytes=0-4")
+                        .header(HttpHeaders.IF_MATCH, "\"my-value\"")
+                ).andExpect(status().isPreconditionFailed());
     }
 
     public static Stream<Arguments> multi_range_requests() {
@@ -217,6 +277,7 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, range))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, contentRange));
 
@@ -235,6 +296,7 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=-4"))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 13-16/17"))
                 .andExpect(content().bytes("data".getBytes()));
@@ -253,6 +315,7 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=8-"))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 8-16/17"))
                 .andExpect(content().bytes("tent data".getBytes()));
@@ -283,6 +346,7 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=10-200"))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; range-resp
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 10-16/17"))
@@ -319,6 +383,7 @@ class ContentRestControllerTest {
 
         mockMvc.perform(head("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
@@ -335,7 +400,8 @@ class ContentRestControllerTest {
         String invoiceId = createInvoice(null);
 
         mockMvc.perform(head(uriTemplate, invoiceId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG));
     }
 
     @Test
@@ -345,6 +411,7 @@ class ContentRestControllerTest {
         mockMvc.perform(head("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=0-4"))
                 .andExpect(status().isPartialContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-4/17"))
                 .andExpect(header().string(HttpHeaders.CONTENT_LENGTH, "5"));
@@ -363,10 +430,12 @@ class ContentRestControllerTest {
                         .header(HttpHeaders.CONTENT_DISPOSITION,
                                 "attachment; filename=\"" + INVOICE_CONTENT_FILE.getOriginalFilename() + "\"")
                         .content(INVOICE_CONTENT_FILE.getBytes()))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG));
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
                         .toString()))
@@ -381,10 +450,12 @@ class ContentRestControllerTest {
         mockMvc.perform(request(method, "/invoices/{instanceId}/content", invoiceId)
                         .contentType(INVOICE_CONTENT_FILE.getContentType())
                         .content(INVOICE_CONTENT_FILE.getBytes()))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG));
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment"))
                 .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
     }
@@ -403,10 +474,12 @@ class ContentRestControllerTest {
 
         mockMvc.perform(multipart(method, "/invoices/{instanceId}/content", invoiceId)
                         .file(file))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG));
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
                         .toString()))
@@ -421,10 +494,12 @@ class ContentRestControllerTest {
         mockMvc.perform(request(method, "/invoices/{instanceId}/content", invoiceId)
                         .contentType("application/json")
                         .content("updated content"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG));
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().bytes("updated content".getBytes()));
     }
@@ -484,6 +559,71 @@ class ContentRestControllerTest {
         // No upload has happened
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(status().isNotFound());
+
+    }
+
+    @Test
+    void upload_if_none_match_wildcard_succeeds() throws Exception {
+        String invoiceId = createInvoice(null);
+
+        var createEtag = mockMvc.perform(put("/invoices/{id}/content", invoiceId)
+                .contentType(INVOICE_CONTENT_FILE.getContentType())
+                .content(INVOICE_CONTENT_FILE.getBytes())
+                .header("If-None-Match", "*")
+        ).andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse()
+                .getHeader(HttpHeaders.ETAG);
+
+        mockMvc.perform(get("/invoices/{id}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, createEtag));
+    }
+
+    @Test
+    void upload_if_match_succeeds() throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+        var existingEtag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse()
+                .getHeader(HttpHeaders.ETAG);
+
+        var updateEtag = mockMvc.perform(post("/invoices/{id}/content", invoiceId)
+                        .contentType(INVOICE_CONTENT_FILE.getContentType())
+                        .content(INVOICE_CONTENT_FILE.getBytes())
+                        .header("If-Match", existingEtag)
+                ).andExpect(status().isNoContent())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse()
+                .getHeader(HttpHeaders.ETAG);
+
+        // New content upload changes the ETag
+        assertThat(updateEtag).isNotEqualTo(existingEtag);
+
+        mockMvc.perform(get("/invoices/{id}/content", invoiceId))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, updateEtag));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "If-Match,\"some-value\"",
+            "If-None-Match,*"
+    })
+    void upload_etag_fails(String header, String headerValue) throws Exception {
+        String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+        mockMvc.perform(post("/invoices/{id}/content", invoiceId)
+                        .contentType(INVOICE_CONTENT_FILE.getContentType())
+                        .content(INVOICE_CONTENT_FILE.getBytes())
+                        .header(header, headerValue))
+                .andExpect(status().isPreconditionFailed());
+
+        Mockito.verifyNoInteractions(contentStoreSpy);
     }
 
     @Test

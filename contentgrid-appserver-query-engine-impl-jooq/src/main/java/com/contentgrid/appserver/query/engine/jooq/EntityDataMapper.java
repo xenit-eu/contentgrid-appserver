@@ -4,10 +4,13 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,13 +24,18 @@ import lombok.experimental.UtilityClass;
 public class EntityDataMapper {
 
     public EntityData from(@NonNull Entity entity, Map<String, Object> data) {
-        var builder = EntityData.builder()
-                .name(entity.getName())
-                .id(getEntityId(entity, data));
-        for (var attribute : entity.getAttributes()) {
-            builder.attribute(from(attribute, data));
-        }
-        return builder.build();
+        return new EntityData(
+                EntityIdentity.forEntity(
+                        entity.getName(),
+                        getEntityId(entity, data)
+                ).withVersion(getEntityVersion(entity, data)),
+                entity.getAttributes()
+                        .stream()
+                        // Skip attribute containing version (it's already part of EntityIdentity)
+                        .filter(attr -> !attr.hasFlag(ETagFlag.class))
+                        .map(attr -> from(attr, data))
+                        .toList()
+        );
     }
 
     private EntityId getEntityId(@NonNull Entity entity, Map<String, Object> data) {
@@ -38,6 +46,21 @@ public class EntityDataMapper {
         } else {
             throw new IllegalStateException("Primary key column '%s' with value '%s' not supported".formatted(primaryKey.getColumn(), id));
         }
+    }
+
+    private Version getEntityVersion(@NonNull Entity entity, Map<String, Object> data) {
+        return JOOQUtils.resolveVersionField(entity)
+                .map(versionField -> {
+                    var versionFieldData = (Long)data.get(versionField.getName());
+
+                    if(versionFieldData == null) {
+                        // No data of the version field is returned, or the version field is null
+                        return Version.unspecified();
+                    }
+
+                    return Version.exactly(Long.toString(versionFieldData, Character.MAX_RADIX));
+                })
+                .orElse(Version.unspecified());
     }
 
     public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {

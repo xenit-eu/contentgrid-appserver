@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -27,6 +28,7 @@ public class EntityDataConverter {
         for (var attributeData : data.getAttributes()) {
             var attribute = entity.getAttributeByName(attributeData.getName())
                     .filter(attr -> !entity.getPrimaryKey().getName().equals(attr.getName())) // filter out primary key
+                    .filter(attr -> !attr.hasFlag(ETagFlag.class)) // Skip attribute containing version (it's handled separately)
                     .orElseThrow(() -> new InvalidDataException("Attribute '%s' not found on entity '%s'"
                             .formatted(attributeData.getName(), entity.getName())));
             var converted = convert(attributeData, attribute);
@@ -35,7 +37,7 @@ public class EntityDataConverter {
         return result;
     }
 
-    public List<JOOQPair<Object>> convert(AttributeData data, Attribute attribute) {
+    private List<JOOQPair<Object>> convert(AttributeData data, Attribute attribute) {
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> {
                 if (data instanceof SimpleAttributeData<?> simpleAttributeData) {
@@ -56,13 +58,13 @@ public class EntityDataConverter {
         };
     }
 
-    public List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, SimpleAttribute attribute) {
+    private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, SimpleAttribute attribute) {
         checkType(attribute.getType(), data.getValue());
         var field = (Field<Object>) JOOQUtils.resolveField(attribute);
         return List.of(new JOOQPair<>(field, data.getValue()));
     }
 
-    public List<JOOQPair<Object>> convert(CompositeAttributeData data, CompositeAttribute attribute) {
+    private List<JOOQPair<Object>> convert(CompositeAttributeData data, CompositeAttribute attribute) {
         var result = new ArrayList<JOOQPair<Object>>();
         for (var attributeData : data.getAttributes()) {
             var attr = attribute.getAttributeByName(attributeData.getName())

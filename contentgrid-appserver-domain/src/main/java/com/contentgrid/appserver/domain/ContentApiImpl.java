@@ -10,17 +10,25 @@ import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
 import com.contentgrid.appserver.content.api.range.ContentRangeRequest;
-import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.content.api.range.UnsatisfiableContentRangeException;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import lombok.NonNull;
@@ -32,49 +40,95 @@ public class ContentApiImpl implements ContentApi {
     private final DatamodelApi datamodelApi;
     private final ContentStore contentStore;
 
-    @Override
-    public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
-            @NonNull EntityId id, @NonNull AttributeName attributeName) throws EntityNotFoundException {
-        var contentAttribute = application.getRequiredEntityByName(entityName)
+    private AttributeDataContent extractContent(
+            @NonNull Application application,
+            @NonNull EntityData entityData,
+            @NonNull AttributeName attributeName
+    ) {
+        var contentAttribute = application.getRequiredEntityByName(entityData.getName())
                 .getAttributeByName(attributeName)
                 .filter(ContentAttribute.class::isInstance)
                 .map(ContentAttribute.class::cast)
                 .orElseThrow(); // TODO: throw a properly typed exception when the wrong attribute name is given
 
-        return datamodelApi.findById(application, application.getRequiredEntityByName(entityName), id)
-                .flatMap(entity -> entity.getAttributeByName(attributeName))
-                .map(CompositeAttributeData.class::cast)
-                .map(attributeData -> {
-                    return new AttributeDataContent(contentAttribute, attributeData);
-                })
+        return new AttributeDataContent(
+                contentAttribute,
+                (CompositeAttributeData) entityData.getAttributeByName(attributeName).orElse(null)
+        );
+    }
+
+    @Override
+    public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
+            @NonNull EntityId id, @NonNull AttributeName attributeName) throws EntityNotFoundException {
+
+        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
+                .map(entityData -> extractContent(application, entityData, attributeName))
                 .filter(content -> content.getContentId().isPresent())
                 .map(Content.class::cast);
     }
 
     @Override
-    public void update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull DataEntry.FileDataEntry file)
+    public Content update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull DataEntry.FileDataEntry file)
             throws InvalidPropertyDataException {
+        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint);
 
-        datamodelApi.updatePartial(application, entityName, id, MapRequestInputData.fromMap(Map.of(
+        var updated = datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), file
         )));
 
+        return extractContent(application, updated, attributeName);
+    }
+
+    private EntityData requireEntityWithConstraint(
+            Application application,
+            EntityName entityName,
+            EntityId id,
+            AttributeName attributeName,
+            VersionConstraint versionConstraint
+    ) {
+        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
+                        entityName, id));
+
+        var contentVersion = extractContent(application, original, attributeName).getVersion();
+
+        if(!versionConstraint.isSatisfiedBy(contentVersion)) {
+            throw new UnsatisfiedVersionException(
+                    contentVersion,
+                    versionConstraint
+            );
+        }
+        return original;
     }
 
     @Override
     public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName) throws InvalidPropertyDataException {
-        datamodelApi.updatePartial(application, entityName, id, MapRequestInputData.fromMap(Map.of(
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint) throws InvalidPropertyDataException {
+        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint);
+        datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), NullDataEntry.INSTANCE
         )));
+    }
+
+    // package-private for testing
+    @SneakyThrows(NoSuchAlgorithmException.class)
+    static String hash(String... inputs) {
+        var md = MessageDigest.getInstance("SHA256");
+        for (var input : inputs) {
+            md.update(input.getBytes(StandardCharsets.UTF_8));
+            md.update((byte) 0); // NUL-byte as separator for fields
+        }
+        var digest = md.digest();
+        // An always-positive bigint, limited to 16 bytes (truncated sha-256 hash), to reduce the size of the version
+        // This reduces the size of the version from 50 characters to a more sensible 25 characters
+        return new BigInteger(1, digest, 0, 16).toString(Character.MAX_RADIX);
     }
 
     @RequiredArgsConstructor
     private class AttributeDataContent implements Content {
         @NonNull
         private final ContentAttribute contentAttribute;
-        @NonNull
         private final CompositeAttributeData attributeData;
 
         @NonNull
@@ -99,6 +153,9 @@ public class ContentApiImpl implements ContentApi {
         }
 
         private <T> T getAttribute(SimpleAttribute attribute, Class<T> type) {
+            if(attributeData == null) {
+                return null;
+            }
             return (T)attributeData.getAttributeByName(attribute.getName())
                     .map(SimpleAttributeData.class::cast)
                     .orElseThrow()
@@ -141,5 +198,23 @@ public class ContentApiImpl implements ContentApi {
                 throw new IOException(e);
             }
         }
+
+        @Override
+        public Version getVersion() {
+            var contentId = getAttribute(contentAttribute.getId(), String.class);
+            if(contentId == null) {
+                return Version.nonExisting();
+            }
+            // hash contentId, so it is not recognizable anymore in the exposed version
+            // Also hash in mimetype, because a change in mimetype changes the interpretation of the content,
+            // which is a semantically-significant part of representation metadata (which we want to cover with the version)
+            // A change in filename is not semantically-significant, as it does not affect the interpretation of the content.
+            // Length is irrelevant, since the only way to change length is to upload new content, which changes the content id
+            return Version.exactly(hash(
+                    contentId,
+                    getMimeType()
+            ));
+        }
+
     }
 }

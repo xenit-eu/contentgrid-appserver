@@ -1,14 +1,17 @@
 package com.contentgrid.appserver.rest;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,8 +39,10 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
@@ -185,6 +190,7 @@ class EntityRestControllerTest {
         mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
                         .accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.name", is("Test Product")))
                 .andExpect(jsonPath("$.price", is(29.99)))
@@ -201,6 +207,7 @@ class EntityRestControllerTest {
                         .param("name", "My product")
                         .param("price", "120")
                 ).andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
                 .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
                 .andExpect(jsonPath("$.picture.length", is(0)))
@@ -232,6 +239,7 @@ class EntityRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andReturn().getResponse().getContentAsString();
 
         // Extract ID from created entity
@@ -240,6 +248,7 @@ class EntityRestControllerTest {
         // Then retrieve it with application/hal+json
         mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andExpect(content().contentType(MediaTypes.HAL_JSON))
                 .andExpect(jsonPath("$.id", is(id)))
                 .andExpect(jsonPath("$.name", is("Retrievable Product")))
@@ -256,6 +265,7 @@ class EntityRestControllerTest {
         // Then retrieve it with application/prs.hal-forms+json
         mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andExpect(content().contentType(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(jsonPath("$.id", is(id)))
                 .andExpect(jsonPath("$.name", is("Retrievable Product")))
@@ -363,6 +373,7 @@ class EntityRestControllerTest {
                         "price", 5
                 )))
                 .andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                 .andReturn()
                 .getResponse()
                 .getHeader("Location");
@@ -565,6 +576,141 @@ class EntityRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedProduct)))
                 .andExpect(status().isNotFound());
+    }
+
+    private MockHttpServletResponse createPerson() throws Exception {
+        return mockMvc.perform(post("/persons")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("name", "test")
+                        .param("vat", UUID.randomUUID().toString())
+                )
+                .andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse();
+    }
+
+    private MockHttpServletResponse createInvoice() throws Exception {
+        var personCreate =  createPerson()
+                .getRedirectedUrl();
+
+        return mockMvc.perform(post("/invoices")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("number", "123")
+                        .param("amount", "150")
+                        .param("confidentiality", "secret")
+                        .param("customer", personCreate)
+                )
+                .andExpect(status().isCreated())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse();
+    }
+
+    @Test
+    void testUpdateCorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        var updateResponse = mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG))
+                .content("""
+                        {
+                            "number": "456",
+                            "amount": "123"
+                        }
+                        """)
+        )
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.ETAG))
+                .andReturn()
+                .getResponse();
+
+        // ETag has changed
+        assertThat(createResponse.getHeader(HttpHeaders.ETAG))
+                .isNotEqualTo(updateResponse.getHeader(HttpHeaders.ETAG));
+
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                // ETag has not changed
+                .andExpect(header().string(HttpHeaders.ETAG, updateResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("456"))
+                .andExpect(jsonPath("$.amount").value("123"));
+    }
+
+    @Test
+    void testUpdateIncorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(put(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", "\"some-other-etag\"")
+                        .content("""
+                        {
+                            "number": "456",
+                            "amount": "123"
+                        }
+                        """)
+                )
+                .andExpect(status().isPreconditionFailed());
+
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                // ETag has not changed
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
+    }
+
+    @Test
+    void testUpdateInvalidIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)
+                                // Emulate accidentally-invalid etag where quotes are omitted
+                                .replace('"', ' '))
+                        .content("""
+                        {
+                            "number": "456",
+                            "amount": "123"
+                        }
+                        """)
+                )
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                // ETag has not changed
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
+
+    }
+
+    @Test
+    void testUpdateIfMatchWithoutVersionedObject() throws Exception {
+        var createResponse = createPerson();
+
+        mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("If-Match", "\"my-etag\"")
+                        .content("""
+                        {
+                            "name": "new name"
+                        }
+                        """)
+                )
+                .andExpect(status().isPreconditionFailed());
+
+        mockMvc.perform(get(createResponse.getRedirectedUrl()))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                .andExpect(jsonPath("$.name").value("test"));
     }
 
     @Test

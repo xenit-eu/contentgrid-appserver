@@ -5,8 +5,10 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -65,6 +67,15 @@ public class JOOQUtils {
 
     public static Field<UUID> resolvePrimaryKey(TableName alias, SimpleAttribute primaryKey) {
         return (Field<UUID>) resolveField(alias, primaryKey.getColumn(), primaryKey.getType(), true);
+    }
+
+    public static Optional<Field<Long>> resolveVersionField(Entity entity) {
+        return entity.getAttributes()
+                .stream()
+                .filter(attr -> attr.hasFlag(ETagFlag.class))
+                .findFirst()
+                .map(SimpleAttribute.class::cast)
+                .map(attr -> (Field<Long>) resolveField(entity.getTable(), attr));
     }
 
     public static Field<?>[] resolveAttributeFields(Entity entity) {

@@ -3,9 +3,10 @@ package com.contentgrid.appserver.query.engine.api;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -45,14 +46,13 @@ public interface QueryEngine {
             SortData sortData, PageData pageData) throws QueryEngineException;
 
     /**
-     * Finds an entity that matches the given id.
-     *
+     * Finds an entity that matches the requested identity
      * @param application the application context
-     * @param entity the entity type to query
-     * @param id the primary key value of the entity to find
+     * @param entityRequest the identity of the entity to query
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id);
+    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest)
+            throws QueryEngineException;
 
     /**
      * Creates an entity with the given data and relations.
@@ -75,15 +75,14 @@ public interface QueryEngine {
     UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException;
 
     /**
-     * Deletes the entity that matches the given id.
-     *
+     * Deletes the entity that matches the given identity
      * @param application the application context
-     * @param entity the entity type to delete from
-     * @param id the primary key value of the entity to delete
+     * @param entityRequest the identity of the entity to delete
      * @return The entity data that was deleted, if any was deleted
      * @throws QueryEngineException if an error occurs during the delete operation
      */
-    Optional<EntityData> delete(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest)
+            throws QueryEngineException;
 
     /**
      * Deletes all entities of the specified type.

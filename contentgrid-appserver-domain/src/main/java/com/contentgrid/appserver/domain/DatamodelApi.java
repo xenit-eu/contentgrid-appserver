@@ -4,11 +4,12 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.PageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -44,12 +45,13 @@ public interface DatamodelApi {
      * Finds an entity that matches the given id.
      *
      * @param application the application context
-     * @param entity the entity type to query
-     * @param id the primary key value of the entity to find
+     * @param entityRequest the identity of the entity to query
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(@NonNull Application application, @NonNull Entity entity, @NonNull EntityId id)
-            throws EntityNotFoundException;
+    Optional<EntityData> findById(
+            @NonNull Application application,
+            @NonNull EntityRequest entityRequest
+    ) throws EntityNotFoundException;
 
     /**
      * Creates an entity with the given data and relations.
@@ -61,20 +63,36 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the create operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData create(@NonNull Application application, @NonNull EntityName entityName,  @NonNull RequestInputData data)
+    EntityData create(@NonNull Application application, @NonNull EntityName entityName, @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException;
 
     /**
      * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
      *
      * @param application the application context
-     * @param entityName the name of the entity to update
-     * @param id the id of the entity to update
+     * @param entityRequest the identity of the entity to query
      * @param data the updated data for the entity
      * @throws QueryEngineException if an error occurs during the update operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
+    default EntityData update(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var original = findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+        return update(application, original, data);
+    }
+
+    /**
+     * Updates an entity with the given data. Fully replaces the existing data in the entity with the given data.
+     *
+     * @param application the application context
+     * @param original the original data of the entity to update
+     * @param data the updated data for the entity
+     * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
+     */
+    EntityData update(@NonNull Application application, @NonNull EntityData original,
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -83,13 +101,30 @@ public interface DatamodelApi {
      * keep their previous value.
      *
      * @param application the application context
-     * @param entityName the name of the entity to update
-     * @param id the id of the entity to update
+     * @param entityRequest the identity of the entity to query
      * @param data the updated data for the entity
      * @throws QueryEngineException if an error occurs during the update operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData updatePartial(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
+    default EntityData updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull RequestInputData data)
+            throws QueryEngineException, InvalidPropertyDataException {
+        var original = findById(application, entityRequest)
+                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+        return updatePartial(application, original, data);
+    }
+
+    /**
+     * Updates an entity with the given data. Replaces only the attributes present in the given data, other attributes
+     * keep their previous value.
+     *
+     * @param application the application context
+     * @param original the original data of the entity to update
+     * @param data the updated data for the entity
+     * @throws QueryEngineException if an error occurs during the update operation
+     * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
+     */
+    EntityData updatePartial(@NonNull Application application, @NonNull EntityData original,
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException;
 
