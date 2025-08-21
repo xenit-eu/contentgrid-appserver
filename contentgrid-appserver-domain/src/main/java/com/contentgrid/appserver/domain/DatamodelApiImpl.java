@@ -41,6 +41,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
+import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +54,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class DatamodelApiImpl implements DatamodelApi {
+
+    // TODO: Wire through predicates
+    private static final Scalar<Boolean> TRUE_PREDICATE = Scalar.of(true);
     private final QueryEngine queryEngine;
     private final ContentStore contentStore;
     private final CursorCodec cursorCodec;
@@ -145,7 +149,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest) {
-        return queryEngine.findById(application, entityRequest);
+        return queryEngine.findById(application, entityRequest, TRUE_PREDICATE);
     }
 
     @Override
@@ -186,7 +190,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .relations(relations)
                 .build();
 
-        return queryEngine.create(application, createData);
+        return queryEngine.create(application, createData, TRUE_PREDICATE);
     }
 
     @Override
@@ -217,7 +221,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData);
+        var updateData = queryEngine.update(application, entityData, TRUE_PREDICATE);
 
         return updateData.getUpdated();
     }
@@ -251,7 +255,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData);
+        var updateData = queryEngine.update(application, entityData, TRUE_PREDICATE);
 
         return updateData.getUpdated();
     }
@@ -259,7 +263,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest)
             throws EntityIdNotFoundException {
-        return queryEngine.delete(application, entityRequest)
+        return queryEngine.delete(application, entityRequest, TRUE_PREDICATE)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
     }
