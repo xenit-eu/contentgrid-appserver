@@ -79,7 +79,151 @@ class ProfileRestControllerTest {
     }
 
     @Test
-    void getProfileEntity() throws Exception {
+    void getProfileEntity_blueprintInformation() throws Exception {
+        mockMvc.perform(get("/profile/invoices").accept(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            name: "invoice",
+                            description: null,
+                            _embedded: {
+                                "blueprint:attribute": [{
+                                    name: "id",
+                                    type: "string",
+                                    readOnly: true
+                                }, {
+                                    name: "number",
+                                    type: "string",
+                                    required: true,
+                                    _embedded: {
+                                        "blueprint:constraint": [{
+                                            type: "required"
+                                        }, {
+                                            type: "unique"
+                                        }],
+                                        "blueprint:search-param": [{
+                                            name: "number",
+                                            type: "exact"
+                                        }]
+                                    }
+                                }, {
+                                    name: "amount",
+                                    type: "double",
+                                    required: true,
+                                    _embedded: {
+                                        "blueprint:constraint": [{
+                                            type: "required"
+                                        }]
+                                    }
+                                }, {
+                                    name: "received",
+                                    type: "datetime"
+                                }, {
+                                    name: "pay_before",
+                                    type: "datetime"
+                                }, {
+                                    name: "is_paid",
+                                    type: "boolean"
+                                }, {
+                                    name: "confidentiality",
+                                    type: "string",
+                                    required: true,
+                                    _embedded: {
+                                        "blueprint:constraint": [{
+                                            type: "required"
+                                        }, {
+                                            type: "allowed-values",
+                                            values: ["confidential", "public", "secret"]
+                                        }],
+                                        "blueprint:search-param": [{
+                                            name: "confidentiality",
+                                            type: "exact"
+                                        }]
+                                    }
+                                }, {
+                                    name: "content",
+                                    type: "object",
+                                    _embedded: {
+                                        "blueprint:attribute": [{
+                                            name: "filename",
+                                            type: "string"
+                                        }, {
+                                            name: "mimetype",
+                                            type: "string"
+                                        }, {
+                                            name: "length",
+                                            type: "long",
+                                            readOnly: true
+                                        }]
+                                    }
+                                }, {
+                                    name: "audit_metadata",
+                                    type: "object",
+                                    _embedded: {
+                                        "blueprint:attribute": [{
+                                            name: "created_date",
+                                            type: "datetime",
+                                            readOnly: true
+                                        }, {
+                                            name: "created_by",
+                                            type: "string",
+                                            readOnly: true
+                                        }, {
+                                            name: "last_modified_date",
+                                            type: "datetime",
+                                            readOnly: true
+                                        }, {
+                                            name: "last_modified_by",
+                                            type: "string",
+                                            readOnly: true
+                                        }]
+                                    }
+                                }],
+                                "blueprint:relation": [{
+                                    name: "customer",
+                                    many_source_per_target: true,
+                                    many_target_per_source: false,
+                                    required: true,
+                                    _links: {
+                                        "blueprint:target-entity": {
+                                            href: "http://localhost/profile/persons"
+                                        }
+                                    }
+                                }, {
+                                    name: "products",
+                                    many_source_per_target: true,
+                                    many_target_per_source: true,
+                                    _links: {
+                                        "blueprint:target-entity": {
+                                            href: "http://localhost/profile/products"
+                                        }
+                                    }
+                                }, {
+                                    name: "previous_invoice",
+                                    many_source_per_target: false,
+                                    many_target_per_source: false,
+                                    _links: {
+                                        "blueprint:target-entity": {
+                                            href: "http://localhost/profile/invoices"
+                                        }
+                                    }
+                                }, {
+                                    name: "next_invoice",
+                                    many_source_per_target: false,
+                                    many_target_per_source: false,
+                                    _links: {
+                                        "blueprint:target-entity": {
+                                            href: "http://localhost/profile/invoices"
+                                        }
+                                    }
+                                }]
+                            }
+                        }
+                        """));
+    }
+
+    @Test
+    void getProfileEntity_linksAndTemplates() throws Exception {
         mockMvc.perform(get("/profile/invoices").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 // TODO: remove '?page=0' in all links (ACC-2200)

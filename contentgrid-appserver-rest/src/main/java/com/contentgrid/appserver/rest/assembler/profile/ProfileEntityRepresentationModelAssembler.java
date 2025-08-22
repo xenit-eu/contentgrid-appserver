@@ -11,6 +11,7 @@ import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
@@ -22,10 +23,24 @@ import org.springframework.stereotype.Component;
 public class ProfileEntityRepresentationModelAssembler implements RepresentationModelContextAssembler<Entity, ProfileEntityRepresentationModel, Application> {
 
     private final HalFormsTemplateGenerator templateGenerator;
+    private final ProfileAttributeRepresentationModelAssembler attributeAssembler = new ProfileAttributeRepresentationModelAssembler();
+    private final ProfileRelationRepresentationModelAssembler relationAssembler = new ProfileRelationRepresentationModelAssembler();
 
     @Override
     public ProfileEntityRepresentationModel toModel(Entity entity, Application application) {
-        var result = new ProfileEntityRepresentationModel();
+        var result = ProfileEntityRepresentationModel.builder()
+                .name(entity.getName().getValue())
+                .title(readTitle(application, entity))
+                .description(entity.getDescription())
+                .attributes(entity.getAllAttributes().stream()
+                        .map(attribute -> attributeAssembler.toModel(application, entity, attribute))
+                        .flatMap(Optional::stream)
+                        .toList())
+                .relations(application.getRelationsForSourceEntity(entity).stream()
+                        .map(relation -> relationAssembler.toModel(application, relation))
+                        .flatMap(Optional::stream)
+                        .toList())
+                .build();
         var collectionLink = getEntityCollectionLink(application, entity);
 
         // Add links
@@ -62,5 +77,9 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
                 .getEntity(application, entity.getPathSegment(), null))
                 .withRel(IanaLinkRelations.DESCRIBES)
                 .withName(IanaLinkRelations.ITEM_VALUE);
+    }
+
+    private String readTitle(Application application, Entity entity) {
+        return null; // TODO: resolve titles (ACC-2230)
     }
 }
