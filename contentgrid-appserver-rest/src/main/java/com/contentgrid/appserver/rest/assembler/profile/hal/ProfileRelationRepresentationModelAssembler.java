@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler.profile;
+package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;

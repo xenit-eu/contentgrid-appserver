@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler.profile;
+package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;

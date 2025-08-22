@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler.profile;
+package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -16,7 +16,7 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSea
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
-import com.contentgrid.appserver.rest.assembler.profile.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
+import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 

@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler.profile;
+package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
 import org.springframework.context.annotation.Bean;
