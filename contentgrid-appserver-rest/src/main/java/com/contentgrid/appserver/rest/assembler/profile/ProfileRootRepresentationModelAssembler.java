@@ -28,7 +28,7 @@ public class ProfileRootRepresentationModelAssembler implements RepresentationMo
 
     private Link getEntityProfileLink(@NonNull Application application, @NonNull Entity entity) {
         return linkTo(methodOn(ProfileRestController.class)
-                .getEntityProfile(application, entity.getPathSegment()))
+                .getHalFormsEntityProfile(application, entity.getPathSegment()))
                 .withRel(ContentGridLinkRelations.ENTITY)
                 .withName(entity.getLinkName().getValue());
     }

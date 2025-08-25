@@ -61,7 +61,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
     }
 
     private Link getSelfLink(Application application, Entity entity) {
-        return linkTo(methodOn(ProfileRestController.class).getEntityProfile(application, entity.getPathSegment()))
+        return linkTo(methodOn(ProfileRestController.class).getHalFormsEntityProfile(application, entity.getPathSegment()))
                 .withSelfRel();
     }
 

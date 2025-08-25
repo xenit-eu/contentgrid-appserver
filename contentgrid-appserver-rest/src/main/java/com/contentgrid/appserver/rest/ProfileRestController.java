@@ -6,6 +6,8 @@ import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema;
+import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchemaAssembler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ public class ProfileRestController {
 
     private final ProfileRootRepresentationModelAssembler profileRootAssembler = new ProfileRootRepresentationModelAssembler();
     private final ProfileEntityRepresentationModelAssembler profileEntityAssembler;
+    private final JsonSchemaAssembler jsonSchemaAssembler = new JsonSchemaAssembler();
 
     @GetMapping
     public EmptyRepresentationModel getProfile(Application application) {
@@ -29,11 +32,20 @@ public class ProfileRestController {
     }
 
     @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
-    public ProfileEntityRepresentationModel getEntityProfile(
+    public ProfileEntityRepresentationModel getHalFormsEntityProfile(
             Application application, @PathVariable PathSegmentName entityName
     ) {
         var entity = application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         return profileEntityAssembler.withContext(application).toModel(entity);
+    }
+
+    @GetMapping(value = "/{entityName}", produces = "application/schema+json")
+    public JsonSchema getJsonSchemaEntityProfile(
+            Application application, @PathVariable PathSegmentName entityName
+    ) {
+        var entity = application.getEntityByPathSegment(entityName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return jsonSchemaAssembler.toModel(application, entity);
     }
 }
