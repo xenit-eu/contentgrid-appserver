@@ -3,7 +3,10 @@ package com.contentgrid.appserver.rest.assembler.profile.json;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
+/**
+ * A value object to represent a JSON Schema reference name.
+ */
+@Value(staticConstructor = "named")
 public class JsonSchemaReference {
 
     String name;
@@ -11,6 +14,6 @@ public class JsonSchemaReference {
     @JsonValue
     @Override
     public String toString() {
-        return String.format("#/definitions/%s", name);
+        return "#/$defs/" + name;
     }
 }

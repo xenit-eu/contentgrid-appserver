@@ -16,27 +16,21 @@
 package com.contentgrid.appserver.rest.assembler.profile.json;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import lombok.Getter;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 /**
  * Model class to render JSON schema documents.
@@ -48,9 +42,6 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
  */
 @JsonInclude(Include.NON_EMPTY)
 public class JsonSchema {
-
-    private static final List<Class<?>> INTEGER_TYPES = Arrays.<Class<?>> asList(Long.class, long.class, Integer.class,
-            int.class, Short.class, short.class);
 
     private final String title;
     private final String description;
@@ -66,7 +57,7 @@ public class JsonSchema {
      * @param properties must not be {@literal null}.
      * @param definitions must not be {@literal null}.
      */
-    public JsonSchema(String title, String description, Collection<AbstractJsonSchemaProperty<?>> properties,
+    public <T extends AbstractJsonSchemaProperty<T>> JsonSchema(String title, String description, Collection<T> properties,
             Definitions definitions) {
 
         Assert.hasText(title, "Title must not be null or empty");
@@ -81,11 +72,11 @@ public class JsonSchema {
 
     @JsonProperty("$schema")
     public String getSchema() {
-        return "http://json-schema.org/draft-04/schema#";
+        return "https://json-schema.org/draft/2020-12/schema";
     }
 
     public String getType() {
-        return "object";
+        return JsonSchemaType.OBJECT.toString();
     }
 
     public String getTitle() {
@@ -107,54 +98,6 @@ public class JsonSchema {
     }
 
     /**
-     * Turns the given {@link Class} into a JSON Schema type string.
-     *
-     * @param type
-     * @return
-     * @see <a href=
-     *      "https://json-schema.org/latest/json-schema-core.html#anchor8">https://json-schema.org/latest/json-schema-core.html#anchor8</a>
-     */
-    private static JsonSchemaType toJsonSchemaType(Class<?> type) {
-
-        if (type == null) {
-            return null;
-        } else if (Collection.class.isAssignableFrom(type)) {
-            return JsonSchemaType.ARRAY;
-        } else if (Boolean.class.equals(type) || boolean.class.equals(type)) {
-            return JsonSchemaType.BOOLEAN;
-        } else if (String.class.equals(type) || isDate(type) || type.isEnum()) {
-            return JsonSchemaType.STRING;
-        } else if (INTEGER_TYPES.contains(type)) {
-            return JsonSchemaType.INTEGER;
-        } else if (ClassUtils.isAssignable(Number.class, type)) {
-            return JsonSchemaType.NUMBER;
-        } else {
-            return JsonSchemaType.OBJECT;
-        }
-    }
-
-    /**
-     * Returns whether the given {@link Class} represents a date.
-     *
-     * @param type must not be {@literal null}.
-     * @return
-     */
-    private static boolean isDate(Class<?> type) {
-
-        if (Date.class.equals(type)) {
-            return true;
-        }
-
-        for (String datePackage : Arrays.asList("java.time", "org.threeten.bp", "org.joda.time")) {
-            if (type.getName().startsWith(datePackage)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * A JSON Schema item.
      *
      * @author Oliver Gierke
@@ -162,7 +105,7 @@ public class JsonSchema {
     @Getter
     static class Item {
 
-        private final @JsonSerialize(using = ToStringSerializer.class) JsonSchemaType type;
+        private final JsonSchemaType type;
         private final @JsonUnwrapped PropertiesContainer properties;
 
         /**
@@ -171,9 +114,9 @@ public class JsonSchema {
          * @param type must not be {@literal null}.
          * @param properties must not be {@literal null}.
          */
-        public Item(Class<?> type, Collection<AbstractJsonSchemaProperty<?>> properties) {
+        public <T extends AbstractJsonSchemaProperty<T>> Item(JsonSchemaType type, Collection<T> properties) {
 
-            this.type = toJsonSchemaType(type);
+            this.type = type;
             this.properties = new PropertiesContainer(properties);
         }
     }
@@ -182,20 +125,19 @@ public class JsonSchema {
      * Value object to represent a generic container of properties.
      *
      * @author Oliver Gierke
-     * @since 2.3
      */
     @JsonInclude(Include.NON_EMPTY)
     static class PropertiesContainer {
 
         public final Map<String, AbstractJsonSchemaProperty<?>> properties;
-        public final Collection<String> requiredProperties;
+        public final @JsonProperty("required") Collection<String> requiredProperties;
 
         /**
          * Creates a new {@link PropertiesContainer} for the given {@link AbstractJsonSchemaProperty}s.
          *
          * @param properties must not be {@literal null}.
          */
-        public PropertiesContainer(Collection<AbstractJsonSchemaProperty<?>> properties) {
+        public <T extends AbstractJsonSchemaProperty<T>> PropertiesContainer(Collection<T> properties) {
 
             Assert.notNull(properties, "Properties must not be null");
 
@@ -220,7 +162,7 @@ public class JsonSchema {
     @Getter
     public static class Definitions {
 
-        private final Map<String, Item> definitions;
+        private final @JsonProperty("$defs") Map<String, Item> definitions;
 
         public Definitions() {
             this.definitions = new HashMap<String, Item>();
@@ -239,7 +181,6 @@ public class JsonSchema {
      * Base class for all property implementations.
      *
      * @author Oliver Gierke
-     * @since 2.3
      */
     @Getter
     @JsonInclude(Include.NON_EMPTY)
@@ -247,7 +188,7 @@ public class JsonSchema {
 
         private final @JsonIgnore String name;
         private final String title;
-        private final boolean required;
+        private final @JsonIgnore boolean required;
 
         private boolean readOnly;
 
@@ -274,17 +215,18 @@ public class JsonSchema {
      * A JSON Schema property
      *
      * @author Oliver Gierke
-     * @since 2.3
      */
+    @Getter
     public static class JsonSchemaProperty extends AbstractJsonSchemaProperty<JsonSchemaProperty> {
 
-        public String description;
-        public @JsonSerialize(using = ToStringSerializer.class) JsonSchemaType type;
-        public @JsonSerialize(using = ToStringSerializer.class) JsonSchemaFormat format;
-        public String pattern;
-        public Boolean uniqueItems;
-        public @JsonProperty("$ref") @JsonSerialize(using = ToStringSerializer.class) JsonSchemaReference reference;
-        public Map<String, String> items;
+        private final String description;
+        private JsonSchemaType type;
+        private JsonSchemaFormat format;
+        private String pattern;
+        private Boolean uniqueItems;
+        private @JsonProperty("$ref") JsonSchemaReference reference;
+        private Map<String, String> items;
+        private @JsonUnwrapped PropertiesContainer properties;
 
         JsonSchemaProperty(String name, String title, String description, boolean required) {
 
@@ -304,41 +246,6 @@ public class JsonSchema {
             Assert.notNull(type, "Type must not be null");
 
             this.type = type;
-            return this;
-        }
-
-        /**
-         * Configures the {@link JsonSchemaProperty} to reflect the given type.
-         *
-         * @param type must not be {@literal null}.
-         * @return
-         */
-        public JsonSchemaProperty with(Class<?> type) {
-
-            Assert.notNull(type, "Type must not be null");
-            this.type = toJsonSchemaType(type);
-
-            if (isDate(type)) {
-                return withFormat(JsonSchemaFormat.DATE_TIME);
-            }
-
-            if (Collection.class.isAssignableFrom(type)) {
-
-                if (Set.class.equals(type)) {
-                    this.uniqueItems = true;
-                }
-
-                String value = null;
-
-                if (type.getTypeParameters().length > 0) {
-                    var parameterType = type.getTypeParameters()[0].getGenericDeclaration();
-                    var jsonSchemaType = toJsonSchemaType(parameterType);
-                    value = jsonSchemaType == null ? null : jsonSchemaType.toString();
-                }
-
-                this.items = Collections.singletonMap("type", value);
-            }
-
             return this;
         }
 
@@ -394,7 +301,9 @@ public class JsonSchema {
                         "format", JsonSchemaFormat.URI.toString()
                 );
 
-                return this;
+                this.uniqueItems = true;
+
+                return withType(JsonSchemaType.ARRAY);
             }
 
             this.items = null;
@@ -403,23 +312,28 @@ public class JsonSchema {
             return withFormat(JsonSchemaFormat.URI);
         }
 
-        JsonSchemaProperty with(Class<?> type, JsonSchemaReference reference) {
+        public JsonSchemaProperty withReference(JsonSchemaReference reference) {
+            this.reference = reference;
+            return this;
+        }
 
-            if (Collection.class.isAssignableFrom(type)) {
-
-                if (Set.class.equals(type)) {
-                    this.uniqueItems = true;
-                }
-
-                this.type = toJsonSchemaType(type);
-                this.items = Collections.singletonMap("$ref", reference.toString());
-
-                return this;
-
-            } else {
-                this.reference = reference;
-                return this;
+        public JsonSchemaProperty withArrayReference(JsonSchemaReference reference, boolean uniqueItems) {
+            if (uniqueItems) {
+                this.uniqueItems = true;
             }
+
+            this.type = JsonSchemaType.ARRAY;
+            this.items = Collections.singletonMap("$ref", reference.toString());
+
+            return this;
+        }
+
+        public <T extends AbstractJsonSchemaProperty<T>> JsonSchemaProperty withProperties(Collection<T> properties) {
+
+            Assert.notNull(properties, "Properties must not be null");
+
+            this.properties = new PropertiesContainer(properties);
+            return withType(JsonSchemaType.OBJECT);
         }
     }
 
@@ -428,7 +342,6 @@ public class JsonSchema {
      * {@literal enum} property.
      *
      * @author Oliver Gierke
-     * @since 2.3
      */
     public static class EnumProperty extends JsonSchemaProperty {
 

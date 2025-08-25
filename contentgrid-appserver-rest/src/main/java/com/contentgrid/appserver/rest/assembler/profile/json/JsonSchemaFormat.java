@@ -28,7 +28,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum JsonSchemaFormat {
 
-    EMAIL, DATE_TIME, HOSTNAME, IPV4, IPV6, URI;
+    EMAIL, DATE_TIME, HOSTNAME, IPV4, IPV6, URI, UUID;
 
     @JsonValue
     @Override
