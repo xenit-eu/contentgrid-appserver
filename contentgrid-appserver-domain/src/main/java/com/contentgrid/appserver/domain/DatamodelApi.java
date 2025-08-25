@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
@@ -38,7 +39,8 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
-            @NonNull EncodedCursorPagination pagination)
+            @NonNull EncodedCursorPagination pagination,
+            @NonNull PermissionPredicate permissionPredicate)
             throws InvalidThunkExpressionException, CursorDecodeException;
 
     /**
@@ -48,7 +50,7 @@ public interface DatamodelApi {
      * @param entityRequest the identity of the entity to query
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest);
+    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate);
 
     /**
      * Creates an entity with the given data and relations.
@@ -60,7 +62,9 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the create operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
-    EntityData create(@NonNull Application application, @NonNull EntityName entityName, @NonNull RequestInputData data)
+    EntityData create(@NonNull Application application, @NonNull EntityName entityName, @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException;
 
     /**
@@ -73,11 +77,13 @@ public interface DatamodelApi {
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     default EntityData update(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull RequestInputData data)
+            @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException {
-        var original = findById(application, entityRequest)
+        var original = findById(application, entityRequest, permissionPredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return update(application, original, data);
+        return update(application, original, data, permissionPredicate);
     }
 
     /**
@@ -90,7 +96,9 @@ public interface DatamodelApi {
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     EntityData update(@NonNull Application application, @NonNull EntityData original,
-            @NonNull RequestInputData data)
+            @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException;
 
     /**
@@ -104,11 +112,13 @@ public interface DatamodelApi {
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     default EntityData updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull RequestInputData data)
+            @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException {
-        var original = findById(application, entityRequest)
+        var original = findById(application, entityRequest, permissionPredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return updatePartial(application, original, data);
+        return updatePartial(application, original, data, permissionPredicate);
     }
 
     /**
@@ -122,7 +132,9 @@ public interface DatamodelApi {
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     EntityData updatePartial(@NonNull Application application, @NonNull EntityData original,
-            @NonNull RequestInputData data)
+            @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException;
 
     /**
@@ -133,7 +145,7 @@ public interface DatamodelApi {
      * @return the entity data that was deleted
      * @throws EntityIdNotFoundException if there's no id with this entity
      */
-    EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest) throws EntityIdNotFoundException;
+    EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate) throws EntityIdNotFoundException;
 
     /**
      * Determines whether the given source and target entities are linked by the specified relation.

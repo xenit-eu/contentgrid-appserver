@@ -16,6 +16,7 @@ import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.ContentWriter;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -50,6 +51,7 @@ import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import java.io.InputStream;
@@ -143,14 +145,16 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "received", Instant.now(clock),
-                    "pay_before", Instant.now(clock).plus(30, ChronoUnit.DAYS),
-                    "is_paid", false,
-                    "confidentiality", "public",
-                    "customer", new RelationDataEntry(PERSON.getName(), personId)
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "received", Instant.now(clock),
+                            "pay_before", Instant.now(clock).plus(30, ChronoUnit.DAYS),
+                            "is_paid", false,
+                            "confidentiality", "public",
+                            "customer", new RelationDataEntry(PERSON.getName(), personId)
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(result.getId()).isEqualTo(entityId);
 
@@ -188,7 +192,7 @@ class DatamodelApiImplTest {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "received", Instant.now(clock),
                         "confidentiality", "public"
-                )));
+                )), PermissionPredicate.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -215,7 +219,7 @@ class DatamodelApiImplTest {
                         "is_paid", "maybe",
                         "confidentiality", "public",
                         "customer", "test123"
-                )));
+                )), PermissionPredicate.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -245,14 +249,16 @@ class DatamodelApiImplTest {
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "confidentiality", "public",
-                    "customer", new RelationDataEntry(PERSON.getName(), personId),
-                    "products", productIds.stream()
-                            .map(pid -> new RelationDataEntry(PRODUCT.getName(), pid))
-                            .toList()
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "customer", new RelationDataEntry(PERSON.getName(), personId),
+                            "products", productIds.stream()
+                                    .map(pid -> new RelationDataEntry(PRODUCT.getName(), pid))
+                                    .toList()
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(result.getId()).isEqualTo(entityId);
 
@@ -296,17 +302,19 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
-                    "name", "Test person",
-                    "vat", "XXXX",
-                    "friends", List.of(new DataEntry.RelationDataEntry(
-                            PERSON.getName(),
-                            personId
+                            "name", "Test person",
+                            "vat", "XXXX",
+                            "friends", List.of(new DataEntry.RelationDataEntry(
+                                    PERSON.getName(),
+                                    personId
+                            )),
+                            "__inverse_friends", List.of(new RelationDataEntry(
+                                    PERSON.getName(),
+                                    personId
+                            ))
                     )),
-                    "__inverse_friends", List.of(new RelationDataEntry(
-                            PERSON.getName(),
-                            personId
-                    ))
-            )));
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(result.getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
@@ -331,7 +339,7 @@ class DatamodelApiImplTest {
                     "vat", "123456"
                     // person also has a uni-directional "friends" relation that we don't provide here.
                     // The inverse relation is unnamed, so it should also not be processed
-            )));
+            )), PermissionPredicate.allowAll());
 
             assertThat(result.getId()).isEqualTo(entityId);
 
@@ -361,7 +369,7 @@ class DatamodelApiImplTest {
                         "confidentiality", "public",
                         "customer", customer,
                         "products", products
-                )));
+                 )), PermissionPredicate.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -408,7 +416,7 @@ class DatamodelApiImplTest {
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-            )));
+            )), PermissionPredicate.allowAll());
 
             assertThat(result.getId()).isEqualTo(entityId);
 
@@ -452,7 +460,7 @@ class DatamodelApiImplTest {
                             "mimetype", "application/pdf",
                             "length", 120
                     )
-            ))))
+            )), PermissionPredicate.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
                         assertThat(e.getPath().toList()).isEqualTo(List.of("content"));
                     });
@@ -487,13 +495,15 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "received", Instant.now(clock),
-                    "confidentiality", "public",
-                    "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
-                    "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "received", Instant.now(clock),
+                            "confidentiality", "public",
+                            "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
+                            "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -525,7 +535,9 @@ class DatamodelApiImplTest {
                         MapRequestInputData.fromMap(Map.of(
                                 "received", Instant.now(clock),
                                 "confidentiality", "public"
-                        )));
+                        )),
+                        PermissionPredicate.allowAll()
+                );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -555,16 +567,18 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "confidentiality", "public",
-                    "content", Map.of(
-                            "filename", "file-123.pdf",
-                            "mimetype", "application/pdf",
-                            "id", "will-be-ignored",
-                            "length", 0xbad
-                    )
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "content", Map.of(
+                                    "filename", "file-123.pdf",
+                                    "mimetype", "application/pdf",
+                                    "id", "will-be-ignored",
+                                    "length", 0xbad
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -594,15 +608,17 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                        "number", "invoice-1",
-                        "amount", 1.50,
-                        "content", Map.of(
-                                "filename", "file-123.pdf",
-                                "mimetype", "application/pdf",
-                                "id", "will-be-ignored",
-                                "length", 0xbad
-                        )
-                )));
+                                "number", "invoice-1",
+                                "amount", 1.50,
+                                "content", Map.of(
+                                        "filename", "file-123.pdf",
+                                        "mimetype", "application/pdf",
+                                        "id", "will-be-ignored",
+                                        "length", 0xbad
+                                )
+                        )),
+                        PermissionPredicate.allowAll()
+                );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
@@ -624,13 +640,15 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                        "number", "invoice-1",
-                        "amount", 1.50,
-                        "content", Map.of(
-                                "filename", "file-123.pdf",
-                                "mimetype", dataEntry
-                        )
-                )));
+                                "number", "invoice-1",
+                                "amount", 1.50,
+                                "content", Map.of(
+                                        "filename", "file-123.pdf",
+                                        "mimetype", dataEntry
+                                )
+                        )),
+                        PermissionPredicate.allowAll()
+                );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
@@ -654,14 +672,16 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "confidentiality", "public",
-                    "content", Map.of(
-                            "filename", dataEntry,
-                            "mimetype", "application/pdf"
-                    )
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "content", Map.of(
+                                    "filename", dataEntry,
+                                    "mimetype", "application/pdf"
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -702,11 +722,13 @@ class DatamodelApiImplTest {
 
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", 1.50,
-                    "confidentiality", "public",
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf",  InputStream::nullInputStream)
-            )));
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -750,13 +772,15 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
-                    "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
-                    "confidentiality", "public",
-                    "received", Instant.now(clock),
-                    "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
-                    "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
-            )));
+                            "number", "invoice-1",
+                            "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
+                            "confidentiality", "public",
+                            "received", Instant.now(clock),
+                            "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
+                            "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -780,7 +804,7 @@ class DatamodelApiImplTest {
                         EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "number", NullDataEntry.INSTANCE // Required value set to null
-                        )));
+                        )), PermissionPredicate.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -810,7 +834,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
-            )));
+                    )), PermissionPredicate.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -834,13 +858,15 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", Map.of(
-                            "filename", "file-123.pdf",
-                            "mimetype", MissingDataEntry.INSTANCE,
-                            "id", "will-be-ignored",
-                            "length", 0xbad
-                    )
-            )));
+                            "content", Map.of(
+                                    "filename", "file-123.pdf",
+                                    "mimetype", MissingDataEntry.INSTANCE,
+                                    "id", "will-be-ignored",
+                                    "length", 0xbad
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -873,7 +899,9 @@ class DatamodelApiImplTest {
                                 "id", "will-be-ignored",
                                 "length", 0xbad
                         )
-                )));
+                        )),
+                        PermissionPredicate.allowAll()
+                );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
@@ -895,11 +923,13 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                        "content", Map.of(
-                                "filename", "file-123.pdf",
-                                "mimetype", NullDataEntry.INSTANCE
-                        )
-                )));
+                                "content", Map.of(
+                                        "filename", "file-123.pdf",
+                                        "mimetype", NullDataEntry.INSTANCE
+                                )
+                        )),
+                        PermissionPredicate.allowAll()
+                );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
@@ -922,11 +952,13 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", Map.of(
-                            "filename", "test132.pdf",
-                            "mimetype", MissingDataEntry.INSTANCE
-                    )
-            )));
+                            "content", Map.of(
+                                    "filename", "test132.pdf",
+                                    "mimetype", MissingDataEntry.INSTANCE
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -954,11 +986,13 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", Map.of(
-                            "filename", NullDataEntry.INSTANCE,
-                            "mimetype", "application/pdf"
-                    )
-            )));
+                            "content", Map.of(
+                                    "filename", NullDataEntry.INSTANCE,
+                                    "mimetype", "application/pdf"
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -987,11 +1021,13 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", Map.of(
-                            "filename", MissingDataEntry.INSTANCE,
-                            "mimetype", "application/pdf"
-                    )
-            )));
+                            "content", Map.of(
+                                    "filename", MissingDataEntry.INSTANCE,
+                                    "mimetype", "application/pdf"
+                            )
+                    )),
+                    PermissionPredicate.allowAll()
+            );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -1023,7 +1059,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-            )));
+                    )), PermissionPredicate.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -1052,7 +1088,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1062,7 +1098,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1071,7 +1107,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1083,7 +1119,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50));
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1093,7 +1129,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1102,7 +1138,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1110,27 +1146,30 @@ class DatamodelApiImplTest {
         @Test
         void findAllWithPagingAndFiltering() {
             ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
-            var filter = StringComparison.areEqual(SymbolicReference.parse("entity.confidentiality"), Scalar.of("public"));
+            var filter = LogicalOperation.conjunction(
+                    StringComparison.areEqual(SymbolicReference.parse("entity.confidentiality"), Scalar.of("public")),
+                    Scalar.of(true)
+            );
             Mockito.when(queryEngine.findAll(any(), any(), eq(filter), any(), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(),
                             data -> getConfidentiality(data).equals("public")
                     ));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null));
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1143,20 +1182,20 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, sort));
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, sort), PermissionPredicate.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1168,24 +1207,24 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
+            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow());
-            var thirdPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow());
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var thirdPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
 
             // Verify that navigating to current page remains the same
-            var currentPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current());
+            var currentPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
             assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
             assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
 
             // Verify that previous page is the same as second page
-            var prevPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow());
+            var prevPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
             assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
             assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
 
             // Verify that first page is the same as starting page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first());
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
             assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
             assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
         }
@@ -1273,7 +1312,7 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture(), Mockito.any()))
                     .thenReturn(Optional.of(data));
 
-            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id));
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id), PermissionPredicate.allowAll());
             assertEquals(invoice, deleteArg.getValue().getEntityName());
             assertEquals(id, deleteArg.getValue().getEntityId());
         }
@@ -1287,7 +1326,8 @@ class DatamodelApiImplTest {
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
-                    datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id))
+                    datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id),
+                            PermissionPredicate.allowAll())
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }

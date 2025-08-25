@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.content.api.ContentStore;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
@@ -41,7 +42,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
-import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Map;
 import java.util.Optional;
@@ -55,8 +56,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DatamodelApiImpl implements DatamodelApi {
 
-    // TODO: Wire through predicates
-    private static final Scalar<Boolean> TRUE_PREDICATE = Scalar.of(true);
     private final QueryEngine queryEngine;
     private final ContentStore contentStore;
     private final CursorCodec cursorCodec;
@@ -99,21 +98,27 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, String> params, @NonNull EncodedCursorPagination pagination)
+            @NonNull Map<String, String> params, @NonNull EncodedCursorPagination pagination,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws InvalidThunkExpressionException {
 
         var sort = pagination.getSort();
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
+        var fullFilter = LogicalOperation.conjunction(
+                filter,
+                permissionPredicate.predicate()
+        );
         validateSortData(entity, sort);
 
         var offsetData = convertPaginationToOffset(pagination, entity.getName(), params);
 
         // Request one extra row, so we can see if it's present → there is a next page
         var page = new OffsetData(offsetData.getLimit() + 1, offsetData.getOffset());
-        var result = queryEngine.findAll(application, entity, filter, sort, page);
+        var result = queryEngine.findAll(application, entity, fullFilter, sort, page);
         // Get a total count of how many items match these params
         // TODO: to be replaced with an estimate count at some point (ACC-2208)
-        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, filter)), page, result);
+        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, fullFilter)), page, result);
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
         PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
@@ -148,15 +153,20 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest) {
-        return queryEngine.findById(application, entityRequest, TRUE_PREDICATE);
+    public Optional<EntityData> findById(
+            @NonNull Application application,
+            @NonNull EntityRequest entityRequest,
+            @NonNull PermissionPredicate permissionPredicate
+    ) {
+        return queryEngine.findById(application, entityRequest, permissionPredicate.predicate());
     }
 
     @Override
     public EntityData create(
             @NonNull Application application,
             @NonNull EntityName entityName,
-            @NonNull RequestInputData requestData
+            @NonNull RequestInputData requestData,
+            @NonNull PermissionPredicate permissionPredicate
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -190,12 +200,14 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .relations(relations)
                 .build();
 
-        return queryEngine.create(application, createData, TRUE_PREDICATE);
+        return queryEngine.create(application, createData, permissionPredicate.predicate());
     }
 
     @Override
     public EntityData update(@NonNull Application application,
-            @NonNull EntityData existingEntity, @NonNull RequestInputData data)
+            @NonNull EntityData existingEntity, @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
+    )
             throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -221,7 +233,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, TRUE_PREDICATE);
+        var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
 
         return updateData.getUpdated();
     }
@@ -229,7 +241,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public EntityData updatePartial(@NonNull Application application,
             @NonNull EntityData existingEntity,
-            @NonNull RequestInputData data
+            @NonNull RequestInputData data,
+            @NonNull PermissionPredicate permissionPredicate
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -255,15 +268,15 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, TRUE_PREDICATE);
+        var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
 
         return updateData.getUpdated();
     }
 
     @Override
-    public EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest)
+    public EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate)
             throws EntityIdNotFoundException {
-        return queryEngine.delete(application, entityRequest, TRUE_PREDICATE)
+        return queryEngine.delete(application, entityRequest, permissionPredicate.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
     }

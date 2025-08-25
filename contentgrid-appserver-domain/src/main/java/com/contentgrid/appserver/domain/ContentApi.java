@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -18,7 +19,8 @@ public interface ContentApi {
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull EntityId id,
-            @NonNull AttributeName attributeName
+            @NonNull AttributeName attributeName,
+            @NonNull PermissionPredicate permissionPredicate
     );
 
     Content update(
@@ -27,7 +29,8 @@ public interface ContentApi {
             @NonNull EntityId id,
             @NonNull AttributeName attributeName,
             @NonNull VersionConstraint versionConstraint,
-            @NonNull FileDataEntry file
+            @NonNull FileDataEntry file,
+            @NonNull PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException;
 
     void delete(
@@ -35,7 +38,8 @@ public interface ContentApi {
             @NonNull EntityName entityName,
             @NonNull EntityId id,
             @NonNull AttributeName attributeName,
-            @NonNull VersionConstraint versionConstraint
+            @NonNull VersionConstraint versionConstraint,
+            @NonNull PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException;
 
     /**

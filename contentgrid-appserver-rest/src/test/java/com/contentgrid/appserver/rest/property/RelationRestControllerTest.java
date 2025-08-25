@@ -140,7 +140,7 @@ class RelationRestControllerTest {
                             .id(PERSON_ID)
                             .build()))
                     .when(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PERSON.getName(), PERSON_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isFound())
@@ -148,7 +148,7 @@ class RelationRestControllerTest {
                             "http://localhost/invoices?page=0&customer=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PERSON.getName(), PERSON_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
         }
 
         @Test
@@ -158,7 +158,7 @@ class RelationRestControllerTest {
                             .id(PRODUCT_ID)
                             .build()))
                     .when(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID)), Mockito.any());
 
             mockMvc.perform(get("/products/{sourceId}/invoices", PRODUCT_ID))
                     .andExpect(status().isFound())
@@ -166,7 +166,7 @@ class RelationRestControllerTest {
                             "http://localhost/invoices?page=0&products=%s".formatted(PRODUCT_ID)));
 
             Mockito.verify(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID)), Mockito.any());
         }
 
         @Test
@@ -176,7 +176,7 @@ class RelationRestControllerTest {
                     .id(PERSON_ID)
                     .build()))
                     .when(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PERSON.getName(), PERSON_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
 
             mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
                     .andExpect(status().isFound())
@@ -184,7 +184,7 @@ class RelationRestControllerTest {
                             "http://localhost/persons?page=0&_internal_person__friends=%s".formatted(PERSON_ID)));
 
             Mockito.verify(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PERSON.getName(), PERSON_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
         }
 
         @Test
@@ -538,7 +538,7 @@ class RelationRestControllerTest {
         @Test
         void followToManyRelationSourceIdNotFound() throws Exception {
             Mockito.doReturn(Optional.empty()).when(datamodelApi)
-                    .findById(APPLICATION, EntityRequest.forEntity(PERSON.getName(), PERSON_ID));
+                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
 
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isNotFound())

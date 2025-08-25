@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -92,7 +93,8 @@ public class ContentRestController {
                 application,
                 entityAndContent.entityName(),
                 instanceId,
-                entityAndContent.attributeName()
+                entityAndContent.attributeName(),
+                PermissionPredicate.allowAll()
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         var eTag = calculateETag(content);
@@ -228,7 +230,8 @@ public class ContentRestController {
                     instanceId,
                     entityAndContent.attributeName(),
                     versionConstraint,
-                    fileData
+                    fileData,
+                    PermissionPredicate.allowAll()
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -263,7 +266,8 @@ public class ContentRestController {
                     instanceId,
                     entityAndContent.attributeName(),
                     versionConstraint,
-                    fileData
+                    fileData,
+                    PermissionPredicate.allowAll()
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -288,7 +292,8 @@ public class ContentRestController {
                     entityAndContent.entityName(),
                     instanceId,
                     entityAndContent.attributeName(),
-                    versionConstraint
+                    versionConstraint,
+                    PermissionPredicate.allowAll()
             );
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
