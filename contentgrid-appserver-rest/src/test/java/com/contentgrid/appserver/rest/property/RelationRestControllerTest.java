@@ -53,7 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest
+@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
 

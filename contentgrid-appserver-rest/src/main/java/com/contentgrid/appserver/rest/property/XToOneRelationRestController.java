@@ -51,7 +51,7 @@ public class XToOneRelationRestController {
         var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, targetPathSegment, null),
+                                .getEntity(application, targetPathSegment, null, null),
                         params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
                 .build();
     }
@@ -68,7 +68,7 @@ public class XToOneRelationRestController {
         try {
             var targetId = datamodelApi.findRelationTarget(application, relation, instanceId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relation.getSourceEndPoint().getName())));
-            var redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
+            var redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId, null)).toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
         } catch (EntityIdNotFoundException e) {

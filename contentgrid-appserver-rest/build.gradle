@@ -10,12 +10,18 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring'
+    implementation('com.contentgrid.thunx:thunx-api-spring-boot-starter') {
+        exclude group: 'com.contentgrid.thunx', module: 'spring-data-querydsl-predicate-injector'
+        exclude group: 'com.contentgrid.thunx', module: 'thunx-predicates-querydsl'
+        exclude group: 'org.springframework.data'
+    }
 
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-app')
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
+    testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
 }
 
 // Required for resolution of variable-name-based controller method parameters

@@ -136,7 +136,7 @@ public class HalFormsTemplateGenerator {
     }
 
     private URI getCollectionSelfLink(Application application, Entity entity) {
-        return linkTo(methodOn(EntityRestController.class).listEntity(application, entity.getPathSegment(), 0, null, Map.of())).toUri();
+        return linkTo(methodOn(EntityRestController.class).listEntity(application, entity.getPathSegment(), null, 0, null, Map.of())).toUri();
     }
 
 
@@ -211,7 +211,7 @@ public class HalFormsTemplateGenerator {
         }
         var required = relation.getSourceEndPoint().isRequired();
         var url = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), 0, null, Map.of()))
+                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), null, 0, null, Map.of()))
                 .toUri().toString();
         var options = HalFormsOptions.remote(url)
                 .withMinItems(required ? 1L : 0L)

@@ -58,7 +58,7 @@ public class XToManyRelationRestController {
         var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, targetPathSegment, null),
+                                .getEntity(application, targetPathSegment, null, null),
                         params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
                 .build();
     }
@@ -68,10 +68,11 @@ public class XToManyRelationRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            @PathVariable PathSegmentName propertyName
+            @PathVariable PathSegmentName propertyName,
+            PermissionPredicate permissionPredicate
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), instanceId), PermissionPredicate.allowAll())
+        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), instanceId), permissionPredicate)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
         var targetEntity = relation.getTargetEndPoint().getEntity();
@@ -96,7 +97,7 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
         var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, targetEntity.getPathSegment(), 0, null, Map.of(targetFilter.getName().getValue(), instanceId.toString())))
+                .listEntity(application, targetEntity.getPathSegment(), null, 0, null, Map.of(targetFilter.getName().getValue(), instanceId.toString())))
                 .toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }
@@ -162,7 +163,7 @@ public class XToManyRelationRestController {
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
         if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId)) {
-            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId)).toUri();
+            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId, null)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);

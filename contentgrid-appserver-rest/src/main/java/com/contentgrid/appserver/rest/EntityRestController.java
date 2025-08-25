@@ -76,6 +76,7 @@ public class EntityRestController {
     public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
+            PermissionPredicate permissionPredicate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false, name = SORT_NAME) String[] sort,
             @RequestParam Map<String, String> params
@@ -86,7 +87,7 @@ public class EntityRestController {
         var pagination = new EncodedCursorPagination(null, sortData);
 
         var results = datamodelApi.findAll(application, entity, params, pagination,
-                PermissionPredicate.allowAll());
+                permissionPredicate);
 
         // TODO use page data and count data (ACC-2200)
         return assembler.withContext(application, entityName)
@@ -97,7 +98,8 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> getEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId
+            @PathVariable EntityId instanceId,
+            PermissionPredicate permissionPredicate
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -109,7 +111,7 @@ public class EntityRestController {
                         // All expensive operations have already happened (the body is not that large),
                         // so there is no point in still discarding it
                         EntityRequest.forEntity(entity.getName(), instanceId),
-                        PermissionPredicate.allowAll()
+                        permissionPredicate
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -128,7 +130,8 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -139,7 +142,7 @@ public class EntityRestController {
                 application,
                 entity.getName(),
                 new ConversionServiceRequestInputData(data, conversionService),
-                PermissionPredicate.allowAll()
+                permissionPredicate
         );
 
         var model = assembler.withContext(application, entityName).toModel(result);
@@ -153,9 +156,14 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            HttpServletRequest request
+            HttpServletRequest request,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
-        return createEntity(application, entityName, new ConversionServiceRequestInputData(MultipartRequestInputData.fromRequest(request), conversionService));
+        var inputData = new ConversionServiceRequestInputData(
+                MultipartRequestInputData.fromRequest(request),
+                conversionService
+        );
+        return createEntity(application, entityName, inputData, permissionPredicate);
     }
 
     @PutMapping("/{entityName}/{id}")
@@ -164,7 +172,8 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -174,7 +183,7 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    PermissionPredicate.allowAll()
+                    permissionPredicate
             );
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
@@ -190,7 +199,8 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -200,7 +210,7 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    PermissionPredicate.allowAll()
+                    permissionPredicate
             );
 
             return ResponseEntity.ok()
@@ -216,13 +226,14 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            VersionConstraint requestedVersion
+            VersionConstraint requestedVersion,
+            PermissionPredicate permissionPredicate
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
             var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
-            var deleted = datamodelApi.deleteEntity(application, request, PermissionPredicate.allowAll());
+            var deleted = datamodelApi.deleteEntity(application, request, permissionPredicate);
             return ResponseEntity.ok()
                     .body(assembler.withContext(application, entityName).toModel(deleted));
         } catch(EntityIdNotFoundException e) {

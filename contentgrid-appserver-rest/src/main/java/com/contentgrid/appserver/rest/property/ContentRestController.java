@@ -85,7 +85,8 @@ public class ContentRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
-            WebRequest webRequest
+            WebRequest webRequest,
+            PermissionPredicate permissionPredicate
     ) {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -94,7 +95,7 @@ public class ContentRestController {
                 entityAndContent.entityName(),
                 instanceId,
                 entityAndContent.attributeName(),
-                PermissionPredicate.allowAll()
+                permissionPredicate
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         var eTag = calculateETag(content);
@@ -196,9 +197,10 @@ public class ContentRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
-            WebRequest webRequest
+            WebRequest webRequest,
+            PermissionPredicate permissionPredicate
     ) {
-        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest);
+        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest, permissionPredicate);
 
         return ResponseEntity.status(response.getStatusCode())
                 .headers(response.getHeaders())
@@ -213,7 +215,8 @@ public class ContentRestController {
             @PathVariable PathSegmentName propertyName,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
-            @RequestBody InputStreamResource requestBody
+            @RequestBody InputStreamResource requestBody,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -231,7 +234,7 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    PermissionPredicate.allowAll()
+                    permissionPredicate
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -248,7 +251,8 @@ public class ContentRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
-            @RequestParam MultipartFile file
+            @RequestParam MultipartFile file,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -267,7 +271,7 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    PermissionPredicate.allowAll()
+                    permissionPredicate
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -283,7 +287,8 @@ public class ContentRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            VersionConstraint versionConstraint
+            VersionConstraint versionConstraint,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
         try {
@@ -293,7 +298,7 @@ public class ContentRestController {
                     instanceId,
                     entityAndContent.attributeName(),
                     versionConstraint,
-                    PermissionPredicate.allowAll()
+                    permissionPredicate
             );
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
