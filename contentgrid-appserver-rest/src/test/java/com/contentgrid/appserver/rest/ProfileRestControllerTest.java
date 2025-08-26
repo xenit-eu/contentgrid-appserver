@@ -219,7 +219,8 @@ class ProfileRestControllerTest {
                                 }]
                             }
                         }
-                        """));
+                        """))
+                .andExpect(jsonPath("$._embedded.blueprint:attribute[?(@.name=='_version')]").doesNotExist());
     }
 
     @Test
@@ -409,6 +410,109 @@ class ProfileRestControllerTest {
     void getProfileEntity_notFound() throws Exception {
         mockMvc.perform(get("/profile/not-found").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getProfileEntity_jsonSchema() throws Exception {
+        mockMvc.perform(get("/profile/invoices").accept("application/schema+json"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            title: "invoice",
+                            properties: {
+                                id: {
+                                    type: "string",
+                                    format: "uuid",
+                                    readOnly: true
+                                },
+                                number: {
+                                    type: "string"
+                                },
+                                amount: {
+                                    type: "number"
+                                },
+                                received: {
+                                    type: "string",
+                                    format: "date-time"
+                                },
+                                pay_before: {
+                                    type: "string",
+                                    format: "date-time"
+                                },
+                                is_paid: {
+                                    type: boolean
+                                },
+                                confidentiality: {
+                                    enum: ["confidential", "public", "secret"]
+                                },
+                                content: {
+                                    $ref: "#/$defs/content"
+                                },
+                                audit_metadata: {
+                                    type: "object",
+                                    properties: {
+                                        created_date: {
+                                            type: "string",
+                                            format: "date-time",
+                                            readOnly: true
+                                        },
+                                        created_by: {
+                                            type: "string",
+                                            readOnly: true
+                                        },
+                                        last_modified_date: {
+                                            type: "string",
+                                            format: "date-time",
+                                            readOnly: true
+                                        },
+                                        last_modified_by: {
+                                            type: "string",
+                                            readOnly: true
+                                        }
+                                    }
+                                },
+                                customer: {
+                                    type: "string",
+                                    format: "uri"
+                                },
+                                previous_invoice: {
+                                    type: "string",
+                                    format: "uri"
+                                },
+                                next_invoice: {
+                                    type: "string",
+                                    format: "uri"
+                                },
+                                products: {
+                                    items: {
+                                        type: "string",
+                                        format: "uri"
+                                    },
+                                    uniqueItems: true
+                                }
+                            },
+                            required: ["number", "amount", "confidentiality", "customer"],
+                            $defs: {
+                                content: {
+                                    type: "object",
+                                    properties: {
+                                        filename: {
+                                            type: "string"
+                                        },
+                                        mimetype: {
+                                            type: "string"
+                                        },
+                                        length: {
+                                            type: "integer",
+                                            readOnly: true
+                                        }
+                                    }
+                                }
+                            },
+                            $schema: "https://json-schema.org/draft/2020-12/schema"
+                        }
+                        """))
+                .andExpect(jsonPath("$.properties._version").doesNotExist());
     }
 
 }
