@@ -33,6 +33,6 @@ public enum JsonSchemaFormat {
     @JsonValue
     @Override
     public String toString() {
-        return name().toLowerCase(Locale.US).replaceAll("_", "-");
+        return name().toLowerCase(Locale.US).replace("_", "-");
     }
 }

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.assembler.profile.hal;
 
+import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -7,8 +8,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.util.Collection;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import org.springframework.hateoas.CollectionModel;
@@ -20,7 +23,8 @@ import org.springframework.hateoas.server.core.Relation;
 
 @Builder
 @Getter
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @Relation(BlueprintLinkRelations.ATTRIBUTE_STRING)
 public class ProfileAttributeRepresentationModel extends RepresentationModel<ProfileAttributeRepresentationModel> {
 

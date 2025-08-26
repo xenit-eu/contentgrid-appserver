@@ -141,8 +141,8 @@ public class JsonSchema {
 
             Assert.notNull(properties, "Properties must not be null");
 
-            this.properties = new HashMap<String, JsonSchema.AbstractJsonSchemaProperty<?>>();
-            this.requiredProperties = new ArrayList<String>();
+            this.properties = new HashMap<>();
+            this.requiredProperties = new ArrayList<>();
 
             for (AbstractJsonSchemaProperty<?> property : properties) {
                 this.properties.put(property.getName(), property);
@@ -165,7 +165,7 @@ public class JsonSchema {
         private final @JsonProperty("$defs") Map<String, Item> definitions;
 
         public Definitions() {
-            this.definitions = new HashMap<String, Item>();
+            this.definitions = new HashMap<>();
         }
 
         boolean hasDefinitionFor(JsonSchemaReference reference) {
@@ -294,22 +294,27 @@ public class JsonSchema {
          *
          * @return
          */
-        public JsonSchemaProperty asAssociation(boolean collectionLike) {
-            if (collectionLike) {
-                this.items = Map.of(
-                        "type", JsonSchemaType.STRING.toString(),
-                        "format", JsonSchemaFormat.URI.toString()
-                );
-
-                this.uniqueItems = true;
-
-                return withType(JsonSchemaType.ARRAY);
-            }
-
+        public JsonSchemaProperty asAssociation() {
             this.items = null;
             this.uniqueItems = null;
 
             return withFormat(JsonSchemaFormat.URI);
+        }
+
+        /**
+         * Turns the current {@link JsonSchemaProperty} into an association array.
+         *
+         * @return
+         */
+        public JsonSchemaProperty asAssociationArray() {
+            this.items = Map.of(
+                    "type", JsonSchemaType.STRING.toString(),
+                    "format", JsonSchemaFormat.URI.toString()
+            );
+
+            this.uniqueItems = true;
+
+            return withType(JsonSchemaType.ARRAY);
         }
 
         public JsonSchemaProperty withReference(JsonSchemaReference reference) {
@@ -317,11 +322,7 @@ public class JsonSchema {
             return this;
         }
 
-        public JsonSchemaProperty withArrayReference(JsonSchemaReference reference, boolean uniqueItems) {
-            if (uniqueItems) {
-                this.uniqueItems = true;
-            }
-
+        public JsonSchemaProperty withArrayReference(JsonSchemaReference reference) {
             this.type = JsonSchemaType.ARRAY;
             this.items = Collections.singletonMap("$ref", reference.toString());
 
@@ -380,7 +381,7 @@ public class JsonSchema {
 
         private static List<String> toValues(Class<?> type) {
 
-            List<String> values = new ArrayList<String>();
+            List<String> values = new ArrayList<>();
 
             for (Object value : type.getEnumConstants()) {
                 values.add(value.toString());

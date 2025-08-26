@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.assembler.profile.hal;
 
+import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.Value;

@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.rest.ProfileRestController;
+import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.Link;

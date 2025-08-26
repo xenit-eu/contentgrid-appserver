@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.assembler.profile.hal;
+package com.contentgrid.appserver.rest.assembler.profile;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.hateoas.LinkRelation;

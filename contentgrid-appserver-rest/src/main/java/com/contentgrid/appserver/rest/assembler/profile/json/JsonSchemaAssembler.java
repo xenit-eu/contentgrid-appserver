@@ -36,7 +36,7 @@ public class JsonSchemaAssembler {
                 .flatMap(Optional::stream);
         var properties = Stream.concat(attributes, relations).toList();
 
-        return new JsonSchema(title == null ? entity.getName().getValue() : title, entity.getDescription(), properties, definitions);
+        return new JsonSchema(title, entity.getDescription(), properties, definitions);
     }
 
     private Optional<JsonSchemaProperty> toProperty(Application application, Entity entity, AttributePath path, Attribute attribute, Definitions definitions) {
@@ -153,16 +153,20 @@ public class JsonSchemaAssembler {
         }
 
         var title = readTitle(application, entity, relation);
-        var manyTargetPerSource = relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation;
         var property = new JsonSchemaProperty(sourceEndPoint.getName().getValue(), title,
                 sourceEndPoint.getDescription(), sourceEndPoint.isRequired());
-        property.asAssociation(manyTargetPerSource);
+
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            property.asAssociationArray();
+        } else {
+            property.asAssociation();
+        }
 
         return Optional.of(property);
     }
 
     private String readTitle(Application application, Entity entity) {
-        return null; // TODO: resolve entity title (ACC-2230)
+        return entity.getName().getValue(); // TODO: resolve entity title (ACC-2230)
     }
 
     private String readTitle(Application application, Entity entity, AttributePath path) {

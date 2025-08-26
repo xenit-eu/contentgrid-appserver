@@ -3,7 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.rest.assembler.profile.hal.BlueprintLinkRelationsConfiguration;
+import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
