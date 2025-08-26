@@ -86,7 +86,7 @@ public class EntityRestController {
         var results = datamodelApi.findAll(application, entity, params, pagination);
 
         // TODO use page data and count data (ACC-2200)
-        return assembler.withContext(application, entity)
+        return assembler.withContext(application, entityName)
                 .toCollectionModel(results);
     }
 
@@ -111,7 +111,7 @@ public class EntityRestController {
 
         return ResponseEntity.ok()
                 .eTag(calculateETag(result))
-                .body(assembler.withContext(application, entity).toModel(result));
+                .body(assembler.withContext(application, entityName).toModel(result));
     }
 
     private String calculateETag(EntityData result) {
@@ -137,7 +137,7 @@ public class EntityRestController {
                 new ConversionServiceRequestInputData(data, conversionService)
         );
 
-        var model = assembler.withContext(application, entity).toModel(result);
+        var model = assembler.withContext(application, entityName).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .eTag(calculateETag(result))
@@ -171,7 +171,7 @@ public class EntityRestController {
                     data);
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity).toModel(updateResult));
+                    .body(assembler.withContext(application, entityName).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
@@ -197,7 +197,7 @@ public class EntityRestController {
 
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity).toModel(updateResult));
+                    .body(assembler.withContext(application, entityName).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
