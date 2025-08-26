@@ -35,6 +35,7 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
@@ -44,6 +45,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,7 +109,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var result = queryEngine.findAll(application, entity, filter, sort, page);
         // Get a total count of how many items match these params
         // TODO: to be replaced with an estimate count at some point (ACC-2208)
-        var count = ItemCount.exact(queryEngine.exactCount(application, entity, filter));
+        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, filter)), page, result);
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
         PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
@@ -132,6 +134,13 @@ public class DatamodelApiImpl implements DatamodelApi {
             entity.getSortableFieldByName(name).orElseThrow(() ->
                     InvalidSortParameterException.invalidField(name.getValue(), entity.getName().getValue()));
         }
+    }
+
+    private ItemCount calculateCount(Supplier<ItemCount> countSupplier, OffsetData offsetData, SliceData slice) {
+        // TODO: do not perform a count if on last page (ACC-2208)
+        var result = countSupplier.get();
+        // TODO: adjust estimated count based on slice and offsetData (ACC-2208)
+        return result;
     }
 
     @Override
