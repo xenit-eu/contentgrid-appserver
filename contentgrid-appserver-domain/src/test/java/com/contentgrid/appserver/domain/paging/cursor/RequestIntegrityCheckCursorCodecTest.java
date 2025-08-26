@@ -10,6 +10,7 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec.IntegrityCheckFailedException;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import java.util.ArrayList;
@@ -40,7 +41,8 @@ class RequestIntegrityCheckCursorCodecTest {
                 Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of("a", "b")),
                 Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of()),
                 Arguments.of(new CursorContext("ZZZ", 100, UNSORTED), Map.of()),
-                Arguments.of(new CursorContext("ZZZ", 100, new SortData(Collections.singletonList(new FieldSort(null, SortableName.of("abc"))))), Map.of())
+                Arguments.of(new CursorContext("ZZZ", 100, new SortData(Collections.singletonList(new FieldSort(
+                        Direction.ASC, SortableName.of("abc"))))), Map.of())
         );
     }
 
@@ -133,7 +135,7 @@ class RequestIntegrityCheckCursorCodecTest {
         // - Change sorting
         assertThatThrownBy(() -> {
             var modifiedSortFields = new ArrayList<>(encodedContext.sort().getSortedFields());
-            modifiedSortFields.add(new FieldSort(null, SortableName.of("field")));
+            modifiedSortFields.add(new FieldSort(Direction.ASC, SortableName.of("field")));
             var modifiedSort = new SortData(modifiedSortFields);
             var modifiedContext = new CursorContext(encodedContext.cursor(), encodedContext.pageSize(), modifiedSort);
             codec.decodeCursor(modifiedContext, ENTITY, parameters);

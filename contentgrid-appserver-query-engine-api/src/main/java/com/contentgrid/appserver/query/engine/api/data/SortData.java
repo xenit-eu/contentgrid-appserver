@@ -2,22 +2,23 @@ package com.contentgrid.appserver.query.engine.api.data;
 
 import com.contentgrid.appserver.application.model.values.SortableName;
 import java.util.List;
+import lombok.NonNull;
 import lombok.Value;
 
 @Value
 public class SortData {
+    @NonNull
     List<FieldSort> sortedFields;
 
     @Value
     public static class FieldSort {
+        @NonNull
         Direction direction;
+        @NonNull
         SortableName name;
 
         @Override
         public String toString() {
-            if (direction == null) {
-                return name.getValue();
-            }
             return name.getValue() + "," + direction.name().toLowerCase();
         }
     }
