@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -197,6 +198,7 @@ public class ModelTestFixtures {
                     .usernameColumn(ColumnName.of("audit_metadata__last_modified_by_name"))
                     .flag(ModifierFlag.INSTANCE)
                     .build())
+            .flag(ReadOnlyFlag.INSTANCE)
             .build();
 
     public static final Attribute INVOICE_VERSION = SimpleAttribute.builder()

@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.content.api.ContentReference;
@@ -90,27 +89,6 @@ class DatamodelApiImplTest {
 
     private final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
-    private static CompositeAttributeData getAuditMetadataData() {
-        // TODO: have these attributes be filled automatically
-        return CompositeAttributeData.builder()
-                .name(INVOICE_AUDIT_METADATA.getName())
-                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), null))
-                .attribute(CompositeAttributeData.builder()
-                        .name(AttributeName.of("created_by"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
-                        .build())
-                .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), null))
-                .attribute(CompositeAttributeData.builder()
-                        .name(AttributeName.of("last_modified_by"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
-                        .build())
-                .build();
-    }
-
     @BeforeEach
     void setup() {
         CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
@@ -189,8 +167,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build(),
-                        getAuditMetadataData()
+                                .build()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -292,8 +269,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build(),
-                        getAuditMetadataData()
+                                .build()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -449,8 +425,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "my-file.pdf"))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), "application/pdf"))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 110L))
-                                .build(),
-                        getAuditMetadataData()
+                                .build()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -533,8 +508,7 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                            .build(),
-                    getAuditMetadataData()
+                            .build()
             );
 
             Mockito.verifyNoInteractions(contentStore);
@@ -607,8 +581,7 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build(),
-                    getAuditMetadataData()
+                            .build()
             );
         }
 
@@ -705,8 +678,7 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build(),
-                    getAuditMetadataData()
+                            .build()
             );
         }
 
@@ -753,8 +725,7 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 50L))
-                            .build(),
-                    getAuditMetadataData()
+                            .build()
             );
 
         }

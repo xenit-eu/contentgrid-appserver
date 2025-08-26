@@ -159,6 +159,7 @@ class ProfileRestControllerTest {
                                 }, {
                                     name: "audit_metadata",
                                     type: "object",
+                                    readOnly: true,
                                     _embedded: {
                                         "blueprint:attribute": [{
                                             name: "created_date",
@@ -450,6 +451,7 @@ class ProfileRestControllerTest {
                                 },
                                 audit_metadata: {
                                     type: "object",
+                                    readOnly: true,
                                     properties: {
                                         created_date: {
                                             type: "string",
