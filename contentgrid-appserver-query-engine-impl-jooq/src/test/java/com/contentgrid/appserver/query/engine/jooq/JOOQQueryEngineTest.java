@@ -53,6 +53,7 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -81,6 +82,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -103,6 +105,8 @@ import org.springframework.test.context.ContextConfiguration;
 })
 @ContextConfiguration(classes = {TestApplication.class})
 class JOOQQueryEngineTest {
+
+    private static final OffsetData DEFAULT_PAGE_DATA = new OffsetData(20, 0);
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
@@ -462,7 +466,7 @@ class JOOQQueryEngineTest {
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
-        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, null);
+        var results = queryEngine.findAll(APPLICATION, entity, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         var resultList = results.getEntities().stream().map(EntityData::getId).toList();
         assertEquals(expected.size(), resultList.size());
         assertTrue(resultList.containsAll(expected));
@@ -602,7 +606,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validExpressions")
     void findAllValidExpression(ThunkExpression<Boolean> expression) {
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -688,7 +692,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidExpressions")
     void findAllInvalidExpression(ThunkExpression<Boolean> expression) {
-        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, null));
+        assertThrows(InvalidThunkExpressionException.class, () -> queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA));
     }
 
     static Stream<EntityCreateData> validCreateData() {
@@ -1574,7 +1578,7 @@ class JOOQQueryEngineTest {
 
         // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
-        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, null);
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         assertTrue(slice.getEntities().isEmpty());
 
         // unlink relations for person
@@ -1583,7 +1587,7 @@ class JOOQQueryEngineTest {
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
-        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, null);
+        slice = queryEngine.findAll(APPLICATION, PERSON, Scalar.of(true), null, DEFAULT_PAGE_DATA);
         assertTrue(slice.getEntities().isEmpty());
     }
 
@@ -1690,7 +1694,7 @@ class JOOQQueryEngineTest {
                     );
                 }
                 var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
-                        null, null);
+                        null, DEFAULT_PAGE_DATA);
                 assertTrue(slice.getEntities().isEmpty());
             } else {
                 // TODO: How do we validate this?
@@ -1829,7 +1833,7 @@ class JOOQQueryEngineTest {
                 // Bob -> invoice 2 -> invoice 1 -> Alice
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
         );
-        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, null);
+        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, DEFAULT_PAGE_DATA);
         var results = slice.getEntities();
 
         assertEquals(1, results.size());
@@ -1843,30 +1847,103 @@ class JOOQQueryEngineTest {
         // Ascending by invoice number
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.ASC, SortableName.of("invoice_num"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
 
         // Descending by invoice number
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.DESC, SortableName.of("invoice_num"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
 
         // Ascending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.ASC, SortableName.of("amount"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
 
         // Descending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.DESC, SortableName.of("amount"))
-        )), null);
+        )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+    }
+
+    @Test
+    void testPaging() {
+        // Make a lot of data
+        dslContext.truncateTable(PRODUCT.getTable().getValue(), INVOICE_PRODUCTS.getJoinTable().getValue()).execute();
+        var inserter = dslContext.insertInto(DSL.table(PRODUCT.getTable().getValue()),
+                        DSL.field("id", UUID.class), DSL.field("code", String.class), DSL.field("description", String.class));
+        for (int i = 0; i < 10_000; i++) {
+            inserter = inserter.values(UUID_GENERATOR.generate(), "code_%04d".formatted(i), "a product");
+        }
+        inserter.execute();
+
+        Function<EntityData, String> getCode = data -> ((SimpleAttributeData<String>) data
+                .getAttributeByName(PRODUCT_CODE.getName()).get()).getValue();
+
+        // Validate limits work
+        var firstPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(40, 0));
+        assertEquals(40, firstPage.getEntities().size());
+        assertEquals("code_0000", getCode.apply(firstPage.getEntities().getFirst()));
+        assertEquals("code_0039", getCode.apply(firstPage.getEntities().getLast()));
+
+        // Validate offsets work
+        var fourthPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 60));
+        assertEquals(20, fourthPage.getEntities().size());
+        assertEquals("code_0060", getCode.apply(fourthPage.getEntities().getFirst()));
+        assertEquals("code_0079", getCode.apply(fourthPage.getEntities().getLast()));
+
+        // Validate page info near the end is correct
+        var lastPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 9990));
+        assertEquals(10, lastPage.getEntities().size());
+        assertEquals("code_9990", getCode.apply(lastPage.getEntities().getFirst()));
+        assertEquals("code_9999", getCode.apply(lastPage.getEntities().getLast()));
+
+        // Validate page info beyond end is empty
+        var emptyPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 10_010));
+        assertEquals(0, emptyPage.getEntities().size());
+    }
+
+    static Stream<Arguments> countExpressions() {
+        return Stream.of(
+                // true
+                Arguments.of(Scalar.of(true), 3L),
+                // false
+                Arguments.of(Scalar.of(false), 0L),
+                // expression that holds for all products
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code_")
+                ), 3L),
+                // expression that holds for none of the products
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code__")
+                ), 0L),
+                // expression that holds for exactly one product
+                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
+                        Scalar.of("code_2")
+                ), 1L),
+                // expression over a relation
+                Arguments.of(Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("number")),
+                        Scalar.of("invoice_1")
+                ), 2L)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("countExpressions")
+    void testCounting(ThunkExpression<Boolean> expression, long count) {
+        var actual = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
+        assertEquals(count, actual);
     }
 
     @SpringBootApplication

@@ -23,10 +23,10 @@ import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
@@ -46,6 +46,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -77,7 +78,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression, SortData sortData, PageData pageData) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> expression, SortData sortData, @NonNull QueryPageData page) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
@@ -86,10 +87,14 @@ public class JOOQQueryEngine implements QueryEngine {
                 ? sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList()
                 : List.<OrderField<?>>of();
 
+        var offsetAndLimit = convertPageData(page);
+
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
+                .offset(offsetAndLimit.offset())
+                .limit(offsetAndLimit.limit())
                 .fetch()
                 .intoMaps();
 
@@ -97,10 +102,15 @@ public class JOOQQueryEngine implements QueryEngine {
                 .entities(results.stream()
                         .map(result -> EntityDataMapper.from(entity, result))
                         .toList())
-                .pageInfo(PageInfo.builder()
-                        // TODO: ACC-2048: support paging
-                        .build())
                 .build();
+    }
+
+    private record OffsetAndLimit(long offset, int limit) {}
+
+    private static OffsetAndLimit convertPageData(@NonNull QueryPageData data)  {
+        return switch (data) {
+            case OffsetData offsetData -> new OffsetAndLimit(offsetData.getOffset(), offsetData.getLimit());
+        };
     }
 
     private static SortField<Object> convert(Entity entity, FieldSort field) {
@@ -108,9 +118,8 @@ public class JOOQQueryEngine implements QueryEngine {
         if (!(path instanceof AttributePath attrPath)) {
             throw new IllegalArgumentException("Sorting by complex property paths is not supported.");
         }
-        var attr = entity.getAttributeByName(attrPath.getFirst()).orElseThrow();
-        // TODO multi-column attributes should get some way to mark which one is suitable for sorting...
-        var dslField = DSL.field(attr.getColumns().getFirst().getValue());
+        var attr = entity.resolveAttributePath(attrPath);
+        var dslField = DSL.field(attr.getColumn().getValue());
         return switch (field.getDirection()) {
             case ASC -> dslField.asc();
             case DESC -> dslField.desc();
@@ -419,5 +428,20 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.remove(dslContext, relation, id, targetIds);
+    }
+
+    @Override
+    public long exactCount(@NonNull Application application, @NonNull Entity entity,
+            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
+        var dslContext = resolver.resolve(application);
+        var context = new JOOQContext(application, entity);
+        var alias = context.getRootAlias();
+        var table = JOOQUtils.resolveTable(entity, alias);
+
+        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        return Objects.requireNonNull(
+                dslContext.selectCount().from(table)
+                        .where(condition)
+                        .fetchOne(0, long.class));
     }
 }

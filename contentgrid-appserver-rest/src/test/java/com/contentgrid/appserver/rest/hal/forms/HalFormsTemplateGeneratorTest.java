@@ -374,6 +374,14 @@ class HalFormsTemplateGeneratorTest {
                                         .contains("value=number,desc")
                                         .contains("property=number")
                                         .contains("direction=desc"),
+                                amountAsc -> assertThat(amountAsc.toString())
+                                        .contains("value=amount,asc")
+                                        .contains("property=amount")
+                                        .contains("direction=asc"),
+                                amountDesc -> assertThat(amountDesc.toString())
+                                        .contains("value=amount,desc")
+                                        .contains("property=amount")
+                                        .contains("direction=desc"),
                                 confidentialityAsc -> assertThat(confidentialityAsc.toString())
                                         .contains("value=confidentiality,asc")
                                         .contains("property=confidentiality")

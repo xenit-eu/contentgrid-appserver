@@ -7,13 +7,12 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.PageData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData.PageInfo;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -33,7 +32,6 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.http.ETag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -66,7 +64,7 @@ public class EntityRestController {
     }
 
     // Workaround for https://github.com/spring-projects/spring-framework/issues/23820
-    // We need this so you have have a single ?sort=foo,asc parameter without it splitting on the comma
+    // We need this so you can have a single ?sort=foo,asc parameter without it splitting on the comma
     @InitBinder
     public void initBinder(WebDataBinder binder) {
         binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
@@ -82,10 +80,14 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
         var sortData = parseSortData(sort);
+        // TODO use pagination from request parameters (ACC-2200)
+        var pagination = new EncodedCursorPagination(null, sortData);
 
-        var results = datamodelApi.findAll(application, entity, params, sortData, defaultPageData());
+        var results = datamodelApi.findAll(application, entity, params, pagination);
 
-        return assembler.withContext(application).toCollectionModel(results.getEntities());
+        // TODO use page data and count data (ACC-2200)
+        return assembler.withContext(application, entityName)
+                .toCollectionModel(results);
     }
 
     @GetMapping("/{entityName}/{instanceId}")
@@ -109,7 +111,7 @@ public class EntityRestController {
 
         return ResponseEntity.ok()
                 .eTag(calculateETag(result))
-                .body(assembler.withContext(application).toModel(result));
+                .body(assembler.withContext(application, entityName).toModel(result));
     }
 
     private String calculateETag(EntityData result) {
@@ -135,7 +137,7 @@ public class EntityRestController {
                 new ConversionServiceRequestInputData(data, conversionService)
         );
 
-        var model = assembler.withContext(application).toModel(result);
+        var model = assembler.withContext(application, entityName).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .eTag(calculateETag(result))
@@ -169,7 +171,7 @@ public class EntityRestController {
                     data);
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application).toModel(updateResult));
+                    .body(assembler.withContext(application, entityName).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
@@ -195,36 +197,10 @@ public class EntityRestController {
 
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application).toModel(updateResult));
+                    .body(assembler.withContext(application, entityName).toModel(updateResult));
         } catch(EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-    }
-
-    // TODO: ACC-2048: support paging
-    private static PageData defaultPageData() {
-        return new PageData() {
-            @Override
-            public int getSize() {
-                return 20;
-            }
-
-            @Override
-            public int getPage() {
-                return 0;
-            }
-        };
-    }
-
-    // TODO: ACC-2048: support paging
-    private static PageMetadata fromPageInfo(PageInfo pageInfo) {
-        return new PageMetadata(
-                pageInfo.getSize() == null ? 20 : pageInfo.getSize(),
-                pageInfo.getStart() == null ? 0 : pageInfo.getStart(),
-                pageInfo.getExactCount() == null
-                        ? pageInfo.getEstimatedCount() == null ? 0 : pageInfo.getEstimatedCount()
-                        : pageInfo.getExactCount()
-        );
     }
 
     private SortData parseSortData(String[] sort) {

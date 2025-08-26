@@ -3,9 +3,15 @@ package com.contentgrid.appserver.domain;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.ContentWriter;
@@ -20,6 +26,11 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
+import com.contentgrid.appserver.domain.paging.ResultSlice;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
+import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
@@ -28,9 +39,18 @@ import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
+import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -42,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -91,9 +113,11 @@ class DatamodelApiImplTest {
 
     @BeforeEach
     void setup() {
+        CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
-                contentStore
+                contentStore,
+                codec
         );
     }
 
@@ -1042,6 +1066,225 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 150L))
                             .build()
             );
+        }
+    }
+
+    @Nested
+    class FindAllEntities {
+
+        @Test
+        void findAllWithPaging() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
+            assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
+            assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
+
+            assertNotNull(firstPage.next().orElse(null));
+            assertNull(firstPage.previous().orElse(null));
+
+            // get the cursor for the next page from the result of the first page
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
+            assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
+
+            assertNotNull(secondPage.next().orElse(null));
+            assertNotNull(secondPage.previous().orElse(null));
+
+            nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
+
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
+            assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingAndLimits() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50));
+            assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
+            assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
+
+            assertNotNull(firstPage.next().orElse(null));
+            assertNull(firstPage.previous().orElse(null));
+
+            // get the cursor for the next page from the result of the first page
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
+            assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
+
+            assertNotNull(secondPage.next().orElse(null));
+            assertNotNull(secondPage.previous().orElse(null));
+
+            nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
+
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
+            assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingAndFiltering() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            var filter = StringComparison.areEqual(SymbolicReference.parse("entity.confidentiality"), Scalar.of("public"));
+            Mockito.when(queryEngine.findAll(any(), any(), eq(filter), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(),
+                            data -> getConfidentiality(data).equals("public")
+                    ));
+
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null));
+            assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
+            assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
+
+            // get the cursor for the next page from the result of the first page
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
+            assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
+            assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
+
+            nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
+
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest);
+            assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
+            assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingAndSorting() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            SortData sort = new SortData(List.of(new FieldSort(Direction.DESC, SortableName.of("amount"))));
+            Mockito.when(queryEngine.findAll(any(), any(), any(), eq(sort), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
+
+            // cursor `null` -> first page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, sort));
+            assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
+            assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
+
+            // get the cursor for the next page from the result of the first page
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
+            assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
+
+            nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
+
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest);
+            assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
+            assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
+        }
+
+        @Test
+        void findAllWithPagingNavigation() {
+            ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            // cursor `null` -> first page
+            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null));
+
+            // Navigate to third page (next page is tested in other tests)
+            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow());
+            var thirdPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow());
+
+            // Verify that navigating to current page remains the same
+            var currentPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current());
+            assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
+            assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
+
+            // Verify that previous page is the same as second page
+            var prevPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow());
+            assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
+            assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
+
+            // Verify that first page is the same as starting page
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first());
+            assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
+            assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
+        }
+
+        private double getAmount(EntityData entity) {
+            var data = entity.getAttributeByName(INVOICE_AMOUNT.getName()).orElseThrow();
+            return ((SimpleAttributeData<Double>) data).getValue();
+        }
+        private String getConfidentiality(EntityData entity) {
+            var data = entity.getAttributeByName(INVOICE_CONFIDENTIALITY.getName()).orElseThrow();
+            return ((SimpleAttributeData<String>) data).getValue();
+        }
+
+        private SliceData fakeFindAll(QueryPageData page) {
+            return fakeFindAll(page, data -> true, false);
+        }
+
+        private SliceData fakeFindAll(QueryPageData page, Predicate<EntityData> filter) {
+            return fakeFindAll(page, filter, false);
+        }
+
+        private SliceData fakeFindAll(QueryPageData page, Direction direction) {
+            return fakeFindAll(page, data -> true, direction == Direction.DESC);
+        }
+
+        private SliceData fakeFindAll(QueryPageData page, Predicate<EntityData> filter, boolean descending) {
+            var pageData = (OffsetData) page;
+            var offset = pageData.getOffset();
+            var limit = pageData.getLimit();
+
+            List<EntityData> entities = Stream
+                    // infinite stream of 1, 2, 3, ...
+                    .iterate(1, i -> i+1)
+                    // count down from a million if descending
+                    .map(descending ? i -> 1_000_001 - i : Function.identity())
+                    // transform to {foo, 100}, {bar, 200}, {foo, 300}, ...
+                    .map(i -> fakeInvoice(i))
+                    // apply filter (should match what the ThunkExpression would do)
+                    .filter(filter)
+                    // do paging equivalent
+                    .skip(offset)
+                    .limit(limit)
+                    .toList();
+
+            return SliceData.builder()
+                    .entities(entities)
+                    .build();
+        }
+
+        private static EntityData fakeInvoice(int i) {
+            return EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(fakeId(i))
+                    .attribute(SimpleAttributeData.<String>builder()
+                            .name(INVOICE_NUMBER.getName())
+                            .value("invoice_" + i)
+                            .build())
+                    .attribute(SimpleAttributeData.<Double>builder()
+                            .name(INVOICE_AMOUNT.getName())
+                            .value(i * 100.0)
+                            .build())
+                    .attribute(SimpleAttributeData.<String>builder()
+                            .name(INVOICE_CONFIDENTIALITY.getName())
+                            .value(i % 2 == 1 ? "public" : "confidential")
+                            .build())
+                    .build();
+        }
+
+        private static EntityId fakeId(int i) {
+            var hex = Integer.toHexString(i);
+            var val = "00000000-0000-0000-0000-0000" + "0".repeat(8 - hex.length()) + hex;
+            return EntityId.of(UUID.fromString(val));
         }
     }
 }
