@@ -4,7 +4,9 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -552,7 +554,7 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
                 .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
-                .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
+                .andExpect(jsonPath("$._links.first.href", not(containsString("_cursor"))))
                 .andExpect(jsonPath("$._links.first.href", containsString("_size=10")))
                 .andExpect(jsonPath("$._links.first.href", containsString("_sort=price,asc&_sort=name,desc")))
                 .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=1")))
@@ -573,6 +575,15 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.page.number").doesNotExist())
                 .andExpect(jsonPath("$.page.totalElements").doesNotExist())
                 .andExpect(jsonPath("$.page.totalPages").doesNotExist());
+
+        // Special case: second page, previous cursor is null
+        mockMvc.perform(get("/products?_cursor=1").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.first.href").exists())
+                .andExpect(jsonPath("$._links.first.href", not(containsString("_cursor"))))
+                .andExpect(jsonPath("$._links.prev.href").exists())
+                .andExpect(jsonPath("$._links.prev.href", not(containsString("_cursor"))))
+                .andExpect(jsonPath("$.page.prev_cursor", nullValue()));
     }
 
     private static ResultSlice fakeProducts(EncodedCursorPagination pagination) {
@@ -621,7 +632,7 @@ class EntityRestControllerTest {
     }
 
     private static String fakeCursor(int page) {
-        return String.valueOf(page);
+        return page <= 0 ? null : String.valueOf(page);
     }
 
     @ParameterizedTest

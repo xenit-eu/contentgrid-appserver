@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.With;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
@@ -154,13 +155,13 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         var nextCursor = slice.next()
                 .filter(EncodedCursorPagination.class::isInstance)
                 .map(EncodedCursorPagination.class::cast)
-                .map(EncodedCursorPagination::getCursor)
-                .orElse(null);
+                .map(pagination -> JsonNullable.of(pagination.getCursor()))
+                .orElse(JsonNullable.undefined());
         var prevCursor = slice.previous()
                 .filter(EncodedCursorPagination.class::isInstance)
                 .map(EncodedCursorPagination.class::cast)
-                .map(EncodedCursorPagination::getCursor)
-                .orElse(null);
+                .map(pagination -> JsonNullable.of(pagination.getCursor()))
+                .orElse(JsonNullable.undefined());
         return new CursorPageMetadata(prevCursor, nextCursor);
     }
 

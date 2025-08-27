@@ -60,14 +60,10 @@ public class EncodedCursorPagination implements Pagination {
         var result = new HashMap<String, Object>();
         result.put(namingStrategy.getSizeName(), size);
 
-        // omit cursor if null
-        if (cursor != null) {
-            result.put(namingStrategy.getPageName(), cursor);
-        }
-        // omit sort if empty
-        if (!sort.getSortedFields().isEmpty()) {
-            result.put(namingStrategy.getSortName(), sort.toList());
-        }
+        // Empty collections remove the query parameter
+        result.put(namingStrategy.getPageName(), Optional.ofNullable(cursor).stream().toList());
+        result.put(namingStrategy.getSortName(), sort.toList());
+
         return result;
     }
 }
