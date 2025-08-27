@@ -126,6 +126,15 @@ public interface DatamodelApi {
             throws QueryEngineException, InvalidPropertyDataException;
 
     /**
+     * Deletes the entity with the given id.
+     *
+     * @param application the application context
+     * @param entityRequest the id of the entity to query
+     * @throws EntityNotFoundException if there's no id with this entity
+     */
+    void deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest) throws EntityNotFoundException;
+
+    /**
      * Determines whether the given source and target entities are linked by the specified relation.
      *
      * @param application the application context

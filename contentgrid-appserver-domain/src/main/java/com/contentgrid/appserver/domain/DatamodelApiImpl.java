@@ -256,6 +256,15 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
+    public void deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest)
+            throws EntityNotFoundException {
+        if (queryEngine.findById(application, entityRequest).isEmpty()) {
+            throw new EntityNotFoundException("Entity %s not found".formatted(entityRequest));
+        }
+        queryEngine.delete(application, entityRequest);
+    }
+
+    @Override
     public boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
             @NonNull EntityId targetId) throws QueryEngineException {
         return queryEngine.isLinked(application, relation, sourceId, targetId);

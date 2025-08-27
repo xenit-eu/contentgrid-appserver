@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -792,6 +793,49 @@ class EntityRestControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
                 .andExpect(jsonPath("$.detail").value(containsString("not found")));
+    }
+
+    @Test
+    void testSuccessfullyDeleteEntityInstance() throws Exception {
+        // First create an entity
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Product to Delete");
+        product.put("price", 79.99);
+        product.put("release_date", "2023-03-15T12:00:00Z");
+        product.put("in_stock", true);
+
+        String responseContent = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Extract ID from created entity
+        String id = objectMapper.readTree(responseContent).get("id").asText();
+
+        // Delete the entity
+        mockMvc.perform(delete("/products/" + id))
+                .andExpect(status().isNoContent());
+
+        // Verify entity no longer exists
+        mockMvc.perform(get("/products/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteNonExistentEntityInstance() throws Exception {
+        String nonExistentId = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/products/" + nonExistentId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteNonExistentEntityType() throws Exception {
+        String someId = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/foobars/" + someId))
+                .andExpect(status().isNotFound());
     }
 
 }
