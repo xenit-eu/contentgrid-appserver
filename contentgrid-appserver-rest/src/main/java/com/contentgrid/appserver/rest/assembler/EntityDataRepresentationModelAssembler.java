@@ -8,7 +8,6 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.domain.paging.ItemCount;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -23,7 +22,6 @@ import com.contentgrid.appserver.rest.property.ContentRestController;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
-import com.contentgrid.hateoas.pagination.api.Slice;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import java.util.Map;
@@ -72,21 +70,23 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .addTemplate(getDeleteTemplate());
     }
 
-    public CollectionModel<EntityDataRepresentationModel> toSlicedModel(Slice<? extends EntityData> slice, EntityContext context) {
+    public CollectionModel<EntityDataRepresentationModel> toSlicedModel(ResultSlice slice, EntityContext context) {
         if (slice.current() instanceof EncodedCursorPagination pagination) {
             // use current pagination instead of pagination from request
             context = context.withPagination(pagination);
         }
         Link selfLink = this.getCollectionSelfLink(context);
-        var slicedModel = slicedResourcesAssembler.toModel((Slice<EntityData>) slice, this.withContext(context), Optional.of(selfLink));
+        var slicedModel = slicedResourcesAssembler.toModel(slice, this.withContext(context), Optional.of(selfLink));
         var pageMetadata = getPageMetadata(slice);
+
+        // Add pageMetadata to slicedModel by wrapping it in a PagedModel
         return PagedModel.of(slicedModel.getContent(), pageMetadata, slicedModel.getLinks());
     }
 
     @Override
     public CollectionModel<EntityDataRepresentationModel> toCollectionModel(Iterable<? extends EntityData> entities,
             EntityContext context) {
-        if (entities instanceof Slice<? extends EntityData> slice) {
+        if (entities instanceof ResultSlice slice) {
             return toSlicedModel(slice, context);
         }
         var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context);
@@ -142,23 +142,15 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .build();
     }
 
-    private ItemCountPageMetadata getPageMetadata(Slice<?> slice) {
-        var itemCount = getTotalItemCount(slice);
+    private ItemCountPageMetadata getPageMetadata(ResultSlice slice) {
         int limit = slice.getLimit() != null ? slice.getLimit() : slice.getSize();
         // Fake numbers because we lost page context in domain-layer
-        var pageMetadata = new PageMetadata(limit, 0, itemCount.map(ItemCount::count).orElse(0L));
+        var pageMetadata = new PageMetadata(limit, 0, slice.getTotalItemCount().count());
         var cursorMetadata = getCursorPageMetadata(slice);
-        return new ItemCountPageMetadata(pageMetadata, itemCount.orElse(null), cursorMetadata);
+        return new ItemCountPageMetadata(pageMetadata, slice.getTotalItemCount(), cursorMetadata);
     }
 
-    private Optional<ItemCount> getTotalItemCount(Slice<?> slice) {
-        if (slice instanceof ResultSlice resultSlice) {
-            return Optional.of(resultSlice.getTotalItemCount());
-        }
-        return Optional.empty();
-    }
-
-    private CursorPageMetadata getCursorPageMetadata(Slice<?> slice) {
+    private CursorPageMetadata getCursorPageMetadata(ResultSlice slice) {
         var nextCursor = slice.next()
                 .filter(EncodedCursorPagination.class::isInstance)
                 .map(EncodedCursorPagination.class::cast)

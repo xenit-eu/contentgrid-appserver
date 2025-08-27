@@ -78,7 +78,6 @@ public class EntityRestController {
         var results = datamodelApi.findAll(application, entity, params, pagination,
                 permissionPredicate);
 
-        // TODO use page data and count data (ACC-2200)
         return assembler.withContext(application, entityName, params, pagination)
                 .toCollectionModel(results);
     }

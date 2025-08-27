@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
+import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -15,7 +16,6 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.hateoas.pagination.api.Slice;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +38,7 @@ public interface DatamodelApi {
      * @return a slice of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
+    ResultSlice findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
             @NonNull EncodedCursorPagination pagination,
             @NonNull PermissionPredicate permissionPredicate)
             throws InvalidThunkExpressionException, CursorDecodeException;
