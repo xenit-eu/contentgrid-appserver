@@ -42,6 +42,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -586,11 +587,36 @@ class EntityRestControllerTest {
                 .andExpect(jsonPath("$.page.prev_cursor", nullValue()));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "25,-1",
+            "25,40",
+            "25,21",
+    })
+    void testListEntityInstances_withCounts(long exact, long estimated) throws Exception {
+        var itemCount = estimated < 0 ? ItemCount.exact(exact) : ItemCount.estimated(estimated);
+        ArgumentCaptor<EncodedCursorPagination> paginationArg = ArgumentCaptor.forClass(EncodedCursorPagination.class);
+        Mockito.doAnswer(invocation -> fakeProducts(paginationArg.getValue(), exact, itemCount))
+                .when(datamodelApi)
+                .findAll(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT), Mockito.any(), paginationArg.capture(), Mockito.any());
+
+        mockMvc.perform(get("/products").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page.total_items_estimate", is((int) itemCount.count())))
+                .andExpect(itemCount.isEstimated()
+                        ? jsonPath("$.page.total_items_exact").doesNotExist()
+                        : jsonPath("$.page.total_items_exact", is((int) itemCount.count())));
+    }
+
     private static ResultSlice fakeProducts(EncodedCursorPagination pagination) {
+        return fakeProducts(pagination, 1_000_000, ItemCount.exact(1_000_000));
+    }
+
+    private static ResultSlice fakeProducts(EncodedCursorPagination pagination, long count, ItemCount itemCount) {
         var sortData = pagination.getSort();
         var page = pagination.getCursor() == null ? 0 : Integer.parseInt(pagination.getCursor());
         var size = pagination.getSize();
-        var entities = Stream.iterate(1, i -> i <= 1_000_000, i -> i + 1)
+        var entities = Stream.iterate(1, i -> i <= count, i -> i + 1)
                 .skip((long) page * size)
                 .limit(size)
                 .map(EntityRestControllerTest::fakeProduct)
@@ -598,12 +624,11 @@ class EntityRestControllerTest {
 
         var controls = new EncodedCursorPaginationControls(
                 new EncodedCursorPagination(fakeCursor(page), size, sortData),
-                (page + 1) * size >= 1_000_000 ? null : new EncodedCursorPagination(fakeCursor(page + 1), size, sortData),
+                ((long) (page + 1) * size) >= count ? null : new EncodedCursorPagination(fakeCursor(page + 1), size, sortData),
                 page == 0 ? null : new EncodedCursorPagination(fakeCursor(page - 1), size, sortData),
                 new EncodedCursorPagination(fakeCursor(0), size, sortData)
         );
-        var count = ItemCount.exact(1_000_000);
-        return new ResultSlice(entities, controls, count);
+        return new ResultSlice(entities, controls, itemCount);
     }
 
     private static EntityData fakeProduct(int i) {
