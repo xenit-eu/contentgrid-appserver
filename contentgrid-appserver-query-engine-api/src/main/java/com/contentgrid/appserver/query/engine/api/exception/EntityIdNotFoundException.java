@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query.engine.api.exception;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,10 @@ public class EntityIdNotFoundException extends QueryEngineException {
     private final EntityName entityName;
     @NonNull
     private final EntityId id;
+
+    public EntityIdNotFoundException(EntityRequest request) {
+        this(request.getEntityName(), request.getEntityId());
+    }
 
     @Override
     public String getMessage() {

@@ -205,7 +205,7 @@ public class EntityRestController {
     }
 
     @DeleteMapping("/{entityName}/{id}")
-    public ResponseEntity<Void> deleteEntity(
+    public ResponseEntity<EntityDataRepresentationModel> deleteEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id
@@ -213,12 +213,10 @@ public class EntityRestController {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
-            datamodelApi.deleteEntity(
-                    application,
-                    EntityRequest.forEntity(entity.getName(), id)
-            );
-            return ResponseEntity.noContent().build();
-        } catch(EntityNotFoundException e) {
+            var deleted = datamodelApi.deleteEntity(application, EntityRequest.forEntity(entity.getName(), id));
+            return ResponseEntity.ok()
+                    .body(assembler.withContext(application, entityName).toModel(deleted));
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }

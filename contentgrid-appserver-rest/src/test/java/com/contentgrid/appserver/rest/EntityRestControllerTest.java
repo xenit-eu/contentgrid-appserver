@@ -815,7 +815,8 @@ class EntityRestControllerTest {
 
         // Delete the entity
         mockMvc.perform(delete("/products/" + id))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Product to Delete"));
 
         // Verify entity no longer exists
         mockMvc.perform(get("/products/" + id))

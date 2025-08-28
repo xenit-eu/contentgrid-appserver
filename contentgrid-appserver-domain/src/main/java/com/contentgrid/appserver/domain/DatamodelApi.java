@@ -76,7 +76,7 @@ public interface DatamodelApi {
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest)
-                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
         return update(application, original, data);
     }
 
@@ -107,7 +107,7 @@ public interface DatamodelApi {
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest)
-                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
         return updatePartial(application, original, data);
     }
 
@@ -130,9 +130,10 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param entityRequest the id of the entity to query
-     * @throws EntityNotFoundException if there's no id with this entity
+     * @return the entity data that was deleted
+     * @throws EntityIdNotFoundException if there's no id with this entity
      */
-    void deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest) throws EntityNotFoundException;
+    EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest) throws EntityIdNotFoundException;
 
     /**
      * Determines whether the given source and target entities are linked by the specified relation.

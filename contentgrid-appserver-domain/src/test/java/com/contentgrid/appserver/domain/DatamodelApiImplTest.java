@@ -1269,17 +1269,12 @@ class DatamodelApiImplTest {
             EntityName invoice = EntityName.of("invoice");
             EntityData data = EntityData.builder().name(invoice).id(id).attributes(List.of()).build();
 
-            ArgumentCaptor<EntityRequest> findArg = ArgumentCaptor.forClass(EntityRequest.class);
             ArgumentCaptor<EntityRequest> deleteArg = ArgumentCaptor.forClass(EntityRequest.class);
-            Mockito.when(queryEngine.findById(Mockito.any(), findArg.capture()))
-                    .thenReturn(Optional.of(data));
             Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture()))
-                    .thenReturn(null);
+                    .thenReturn(Optional.of(data));
 
             datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id));
-            assertEquals(invoice, findArg.getValue().getEntityName());
             assertEquals(invoice, deleteArg.getValue().getEntityName());
-            assertEquals(id, findArg.getValue().getEntityId());
             assertEquals(id, deleteArg.getValue().getEntityId());
         }
 
@@ -1288,14 +1283,13 @@ class DatamodelApiImplTest {
             EntityId id = EntityId.of(UUID.randomUUID());
             EntityName invoice = EntityName.of("invoice");
 
-            Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any()))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
                     datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id))
             ).isInstanceOf(EntityIdNotFoundException.class);
 
-            Mockito.verifyNoMoreInteractions(queryEngine);
         }
     }
 }

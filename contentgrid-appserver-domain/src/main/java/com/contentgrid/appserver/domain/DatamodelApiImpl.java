@@ -37,6 +37,7 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
@@ -256,12 +257,11 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest)
-            throws EntityNotFoundException {
-        if (queryEngine.findById(application, entityRequest).isEmpty()) {
-            throw new EntityNotFoundException("Entity %s not found".formatted(entityRequest));
-        }
-        queryEngine.delete(application, entityRequest);
+    public EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest)
+            throws EntityIdNotFoundException {
+        return queryEngine.delete(application, entityRequest)
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
+
     }
 
     @Override
