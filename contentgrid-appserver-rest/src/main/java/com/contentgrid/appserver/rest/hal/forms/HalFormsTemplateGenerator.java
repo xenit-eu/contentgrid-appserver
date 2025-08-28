@@ -20,6 +20,7 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
+import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.EntityRestController;
 import java.net.URI;
 import java.util.ArrayList;
@@ -242,7 +243,7 @@ public class HalFormsTemplateGenerator {
                 .withMinItems(0L)
                 .withPromptField("prompt")
                 .withValueField("value");
-        return Optional.of(HalFormsProperty.named(EntityRestController.SORT_NAME)
+        return Optional.of(HalFormsProperty.named(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME)
                 .withType(HtmlInputType.TEXT_VALUE)
                 .withOptions(options));
     }

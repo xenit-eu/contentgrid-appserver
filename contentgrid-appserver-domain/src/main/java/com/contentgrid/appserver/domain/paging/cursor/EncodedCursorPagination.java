@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,14 +55,7 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public Map<String, Object> getParameters() {
-        var namingStrategy = new EncodedCursorPaginationNamingStrategy();
-        var result = new HashMap<String, Object>();
-        result.put(namingStrategy.getSizeName(), size);
-
-        // Empty collections remove the query parameter
-        result.put(namingStrategy.getPageName(), Optional.ofNullable(cursor).stream().toList());
-        result.put(namingStrategy.getSortName(), sort.toList());
-
-        return result;
+        // The purpose is to know the uri query parameter names and values, but the names are defined in rest layer
+        throw new UnsupportedOperationException("EncodedCursorPagination can not be used with default PaginationHandlerMethodArgumentResolver. Use EncodedCursorPaginationHandlerMethodArgumentResolver instead.");
     }
 }

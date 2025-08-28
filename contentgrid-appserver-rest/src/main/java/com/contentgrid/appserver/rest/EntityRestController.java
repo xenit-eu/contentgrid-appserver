@@ -48,8 +48,6 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class EntityRestController {
 
-    public static final String SORT_NAME = "_sort";
-
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
     private final EntityDataRepresentationModelAssembler assembler;

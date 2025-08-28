@@ -20,7 +20,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
@@ -360,7 +360,7 @@ class HalFormsTemplateGeneratorTest {
                     });
                 },
                 sort -> {
-                    assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+                    assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -451,7 +451,7 @@ class HalFormsTemplateGeneratorTest {
                     });
                 },
                 sort -> {
-                    assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+                    assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -548,7 +548,7 @@ class HalFormsTemplateGeneratorTest {
 
         // only _sort is present
         assertThat(template.getProperties()).singleElement().satisfies(sort -> {
-            assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+            assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
             assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
         });
     }
