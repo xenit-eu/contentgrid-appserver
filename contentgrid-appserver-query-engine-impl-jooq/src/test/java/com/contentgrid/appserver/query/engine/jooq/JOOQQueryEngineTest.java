@@ -42,6 +42,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.api.IndexCreator;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -59,6 +60,7 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
+import com.contentgrid.appserver.query.engine.jooq.fts.dialects.paradedb.ParadeDbJOOQIndexCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -86,6 +88,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -362,18 +365,24 @@ class JOOQQueryEngineTest {
     private TableCreator tableCreator;
 
     @Autowired
+    @Qualifier("paradeDbJooqIndexCreator")
+    private IndexCreator indexCreator;
+
+    @Autowired
     private QueryEngine queryEngine;
 
     @BeforeEach
     void setup() {
         createCGPrefixSearchNormalize();
         tableCreator.createTables(APPLICATION);
+        indexCreator.createIndex(APPLICATION);
         insertData();
     }
 
     @AfterEach
     void cleanup() {
         tableCreator.dropTables(APPLICATION);
+        indexCreator.dropIndex(APPLICATION);
         dropCGPrefixSearchNormalize();
     }
 
@@ -452,13 +461,13 @@ class JOOQQueryEngineTest {
                 .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
                 .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
                 .execute();
-        // TODO replace with IndexCreator in setup once implemented?
-        dslContext.query("CREATE INDEX :idxName ON :targetTable USING :paradeBm25Func (:indexColumnNames) WITH (:keyField) ",
-                DSL.field("idx_fts_product"),
-                DSL.table("product"),
-                DSL.field("bm25"),
-                DSL.field("id, description"),
-                DSL.field("key_field='id'")).execute();
+//        // TODO replace with IndexCreator in setup once implemented?
+//        dslContext.query("CREATE INDEX :idxName ON :targetTable USING :paradeBm25Func (:indexColumnNames) WITH (:keyField) ",
+//                DSL.field("idx_fts_product"),
+//                DSL.table("product"),
+//                DSL.field("bm25"),
+//                DSL.field("id, description"),
+//                DSL.field("key_field='id'")).execute();
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
@@ -1778,6 +1787,11 @@ class JOOQQueryEngineTest {
         @Bean
         public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
             return new JOOQTableCreator(dslContextResolver);
+        }
+
+        @Bean("paradeDbJooqIndexCreator")
+        public IndexCreator paradeDbJooqIndexCreator(DSLContextResolver dslContextResolver) {
+            return new ParadeDbJOOQIndexCreator(dslContextResolver);
         }
 
         @Bean

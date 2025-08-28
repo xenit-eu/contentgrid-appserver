@@ -7,11 +7,14 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.query.engine.jooq.util.CommaSeparatedListField;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.jooq.DataType;
 import org.jooq.Field;
+import org.jooq.Index;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
@@ -91,5 +94,13 @@ public class JOOQUtils {
             case DATETIME -> SQLDataType.INSTANT;
         };
         return dataType.nullable(!required);
+    }
+
+    public static Index resolveSingleEntityFtsIndex(Entity entity) {
+        return DSL.index(DSL.name(new StringBuilder(entity.getName().getValue()).insert(0, "idx_").append("_fts").toString()));
+    }
+
+    public static Field<String> commaSeparatedListOfFields(List<String> indexedColumns) {
+        return new CommaSeparatedListField(indexedColumns);
     }
 }
