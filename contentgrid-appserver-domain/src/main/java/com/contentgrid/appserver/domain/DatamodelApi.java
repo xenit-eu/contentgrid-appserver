@@ -2,7 +2,7 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -12,6 +12,7 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.Slice;
@@ -39,7 +40,7 @@ public interface DatamodelApi {
      */
     Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
             @NonNull EncodedCursorPagination pagination)
-            throws EntityNotFoundException, InvalidThunkExpressionException, CursorDecodeException;
+            throws EntityNameNotFoundException, InvalidThunkExpressionException, CursorDecodeException;
 
     /**
      * Finds an entity that matches the given id.
@@ -51,7 +52,7 @@ public interface DatamodelApi {
     Optional<EntityData> findById(
             @NonNull Application application,
             @NonNull EntityRequest entityRequest
-    ) throws EntityNotFoundException;
+    ) throws EntityNameNotFoundException;
 
     /**
      * Creates an entity with the given data and relations.
@@ -79,7 +80,7 @@ public interface DatamodelApi {
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest)
-                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
         return update(application, original, data);
     }
 
@@ -110,7 +111,7 @@ public interface DatamodelApi {
             @NonNull RequestInputData data)
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest)
-                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
         return updatePartial(application, original, data);
     }
 

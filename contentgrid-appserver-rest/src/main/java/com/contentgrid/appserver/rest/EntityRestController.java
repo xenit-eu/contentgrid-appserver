@@ -16,7 +16,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
@@ -172,7 +172,7 @@ public class EntityRestController {
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
                     .body(assembler.withContext(application, entityName).toModel(updateResult));
-        } catch(EntityNotFoundException e) {
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }
@@ -198,7 +198,7 @@ public class EntityRestController {
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
                     .body(assembler.withContext(application, entityName).toModel(updateResult));
-        } catch(EntityNotFoundException e) {
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }

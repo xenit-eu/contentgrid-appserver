@@ -22,7 +22,7 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -517,7 +517,7 @@ class RelationRestControllerTest {
 
         @Test
         void followToOneRelationSourceIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
+            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
                     .findRelationTarget(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
@@ -562,7 +562,7 @@ class RelationRestControllerTest {
         void setRelationEntityIdNotFound() throws Exception {
             var targetId = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), targetId)).when(datamodelApi)
+            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), targetId)).when(datamodelApi)
                     .setRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID, targetId);
 
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
@@ -591,7 +591,7 @@ class RelationRestControllerTest {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), invoice1)).when(datamodelApi)
+            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), invoice1)).when(datamodelApi)
                     .addRelationItems(APPLICATION, PERSON_INVOICES, PERSON_ID, Set.of(invoice1, invoice2));
 
             mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
@@ -620,7 +620,7 @@ class RelationRestControllerTest {
 
         @Test
         void clearRelationEntityIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
+            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
                     .deleteRelation(APPLICATION, INVOICE_PREVIOUS, INVOICE_ID);
 
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))

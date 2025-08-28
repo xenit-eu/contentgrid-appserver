@@ -3,7 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -84,7 +84,7 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
                     .returning(targetRef)
                     .fetchSet(targetRef);
 
-            checkModifiedItems(refs, updated, targetId -> new EntityNotFoundException(relation.getTargetEndPoint().getEntity()
+            checkModifiedItems(refs, updated, targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity()
                     .getName(), targetId));
 
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {

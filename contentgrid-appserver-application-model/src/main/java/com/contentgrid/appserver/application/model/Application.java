@@ -3,20 +3,17 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
@@ -52,7 +49,7 @@ public class Application {
      * @param entities set of entities within this application
      * @param relations set of relations between entities
      * @throws DuplicateElementException if duplicate entities are found
-     * @throws EntityNotFoundException if a relation references an entity not in the application
+     * @throws EntityNameNotFoundException if a relation references an entity not in the application
      */
     @Builder
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
@@ -77,10 +74,10 @@ public class Application {
 
         relations.forEach(relation -> {
             if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity().getName())) {
-                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
+                throw new EntityNameNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
             if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
-                throw new EntityNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
+                throw new EntityNameNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
@@ -132,9 +129,9 @@ public class Application {
         return Optional.ofNullable(entities.get(entityName));
     }
 
-    public Entity getRequiredEntityByName(EntityName entityName) throws EntityNotFoundException {
+    public Entity getRequiredEntityByName(EntityName entityName) throws EntityNameNotFoundException {
         return getEntityByName(entityName).orElseThrow(() ->
-                new EntityNotFoundException("Entity %s not found".formatted(entityName)));
+                new EntityNameNotFoundException("Entity %s not found".formatted(entityName)));
     }
 
     public Optional<Entity> getEntityByPathSegment(PathSegmentName pathSegment) {

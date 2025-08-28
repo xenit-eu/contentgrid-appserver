@@ -6,9 +6,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Exception thrown when no entity matching the given id was found in the database.
+ */
 @Getter
 @RequiredArgsConstructor
-public class EntityNotFoundException extends QueryEngineException {
+public class EntityIdNotFoundException extends QueryEngineException {
     @NonNull
     private final EntityName entityName;
     @NonNull

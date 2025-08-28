@@ -3,7 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.UUID;
 import lombok.NonNull;
@@ -26,7 +26,7 @@ public abstract sealed class JOOQRelationStrategy<R extends Relation>
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         if (!dslContext.fetchExists(table, primaryKey.eq(id.getValue()))) {
-            throw new EntityNotFoundException(entity.getName(), id);
+            throw new EntityIdNotFoundException(entity.getName(), id);
         }
     }
 

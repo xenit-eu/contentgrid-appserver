@@ -2,7 +2,7 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.content.api.ContentStore;
@@ -96,7 +96,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull Map<String, String> params, @NonNull EncodedCursorPagination pagination)
-            throws EntityNotFoundException, InvalidThunkExpressionException {
+            throws EntityNameNotFoundException, InvalidThunkExpressionException {
 
         var sort = pagination.getSort();
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
@@ -147,7 +147,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     public Optional<EntityData> findById(
             @NonNull Application application,
             @NonNull EntityRequest entityRequest
-    ) throws EntityNotFoundException {
+    ) throws EntityNameNotFoundException {
         return queryEngine.findById(application, entityRequest);
     }
 

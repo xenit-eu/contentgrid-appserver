@@ -12,7 +12,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -330,7 +330,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return entities.stream()
                 .filter(e -> e.getName().getValue().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("Entity not found: " + name));
+                .orElseThrow(() -> new EntityNameNotFoundException("Entity not found: " + name));
     }
 
     private com.contentgrid.appserver.application.model.relations.Relation fromJsonRelation(
