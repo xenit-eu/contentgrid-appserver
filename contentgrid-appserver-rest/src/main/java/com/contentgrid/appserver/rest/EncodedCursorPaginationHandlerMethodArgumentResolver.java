@@ -30,6 +30,8 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
     public static final String SIZE_NAME = "_size";
     public static final String SORT_NAME = "_sort";
 
+    private static final int DEFAULT_PAGE_SIZE = 20;
+
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return EncodedCursorPagination.class.equals(parameter.getParameterType());
@@ -80,7 +82,7 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
     @Override
     public EncodedCursorPagination create(PaginationParameters parameters) {
         var cursor = parameters.getValue(CURSOR_NAME, Function.identity(), null);
-        var size = parameters.getInteger(SIZE_NAME, EncodedCursorPagination.PAGE_SIZE);
+        var size = parameters.getInteger(SIZE_NAME, DEFAULT_PAGE_SIZE);
         var sort = parseSortData(parameters);
         return new EncodedCursorPagination(cursor, size, sort);
     }

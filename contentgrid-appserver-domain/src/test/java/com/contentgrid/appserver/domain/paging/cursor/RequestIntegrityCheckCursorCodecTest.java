@@ -27,7 +27,7 @@ import org.mockito.Mockito;
 
 class RequestIntegrityCheckCursorCodecTest {
 
-    private static final SortData UNSORTED = new SortData(List.of());
+    private static final SortData UNSORTED = SortData.unsorted();
     private static final EntityName ENTITY = EntityName.of("test");
 
     public static Stream<Arguments> withoutCursorParams() {
