@@ -36,7 +36,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.json.exceptions.InValidJsonException;
+import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.json.model.AllowedValuesConstraint;
@@ -80,7 +80,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
 
     @Override
-    public Application convert(InputStream json) throws InValidJsonException {
+    public Application convert(InputStream json) throws InvalidJsonException {
         var schema = getApplicationSchema(json);
         Set<com.contentgrid.appserver.application.model.Entity> entities = new HashSet<>();
         for (Entity entity : schema.getEntities()) {
@@ -107,7 +107,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
     }
 
-    private ApplicationSchema getApplicationSchema(InputStream json) throws InValidJsonException {
+    private ApplicationSchema getApplicationSchema(InputStream json) throws InvalidJsonException {
         try {
             var jsonString = new String(json.readAllBytes(), StandardCharsets.UTF_8);
             validator.validate(jsonString);
@@ -118,7 +118,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
-            Entity jsonEntity) throws InValidJsonException {
+            Entity jsonEntity) throws InvalidJsonException {
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = fromJsonSimpleAttribute(
                 jsonEntity.getPrimaryKey());
         List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes;
@@ -271,7 +271,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonSearchFilter(
             SearchFilter jsonFilter
-    ) throws InValidJsonException {
+    ) throws InvalidJsonException {
         var type = jsonFilter.getType();
         List<PropertyName> attrPath = jsonFilter.getAttributePath().stream()
                 .map(PropertyPathElement::toPropertyName)

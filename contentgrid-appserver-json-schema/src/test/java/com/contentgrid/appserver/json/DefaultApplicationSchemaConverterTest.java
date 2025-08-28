@@ -25,7 +25,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.json.exceptions.InValidJsonException;
+import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -72,7 +72,7 @@ class DefaultApplicationSchemaConverterTest {
     void testInvalidJson() {
         var invalidJson = "{ \"invalid\": \"json\" }";
         var converter = new DefaultApplicationSchemaConverter();
-        assertThrows(InValidJsonException.class, () -> {
+        assertThrows(InvalidJsonException.class, () -> {
             converter.convert(new ByteArrayInputStream(invalidJson.getBytes(StandardCharsets.UTF_8)));
         });
     }
