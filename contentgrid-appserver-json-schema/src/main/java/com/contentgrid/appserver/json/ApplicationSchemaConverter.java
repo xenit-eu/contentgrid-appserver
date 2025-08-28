@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.json;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.json.exceptions.InValidJsonException;
+import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -15,9 +15,9 @@ public interface ApplicationSchemaConverter {
      *
      * @param inputStream the InputStream containing JSON data
      * @return the converted Application object
-     * @throws InValidJsonException if the JSON data is invalid or cannot be converted
+     * @throws InvalidJsonException if the JSON data is invalid or cannot be converted
      */
-    Application convert(InputStream inputStream) throws InValidJsonException;
+    Application convert(InputStream inputStream) throws InvalidJsonException;
 
     /**
      * Converts the given Application object into JSON and writes it to the provided OutputStream.

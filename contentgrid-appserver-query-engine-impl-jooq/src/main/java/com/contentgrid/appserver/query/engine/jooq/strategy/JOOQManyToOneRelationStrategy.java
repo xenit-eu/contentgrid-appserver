@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -61,7 +61,7 @@ public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrat
                     .execute();
 
             if (updated == 0) {
-                throw new EntityNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
+                throw new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found

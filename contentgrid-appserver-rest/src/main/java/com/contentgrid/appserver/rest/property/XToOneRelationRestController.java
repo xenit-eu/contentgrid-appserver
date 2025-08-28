@@ -11,7 +11,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
@@ -71,7 +71,7 @@ public class XToOneRelationRestController {
             var redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, targetId)).toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
-        } catch (EntityNotFoundException e) {
+        } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         }
     }
@@ -99,7 +99,7 @@ public class XToOneRelationRestController {
         }
         try {
             datamodelApi.setRelation(application, relation, instanceId, maybeId.get());
-        } catch (EntityNotFoundException e) {
+        } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
@@ -117,7 +117,7 @@ public class XToOneRelationRestController {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
             datamodelApi.deleteRelation(application, relation, instanceId);
-        } catch (EntityNotFoundException | RelationLinkNotFoundException e) {
+        } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

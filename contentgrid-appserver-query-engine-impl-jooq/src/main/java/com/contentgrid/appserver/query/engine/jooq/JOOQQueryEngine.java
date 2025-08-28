@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -32,7 +33,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -256,7 +257,7 @@ public class JOOQQueryEngine implements QueryEngine {
     private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
         try {
             return application.getRequiredEntityByName(entityName);
-        } catch (com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException e) {
+        } catch (EntityDefinitionNotFoundException e) {
             throw new InvalidDataException(e.getMessage(), e);
         }
     }
@@ -302,14 +303,14 @@ public class JOOQQueryEngine implements QueryEngine {
 
         try {
             var oldValue = findById(application, data.getIdentity().toRequest())
-                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
+                    .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId()));
 
             var newValue = update
                     .where(primaryKey.eq(id.getValue()))
                     .returning(attributeFields)
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
-                    .orElseThrow(() -> new EntityNotFoundException(entity.getName(), data.getId()));
+                    .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId()));
 
             // When the update is done properly, the value of the new version field will be one higher
             // than the previous value, so restore it back to the previous value to check against the requested version

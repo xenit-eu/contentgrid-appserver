@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.content.api.ContentReference;
@@ -22,6 +21,7 @@ import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,7 +59,7 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
-            @NonNull EntityId id, @NonNull AttributeName attributeName) throws EntityNotFoundException {
+            @NonNull EntityId id, @NonNull AttributeName attributeName) {
 
         return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
                 .map(entityData -> extractContent(application, entityData, attributeName))
@@ -88,7 +88,7 @@ public class ContentApiImpl implements ContentApi {
             VersionConstraint versionConstraint
     ) {
         var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
-                .orElseThrow(() -> new com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException(
+                .orElseThrow(() -> new EntityIdNotFoundException(
                         entityName, id));
 
         var contentVersion = extractContent(application, original, attributeName).getVersion();

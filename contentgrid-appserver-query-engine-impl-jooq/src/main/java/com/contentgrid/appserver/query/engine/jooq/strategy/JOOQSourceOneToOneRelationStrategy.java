@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -74,7 +74,7 @@ public final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelation
                     .execute();
 
             if (updated == 0) {
-                throw new EntityNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
+                throw new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity().getName(), id);
             }
         } catch (DuplicateKeyException e) {
             throw new ConstraintViolationException("Target %s already linked".formatted(targetId), e);

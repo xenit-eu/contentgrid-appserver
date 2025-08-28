@@ -11,7 +11,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import com.contentgrid.appserver.query.engine.api.exception.EntityNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
@@ -233,7 +233,7 @@ public class ContentRestController {
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
                     .build();
-        } catch(EntityNotFoundException e) {
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }
@@ -268,7 +268,7 @@ public class ContentRestController {
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
                     .build();
-        } catch(EntityNotFoundException e) {
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }
@@ -290,7 +290,7 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint
             );
-        } catch(EntityNotFoundException e) {
+        } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
 

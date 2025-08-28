@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.exceptions.EntityNotFoundException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
@@ -20,7 +19,7 @@ public interface ContentApi {
             @NonNull EntityName entityName,
             @NonNull EntityId id,
             @NonNull AttributeName attributeName
-    ) throws EntityNotFoundException;
+    );
 
     Content update(
             @NonNull Application application,
