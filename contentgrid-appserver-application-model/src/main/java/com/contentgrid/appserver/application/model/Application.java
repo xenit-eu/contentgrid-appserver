@@ -131,7 +131,7 @@ public class Application {
 
     public Entity getRequiredEntityByName(EntityName entityName) throws EntityNameNotFoundException {
         return getEntityByName(entityName).orElseThrow(() ->
-                new EntityNameNotFoundException("Entity %s not found".formatted(entityName)));
+                new EntityNameNotFoundException(entityName));
     }
 
     public Optional<Entity> getEntityByPathSegment(PathSegmentName pathSegment) {
