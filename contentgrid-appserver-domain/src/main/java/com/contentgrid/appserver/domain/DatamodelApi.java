@@ -2,7 +2,6 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -40,7 +39,7 @@ public interface DatamodelApi {
      */
     Slice<EntityData> findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, String> params,
             @NonNull EncodedCursorPagination pagination)
-            throws EntityNameNotFoundException, InvalidThunkExpressionException, CursorDecodeException;
+            throws InvalidThunkExpressionException, CursorDecodeException;
 
     /**
      * Finds an entity that matches the given id.
@@ -49,10 +48,7 @@ public interface DatamodelApi {
      * @param entityRequest the identity of the entity to query
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(
-            @NonNull Application application,
-            @NonNull EntityRequest entityRequest
-    ) throws EntityNameNotFoundException;
+    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest);
 
     /**
      * Creates an entity with the given data and relations.

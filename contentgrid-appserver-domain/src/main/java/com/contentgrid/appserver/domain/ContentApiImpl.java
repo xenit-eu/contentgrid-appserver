@@ -60,7 +60,7 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
-            @NonNull EntityId id, @NonNull AttributeName attributeName) throws EntityNameNotFoundException {
+            @NonNull EntityId id, @NonNull AttributeName attributeName) {
 
         return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
                 .map(entityData -> extractContent(application, entityData, attributeName))

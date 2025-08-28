@@ -20,7 +20,7 @@ public interface ContentApi {
             @NonNull EntityName entityName,
             @NonNull EntityId id,
             @NonNull AttributeName attributeName
-    ) throws EntityNameNotFoundException;
+    );
 
     Content update(
             @NonNull Application application,
