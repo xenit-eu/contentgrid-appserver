@@ -122,7 +122,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
         PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
-                sort, params, hasNext);
+                params, hasNext);
 
         if (hasNext) {
             // Remove the extra row again
