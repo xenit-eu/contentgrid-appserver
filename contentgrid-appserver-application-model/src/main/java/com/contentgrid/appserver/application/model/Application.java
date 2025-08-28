@@ -77,7 +77,7 @@ public class Application {
                 throw new EntityNameNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
             if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
-                throw new EntityNameNotFoundException("Source %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
+                throw new EntityNameNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
