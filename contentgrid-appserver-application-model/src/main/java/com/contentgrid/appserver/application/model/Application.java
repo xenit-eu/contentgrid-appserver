@@ -3,7 +3,7 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -49,7 +49,7 @@ public class Application {
      * @param entities set of entities within this application
      * @param relations set of relations between entities
      * @throws DuplicateElementException if duplicate entities are found
-     * @throws EntityNameNotFoundException if a relation references an entity not in the application
+     * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
@@ -74,10 +74,10 @@ public class Application {
 
         relations.forEach(relation -> {
             if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity().getName())) {
-                throw new EntityNameNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
+                throw new EntityDefinitionNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
             }
             if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
-                throw new EntityNameNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
+                throw new EntityDefinitionNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
@@ -129,9 +129,9 @@ public class Application {
         return Optional.ofNullable(entities.get(entityName));
     }
 
-    public Entity getRequiredEntityByName(EntityName entityName) throws EntityNameNotFoundException {
+    public Entity getRequiredEntityByName(EntityName entityName) throws EntityDefinitionNotFoundException {
         return getEntityByName(entityName).orElseThrow(() ->
-                new EntityNameNotFoundException(entityName));
+                new EntityDefinitionNotFoundException(entityName));
     }
 
     public Optional<Entity> getEntityByPathSegment(PathSegmentName pathSegment) {

@@ -16,7 +16,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -278,7 +278,7 @@ class ApplicationTest {
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
-        assertThrows(EntityNameNotFoundException.class, builder::build);
+        assertThrows(EntityDefinitionNotFoundException.class, builder::build);
     }
 
     @Test
@@ -307,7 +307,7 @@ class ApplicationTest {
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
-        assertThrows(EntityNameNotFoundException.class, builder::build);
+        assertThrows(EntityDefinitionNotFoundException.class, builder::build);
     }
 
     @Test

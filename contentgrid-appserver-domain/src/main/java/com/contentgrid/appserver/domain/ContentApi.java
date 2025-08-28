@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;

@@ -3,7 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.EntityNameNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -257,7 +257,7 @@ public class JOOQQueryEngine implements QueryEngine {
     private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
         try {
             return application.getRequiredEntityByName(entityName);
-        } catch (EntityNameNotFoundException e) {
+        } catch (EntityDefinitionNotFoundException e) {
             throw new InvalidDataException(e.getMessage(), e);
         }
     }
