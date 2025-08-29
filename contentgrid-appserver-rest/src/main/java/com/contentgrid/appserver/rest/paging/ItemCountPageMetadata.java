@@ -40,6 +40,10 @@ public class ItemCountPageMetadata extends PageMetadata {
         return null;
     }
 
+    public String getCursor() {
+        return cursorPageMetadata.getCursor();
+    }
+
     @JsonProperty("prev_cursor")
     @JsonInclude(Include.NON_NULL)
     public String getPreviousCursor() {
