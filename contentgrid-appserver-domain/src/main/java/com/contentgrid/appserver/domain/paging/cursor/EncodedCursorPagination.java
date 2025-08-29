@@ -36,7 +36,7 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public boolean isFirstPage() {
-        return cursor == null;
+        throw new UnsupportedOperationException("Cursor is encoded, decode it first with CursorCodec#decodeCursor");
     }
 
     @Override

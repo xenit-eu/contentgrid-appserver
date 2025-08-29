@@ -18,15 +18,16 @@ public class EncodedCursorSupport {
     ) {
         var currentPage = (PageBasedPagination)
                 codec.decodeCursor(pagination.getCursorContext(), entity, params);
+        var current = codec.encodeCursor(currentPage, entity, pagination.getSort(), params).cursor();
         var nextPage = new PageBasedPagination(currentPage.getSize(), currentPage.getPage() + 1);
-        var next = codec.encodeCursor(nextPage, entity, pagination.getSort(), params).cursor();
+        var next = hasNext ? codec.encodeCursor(nextPage, entity, pagination.getSort(), params).cursor() : null;
         var prevPage = new PageBasedPagination(currentPage.getSize(), currentPage.getPage() - 1);
-        var prev = codec.encodeCursor(prevPage, entity, pagination.getSort(), params).cursor();
+        var prev = currentPage.isFirstPage() ? null : codec.encodeCursor(prevPage, entity, pagination.getSort(), params).cursor();
         var first = codec.encodeCursor(new PageBasedPagination(currentPage.getSize(), 0), entity, pagination.getSort(), params).cursor();
         return new EncodedCursorPaginationControls(
-                pagination,
-                hasNext ? new EncodedCursorPagination(next, currentPage.getSize(), pagination.getSort()) : null,
-                currentPage.isFirstPage() ? null : new EncodedCursorPagination(prev, currentPage.getSize(), pagination.getSort()),
+                new EncodedCursorPagination(current, currentPage.getSize(), pagination.getSort()),
+                next == null ? null : new EncodedCursorPagination(next, currentPage.getSize(), pagination.getSort()),
+                prev == null ? null : new EncodedCursorPagination(prev, currentPage.getSize(), pagination.getSort()),
                 new EncodedCursorPagination(first, currentPage.getSize(), pagination.getSort())
         );
     }

@@ -15,7 +15,6 @@ dependencies {
         exclude group: 'com.contentgrid.thunx', module: 'thunx-predicates-querydsl'
         exclude group: 'org.springframework.data'
     }
-    implementation 'org.openapitools:jackson-databind-nullable:0.2.7'
 
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-app')

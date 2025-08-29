@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.NonNull;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 
 public class ItemCountPageMetadata extends PageMetadata {
@@ -43,13 +42,13 @@ public class ItemCountPageMetadata extends PageMetadata {
 
     @JsonProperty("prev_cursor")
     @JsonInclude(Include.NON_NULL)
-    public JsonNullable<String> getPreviousCursor() {
+    public String getPreviousCursor() {
         return cursorPageMetadata.getPreviousCursor();
     }
 
     @JsonProperty("next_cursor")
     @JsonInclude(Include.NON_NULL)
-    public JsonNullable<String> getNextCursor() {
+    public String getNextCursor() {
         return cursorPageMetadata.getNextCursor();
     }
 

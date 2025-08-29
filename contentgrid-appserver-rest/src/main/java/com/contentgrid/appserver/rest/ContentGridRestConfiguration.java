@@ -22,7 +22,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -83,7 +82,6 @@ public class ContentGridRestConfiguration {
         return builder -> {
             builder.featuresToDisable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
             builder.mixIn(ItemCountPageMetadata.class, ItemCountPageMetadataOmitLegacyPropertiesMixin.class);
-            builder.postConfigurer(mapper -> mapper.registerModule(new JsonNullableModule()));
         };
     }
 
