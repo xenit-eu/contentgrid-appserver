@@ -2079,7 +2079,8 @@ class JOOQQueryEngineTest {
     @MethodSource("countExpressions")
     void testCounting(ThunkExpression<Boolean> expression, long count) {
         var actual = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
-        assertEquals(count, actual);
+        assertTrue(actual.isPresent());
+        assertEquals(count, actual.get());
     }
 
     @SpringBootApplication

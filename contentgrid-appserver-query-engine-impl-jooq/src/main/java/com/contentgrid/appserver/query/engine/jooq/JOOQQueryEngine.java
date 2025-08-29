@@ -60,6 +60,7 @@ import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
 import org.jooq.SortField;
+import org.jooq.exception.DataAccessException;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -473,7 +474,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public long exactCount(@NonNull Application application, @NonNull Entity entity,
+    public Optional<Long> exactCount(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
@@ -481,9 +482,10 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity, alias);
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-        return Objects.requireNonNull(
-                dslContext.selectCount().from(table)
-                        .where(condition)
-                        .fetchOne(0, long.class));
+        try {
+            return Optional.of((long) dslContext.fetchCount(table, condition));
+        } catch (DataAccessException | org.springframework.dao.DataAccessException e) {
+            return Optional.empty();
+        }
     }
 }

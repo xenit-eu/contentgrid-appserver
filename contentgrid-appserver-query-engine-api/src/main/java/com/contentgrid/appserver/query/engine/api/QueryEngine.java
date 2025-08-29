@@ -180,8 +180,8 @@ public interface QueryEngine {
      * @param application the application context
      * @param entity the entity type to query
      * @param expression the predicate expression to filter entities
-     * @return a slice of entities matching the criteria
+     * @return the amount of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    long exactCount(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
+    Optional<Long> exactCount(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
 }

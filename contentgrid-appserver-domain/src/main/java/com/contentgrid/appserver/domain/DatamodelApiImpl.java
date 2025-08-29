@@ -122,7 +122,8 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         // Get a total count of how many items match these params
         // TODO: to be replaced with an estimate count at some point (ACC-2208)
-        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, fullFilter)), page, result.getEntities().size(), hasNext);
+        var count = calculateCount(() -> queryEngine.exactCount(application, entity, fullFilter).map(ItemCount::exact),
+                offsetData, result.getEntities().size(), hasNext);
 
         if (hasNext) {
             // Remove the extra row again
@@ -145,7 +146,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
     }
 
-    private ItemCount calculateCount(Supplier<ItemCount> countSupplier, OffsetData offsetData, int size, boolean hasNext) {
+    private ItemCount calculateCount(Supplier<Optional<ItemCount>> countSupplier, OffsetData offsetData, int size, boolean hasNext) {
         var hasPrevious = offsetData.getOffset() > 0;
 
         if (!hasNext && !(hasPrevious && size == 0)) {
@@ -153,7 +154,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             return ItemCount.exact(offsetData.getOffset() + size);
         }
 
-        var result = countSupplier.get();
+        var result = countSupplier.get().orElse(ItemCount.unknown());
 
         if (hasNext) {
             // There has to be a next page, adjust count to have at least one item on the next page
