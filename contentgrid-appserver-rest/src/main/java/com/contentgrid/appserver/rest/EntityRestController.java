@@ -208,12 +208,14 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> deleteEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id
+            @PathVariable EntityId id,
+            VersionConstraint requestedVersion
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
-            var deleted = datamodelApi.deleteEntity(application, EntityRequest.forEntity(entity.getName(), id));
+            var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
+            var deleted = datamodelApi.deleteEntity(application, request);
             return ResponseEntity.ok()
                     .body(assembler.withContext(application, entityName).toModel(deleted));
         } catch(EntityIdNotFoundException e) {

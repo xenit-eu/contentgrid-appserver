@@ -839,4 +839,57 @@ class EntityRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void testDeleteCorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+
+        // Verify entity was deleted
+        mockMvc.perform(get(createResponse.getRedirectedUrl()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteIncorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", "\"some-other-etag\"")
+                )
+                .andExpect(status().isPreconditionFailed());
+
+        // Verify entity still exists
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
+    }
+
+    @Test
+    void testDeleteInvalidIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)
+                                // Emulate accidentally-invalid etag where quotes are omitted
+                                .replace('"', ' '))
+                )
+                .andExpect(status().isBadRequest());
+
+        // Verify entity still exists
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
+    }
+
 }
