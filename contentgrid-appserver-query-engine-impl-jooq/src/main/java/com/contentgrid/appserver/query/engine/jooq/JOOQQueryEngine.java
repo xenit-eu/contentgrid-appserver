@@ -488,4 +488,21 @@ public class JOOQQueryEngine implements QueryEngine {
             return Optional.empty();
         }
     }
+
+    @Override
+    public Optional<Long> estimateCount(@NonNull Application application, @NonNull Entity entity,
+            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
+        var dslContext = resolver.resolve(application);
+        var context = new JOOQContext(application, entity);
+        var alias = context.getRootAlias();
+        var table = JOOQUtils.resolveTable(entity, alias);
+
+        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        var count = dslContext.explain(dslContext.selectFrom(table).where(condition)).rows();
+
+        if (Double.isNaN(count)) {
+            return Optional.empty();
+        }
+        return Optional.of(Math.round(count));
+    }
 }

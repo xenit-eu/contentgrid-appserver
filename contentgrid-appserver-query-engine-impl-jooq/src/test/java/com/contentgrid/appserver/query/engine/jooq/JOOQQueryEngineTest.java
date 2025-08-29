@@ -2049,38 +2049,45 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> countExpressions() {
         return Stream.of(
                 // true
-                Arguments.of(Scalar.of(true), 3L),
+                Arguments.of(Scalar.of(true), 3, 10_000),
                 // false
-                Arguments.of(Scalar.of(false), 0L),
+                Arguments.of(Scalar.of(false), 0, 0),
                 // expression that holds for all products
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_")
-                ), 3L),
+                ), 3, 10),
                 // expression that holds for none of the products
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code__")
-                ), 0L),
+                ), 0, 10),
                 // expression that holds for exactly one product
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_2")
-                ), 1L),
+                ), 1, 10),
                 // expression over a relation
                 Arguments.of(Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("number")),
                         Scalar.of("invoice_1")
-                ), 2L)
+                ), 2, 10)
         );
     }
 
     @ParameterizedTest
     @MethodSource("countExpressions")
-    void testCounting(ThunkExpression<Boolean> expression, long count) {
-        var actual = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
-        assertTrue(actual.isPresent());
-        assertEquals(count, actual.get());
+    void testCounting(ThunkExpression<Boolean> expression, long count, long max) {
+        var exact = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
+        assertTrue(exact.isPresent());
+        assertEquals(count, exact.get());
+
+        var min = Math.min(1, max); // 1, except if max is 0
+
+        var estimated = queryEngine.estimateCount(APPLICATION, PRODUCT, expression);
+        assertTrue(estimated.isPresent());
+        assertTrue(min <= estimated.get());
+        assertTrue(max >= estimated.get());
     }
 
     @SpringBootApplication

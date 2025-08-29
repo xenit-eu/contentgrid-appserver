@@ -184,4 +184,15 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the query operation
      */
     Optional<Long> exactCount(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
+
+    /**
+     * Estimates how many entities exist that match the given expression by looking at the query plan.
+     *
+     * @param application the application context
+     * @param entity the entity type to query
+     * @param expression the predicate expression to filter entities
+     * @return estimate of how many entities match the criteria
+     * @throws QueryEngineException if an error occurs during the query operation
+     */
+    Optional<Long> estimateCount(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
 }
