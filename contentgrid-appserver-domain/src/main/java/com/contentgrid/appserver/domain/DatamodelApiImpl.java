@@ -121,8 +121,10 @@ public class DatamodelApiImpl implements DatamodelApi {
                 params, hasNext);
 
         // Get a total count of how many items match these params
-        // TODO: to be replaced with an estimate count at some point (ACC-2208)
-        var count = calculateCount(() -> queryEngine.exactCount(application, entity, fullFilter).map(ItemCount::exact),
+        var count = calculateCount(() -> queryEngine.exactCount(application, entity, fullFilter)
+                        .map(ItemCount::exact)
+                        .or(() -> queryEngine.estimateCount(application, entity, fullFilter)
+                                .map(ItemCount::estimated)),
                 offsetData, result.getEntities().size(), hasNext);
 
         if (hasNext) {

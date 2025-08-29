@@ -27,8 +27,10 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
-import com.contentgrid.appserver.domain.paging.ResultSlice;
+import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
+import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
@@ -51,6 +53,7 @@ import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
@@ -79,6 +82,7 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
@@ -88,6 +92,8 @@ class DatamodelApiImplTest {
     private QueryEngine queryEngine;
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private ContentStore contentStore;
+    @Spy
+    private CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
 
     private DatamodelApi datamodelApi;
 
@@ -95,7 +101,6 @@ class DatamodelApiImplTest {
 
     @BeforeEach
     void setup() {
-        CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
                 contentStore,
@@ -1088,7 +1093,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1119,7 +1124,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1156,14 +1161,14 @@ class DatamodelApiImplTest {
                     ));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1182,14 +1187,14 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1207,26 +1212,102 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
-            var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
-            var thirdPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
 
             // Verify that navigating to current page remains the same
-            var currentPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
+            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
             assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
             assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
 
             // Verify that previous page is the same as second page
-            var prevPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
+            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
             assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
             assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
 
             // Verify that first page is the same as starting page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
             assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
             assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
+        }
+
+        static Stream<Arguments> findAllWithCounts() {
+            return Stream.of(
+                    Arguments.argumentSet("exact, no results", 0, 0, -1, ItemCount.exact(0)),
+                    Arguments.argumentSet("exact, only page", 0, 5, -1, ItemCount.exact(5)),
+                    Arguments.argumentSet("exact, first page", 0, 25, -1, ItemCount.exact(25)),
+                    Arguments.argumentSet("exact, second page", 1, 25, -1, ItemCount.exact(25)),
+                    Arguments.argumentSet("exact, last page", 2, 25, -1, ItemCount.exact(25)),
+                    Arguments.argumentSet("exact, empty page", 3, 25, -1, ItemCount.exact(25)),
+                    Arguments.argumentSet("under-estimate, only page", 0, 5, 2, ItemCount.exact(5)),
+                    Arguments.argumentSet("under-estimate, first page", 0, 25, 12, ItemCount.estimated(12)),
+                    Arguments.argumentSet("under-estimate, second page", 1, 25, 12, ItemCount.estimated(21)),
+                    Arguments.argumentSet("under-estimate, last page", 2, 25, 12, ItemCount.exact(25)),
+                    Arguments.argumentSet("under-estimate, empty page", 3, 25, 12, ItemCount.estimated(12)),
+                    Arguments.argumentSet("over-estimate, no results", 0, 0, 8, ItemCount.exact(0)),
+                    Arguments.argumentSet("over-estimate, only page", 0, 5, 8, ItemCount.exact(5)),
+                    Arguments.argumentSet("over-estimate, first page", 0, 25, 40, ItemCount.estimated(40)),
+                    Arguments.argumentSet("over-estimate, second page", 1, 25, 40, ItemCount.estimated(40)),
+                    Arguments.argumentSet("over-estimate, last page", 2, 25, 40, ItemCount.exact(25)),
+                    Arguments.argumentSet("over-estimate, empty page", 3, 25, 40, ItemCount.estimated(30)),
+                    Arguments.argumentSet("unknown, only page", 0, 5, 0, ItemCount.exact(5)),
+                    Arguments.argumentSet("unknown, first page", 0, 25, 0, ItemCount.estimated(11)),
+                    Arguments.argumentSet("unknown, second page", 1, 25, 0, ItemCount.estimated(21)),
+                    Arguments.argumentSet("unknown, last page", 2, 25, 0, ItemCount.exact(25)),
+                    Arguments.argumentSet("unknown, empty page", 3, 25, 0, ItemCount.estimated(30))
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void findAllWithCounts(int page, long exact, long estimated, ItemCount expected) {
+            var size = 10;
+            var isExact = estimated < 0;
+            var isEstimated = estimated > 0; // when 0, it is unknown.
+
+            // Mockito requires to only stub methods that effectively get called
+            // In this case we only need to stub count method(s) when we are not on the last page
+            var stubNeeded = (long) page * size >= exact || (page + 1L) * size < exact;
+
+            if (exact == 0 && page == 0) {
+                // no results => no count needed
+                stubNeeded = false;
+            }
+
+            // Setup mock for encoding/decoding fake cursors
+            Mockito.doReturn(new PageBasedPagination(size, page))
+                    .when(codec)
+                    .decodeCursor(any(), any(), any());
+            ArgumentCaptor<Pagination> paginationArg = ArgumentCaptor.forClass(Pagination.class);
+
+            Mockito.doAnswer(invocation -> {
+                var pagination = (PageBasedPagination) paginationArg.getValue();
+                var cursor = fakeCursor(pagination.getPage());
+                return new CursorContext(cursor, size, SortData.unsorted());
+            }).when(codec).encodeCursor(paginationArg.capture(), any(), any(), any());
+
+            // mock queryEngine
+            ArgumentCaptor<QueryPageData> pageArg = ArgumentCaptor.forClass(QueryPageData.class);
+            Mockito.when(queryEngine.findAll(any(), any(), any(), any(), pageArg.capture()))
+                    .thenAnswer(invocation -> fakeFindAll(pageArg.getValue(), exact));
+
+            if (stubNeeded) {
+                Mockito.when(queryEngine.exactCount(any(), any(), any()))
+                        .thenReturn(isExact ? Optional.of(exact) : Optional.empty());
+                if (!isExact) {
+                    Mockito.when(queryEngine.estimateCount(any(), any(), any()))
+                            .thenReturn(isEstimated ? Optional.of(estimated) : Optional.empty());
+                }
+            }
+
+            var result = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());
+            assertEquals(expected, result.getTotalItemCount());
+
+            // assert exactCount or estimateCount were not called when those methods are not stubbed
+            Mockito.verifyNoMoreInteractions(queryEngine);
         }
 
         private double getAmount(EntityData entity) {
@@ -1238,30 +1319,38 @@ class DatamodelApiImplTest {
             return ((SimpleAttributeData<String>) data).getValue();
         }
 
+        private String fakeCursor(int page) {
+            return page <= 0 ? null : Integer.toString(page);
+        }
+
         private SliceData fakeFindAll(QueryPageData page) {
-            return fakeFindAll(page, data -> true, false);
+            return fakeFindAll(page, data -> true, 1_000_000, false);
         }
 
         private SliceData fakeFindAll(QueryPageData page, Predicate<EntityData> filter) {
-            return fakeFindAll(page, filter, false);
+            return fakeFindAll(page, filter, 1_000_000, false);
         }
 
         private SliceData fakeFindAll(QueryPageData page, Direction direction) {
-            return fakeFindAll(page, data -> true, direction == Direction.DESC);
+            return fakeFindAll(page, data -> true, 1_000_000, direction == Direction.DESC);
         }
 
-        private SliceData fakeFindAll(QueryPageData page, Predicate<EntityData> filter, boolean descending) {
+        private SliceData fakeFindAll(QueryPageData page, long count) {
+            return fakeFindAll(page, data -> true, (int) count, false);
+        }
+
+        private SliceData fakeFindAll(QueryPageData page, Predicate<EntityData> filter, int count, boolean descending) {
             var pageData = (OffsetData) page;
             var offset = pageData.getOffset();
             var limit = pageData.getLimit();
 
             List<EntityData> entities = Stream
-                    // infinite stream of 1, 2, 3, ...
-                    .iterate(1, i -> i+1)
-                    // count down from a million if descending
-                    .map(descending ? i -> 1_000_001 - i : Function.identity())
+                    // stream of 1, 2, 3, ..., count
+                    .iterate(1, i -> i <= count, i -> i+1)
+                    // count down if descending
+                    .map(descending ? i -> count + 1 - i : Function.identity())
                     // transform to {foo, 100}, {bar, 200}, {foo, 300}, ...
-                    .map(i -> fakeInvoice(i))
+                    .map(FindAllEntities::fakeInvoice)
                     // apply filter (should match what the ThunkExpression would do)
                     .filter(filter)
                     // do paging equivalent
