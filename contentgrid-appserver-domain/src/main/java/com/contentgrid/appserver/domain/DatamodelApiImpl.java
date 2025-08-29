@@ -35,7 +35,6 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -116,13 +115,14 @@ public class DatamodelApiImpl implements DatamodelApi {
         // Request one extra row, so we can see if it's present → there is a next page
         var page = new OffsetData(offsetData.getLimit() + 1, offsetData.getOffset());
         var result = queryEngine.findAll(application, entity, fullFilter, sort, page);
-        // Get a total count of how many items match these params
-        // TODO: to be replaced with an estimate count at some point (ACC-2208)
-        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, fullFilter)), page, result);
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
         PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
                 params, hasNext);
+
+        // Get a total count of how many items match these params
+        // TODO: to be replaced with an estimate count at some point (ACC-2208)
+        var count = calculateCount(() -> ItemCount.exact(queryEngine.exactCount(application, entity, fullFilter)), page, result.getEntities().size(), hasNext);
 
         if (hasNext) {
             // Remove the extra row again
@@ -145,11 +145,24 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
     }
 
-    private ItemCount calculateCount(Supplier<ItemCount> countSupplier, OffsetData offsetData, SliceData slice) {
-        // TODO: do not perform a count if on last page (ACC-2208)
+    private ItemCount calculateCount(Supplier<ItemCount> countSupplier, OffsetData offsetData, int size, boolean hasNext) {
+        var hasPrevious = offsetData.getOffset() > 0;
+
+        if (!hasNext && !(hasPrevious && size == 0)) {
+            // If this is exactly the last page with results: we know the exact size, no need for counting
+            return ItemCount.exact(offsetData.getOffset() + size);
+        }
+
         var result = countSupplier.get();
-        // TODO: adjust estimated count based on slice and offsetData (ACC-2208)
-        return result;
+
+        if (hasNext) {
+            // There has to be a next page, adjust count to have at least one item on the next page
+            return result.orMinimally(offsetData.getOffset() + offsetData.getLimit() + 1);
+        } else {
+            // There is no next page and there are also no results on this page (otherwise we returned exact result),
+            // adjust count to have at most the amount on the previous page
+            return result.orMaximally(offsetData.getOffset());
+        }
     }
 
     @Override
