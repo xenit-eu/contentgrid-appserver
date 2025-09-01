@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -792,6 +793,103 @@ class EntityRestControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
                 .andExpect(jsonPath("$.detail").value(containsString("not found")));
+    }
+
+    @Test
+    void testSuccessfullyDeleteEntityInstance() throws Exception {
+        // First create an entity
+        Map<String, Object> product = new HashMap<>();
+        product.put("name", "Product to Delete");
+        product.put("price", 79.99);
+        product.put("release_date", "2023-03-15T12:00:00Z");
+        product.put("in_stock", true);
+
+        String responseContent = mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(product)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Extract ID from created entity
+        String id = objectMapper.readTree(responseContent).get("id").asText();
+
+        // Delete the entity
+        mockMvc.perform(delete("/products/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Product to Delete"));
+
+        // Verify entity no longer exists
+        mockMvc.perform(get("/products/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteNonExistentEntityInstance() throws Exception {
+        String nonExistentId = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/products/" + nonExistentId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteNonExistentEntityType() throws Exception {
+        String someId = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/foobars/" + someId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteCorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+
+        // Verify entity was deleted
+        mockMvc.perform(get(createResponse.getRedirectedUrl()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteIncorrectIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", "\"some-other-etag\"")
+                )
+                .andExpect(status().isPreconditionFailed());
+
+        // Verify entity still exists
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
+    }
+
+    @Test
+    void testDeleteInvalidIfMatch() throws Exception {
+        var createResponse = createInvoice();
+
+        mockMvc.perform(delete(createResponse.getRedirectedUrl())
+                        .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)
+                                // Emulate accidentally-invalid etag where quotes are omitted
+                                .replace('"', ' '))
+                )
+                .andExpect(status().isBadRequest());
+
+        // Verify entity still exists
+        mockMvc.perform(get(createResponse.getRedirectedUrl())
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
+                .andExpect(jsonPath("$.number").value("123"))
+                .andExpect(jsonPath("$.amount").value("150"));
     }
 
 }

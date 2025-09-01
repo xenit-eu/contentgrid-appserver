@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.content.api.ContentReference;
@@ -47,6 +48,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
@@ -1256,6 +1258,38 @@ class DatamodelApiImplTest {
             var hex = Integer.toHexString(i);
             var val = "00000000-0000-0000-0000-0000" + "0".repeat(8 - hex.length()) + hex;
             return EntityId.of(UUID.fromString(val));
+        }
+    }
+
+    @Nested
+    class DeleteEntity {
+        @Test
+        void deleteSuccess() {
+            EntityId id = EntityId.of(UUID.randomUUID());
+            EntityName invoice = EntityName.of("invoice");
+            EntityData data = EntityData.builder().name(invoice).id(id).attributes(List.of()).build();
+
+            ArgumentCaptor<EntityRequest> deleteArg = ArgumentCaptor.forClass(EntityRequest.class);
+            Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture()))
+                    .thenReturn(Optional.of(data));
+
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id));
+            assertEquals(invoice, deleteArg.getValue().getEntityName());
+            assertEquals(id, deleteArg.getValue().getEntityId());
+        }
+
+        @Test
+        void deleteNonExistent() {
+            EntityId id = EntityId.of(UUID.randomUUID());
+            EntityName invoice = EntityName.of("invoice");
+
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any()))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id))
+            ).isInstanceOf(EntityIdNotFoundException.class);
+
         }
     }
 }

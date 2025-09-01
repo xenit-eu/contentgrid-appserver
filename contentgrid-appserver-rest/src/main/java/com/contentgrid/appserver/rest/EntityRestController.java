@@ -37,6 +37,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -198,6 +199,25 @@ public class EntityRestController {
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
                     .body(assembler.withContext(application, entityName).toModel(updateResult));
+        } catch(EntityIdNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
+        }
+    }
+
+    @DeleteMapping("/{entityName}/{id}")
+    public ResponseEntity<EntityDataRepresentationModel> deleteEntity(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            VersionConstraint requestedVersion
+    ) {
+        var entity = getEntityOrThrow(application, entityName);
+
+        try {
+            var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
+            var deleted = datamodelApi.deleteEntity(application, request);
+            return ResponseEntity.ok()
+                    .body(assembler.withContext(application, entityName).toModel(deleted));
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
