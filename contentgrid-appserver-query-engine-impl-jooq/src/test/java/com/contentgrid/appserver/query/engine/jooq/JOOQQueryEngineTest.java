@@ -622,6 +622,14 @@ class JOOQQueryEngineTest {
         assertEquals(INVOICE1_ID, primaryKey);
     }
 
+
+    @ParameterizedTest
+    @MethodSource("validExpressions")
+    void findByIdValidPermissionExpression(ThunkExpression<Boolean> expression) {
+        var result = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE1_ID), expression);
+        assertThat(result).isPresent();
+    }
+
     static Stream<ThunkExpression<Boolean>> invalidExpressions() {
         return Stream.of(
                 // use of null value
@@ -1574,8 +1582,7 @@ class JOOQQueryEngineTest {
                         });
                     });
         } else {
-            // can be either not found exception or access denied, depending on if permission check fails before or after update
-            assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck));
             // Check that unchanged
             assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(createdEntity.getName(), createdEntity.getId()), TRUE_EXPRESSION))
                     .hasValueSatisfying(newData -> {
@@ -1728,7 +1735,7 @@ class JOOQQueryEngineTest {
             queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck);
             assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isEmpty();
         } else {
-            assertThrows(EntityIdNotFoundException.class, () -> queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck));
             assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isPresent();
         }
     }

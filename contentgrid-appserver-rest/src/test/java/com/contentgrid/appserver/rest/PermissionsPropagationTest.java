@@ -160,7 +160,7 @@ class PermissionsPropagationTest {
     void getEntity(String abacContext, boolean isAllowed) throws Exception {
         mockMvc.perform(get(createInvoice(AMOUNT_THRESHOLD_FOR_TEST))
                 .header("X-ABAC-Context", abacContext)
-        ).andExpect(isAllowed?status().isOk():status().isNotFound());
+        ).andExpect(isAllowed?status().isOk():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -206,7 +206,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsBytes(content))
-        ).andExpect(isAllowed ? status().isOk():status().isNotFound());
+        ).andExpect(isAllowed ? status().isOk():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -240,7 +240,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(delete(invoice)
                         .header("X-ABAC-Context", abacContext)
                 )
-                .andExpect(isAllowed?status().isOk():status().isNotFound());
+                .andExpect(isAllowed?status().isOk():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -250,7 +250,7 @@ class PermissionsPropagationTest {
 
         mockMvc.perform(get(invoice+"/content")
                 .header("X-ABAC-Context", abacContext)
-        ).andExpect(isAllowed?status().isOk():status().isNotFound());
+        ).andExpect(isAllowed?status().isOk():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -260,7 +260,7 @@ class PermissionsPropagationTest {
 
         mockMvc.perform(request(HttpMethod.HEAD, invoice+"/content")
                 .header("X-ABAC-Context", abacContext)
-        ).andExpect(isAllowed?status().isOk():status().isNotFound());
+        ).andExpect(isAllowed?status().isOk():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -272,7 +272,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .content(new byte[150])
-        ).andExpect(isAllowed?status().isNoContent():status().isNotFound());
+        ).andExpect(isAllowed?status().isNoContent():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -283,7 +283,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(multipart(invoice+"/content")
                 .file(new MockMultipartFile("file", "new-file.pdf", "application/pdf", new byte[14]))
                 .header("X-ABAC-Context", abacContext)
-        ).andExpect(isAllowed?status().isNoContent():status().isNotFound());
+        ).andExpect(isAllowed?status().isNoContent():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -293,7 +293,7 @@ class PermissionsPropagationTest {
 
         mockMvc.perform(delete(invoice+"/content")
                 .header("X-ABAC-Context", abacContext)
-        ).andExpect(isAllowed?status().isNoContent():status().isNotFound());
+        ).andExpect(isAllowed?status().isNoContent():status().isForbidden());
 
     }
 }

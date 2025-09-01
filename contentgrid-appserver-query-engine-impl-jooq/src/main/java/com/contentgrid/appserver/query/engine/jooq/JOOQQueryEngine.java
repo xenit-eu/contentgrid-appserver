@@ -45,6 +45,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -142,12 +143,24 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity, alias);
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
-        return dslContext.selectFrom(table)
+        var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
+        var condition = createCondition(context, permitReadPredicate);
+
+        fields.add(DSL.field(condition).as("_allow_read"));
+
+        return dslContext
+                .select(fields)
+                .from(table)
                 .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
-                .and(createCondition(context, permitReadPredicate))
                 .fetchOptional()
                 .map(Record::intoMap)
-                .map(result -> EntityDataMapper.from(entity, result))
+                .map(result -> {
+                    var entityData = EntityDataMapper.from(entity, result);
+                    if(result.get("_allow_read") != Boolean.TRUE) {
+                        throw new PermissionDeniedException(entityData.getIdentity());
+                    }
+                    return entityData;
+                })
                 .map(checkVersionSatisfied(entityRequest));
     }
 
