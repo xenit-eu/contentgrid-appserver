@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
@@ -38,6 +39,8 @@ import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedExce
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -48,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -60,7 +62,6 @@ import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
 import org.jooq.SortField;
-import org.jooq.exception.DataAccessException;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -75,6 +76,8 @@ public class JOOQQueryEngine implements QueryEngine {
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
+
+    private final JOOQCountStrategy countStrategy = new JOOQTimedCountStrategy();
 
     private static final long VERSION_MODULUS = 1L << 32;
 
@@ -474,7 +477,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<Long> exactCount(@NonNull Application application, @NonNull Entity entity,
+    public Optional<ItemCount> count(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
@@ -482,27 +485,6 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity, alias);
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-        try {
-            return Optional.of((long) dslContext.fetchCount(table, condition));
-        } catch (DataAccessException | org.springframework.dao.DataAccessException e) {
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public Optional<Long> estimateCount(@NonNull Application application, @NonNull Entity entity,
-            @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
-        var dslContext = resolver.resolve(application);
-        var context = new JOOQContext(application, entity);
-        var alias = context.getRootAlias();
-        var table = JOOQUtils.resolveTable(entity, alias);
-
-        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-        var count = dslContext.explain(dslContext.selectFrom(table).where(condition)).rows();
-
-        if (Double.isNaN(count)) {
-            return Optional.empty();
-        }
-        return Optional.of(Math.round(count));
+        return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));
     }
 }

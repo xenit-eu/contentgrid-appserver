@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.rest.paging;
 
-import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;

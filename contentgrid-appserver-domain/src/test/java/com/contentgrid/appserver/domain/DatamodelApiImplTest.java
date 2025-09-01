@@ -27,7 +27,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
-import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
@@ -1295,18 +1295,16 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(pageArg.getValue(), exact));
 
             if (stubNeeded) {
-                Mockito.when(queryEngine.exactCount(any(), any(), any()))
-                        .thenReturn(isExact ? Optional.of(exact) : Optional.empty());
-                if (!isExact) {
-                    Mockito.when(queryEngine.estimateCount(any(), any(), any()))
-                            .thenReturn(isEstimated ? Optional.of(estimated) : Optional.empty());
-                }
+                Optional<ItemCount> itemCount = isExact ? Optional.of(ItemCount.exact(exact)) :
+                        (isEstimated ? Optional.of(ItemCount.estimated(estimated)) : Optional.empty());
+                Mockito.when(queryEngine.count(any(), any(), any()))
+                        .thenReturn(itemCount);
             }
 
             var result = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(expected, result.getTotalItemCount());
 
-            // assert exactCount or estimateCount were not called when those methods are not stubbed
+            // assert count was not called when stubNeeded is false
             Mockito.verifyNoMoreInteractions(queryEngine);
         }
 

@@ -22,7 +22,7 @@ import com.contentgrid.appserver.domain.data.validation.ContentAttributeModifica
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
-import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
@@ -121,10 +121,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 params, hasNext);
 
         // Get a total count of how many items match these params
-        var count = calculateCount(() -> queryEngine.exactCount(application, entity, fullFilter)
-                        .map(ItemCount::exact)
-                        .or(() -> queryEngine.estimateCount(application, entity, fullFilter)
-                                .map(ItemCount::estimated)),
+        var count = calculateCount(() -> queryEngine.count(application, entity, fullFilter),
                 offsetData, result.getEntities().size(), hasNext);
 
         if (hasNext) {
