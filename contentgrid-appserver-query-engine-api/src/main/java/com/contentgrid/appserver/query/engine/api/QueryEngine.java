@@ -48,11 +48,14 @@ public interface QueryEngine {
 
     /**
      * Finds an entity that matches the requested identity
+     *
      * @param application the application context
      * @param entityRequest the identity of the entity to query
+     * @param permitReadPredicate predicate that has to pass for the entity to be allowed to be read
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest)
+    Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull ThunkExpression<Boolean> permitReadPredicate)
             throws QueryEngineException;
 
     /**
@@ -60,29 +63,36 @@ public interface QueryEngine {
      *
      * @param application the application context
      * @param data the data for the new entity
+     * @param permitCreatePredicate predicate that has to pass for the entity to be allowed to be created
      * @return The entity data that was inserted
      * @throws QueryEngineException if an error occurs during the create operation
      */
-    EntityData create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException;
+    EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
      *
      * @param application the application context
      * @param data the updated data for the entity, must include the entity's id
+     * @param permitUpdatePredicate predicate that has to pass for the entity to be allowed to be updated
      * @return Result of the update, including old and new entity data objects
      * @throws QueryEngineException if an error occurs during the update operation
      */
-    UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException;
+    UpdateResult update(@NonNull Application application, @NonNull EntityData data,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Deletes the entity that matches the given identity
+     *
      * @param application the application context
      * @param entityRequest the identity of the entity to delete
+     * @param permitDeletePredicate predicate that has to pass for the entity to be allowed to be updated
      * @return The entity data that was deleted, if any was deleted
      * @throws QueryEngineException if an error occurs during the delete operation
      */
-    Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest)
+    Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate)
             throws QueryEngineException;
 
     /**

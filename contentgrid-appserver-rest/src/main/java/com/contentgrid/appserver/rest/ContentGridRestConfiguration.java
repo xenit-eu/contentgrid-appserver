@@ -11,6 +11,7 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataE
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import java.text.ParseException;
 import java.util.List;
@@ -33,13 +34,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class, BlueprintLinkRelationsConfiguration.class, HalFormsMediaTypeConfiguration.class})
 public class ContentGridRestConfiguration {
     @Bean
-    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor) {
+    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor, AbacContextSupplier abacContextSupplier) {
         return new WebMvcConfigurer() {
 
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
                 resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
                 resolvers.add(new VersionConstraintArgumentResolver());
+                resolvers.add(new PermissionPredicateArgumentResolver(abacContextSupplier));
             }
 
             @Override

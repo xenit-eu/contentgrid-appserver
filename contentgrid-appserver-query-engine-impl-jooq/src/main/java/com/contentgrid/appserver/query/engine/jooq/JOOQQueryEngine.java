@@ -13,7 +13,6 @@ import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelat
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
@@ -35,6 +34,7 @@ import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
+import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
@@ -45,6 +45,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -54,6 +55,7 @@ import java.util.function.Function;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
@@ -69,13 +71,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class JOOQQueryEngine implements QueryEngine {
 
     private final DSLContextResolver resolver;
-    private final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
+    private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
-    private final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
+    private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
     private static final long VERSION_MODULUS = 1L << 32;
 
     private static final SecureRandom secureRandom = new SecureRandom();
+
+    private static Condition createCondition(JOOQContext context, ThunkExpression<Boolean> expression) {
+        return DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+    }
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
@@ -90,7 +96,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         var offsetAndLimit = convertPageData(page);
 
-        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        var condition = createCondition(context, expression);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
@@ -127,26 +133,34 @@ public class JOOQQueryEngine implements QueryEngine {
         };
     }
 
-    /**
-     * Return root alias for entity table, to be used in places without JOOQThunkExpressionVisitor.
-     */
-    private TableName getRootAlias(Entity entity) {
-        return new JoinCollection(entity.getTable()).getRootAlias();
-    }
-
     @Override
-    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest) {
+    public Optional<EntityData> findById(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull ThunkExpression<Boolean> permitReadPredicate) {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
-        var alias = getRootAlias(entity);
+        var context = new JOOQContext(application, entity);
+        var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
-        return dslContext.selectFrom(table)
+        var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
+        var condition = createCondition(context, permitReadPredicate);
+
+        fields.add(DSL.field(condition).as("_allow_read"));
+
+        return dslContext
+                .select(fields)
+                .from(table)
                 .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
                 .fetchOptional()
                 .map(Record::intoMap)
-                .map(result -> EntityDataMapper.from(entity, result))
+                .map(result -> {
+                    var entityData = EntityDataMapper.from(entity, result);
+                    if(result.get("_allow_read") != Boolean.TRUE) {
+                        throw new PermissionDeniedException(entityData.getIdentity());
+                    }
+                    return entityData;
+                })
                 .map(checkVersionSatisfied(entityRequest));
     }
 
@@ -163,7 +177,8 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public EntityData create(@NonNull Application application, @NonNull EntityCreateData data) throws QueryEngineException {
+    public EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
@@ -251,7 +266,24 @@ public class JOOQQueryEngine implements QueryEngine {
             }
         }
 
+        assertPermission(application, insertedData.getIdentity().toRequest(), permitCreatePredicate);
+
         return insertedData;
+    }
+
+    /**
+     * Check if a predicate matches (using a find)
+     * <p>
+     * This is done after operations that manipulate an object, but before the transaction commits
+     * @throws PermissionDeniedException when the predicate does not allow access
+     */
+    private void assertPermission(
+            @NonNull Application application,
+            @NonNull EntityRequest request,
+            @NonNull ThunkExpression<Boolean> predicate
+    ) throws PermissionDeniedException {
+        findById(application, request, predicate)
+                .orElseThrow(() -> new PermissionDeniedException(request.getEntityName(), request.getEntityId()));
     }
 
     private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
@@ -270,7 +302,8 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public UpdateResult update(@NonNull Application application, @NonNull EntityData data) throws QueryEngineException {
+    public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
@@ -302,7 +335,9 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         try {
-            var oldValue = findById(application, data.getIdentity().toRequest())
+            // If previous value was not found with an update, the user does not have permission to update the object
+            // so we act as if it does not exist at all
+            var oldValue = findById(application, data.getIdentity().toRequest(), permitUpdatePredicate)
                     .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId()));
 
             var newValue = update
@@ -325,6 +360,8 @@ public class JOOQQueryEngine implements QueryEngine {
                         previousVersion
                 );
             }
+
+            assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
             return new UpdateResult(
                     oldValue,
@@ -351,12 +388,16 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest)
+    public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
+
+        findById(application, entityRequest, permitDeletePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
 
         try {
             return dslContext.deleteFrom(table)

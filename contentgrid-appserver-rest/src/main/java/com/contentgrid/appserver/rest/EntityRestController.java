@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
@@ -75,6 +76,7 @@ public class EntityRestController {
     public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
+            PermissionPredicate permissionPredicate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false, name = SORT_NAME) String[] sort,
             @RequestParam Map<String, String> params
@@ -84,7 +86,8 @@ public class EntityRestController {
         // TODO use pagination from request parameters (ACC-2200)
         var pagination = new EncodedCursorPagination(null, sortData);
 
-        var results = datamodelApi.findAll(application, entity, params, pagination);
+        var results = datamodelApi.findAll(application, entity, params, pagination,
+                permissionPredicate);
 
         // TODO use page data and count data (ACC-2200)
         return assembler.withContext(application, entityName)
@@ -95,7 +98,8 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> getEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId
+            @PathVariable EntityId instanceId,
+            PermissionPredicate permissionPredicate
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -106,7 +110,8 @@ public class EntityRestController {
                         // already queried the database.
                         // All expensive operations have already happened (the body is not that large),
                         // so there is no point in still discarding it
-                        EntityRequest.forEntity(entity.getName(), instanceId)
+                        EntityRequest.forEntity(entity.getName(), instanceId),
+                        permissionPredicate
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -125,7 +130,8 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -135,7 +141,8 @@ public class EntityRestController {
         var result = datamodelApi.create(
                 application,
                 entity.getName(),
-                new ConversionServiceRequestInputData(data, conversionService)
+                new ConversionServiceRequestInputData(data, conversionService),
+                permissionPredicate
         );
 
         var model = assembler.withContext(application, entityName).toModel(result);
@@ -149,9 +156,14 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            HttpServletRequest request
+            HttpServletRequest request,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
-        return createEntity(application, entityName, new ConversionServiceRequestInputData(MultipartRequestInputData.fromRequest(request), conversionService));
+        var inputData = new ConversionServiceRequestInputData(
+                MultipartRequestInputData.fromRequest(request),
+                conversionService
+        );
+        return createEntity(application, entityName, inputData, permissionPredicate);
     }
 
     @PutMapping("/{entityName}/{id}")
@@ -160,7 +172,8 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -169,7 +182,9 @@ public class EntityRestController {
                     application,
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
-                    data);
+                    data,
+                    permissionPredicate
+            );
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
                     .body(assembler.withContext(application, entityName).toModel(updateResult));
@@ -184,7 +199,8 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            @RequestBody RequestInputData data
+            @RequestBody RequestInputData data,
+            PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -193,7 +209,8 @@ public class EntityRestController {
                     application,
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
-                    data
+                    data,
+                    permissionPredicate
             );
 
             return ResponseEntity.ok()
@@ -209,13 +226,14 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            VersionConstraint requestedVersion
+            VersionConstraint requestedVersion,
+            PermissionPredicate permissionPredicate
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
             var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
-            var deleted = datamodelApi.deleteEntity(application, request);
+            var deleted = datamodelApi.deleteEntity(application, request, permissionPredicate);
             return ResponseEntity.ok()
                     .body(assembler.withContext(application, entityName).toModel(deleted));
         } catch(EntityIdNotFoundException e) {

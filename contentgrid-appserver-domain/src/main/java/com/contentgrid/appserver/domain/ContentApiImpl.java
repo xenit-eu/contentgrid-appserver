@@ -10,6 +10,7 @@ import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
 import com.contentgrid.appserver.content.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.content.api.range.UnsatisfiableContentRangeException;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -59,9 +60,10 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
-            @NonNull EntityId id, @NonNull AttributeName attributeName) {
+            @NonNull EntityId id, @NonNull AttributeName attributeName,
+            @NonNull PermissionPredicate permissionPredicate) {
 
-        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
+        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), permissionPredicate)
                 .map(entityData -> extractContent(application, entityData, attributeName))
                 .filter(content -> content.getContentId().isPresent())
                 .map(Content.class::cast);
@@ -69,13 +71,13 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public Content update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull DataEntry.FileDataEntry file)
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull DataEntry.FileDataEntry file, @NonNull PermissionPredicate permissionPredicate)
             throws InvalidPropertyDataException {
-        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint);
+        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint, permissionPredicate);
 
         var updated = datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), file
-        )));
+        )), permissionPredicate);
 
         return extractContent(application, updated, attributeName);
     }
@@ -85,9 +87,9 @@ public class ContentApiImpl implements ContentApi {
             EntityName entityName,
             EntityId id,
             AttributeName attributeName,
-            VersionConstraint versionConstraint
-    ) {
-        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id))
+            VersionConstraint versionConstraint,
+            @NonNull PermissionPredicate permissionPredicate) {
+        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), permissionPredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(
                         entityName, id));
 
@@ -104,11 +106,12 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint) throws InvalidPropertyDataException {
-        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint);
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull PermissionPredicate permissionPredicate) throws InvalidPropertyDataException {
+        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
+                permissionPredicate);
         datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), NullDataEntry.INSTANCE
-        )));
+        )), permissionPredicate);
     }
 
     // package-private for testing

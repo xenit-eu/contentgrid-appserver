@@ -5,7 +5,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import lombok.Value;
 
 /**
- * Result of {@link QueryEngine#update(Application, EntityData)}, containing both the original and the updated data
+ * Result of {@link QueryEngine#update(Application, EntityData, com.contentgrid.thunx.predicates.model.ThunkExpression)}, containing both the original and the updated data
  */
 @Value
 public class UpdateResult {

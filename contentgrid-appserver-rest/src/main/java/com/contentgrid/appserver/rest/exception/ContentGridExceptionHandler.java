@@ -4,6 +4,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
@@ -99,6 +100,11 @@ public class ContentGridExceptionHandler {
                             }
                         })
         );
+    }
+
+    @ExceptionHandler(PermissionDeniedException.class)
+    ResponseEntity<?> handlePermissionDeniedException(PermissionDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     @ExceptionHandler(InvalidSortParameterException.class)

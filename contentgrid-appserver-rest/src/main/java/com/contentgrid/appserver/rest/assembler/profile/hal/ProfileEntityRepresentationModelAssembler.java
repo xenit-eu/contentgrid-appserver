@@ -67,14 +67,14 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     private Link getEntityCollectionLink(Application application, Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), 0, null, Map.of()))
+                .listEntity(application, entity.getPathSegment(), null, 0, null, Map.of()))
                 .withRel(IanaLinkRelations.DESCRIBES).expand()
                 .withName(IanaLinkRelations.COLLECTION_VALUE);
     }
 
     private Link getEntityItemLink(Application application, Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .getEntity(application, entity.getPathSegment(), null))
+                .getEntity(application, entity.getPathSegment(), null, null))
                 .withRel(IanaLinkRelations.DESCRIBES)
                 .withName(IanaLinkRelations.ITEM_VALUE);
     }

@@ -70,13 +70,13 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private Link getSelfLink(Application application, Entity entity, EntityId id) {
         return linkTo(methodOn(EntityRestController.class)
-                .getEntity(application, entity.getPathSegment(), id)
+                .getEntity(application, entity.getPathSegment(), id, null)
         ).withSelfRel();
     }
 
     private Link getCollectionSelfLink(Application application, PathSegmentName entityPathSegment) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entityPathSegment, 0, null, Map.of())
+                .listEntity(application, entityPathSegment, null, 0, null, Map.of())
         ).withSelfRel();
     }
 
@@ -92,7 +92,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private Link getContentLink(Application application, Entity entity, EntityId id, ContentAttribute attribute) {
         return linkTo(methodOn(ContentRestController.class)
-                .getContent(null, application, entity.getPathSegment(), id, attribute.getPathSegment(), null, null))
+                .getContent(null, application, entity.getPathSegment(), id, attribute.getPathSegment(), null, null, null))
                 .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());
     }

@@ -44,7 +44,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
-        "server.servlet.encoding.enabled=false" // disables mock-mvc enforcing charset in request
+        "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
+        "contentgrid.thunx.abac.source=none"
 })
 @AutoConfigureMockMvc
 class ContentRestControllerTest {
