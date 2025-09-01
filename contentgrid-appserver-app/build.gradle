@@ -20,3 +20,6 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
 }
 
+bootRun {
+    systemProperty 'contentgrid.thunx.abac.source', 'none'
+}
