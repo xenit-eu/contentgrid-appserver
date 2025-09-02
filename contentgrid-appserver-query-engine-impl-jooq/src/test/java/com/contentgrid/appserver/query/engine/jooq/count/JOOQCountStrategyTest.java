@@ -116,12 +116,12 @@ class JOOQCountStrategyTest {
         var transaction = transactionManager.getTransaction(TransactionDefinition.withDefaults());
         try {
             var countStrategy = new JOOQExplainEstimateCountStrategy();
-            var count = countStrategy.count(dslContext, ALLOW_ALL).orElseThrow().count();
+            var count = countStrategy.count(dslContext, ALLOW_ALL).count();
 
             assertTrue(count >= 1);
             assertTrue(count <= 10_000);
 
-            count = countStrategy.count(dslContext, DENY_ALL).orElseThrow().count();
+            count = countStrategy.count(dslContext, DENY_ALL).count();
 
             assertEquals(0, count);
         } finally {
@@ -138,10 +138,10 @@ class JOOQCountStrategyTest {
     void testExactCount(JOOQCountStrategy countStrategy) {
         var transaction = transactionManager.getTransaction(TransactionDefinition.withDefaults());
         try {
-            var count = countStrategy.count(dslContext, ALLOW_ALL).orElseThrow().count();
+            var count = countStrategy.count(dslContext, ALLOW_ALL).count();
             assertEquals(3, count);
 
-            count = countStrategy.count(dslContext, DENY_ALL).orElseThrow().count();
+            count = countStrategy.count(dslContext, DENY_ALL).count();
             assertEquals(0, count);
         } finally {
             transactionManager.commit(transaction);
@@ -167,8 +167,7 @@ class JOOQCountStrategyTest {
 
             var count = countStrategy.count(dslContext, ALLOW_ALL);
 
-            assertTrue(count.isPresent());
-            assertTrue(count.get().isEstimated());
+            assertTrue(count.isEstimated());
         } finally {
             transactionManager.commit(transaction);
 

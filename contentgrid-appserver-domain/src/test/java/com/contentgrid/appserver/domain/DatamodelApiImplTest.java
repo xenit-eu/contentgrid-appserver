@@ -1086,11 +1086,19 @@ class DatamodelApiImplTest {
     @Nested
     class FindAllEntities {
 
+        private void mockCount() {
+            // Count fails if not mocked, Mockito doesn't know how to handle ItemCount as return type
+            Mockito.doReturn(ItemCount.exact(1_000_000))
+                    .when(queryEngine).count(any(), any(), any());
+        }
+
         @Test
         void findAllWithPaging() {
             ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
             Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            mockCount();
 
             // cursor `null` -> first page
             var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
@@ -1122,6 +1130,8 @@ class DatamodelApiImplTest {
             ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
             Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            mockCount();
 
             // cursor `null` -> first page
             var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
@@ -1160,6 +1170,8 @@ class DatamodelApiImplTest {
                             data -> getConfidentiality(data).equals("public")
                     ));
 
+            mockCount();
+
             // cursor `null` -> first page
             var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
@@ -1186,6 +1198,8 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.findAll(any(), any(), any(), eq(sort), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
 
+            mockCount();
+
             // cursor `null` -> first page
             var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
@@ -1210,6 +1224,8 @@ class DatamodelApiImplTest {
             ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
             Mockito.when(queryEngine.findAll(any(), any(), any(), any(), paginationArg.capture()))
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
+
+            mockCount();
 
             // cursor `null` -> first page
             var startPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
@@ -1295,10 +1311,10 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(pageArg.getValue(), exact));
 
             if (stubNeeded) {
-                Optional<ItemCount> itemCount = isExact ? Optional.of(ItemCount.exact(exact)) :
-                        (isEstimated ? Optional.of(ItemCount.estimated(estimated)) : Optional.empty());
-                Mockito.when(queryEngine.count(any(), any(), any()))
-                        .thenReturn(itemCount);
+                ItemCount itemCount = isExact ? ItemCount.exact(exact) :
+                        (isEstimated ? ItemCount.estimated(estimated) : ItemCount.unknown());
+                Mockito.doReturn(itemCount)
+                        .when(queryEngine).count(any(), any(), any());
             }
 
             var result = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());

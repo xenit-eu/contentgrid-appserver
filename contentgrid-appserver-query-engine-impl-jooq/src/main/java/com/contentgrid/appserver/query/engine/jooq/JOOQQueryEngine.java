@@ -477,7 +477,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public Optional<ItemCount> count(@NonNull Application application, @NonNull Entity entity,
+    public ItemCount count(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);

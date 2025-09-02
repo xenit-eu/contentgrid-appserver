@@ -184,5 +184,5 @@ public interface QueryEngine {
      * @return the amount of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<ItemCount> count(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
+    ItemCount count(@NonNull Application application, @NonNull Entity entity, @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException;
 }
