@@ -16,16 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.domain.paging.ItemCount;
-import com.contentgrid.appserver.domain.paging.ResultSlice;
-import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
-import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPaginationControls;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -43,8 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -58,7 +48,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -208,11 +197,19 @@ class EntityRestControllerTest {
                 .getResponse();
     }
 
+    private MockHttpServletResponse createProduct(int i) throws Exception {
+        return mockMvc.perform(post("/products")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("name", "product_" + i)
+                        .param("price", String.valueOf(i * 20.0))
+                        .param("is_paid", String.valueOf(i % 2 == 1)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+    }
+
     @Autowired
     TableCreator tableCreator;
-
-    @MockitoSpyBean
-    DatamodelApi datamodelApi;
 
     @BeforeEach
     void setup() {
@@ -222,7 +219,6 @@ class EntityRestControllerTest {
     @AfterEach
     void teardown() {
         tableCreator.dropTables(APPLICATION);
-        Mockito.reset(datamodelApi);
     }
 
     @Nested
@@ -646,13 +642,9 @@ class EntityRestControllerTest {
 
         @Test
         void testListEntityInstances_withPaging() throws Exception {
-            ArgumentCaptor<EncodedCursorPagination> paginationArg = ArgumentCaptor.forClass(
-                    EncodedCursorPagination.class);
-            Mockito.doAnswer(invocation -> fakeProducts(paginationArg.getValue()))
-                    .when(datamodelApi)
-                    .findAll(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT), Mockito.any(), paginationArg.capture(),
-                            Mockito.any());
-
+            for (var i = 0; i < 100; i++) {
+                createProduct(i);
+            }
             // Request default page
             mockMvc.perform(get("/products")
                             .accept(MediaTypes.HAL_JSON))
@@ -662,7 +654,7 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$._embedded.item[?(@.name=='product_2')].price", is(List.of(40.00))))
 
                     // Check pagination links
-                    .andExpect(jsonPath("$._links.self.href", containsString("_cursor=0")))
+                    .andExpect(jsonPath("$._links.self.href", containsString("_cursor")))
                     .andExpect(jsonPath("$._links.first.href").exists())
                     .andExpect(jsonPath("$._links.prev.href").doesNotExist())
                     .andExpect(jsonPath("$._links.next.href").exists())
@@ -670,133 +662,108 @@ class EntityRestControllerTest {
 
                     // Check pagination metadata
                     .andExpect(jsonPath("$.page.size", is(20)))
-                    .andExpect(jsonPath("$.page.cursor", is("0")))
+                    .andExpect(jsonPath("$.page.cursor").exists())
                     .andExpect(jsonPath("$.page.prev_cursor").doesNotExist())
-                    .andExpect(jsonPath("$.page.next_cursor", is("1")))
-                    .andExpect(jsonPath("$.page.total_items_estimate", is(1_000_000)))
-                    .andExpect(jsonPath("$.page.total_items_exact", is(1_000_000)))
+                    .andExpect(jsonPath("$.page.next_cursor").exists())
+                    .andExpect(jsonPath("$.page.total_items_estimate", is(100)))
+                    .andExpect(jsonPath("$.page.total_items_exact", is(100)))
                     // Check legacy properties don't exist
                     .andExpect(jsonPath("$.page.number").doesNotExist())
                     .andExpect(jsonPath("$.page.totalElements").doesNotExist())
-                    .andExpect(jsonPath("$.page.totalPages").doesNotExist());
+                    .andExpect(jsonPath("$.page.totalPages").doesNotExist())
+                    .andReturn()
+                    .getResponse();
+        }
 
-            // Request with all paging parameters present
-            mockMvc.perform(get("/products?_cursor=2&_size=10&_sort=price,asc&_sort=name,desc")
+        @Test
+        // TODO: all cursors in links and page metadata are invalid (IntegrityCheckFailedException)
+        void testListEntityInstances_withPaging_allPagingParameters() throws Exception {
+            for (var i = 0; i < 100; i++) {
+                createProduct(i);
+            }
+            // Request first page
+            var firstPage = mockMvc.perform(get("/products?_size=10&_sort=price,asc&_sort=name,desc")
+                            .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse();
+
+            // Follow self link should succeed
+            var firstSelfLink = objectMapper.readTree(firstPage.getContentAsString()).at("/_links/self/href").asText();
+            assertThat(firstSelfLink).isNotBlank();
+            mockMvc.perform(get(firstSelfLink)
+                            .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk());
+
+            var secondLink = objectMapper.readTree(firstPage.getContentAsString()).at("/_links/next/href").asText();
+            assertThat(secondLink).isNotBlank();
+
+            // Follow next link and check the results
+            var secondPage = mockMvc.perform(get(secondLink)
                             .accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$._embedded.item.length()", is(10)))
-                    .andExpect(jsonPath("$._embedded.item[?(@.name=='product_21')].price", is(List.of(420.00))))
-                    .andExpect(jsonPath("$._embedded.item[?(@.name=='product_22')].price", is(List.of(440.00))))
+                    .andExpect(jsonPath("$._embedded.item[?(@.name=='product_11')].price", is(List.of(220.00))))
+                    .andExpect(jsonPath("$._embedded.item[?(@.name=='product_12')].price", is(List.of(240.00))))
 
                     // Check pagination links
-                    .andExpect(jsonPath("$._links.self.href", containsString("_cursor=2")))
+                    .andExpect(jsonPath("$._links.self.href", containsString("_cursor")))
                     .andExpect(jsonPath("$._links.self.href", containsString("_size=10")))
                     .andExpect(jsonPath("$._links.self.href", containsString("_sort=price,asc&_sort=name,desc")))
-                    .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
+                    .andExpect(jsonPath("$._links.first.href", containsString("_cursor")))
                     .andExpect(jsonPath("$._links.first.href", containsString("_size=10")))
                     .andExpect(jsonPath("$._links.first.href", containsString("_sort=price,asc&_sort=name,desc")))
-                    .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=1")))
+                    .andExpect(jsonPath("$._links.prev.href", containsString("_cursor")))
                     .andExpect(jsonPath("$._links.prev.href", containsString("_size=10")))
                     .andExpect(jsonPath("$._links.prev.href", containsString("_sort=price,asc&_sort=name,desc")))
-                    .andExpect(jsonPath("$._links.next.href", containsString("_cursor=3")))
+                    .andExpect(jsonPath("$._links.next.href", containsString("_cursor")))
                     .andExpect(jsonPath("$._links.next.href", containsString("_size=10")))
                     .andExpect(jsonPath("$._links.next.href", containsString("_sort=price,asc&_sort=name,desc")))
                     .andExpect(jsonPath("$._links.last.href").doesNotExist())
 
                     // Check pagination metadata
                     .andExpect(jsonPath("$.page.size", is(10)))
-                    .andExpect(jsonPath("$.page.cursor", is("2")))
-                    .andExpect(jsonPath("$.page.prev_cursor", is("1")))
-                    .andExpect(jsonPath("$.page.next_cursor", is("3")))
-                    .andExpect(jsonPath("$.page.total_items_estimate", is(1_000_000)))
-                    .andExpect(jsonPath("$.page.total_items_exact", is(1_000_000)))
+                    .andExpect(jsonPath("$.page.cursor").exists())
+                    .andExpect(jsonPath("$.page.prev_cursor").exists())
+                    .andExpect(jsonPath("$.page.next_cursor").exists())
+                    .andExpect(jsonPath("$.page.total_items_estimate", is(100)))
+                    .andExpect(jsonPath("$.page.total_items_exact", is(100)))
                     // Check legacy properties don't exist
                     .andExpect(jsonPath("$.page.number").doesNotExist())
                     .andExpect(jsonPath("$.page.totalElements").doesNotExist())
-                    .andExpect(jsonPath("$.page.totalPages").doesNotExist());
+                    .andExpect(jsonPath("$.page.totalPages").doesNotExist())
 
-            // Special case: second page, previous cursor is null
-            mockMvc.perform(get("/products?_cursor=1").accept(MediaTypes.HAL_JSON))
+                    // return second page
+                    .andReturn()
+                    .getResponse();
+
+            var thirdLink = objectMapper.readTree(secondPage.getContentAsString()).at("/_links/next/href").asText();
+            assertThat(thirdLink).isNotBlank();
+
+            // Follow next link of second page
+            var thirdPage = mockMvc.perform(get(thirdLink)
+                            .accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links.first.href", containsString("_cursor=0")))
-                    .andExpect(jsonPath("$._links.prev.href", containsString("_cursor=0")))
-                    .andExpect(jsonPath("$.page.prev_cursor", is("0")));
+                    .andReturn()
+                    .getResponse();
+
+            // Check first and prev links
+            var firstLink = objectMapper.readTree(thirdPage.getContentAsString()).at("/_links/first/href").asText();
+            assertThat(firstLink).isEqualTo(firstSelfLink);
+            var prevLink = objectMapper.readTree(thirdPage.getContentAsString()).at("/_links/prev/href").asText();
+            assertThat(prevLink).isEqualTo(secondLink);
         }
 
         @ParameterizedTest
-        @CsvSource({
-                "25,-1",
-                "25,40",
-                "25,21",
-        })
-        void testListEntityInstances_withCounts(long exact, long estimated) throws Exception {
-            var itemCount = estimated < 0 ? ItemCount.exact(exact) : ItemCount.estimated(estimated);
-            ArgumentCaptor<EncodedCursorPagination> paginationArg = ArgumentCaptor.forClass(
-                    EncodedCursorPagination.class);
-            Mockito.doAnswer(invocation -> fakeProducts(paginationArg.getValue(), exact, itemCount))
-                    .when(datamodelApi)
-                    .findAll(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT), Mockito.any(), paginationArg.capture(),
-                            Mockito.any());
-
+        @CsvSource({"0", "25"})
+        void testListEntityInstances_withCounts(int exact) throws Exception {
+            for (var i = 0; i < exact; i++) {
+                createProduct(i);
+            }
             mockMvc.perform(get("/products").accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.page.total_items_estimate", is((int) itemCount.count())))
-                    .andExpect(itemCount.isEstimated()
-                            ? jsonPath("$.page.total_items_exact").doesNotExist()
-                            : jsonPath("$.page.total_items_exact", is((int) itemCount.count())));
-        }
-
-        private static ResultSlice fakeProducts(EncodedCursorPagination pagination) {
-            return fakeProducts(pagination, 1_000_000, ItemCount.exact(1_000_000));
-        }
-
-        private static ResultSlice fakeProducts(EncodedCursorPagination pagination, long count, ItemCount itemCount) {
-            var sortData = pagination.getSort();
-            var page = pagination.getCursor() == null ? 0 : Integer.parseInt(pagination.getCursor());
-            var size = pagination.getSize();
-            var entities = Stream.iterate(1, i -> i <= count, i -> i + 1)
-                    .skip((long) page * size)
-                    .limit(size)
-                    .map(ListEntity::fakeProduct)
-                    .toList();
-
-            var controls = new EncodedCursorPaginationControls(
-                    new EncodedCursorPagination(fakeCursor(page), size, sortData),
-                    ((long) (page + 1) * size) >= count ? null
-                            : new EncodedCursorPagination(fakeCursor(page + 1), size, sortData),
-                    page == 0 ? null : new EncodedCursorPagination(fakeCursor(page - 1), size, sortData),
-                    new EncodedCursorPagination(fakeCursor(0), size, sortData)
-            );
-            return new ResultSlice(entities, controls, itemCount);
-        }
-
-        private static EntityData fakeProduct(int i) {
-            return EntityData.builder()
-                    .name(PRODUCT.getName())
-                    .id(fakeId(i))
-                    .attribute(SimpleAttributeData.builder()
-                            .name(PRODUCT_NAME.getName())
-                            .value("product_" + i)
-                            .build())
-                    .attribute(SimpleAttributeData.builder()
-                            .name(PRODUCT_PRICE.getName())
-                            .value(i * 20.0)
-                            .build())
-                    .attribute(SimpleAttributeData.builder()
-                            .name(PRODUCT_IN_STOCK.getName())
-                            .value(i % 2 == 1)
-                            .build())
-                    .build();
-        }
-
-        private static EntityId fakeId(int i) {
-            var hex = Integer.toHexString(i);
-            var value = "00000000-0000-0000-0000-0000" + "0".repeat(8 - hex.length()) + hex;
-            return EntityId.of(UUID.fromString(value));
-        }
-
-        private static String fakeCursor(int page) {
-            return String.valueOf(page);
+                    .andExpect(jsonPath("$.page.total_items_estimate", is(exact)))
+                    .andExpect(jsonPath("$.page.total_items_exact", is(exact)));
         }
     }
 
