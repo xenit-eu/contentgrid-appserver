@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.assembler;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -12,7 +11,6 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler.EntityContext;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
@@ -29,12 +27,12 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.With;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.PagedModel.PageMetadata;
-import org.springframework.hateoas.UriTemplate;
+import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -45,7 +43,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
     private final HalFormsTemplateGenerator templateGenerator;
     private final SlicedResourcesAssembler<EntityData> slicedResourcesAssembler;
-    private final EncodedCursorPaginationHandlerMethodArgumentResolver paginationResolver;
+    private final MethodLinkBuilderFactory<WebMvcLinkBuilder> linkBuilderFactory;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull EntityContext context) {
@@ -103,25 +101,21 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getSelfLink(Application application, Entity entity, EntityId id) {
-        return linkTo(methodOn(EntityRestController.class)
+        return linkBuilderFactory.linkTo(methodOn(EntityRestController.class)
                 .getEntity(application, entity.getPathSegment(), id, null)
         ).withSelfRel();
     }
 
     private Link getCollectionSelfLink(EntityContext context) {
-        // using toUriComponentsBuilder() instead of withSelfRel()
-        // to be able to put multiple values per query parameter (needed for _sort)
-        var builder = linkTo(methodOn(EntityRestController.class)
-                .listEntity(context.application(), context.entityPathSegment(), null, context.params(), null))
-                .toUriComponentsBuilder();
-        paginationResolver.enhance(builder, null, context.pagination());
-        return Link.of(UriTemplate.of(builder.build().toString()), IanaLinkRelations.SELF);
+        return linkBuilderFactory.linkTo(methodOn(EntityRestController.class)
+                .listEntity(context.application(), context.entityPathSegment(), null, context.params(), context.pagination()))
+                .withSelfRel();
     }
 
     private Link getRelationLink(Application application, Relation relation, EntityId id) {
         // Links for *-to-many relations are the same as links for *-to-one relations,
         // no need to switch based on relation type
-        return linkTo(methodOn(XToOneRelationRestController.class)
+        return linkBuilderFactory.linkTo(methodOn(XToOneRelationRestController.class)
                 .getRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
                         relation.getSourceEndPoint().getPathSegment()))
                 .withRel(ContentGridLinkRelations.RELATION)
@@ -129,7 +123,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private Link getContentLink(Application application, Entity entity, EntityId id, ContentAttribute attribute) {
-        return linkTo(methodOn(ContentRestController.class)
+        return linkBuilderFactory.linkTo(methodOn(ContentRestController.class)
                 .getContent(null, application, entity.getPathSegment(), id, attribute.getPathSegment(), null, null, null))
                 .withRel(ContentGridLinkRelations.CONTENT)
                 .withName(attribute.getLinkName().getValue());

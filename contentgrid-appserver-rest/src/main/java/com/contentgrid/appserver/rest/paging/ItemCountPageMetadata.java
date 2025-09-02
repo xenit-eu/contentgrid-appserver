@@ -1,12 +1,14 @@
 package com.contentgrid.appserver.rest.paging;
 
 import com.contentgrid.appserver.domain.paging.ItemCount;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.NonNull;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 
+@JsonIgnoreProperties({"number", "totalElements", "totalPages"})
 public class ItemCountPageMetadata extends PageMetadata {
 
     @NonNull
