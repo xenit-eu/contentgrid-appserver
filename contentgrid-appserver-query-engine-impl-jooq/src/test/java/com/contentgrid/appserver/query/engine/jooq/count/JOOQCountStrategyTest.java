@@ -130,7 +130,7 @@ class JOOQCountStrategyTest {
     }
 
     static Stream<JOOQCountStrategy> testExactCount() {
-        return Stream.of(new JOOQExactCountStrategy(), new JOOQTimedCountStrategy());
+        return Stream.of(new JOOQExactCountStrategy(), new JOOQTimedCountStrategy(500));
     }
 
     @ParameterizedTest
@@ -163,7 +163,7 @@ class JOOQCountStrategyTest {
         // Perform test
         var transaction = transactionManager.getTransaction(TransactionDefinition.withDefaults());
         try {
-            var countStrategy = new JOOQTimedCountStrategy();
+            var countStrategy = new JOOQTimedCountStrategy(500);
 
             var count = countStrategy.count(dslContext, ALLOW_ALL);
 

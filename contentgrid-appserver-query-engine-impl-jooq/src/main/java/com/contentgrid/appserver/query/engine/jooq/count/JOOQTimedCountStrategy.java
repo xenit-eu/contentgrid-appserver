@@ -1,14 +1,17 @@
 package com.contentgrid.appserver.query.engine.jooq.count;
 
 import com.contentgrid.appserver.domain.values.ItemCount;
+import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
 import org.springframework.dao.QueryTimeoutException;
 
 /**
- * A {@link JOOQCountStrategy} that performs an exact count, and returns an estimate count if it takes longer than 500 ms.
+ * A {@link JOOQCountStrategy} that performs an exact count, and returns an estimate count
+ * if it takes longer than a specified timeout (in ms).
  */
+@RequiredArgsConstructor
 public class JOOQTimedCountStrategy implements JOOQCountStrategy {
 
     private static final String SAVEPOINT = "count_savepoint";
@@ -16,10 +19,12 @@ public class JOOQTimedCountStrategy implements JOOQCountStrategy {
     private final JOOQCountStrategy exactCountStrategy = new JOOQExactCountStrategy();
     private final JOOQCountStrategy estimateCountStrategy = new JOOQExplainEstimateCountStrategy();
 
+    private final int timeout;
+
     @Override
     public ItemCount count(DSLContext dslContext, Select<?> query) {
         dslContext.savepoint(SAVEPOINT).execute();
-        dslContext.setLocal("statement_timeout", DSL.value(500)).execute();
+        dslContext.setLocal("statement_timeout", DSL.value(timeout)).execute();
 
         ItemCount result;
         try {

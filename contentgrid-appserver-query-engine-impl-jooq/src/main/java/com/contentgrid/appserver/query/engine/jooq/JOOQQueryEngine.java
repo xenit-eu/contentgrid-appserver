@@ -77,7 +77,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
-    private final JOOQCountStrategy countStrategy = new JOOQTimedCountStrategy();
+    private final JOOQCountStrategy countStrategy = new JOOQTimedCountStrategy(500);
 
     private static final long VERSION_MODULUS = 1L << 32;
 
