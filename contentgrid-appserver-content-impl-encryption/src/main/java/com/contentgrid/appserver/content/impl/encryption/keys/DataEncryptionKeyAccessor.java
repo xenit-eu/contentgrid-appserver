@@ -3,7 +3,6 @@ package com.contentgrid.appserver.content.impl.encryption.keys;
 import com.contentgrid.appserver.content.api.ContentReference;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 /**

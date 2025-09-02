@@ -11,5 +11,7 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation testFixtures(project(':contentgrid-appserver-content-impl-utils'))
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.slf4j:slf4j-simple'
 }
 
