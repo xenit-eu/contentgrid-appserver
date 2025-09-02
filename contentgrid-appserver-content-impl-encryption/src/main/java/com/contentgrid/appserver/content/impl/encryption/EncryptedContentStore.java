@@ -55,16 +55,14 @@ public class EncryptedContentStore implements ContentStore {
         DecryptionConfig decryptionConfig;
         try {
             decryptionConfig = decryptEncryptionParameters(encryptedDEKs);
-        } catch (Exception e) {
-            var ex = createUndecryptableContentException(contentReference, encryptedDEKs);
-            ex.initCause(e);
-            throw ex;
+        } catch (KeyUnwrappingFailedException e) {
+            throw createUndecryptableContentException(contentReference, encryptedDEKs, e);
         } finally {
             encryptedDEKs.forEach(StoredDataEncryptionKey::destroy);
         }
 
         if(decryptionConfig == null) {
-            throw createUndecryptableContentException(contentReference, encryptedDEKs);
+            throw createUndecryptableContentException(contentReference, encryptedDEKs, null);
         }
 
         return decryptionConfig.encryptionEngine()
@@ -77,7 +75,8 @@ public class EncryptedContentStore implements ContentStore {
 
     private UndecryptableContentException createUndecryptableContentException(
             ContentReference contentReference,
-            List<StoredDataEncryptionKey> encryptedDEKs
+            List<StoredDataEncryptionKey> encryptedDEKs,
+            KeyUnwrappingFailedException cause
     ) {
         var availableKeyIds = encryptedDEKs.stream()
                 .map(StoredDataEncryptionKey::getWrappingKeyId)
@@ -86,12 +85,18 @@ public class EncryptedContentStore implements ContentStore {
                 .flatMap(wrapper -> wrapper.getSupportedKeyIds().stream())
                 .collect(Collectors.toSet());
 
-        if(Collections.disjoint(availableKeyIds, supportedKeyIds)) {
-            return new NoDecryptableDataEncryptionKeysException(
+        if(cause != null) {
+            supportedKeyIds.removeAll(cause.getAllFailedWrappingKeyIds());
+        }
+
+        if(cause != null || Collections.disjoint(availableKeyIds, supportedKeyIds)) {
+            var ex = new NoDecryptableDataEncryptionKeysException(
                     contentReference,
                     availableKeyIds,
                     supportedKeyIds
             );
+            ex.initCause(cause);
+            return ex;
         } else {
             return new UnsupportedDecryptionAlgorithmException(
                     contentReference,
@@ -153,8 +158,8 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     private DecryptionConfig decryptEncryptionParameters(Collection<StoredDataEncryptionKey> encryptedDeks)
-            throws Exception {
-        Exception firstException = null;
+            throws KeyUnwrappingFailedException {
+        KeyUnwrappingFailedException firstException = null;
         for (var wrapper : dataEncryptionKeyWrappers) {
             if (!wrapper.canDecrypt()) {
                 continue;
@@ -176,10 +181,11 @@ public class EncryptedContentStore implements ContentStore {
                     );
                 } catch(Exception ex) {
                     // Failure to unwrap: prepare exception that will be thrown when all decryptions fail
+                    var keyUnwrappingException = new KeyUnwrappingFailedException(encryptedDek.getWrappingKeyId(), ex);
                     if(firstException == null) {
-                        firstException = ex;
+                        firstException = keyUnwrappingException;
                     } else {
-                        firstException.addSuppressed(ex);
+                        firstException.addSuppressed(keyUnwrappingException);
                     }
                 }
             }

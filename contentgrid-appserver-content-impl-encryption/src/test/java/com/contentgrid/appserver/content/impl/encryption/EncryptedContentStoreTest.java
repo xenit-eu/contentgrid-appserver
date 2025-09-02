@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
@@ -46,6 +47,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
             keyAccessor,
             List.of(
                     new EncryptOnlyDataEncryptionKeyWrapper(),
+                    new FailingDataEncryptionKeyWrapper(),
                     new UnencryptedSymmetricDataEncryptionKeyWrapper(true)
             ),
             List.of(new AesCtrEncryptionEngine(128))
@@ -126,7 +128,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptKeyUnsupportedWrapper() throws UnwritableContentException, IOException {
+    void decryptKeyNoDecryptWrapper() throws UnwritableContentException, IOException {
         var encrypted = write(contentStore, TEST_BYTES);
 
         var otherStore = new EncryptedContentStore(
@@ -140,10 +142,97 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
                 .isInstanceOfSatisfying(NoDecryptableDataEncryptionKeysException.class, ex -> {
                     assertThat(ex.getStoredKeys()).containsExactlyInAnyOrder(
                             WrappingKeyId.unwrapped(),
-                            EncryptOnlyDataEncryptionKeyWrapper.WRAPPING_KEY_ID
+                            EncryptOnlyDataEncryptionKeyWrapper.WRAPPING_KEY_ID,
+                            FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID
                     );
                     assertThat(ex.getDecryptableKeys()).isEmpty();
                 });
+    }
+
+    @Test
+    void decryptKeyFailingWrapper() throws UnwritableContentException, IOException {
+        var store = new EncryptedContentStore(
+                backingStorage,
+                keyAccessor,
+                List.of(new FailingDataEncryptionKeyWrapper()),
+                List.of(new AesCtrEncryptionEngine(128))
+        );
+
+        var encrypted = write(store, TEST_BYTES);
+
+        assertThatThrownBy(() -> readerFor(contentStore, encrypted))
+                .isInstanceOfSatisfying(NoDecryptableDataEncryptionKeysException.class, ex -> {
+                    assertThat(ex.getStoredKeys()).containsExactly(
+                            FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID
+                    );
+                    // Note: failing key wrapper has been removed from this list, even though it declares ability to decrypt
+                    assertThat(ex.getDecryptableKeys()).containsExactly(
+                            WrappingKeyId.unwrapped()
+                    );
+                    assertThat(ex.getCause()).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, keyUnwrappingFailedException -> {
+                        assertThat(keyUnwrappingFailedException.getWrappingKeyId()).isEqualTo(FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID);
+                    });
+                });
+    }
+
+    @Test
+    void decryptKeyMultipleFailingWrappers() throws UnwritableContentException, IOException {
+        var secondFailingWrapperKid = WrappingKeyId.of("second-failing-wrapper");
+        var store = new EncryptedContentStore(
+                backingStorage,
+                keyAccessor,
+                List.of(
+                        new FailingDataEncryptionKeyWrapper(),
+                        new FailingDataEncryptionKeyWrapper(secondFailingWrapperKid)
+                ),
+                List.of(new AesCtrEncryptionEngine(128))
+        );
+
+        var encrypted = write(store, TEST_BYTES);
+        assertThatThrownBy(() -> readerFor(store, encrypted))
+                .isInstanceOfSatisfying(NoDecryptableDataEncryptionKeysException.class, ex -> {
+                    assertThat(ex.getStoredKeys()).containsExactlyInAnyOrder(
+                            FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID,
+                            secondFailingWrapperKid
+                    );
+                    assertThat(ex.getDecryptableKeys()).isEmpty();
+                    assertThat(ex.getCause()).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, keyUnwrappingFailedException -> {
+                        assertThat(keyUnwrappingFailedException.getWrappingKeyId()).isEqualTo(FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID);
+                        assertThat(keyUnwrappingFailedException.getSuppressed())
+                                .satisfiesExactly(suppressed -> {
+                                    assertThat(suppressed).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, suppressedKeyUnwrapException -> {
+                                        assertThat(suppressedKeyUnwrapException.getWrappingKeyId()).isEqualTo(
+                                                secondFailingWrapperKid);
+                                    });
+                                });
+                    });
+                });
+    }
+
+    @Test
+    void decryptKeyNoSupportedWrapper() throws UnwritableContentException, IOException {
+        var store = new EncryptedContentStore(
+                backingStorage,
+                keyAccessor,
+                List.of(new FailingDataEncryptionKeyWrapper()),
+                List.of(new AesCtrEncryptionEngine(128))
+        );
+        var encrypted = write(store, TEST_BYTES);
+
+        var otherStore = new EncryptedContentStore(
+                backingStorage,
+                keyAccessor,
+                List.of(new UnencryptedSymmetricDataEncryptionKeyWrapper(true)),
+                List.of(new AesCtrEncryptionEngine(128))
+        );
+
+
+        assertThatThrownBy(() -> readerFor(otherStore, encrypted))
+                .isInstanceOfSatisfying(NoDecryptableDataEncryptionKeysException.class, ex -> {
+                    assertThat(ex.getStoredKeys()).containsExactly(FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID);
+                    assertThat(ex.getDecryptableKeys()).containsExactly(WrappingKeyId.unwrapped());
+                });
+
     }
 
     private static ContentAccessor write(ContentStore contentStore, byte[] content)
@@ -196,4 +285,47 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
             throw new IllegalStateException("Can not decrypt keys");
         }
     }
+
+    @RequiredArgsConstructor
+    private static class FailingDataEncryptionKeyWrapper implements DataEncryptionKeyWrapper {
+        public static final WrappingKeyId WRAPPING_KEY_ID = WrappingKeyId.of("failing-wrapper");
+
+        private final WrappingKeyId wrappingKeyId;
+
+        public FailingDataEncryptionKeyWrapper() {
+            this(WRAPPING_KEY_ID);
+        }
+
+        @Override
+        public Set<WrappingKeyId> getSupportedKeyIds() {
+            return Set.of(wrappingKeyId);
+        }
+
+        @Override
+        public boolean canDecrypt() {
+            return true;
+        }
+
+        @Override
+        public boolean canEncrypt() {
+            return true;
+        }
+
+        @Override
+        public StoredDataEncryptionKey wrapEncryptionKey(EncryptionParameters dataEncryptionParameters) {
+            return new StoredDataEncryptionKey(
+                    dataEncryptionParameters.getAlgorithm(),
+                    wrappingKeyId,
+                    dataEncryptionParameters.getSecretKey().clone(),
+                    dataEncryptionParameters.getInitializationVector()
+            );
+        }
+
+        @Override
+        public EncryptionParameters unwrapEncryptionKey(StoredDataEncryptionKey encryptedDataEncryptionKey) {
+            throw new UnsupportedOperationException("Unwrapping the encryption key failed");
+        }
+    }
+
 }
+
