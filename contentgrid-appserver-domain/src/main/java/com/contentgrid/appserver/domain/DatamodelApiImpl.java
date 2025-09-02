@@ -3,8 +3,19 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -43,9 +54,14 @@ import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -56,6 +72,12 @@ import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -236,6 +258,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
         exceptionCollector.rethrow();
 
+        attributes.addAll(creationAuditFields(application, entityName));
+
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
@@ -251,6 +275,18 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         return outputMapper.mapAttributes(queryEngine.create(application, createData, permissionPredicate.predicate()));
     }
+
+    private List<AttributeData> creationAuditFields(@NonNull Application application, @NonNull EntityName entityName) {
+        var entity = application.getRequiredEntityByName(entityName);
+        return AuditHelper2.contributeAuditMetadata(entity);
+//        return findAuditFieldsForFlags(entity.getAttributes(), CreatorFlag.class, CreatedDateFlag.class);
+    }
+
+//    private List<AttributeData> modificationAuditFields(@NonNull Application application, @NonNull EntityName entityName) {
+//        var entity = application.getRequiredEntityByName(entityName);
+//        return findAuditFieldsForFlags(entity.getAttributes(), ModifierFlag.class, ModifiedDateFlag.class);
+//    }
+
 
     @Override
     public InternalEntityInstance update(@NonNull Application application,

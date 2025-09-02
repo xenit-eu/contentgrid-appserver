@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
+import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
@@ -170,7 +172,9 @@ class DatamodelApiImplTest {
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
-                assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                assertThat(createData.getAttributes())
+                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
+                        .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
@@ -302,7 +306,9 @@ class DatamodelApiImplTest {
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
-                assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                assertThat(createData.getAttributes())
+                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
+                        .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
@@ -396,6 +402,42 @@ class DatamodelApiImplTest {
             Mockito.verifyNoInteractions(contentStore);
         }
 
+        @Test
+        void auditMetadata_included() throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
+                    .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
+
+            var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId)
+            )));
+
+            assertThat(result.getId()).isEqualTo(entityId);
+
+            assertThat(createDataCaptor.getValue()).satisfies(createData -> {
+                assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
+                assertThat(createData.getAttributes())
+                        .anySatisfy(data -> {
+                            assertThat(data.getName()).isEqualTo(AttributeName.of("audit_metadata"));
+                            assertThat(((CompositeAttributeData) data).getAttributes())
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_date")))
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_by"))
+                                            && ((CompositeAttributeData) sub).getAttributeByName(AttributeName.of("name")).isPresent())
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                                            && ((CompositeAttributeData) sub).getAttributeByName(AttributeName.of("name")).isPresent())
+                            ;
+                        });
+            });
+
+            Mockito.verifyNoInteractions(contentStore);
+        }
+
         @ParameterizedTest
         @MethodSource
         void incorrectRelation_fails(Object customer, Object products) {
@@ -460,7 +502,9 @@ class DatamodelApiImplTest {
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
-                assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                assertThat(createData.getAttributes())
+                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
+                        .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
