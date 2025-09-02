@@ -7,5 +7,6 @@ dependencies {
     api project(':contentgrid-appserver-content-api')
     implementation project(':contentgrid-appserver-content-impl-utils')
 
+    testImplementation testFixtures(project(':contentgrid-appserver-content-impl-utils'))
 }
 

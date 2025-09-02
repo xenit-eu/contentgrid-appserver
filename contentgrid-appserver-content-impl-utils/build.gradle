@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
     id 'io.freefair.lombok'
 }
 
@@ -7,5 +8,7 @@ dependencies {
     api project(':contentgrid-appserver-content-api')
 
     testImplementation 'commons-io:commons-io:2.20.0'
+
+    testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
