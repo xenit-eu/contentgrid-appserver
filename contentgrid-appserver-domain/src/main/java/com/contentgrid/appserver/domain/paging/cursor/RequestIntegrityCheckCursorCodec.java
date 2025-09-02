@@ -96,7 +96,7 @@ public class RequestIntegrityCheckCursorCodec implements CursorCodec {
         crc.update(1);
         crc.update(Integer.toUnsignedString(pageSize, Character.MAX_RADIX).getBytes(StandardCharsets.UTF_8));
         crc.update(2);
-        crc.update(sort.toString().getBytes(StandardCharsets.UTF_8));
+        sort.toList().forEach(value -> crc.update(value.getBytes(StandardCharsets.UTF_8)));
         crc.update(3);
         // Do not copy this implementation to client code; cursor values may only be calculated by a ContentGrid API application
         // This string is intentionally part of the checksum calculation so it can not be removed easily when copying this code.

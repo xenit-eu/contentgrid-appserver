@@ -19,6 +19,7 @@ import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -72,11 +73,17 @@ public class EntityRestController {
             @RequestParam Map<String, String> params,
             EncodedCursorPagination pagination
     ) {
+        // Remove pagination query parameters
+        var paramsWithoutPaging = new HashMap<>(params);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.CURSOR_NAME);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SIZE_NAME);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
+
         var entity = getEntityOrThrow(application, entityName);
-        var results = datamodelApi.findAll(application, entity, params, pagination,
+        var results = datamodelApi.findAll(application, entity, paramsWithoutPaging, pagination,
                 permissionPredicate);
 
-        return assembler.withContext(application, entityName, params, pagination)
+        return assembler.withContext(application, entityName, paramsWithoutPaging, pagination)
                 .toCollectionModel(results);
     }
 

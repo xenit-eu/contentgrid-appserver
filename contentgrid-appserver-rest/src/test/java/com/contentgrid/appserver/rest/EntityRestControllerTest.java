@@ -676,7 +676,6 @@ class EntityRestControllerTest {
         }
 
         @Test
-        // TODO: all cursors in links and page metadata are invalid (IntegrityCheckFailedException)
         void testListEntityInstances_withPaging_allPagingParameters() throws Exception {
             for (var i = 0; i < 100; i++) {
                 createProduct(i);
