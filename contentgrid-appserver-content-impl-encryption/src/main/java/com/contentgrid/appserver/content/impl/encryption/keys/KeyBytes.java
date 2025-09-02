@@ -17,8 +17,7 @@ public final class KeyBytes implements Destroyable, Cloneable {
      */
     private final List<byte[]> copies = new ArrayList<>();
 
-    @Getter
-    private boolean destroyed = false;
+    private Throwable destroyedStack = null;
 
     public static KeyBytes copy(byte[] bytes) {
         return adopt(bytes.clone());
@@ -26,7 +25,7 @@ public final class KeyBytes implements Destroyable, Cloneable {
 
     public byte[] getKeyBytes() {
         if(isDestroyed()) {
-            throw new IllegalStateException("Key has been destroyed");
+            throw new IllegalStateException("Key has been destroyed", destroyedStack);
         }
         return keyBytes;
     }
@@ -40,11 +39,16 @@ public final class KeyBytes implements Destroyable, Cloneable {
     @Override
     public void destroy() {
         Arrays.fill(keyBytes, (byte)0);
-        destroyed = true;
         for (var copy : copies) {
             Arrays.fill(copy, (byte) 0);
         }
         copies.clear();
+        destroyedStack = new Throwable("Key has been destroyed here");
+    }
+
+    @Override
+    public boolean isDestroyed() {
+        return destroyedStack != null;
     }
 
     @Override
