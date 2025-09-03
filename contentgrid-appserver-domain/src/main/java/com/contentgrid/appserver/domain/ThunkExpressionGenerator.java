@@ -32,13 +32,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.springframework.util.MultiValueMap;
 
 public class ThunkExpressionGenerator {
 
-    static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, String> params) {
+    static ThunkExpression<Boolean> from(Application application, Entity entity, MultiValueMap<String, String> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
 
-        for (Map.Entry<String, String> entry : params.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             String filterName = entry.getKey();
 
             var maybeSearchFilter = entity.getFilterByName(FilterName.of(filterName));
@@ -52,19 +53,37 @@ public class ThunkExpressionGenerator {
             // currently only handle attribute search filters
             if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                List<PathElement> pathElements;
 
                 try {
-                    Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), entry.getValue());
-                    Stream<PathElement> pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
-                    ThunkExpression<Boolean> expression = createExpression(
-                            attributeSearchFilter,
-                            pathElements,
-                            parsedValue
-                    );
-                    expressions.add(expression);
-                } catch (Exception e) {
+                    pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
+                } catch (IllegalArgumentException e) {
                     throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                            attribute.getType(), entry.getValue(), e);
+                            attribute.getType(), entry.getValue().toString(), e);
+                }
+
+                List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
+
+                for (String value : entry.getValue()) {
+                    try {
+                        Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
+                        subexpressions.add(createExpression(
+                                attributeSearchFilter,
+                                pathElements,
+                                parsedValue
+                        ));
+                    } catch (Exception e) {
+                        throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                                attribute.getType(), value, e);
+                    }
+                }
+
+                if (subexpressions.size() == 1) {
+                    // If there's only one subexpression, add it directly
+                    expressions.add(subexpressions.getFirst());
+                } else if (!subexpressions.isEmpty()) {
+                    // Otherwise, create a disjunction (OR) of all subexpressions if not empty
+                    expressions.add(LogicalOperation.disjunction(subexpressions));
                 }
             }
         }
@@ -99,7 +118,7 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, Stream<PathElement> pathElements, Scalar<?> value) {
+    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
         return switch (filter) {
@@ -113,7 +132,7 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static Stream<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {
+    private static List<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {
         List<PathElement> pathElements = new ArrayList<>();
         Entity currentEntity = entity;
         PropertyPath currentPath = path;
@@ -131,7 +150,7 @@ public class ThunkExpressionGenerator {
                     return Stream.concat(
                             pathElements.stream(),
                             currentPath.toList().stream().map(SymbolicReference::path)
-                    );
+                    ).toList();
                 }
                 case RelationPath relationPath -> {
                     var relationName = relationPath.getRelation();
@@ -152,6 +171,6 @@ public class ThunkExpressionGenerator {
             }
         }
 
-        return pathElements.stream();
+        return pathElements;
     }
 }

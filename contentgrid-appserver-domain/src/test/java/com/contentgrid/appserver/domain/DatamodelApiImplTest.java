@@ -85,9 +85,13 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.springframework.util.MultiValueMap;
 
 @ExtendWith(MockitoExtension.class)
 class DatamodelApiImplTest {
+
+    private static final MultiValueMap<String, String> PARAMS = MultiValueMap.fromSingleValue(Map.of());
+
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private QueryEngine queryEngine;
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
@@ -1101,7 +1105,7 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1111,7 +1115,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1120,7 +1124,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1134,7 +1138,7 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1144,7 +1148,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1153,7 +1157,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1173,20 +1177,26 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE,
+                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")),
+                    new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE,
+                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")), nextPageRequest,
+                    PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE,
+                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")), nextPageRequest,
+                    PermissionPredicate.allowAll());
             assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1201,20 +1211,20 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1228,24 +1238,24 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
 
             // Verify that navigating to current page remains the same
-            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
+            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
             assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
             assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
 
             // Verify that previous page is the same as second page
-            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
+            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
             assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
             assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
 
             // Verify that first page is the same as starting page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
             assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
             assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
         }
@@ -1317,7 +1327,7 @@ class DatamodelApiImplTest {
                         .when(queryEngine).count(any(), any(), any());
             }
 
-            var result = datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());
+            var result = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(expected, result.getTotalItemCount());
 
             // assert count was not called when stubNeeded is false

@@ -36,6 +36,7 @@ import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
 
 @Component
 @RequiredArgsConstructor
@@ -93,10 +94,10 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment) {
-        return withContext(application, entityPathSegment, Map.of(), null);
+        return withContext(application, entityPathSegment, MultiValueMap.fromSingleValue(Map.of()), null);
     }
 
-    public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment, Map<String, String> params, EncodedCursorPagination pagination) {
+    public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment, MultiValueMap<String, String> params, EncodedCursorPagination pagination) {
         return withContext(new EntityContext(application, entityPathSegment, params, pagination));
     }
 
@@ -159,5 +160,5 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         return new CursorPageMetadata(cursor, prevCursor, nextCursor);
     }
 
-    public record EntityContext(Application application, PathSegmentName entityPathSegment, Map<String, String> params, @With EncodedCursorPagination pagination) {}
+    public record EntityContext(Application application, PathSegmentName entityPathSegment, MultiValueMap<String, String> params, @With EncodedCursorPagination pagination) {}
 }

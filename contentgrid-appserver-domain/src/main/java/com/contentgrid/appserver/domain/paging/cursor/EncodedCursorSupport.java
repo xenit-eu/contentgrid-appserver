@@ -3,9 +3,9 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
-import java.util.Map;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import org.springframework.util.MultiValueMap;
 
 @UtilityClass
 public class EncodedCursorSupport {
@@ -13,7 +13,7 @@ public class EncodedCursorSupport {
             @NonNull CursorCodec codec,
             @NonNull EncodedCursorPagination pagination,
             @NonNull EntityName entity,
-            @NonNull Map<String, String> params,
+            @NonNull MultiValueMap<String, String> params,
             boolean hasNext
     ) {
         var currentPage = (PageBasedPagination)

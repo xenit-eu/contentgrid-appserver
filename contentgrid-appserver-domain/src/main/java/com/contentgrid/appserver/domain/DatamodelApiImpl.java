@@ -43,13 +43,13 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.MultiValueMap;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -97,7 +97,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, String> params, @NonNull EncodedCursorPagination pagination,
+            @NonNull MultiValueMap<String, String> params, @NonNull EncodedCursorPagination pagination,
             @NonNull PermissionPredicate permissionPredicate
     )
             throws InvalidThunkExpressionException {
@@ -132,7 +132,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
     }
 
-    private OffsetData convertPaginationToOffset(@NonNull EncodedCursorPagination encodedPagination, EntityName entityName, Map<String, String> params) {
+    private OffsetData convertPaginationToOffset(@NonNull EncodedCursorPagination encodedPagination, EntityName entityName, MultiValueMap<String, String> params) {
         var pagination = (PageBasedPagination) cursorCodec.decodeCursor(encodedPagination.getCursorContext(), entityName, params);
         return new OffsetData(pagination.getSize(), pagination.getPage() * pagination.getSize());
     }

@@ -3,11 +3,11 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.experimental.StandardException;
+import org.springframework.util.MultiValueMap;
 
 /**
  * Encoder and decoder for cursors
@@ -23,7 +23,7 @@ public interface CursorCodec {
      * @return Contentgrid-hateoas pagination, decoded from the cursor
      * @throws CursorDecodeException When a cursor can not be decoded
      */
-    Pagination decodeCursor(CursorContext context, EntityName entityName, Map<String, String> params) throws CursorDecodeException;
+    Pagination decodeCursor(CursorContext context, EntityName entityName, MultiValueMap<String, String> params) throws CursorDecodeException;
 
     /**
      * Encodes a contentgrid hateoas pagination to a cursor
@@ -33,7 +33,7 @@ public interface CursorCodec {
      * @param params The query parameters of the URI, without cursor, page size or sort parameters
      * @return The cursor that can be used in a request
      */
-    CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, String> params);
+    CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, MultiValueMap<String, String> params);
 
     /**
      * The cursor with its context.

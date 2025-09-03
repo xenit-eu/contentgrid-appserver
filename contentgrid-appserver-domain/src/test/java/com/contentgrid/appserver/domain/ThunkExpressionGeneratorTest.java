@@ -45,11 +45,13 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.util.MultiValueMap;
 
 class ThunkExpressionGeneratorTest {
 
@@ -375,7 +377,7 @@ class ThunkExpressionGeneratorTest {
     @Test
     void emptyParamsShouldReturnTrueExpression() {
         Map<String, String> params = new HashMap<>();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Scalar.class, result);
         assertEquals(true, ((Scalar<Boolean>) result).getValue());
@@ -386,6 +388,16 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("nonExistentFilter", "value");
 
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
+
+        assertInstanceOf(Scalar.class, result);
+        assertEquals(true, ((Scalar<Boolean>) result).getValue());
+    }
+
+    @Test
+    void paramsWithoutValuesShouldBeIgnored() {
+        MultiValueMap<String, String> params = MultiValueMap.fromMultiValue(new HashMap<>());
+        params.put("description", List.of());
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
@@ -393,29 +405,63 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void singleValidParameterShouldCreateEqualityExpression() {
+    void singleParameterSingleValueShouldCreateEqualityExpression() {
         Map<String, String> params = new HashMap<>();
         params.put("description", "test value");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
-        assertInstanceOf(Comparison.class, result);
-        Comparison comparison = (Comparison) result;
+        var comparison = assertInstanceOf(Comparison.class, result);
         assertEquals("test value", ((Scalar<String>) comparison.getRightTerm()).getValue());
     }
 
     @Test
-    void multipleValidParametersShouldCreateConjunction() {
+    void multipleParametersSingleValueShouldCreateConjunction() {
         Map<String, String> params = new HashMap<>();
         params.put("description", "test value");
         params.put("count", "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
-        assertInstanceOf(LogicalOperation.class, result);
-        LogicalOperation operation = (LogicalOperation) result;
+        var operation = assertInstanceOf(LogicalOperation.class, result);
         assertEquals(Operator.AND, operation.getOperator());
         assertEquals(2, operation.getTerms().size());
+        operation.getTerms().forEach(term -> {
+            assertInstanceOf(Comparison.class, term);
+        });
+    }
+
+    @Test
+    void singleParameterMultipleValuesShouldCreateDisjunction() {
+        MultiValueMap<String, String> params = MultiValueMap.fromMultiValue(new HashMap<>());
+        params.put("description", List.of("foo", "bar"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var operation = assertInstanceOf(LogicalOperation.class, result);
+        assertEquals(Operator.OR, operation.getOperator());
+        assertEquals(2, operation.getTerms().size());
+        operation.getTerms().forEach(term -> {
+            assertInstanceOf(Comparison.class, term);
+        });
+    }
+
+    @Test
+    void MultipleParametersMultipleValuesShouldCreateConjunctionOfDisjunctions() {
+        MultiValueMap<String, String> params = MultiValueMap.fromMultiValue(new HashMap<>());
+        params.put("description", List.of("foo", "bar"));
+        params.put("count", List.of("0", "1"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var operation = assertInstanceOf(LogicalOperation.class, result);
+        assertEquals(Operator.AND, operation.getOperator());
+        assertEquals(2, operation.getTerms().size());
+        operation.getTerms().forEach(term -> {
+            var innerOperation = assertInstanceOf(LogicalOperation.class, term);
+            assertEquals(Operator.OR, innerOperation.getOperator());
+            assertEquals(2, innerOperation.getTerms().size());
+        });
     }
 
     @ParameterizedTest
@@ -430,7 +476,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put(name, "123");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -450,7 +496,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put(name, "123.45");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -463,7 +509,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("in_stock", "true");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -479,7 +525,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put(name, "sample text");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -507,7 +553,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put(name, timestamp);
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -521,7 +567,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("id", uuid.toString());
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -535,7 +581,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params))
         );
 
         assertEquals("count", exception.getAttributeName());
@@ -550,7 +596,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params))
         );
 
         assertEquals("price", exception.getAttributeName());
@@ -565,7 +611,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params))
         );
 
         assertEquals("arrival_date", exception.getAttributeName());
@@ -580,7 +626,7 @@ class ThunkExpressionGeneratorTest {
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
-                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params))
         );
 
         assertEquals("id", exception.getAttributeName());
@@ -593,7 +639,7 @@ class ThunkExpressionGeneratorTest {
         Map<String, String> params = new HashMap<>();
         params.put("description", "");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -605,7 +651,7 @@ class ThunkExpressionGeneratorTest {
     void compositeAttributeShouldBeFoundCorrectly() {
         Map<String, String> params = Map.of("audit.modified_by.name", "Alice Aaronson");
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -627,7 +673,7 @@ class ThunkExpressionGeneratorTest {
 
         var entity = testApplication.getEntityByName(EntityName.of("testEntity")).orElseThrow();
 
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -648,7 +694,7 @@ class ThunkExpressionGeneratorTest {
     void acrossOneToOneRelationAttributeIsValid() {
         Map<String, String> params = Map.of("parcel.barcode", "1234567890");
         var entity = testApplication.getEntityByName(EntityName.of("shipment")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, MultiValueMap.fromSingleValue(params));
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
@@ -668,7 +714,7 @@ class ThunkExpressionGeneratorTest {
     void acrossOneToManyRelationAttributeIsValid() {
         Map<String, String> params = Map.of("shipments.destination", "Moon Base");
         var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, MultiValueMap.fromSingleValue(params));
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertInstanceOf(Scalar.class, comparison.getRightTerm());
@@ -688,7 +734,7 @@ class ThunkExpressionGeneratorTest {
     void acrossManyToManyRelationAttributeIsValid() {
         Map<String, String> params = Map.of("wishlist.description", "A unicorn");
         var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, MultiValueMap.fromSingleValue(params));
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertInstanceOf(Scalar.class, comparison.getRightTerm());

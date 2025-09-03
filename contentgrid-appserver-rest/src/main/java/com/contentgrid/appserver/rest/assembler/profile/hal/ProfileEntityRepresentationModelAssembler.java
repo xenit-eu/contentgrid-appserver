@@ -17,6 +17,7 @@ import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
 
 @Component
 @RequiredArgsConstructor
@@ -67,7 +68,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     private Link getEntityCollectionLink(Application application, Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, Map.of(), null))
+                .listEntity(application, entity.getPathSegment(), null, MultiValueMap.fromSingleValue(Map.of()), null))
                 .withRel(IanaLinkRelations.DESCRIBES).expand()
                 .withName(IanaLinkRelations.COLLECTION_VALUE);
     }
