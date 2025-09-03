@@ -18,6 +18,11 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -29,6 +34,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -42,6 +48,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ThunkExpressionGeneratorTest {
 
@@ -122,8 +130,40 @@ class ThunkExpressionGeneratorTest {
                     .name(FilterName.of("count"))
                     .attribute(LONG_ATTR)
                     .build())
+            .searchFilter(GreaterThanSearchFilter.builder()
+                    .name(FilterName.of("count~gt"))
+                    .attribute(LONG_ATTR)
+                    .build())
+            .searchFilter(GreaterThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("count~gte"))
+                    .attribute(LONG_ATTR)
+                    .build())
+            .searchFilter(LessThanSearchFilter.builder()
+                    .name(FilterName.of("count~lt"))
+                    .attribute(LONG_ATTR)
+                    .build())
+            .searchFilter(LessThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("count~lte"))
+                    .attribute(LONG_ATTR)
+                    .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("price"))
+                    .attribute(DOUBLE_ATTR)
+                    .build())
+            .searchFilter(GreaterThanSearchFilter.builder()
+                    .name(FilterName.of("price~gt"))
+                    .attribute(DOUBLE_ATTR)
+                    .build())
+            .searchFilter(GreaterThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("price~gte"))
+                    .attribute(DOUBLE_ATTR)
+                    .build())
+            .searchFilter(LessThanSearchFilter.builder()
+                    .name(FilterName.of("price~lt"))
+                    .attribute(DOUBLE_ATTR)
+                    .build())
+            .searchFilter(LessThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("price~lte"))
                     .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
@@ -134,8 +174,28 @@ class ThunkExpressionGeneratorTest {
                     .name(FilterName.of("description"))
                     .attribute(TEXT_ATTR)
                     .build())
+            .searchFilter(PrefixSearchFilter.builder()
+                    .name(FilterName.of("description~prefix"))
+                    .attribute(TEXT_ATTR)
+                    .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("arrival_date"))
+                    .attribute(DATETIME_ATTR)
+                    .build())
+            .searchFilter(GreaterThanSearchFilter.builder()
+                    .name(FilterName.of("arrival_date~after"))
+                    .attribute(DATETIME_ATTR)
+                    .build())
+            .searchFilter(GreaterThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("arrival_date~from"))
+                    .attribute(DATETIME_ATTR)
+                    .build())
+            .searchFilter(LessThanSearchFilter.builder()
+                    .name(FilterName.of("arrival_date~before"))
+                    .attribute(DATETIME_ATTR)
+                    .build())
+            .searchFilter(LessThanOrEqualsSearchFilter.builder()
+                    .name(FilterName.of("arrival_date~to"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
@@ -358,28 +418,44 @@ class ThunkExpressionGeneratorTest {
         assertEquals(2, operation.getTerms().size());
     }
 
-    @Test
-    void longAttributeShouldParseCorrectly() {
+    @ParameterizedTest
+    @CsvSource({
+            "count,EQUALS",
+            "count~gt,GREATER_THAN",
+            "count~gte,GREATER_THAN_OR_EQUAL_TO",
+            "count~lt,LESS_THAN",
+            "count~lte,LESS_THEN_OR_EQUAL_TO",
+    })
+    void longAttributeShouldParseCorrectly(String name, Operator operator) {
         Map<String, String> params = new HashMap<>();
-        params.put("count", "123");
+        params.put(name, "123");
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertEquals(new BigDecimal("123"), ((Scalar<?>) comparison.getRightTerm()).getValue());
+        assertEquals(operator, comparison.getOperator());
     }
 
-    @Test
-    void doubleAttributeShouldParseCorrectly() {
+    @ParameterizedTest
+    @CsvSource({
+            "price,EQUALS",
+            "price~gt,GREATER_THAN",
+            "price~gte,GREATER_THAN_OR_EQUAL_TO",
+            "price~lt,LESS_THAN",
+            "price~lte,LESS_THEN_OR_EQUAL_TO",
+    })
+    void doubleAttributeShouldParseCorrectly(String name, Operator operator) {
         Map<String, String> params = new HashMap<>();
-        params.put("price", "123.45");
+        params.put(name, "123.45");
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertEquals(new BigDecimal("123.45"), ((Scalar<?>) comparison.getRightTerm()).getValue());
+        assertEquals(operator, comparison.getOperator());
     }
 
     @Test
@@ -394,29 +470,49 @@ class ThunkExpressionGeneratorTest {
         assertEquals(true, ((Scalar<?>) comparison.getRightTerm()).getValue());
     }
 
-    @Test
-    void textAttributeShouldParseCorrectly() {
+    @ParameterizedTest
+    @CsvSource({
+            "description,EQUALS",
+            "description~prefix,CUSTOM",
+    })
+    void textAttributeShouldParseCorrectly(String name, Operator operator) {
         Map<String, String> params = new HashMap<>();
-        params.put("description", "sample text");
+        params.put(name, "sample text");
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
-        assertEquals("sample text", ((Scalar<?>) comparison.getRightTerm()).getValue());
+        var rightTerm = comparison.getRightTerm();
+
+        // Get inner expression
+        if (rightTerm instanceof StringFunctionExpression functionExpression) {
+            rightTerm = functionExpression.getTerm();
+        }
+        var scalar = assertInstanceOf(Scalar.class, rightTerm);
+        assertEquals("sample text", scalar.getValue());
+        assertEquals(operator, comparison.getOperator());
     }
 
-    @Test
-    void datetimeAttributeShouldParseCorrectly() {
+    @ParameterizedTest
+    @CsvSource({
+            "arrival_date,EQUALS",
+            "arrival_date~after,GREATER_THAN",
+            "arrival_date~from,GREATER_THAN_OR_EQUAL_TO",
+            "arrival_date~before,LESS_THAN",
+            "arrival_date~to,LESS_THEN_OR_EQUAL_TO",
+    })
+    void datetimeAttributeShouldParseCorrectly(String name, Operator operator) {
         String timestamp = "2023-01-01T12:00:00Z";
         Map<String, String> params = new HashMap<>();
-        params.put("arrival_date", timestamp);
+        params.put(name, timestamp);
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
         assertEquals(Instant.parse(timestamp), ((Scalar<?>) comparison.getRightTerm()).getValue());
+        assertEquals(operator, comparison.getOperator());
     }
 
     @Test
