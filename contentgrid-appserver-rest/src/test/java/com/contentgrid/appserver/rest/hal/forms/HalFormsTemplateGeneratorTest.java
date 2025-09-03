@@ -277,17 +277,53 @@ class HalFormsTemplateGeneratorTest {
     void generateSearchTemplate() {
         var template = generator.generateSearchTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
 
+        assertThat(template.getProperties()).allSatisfy(property -> {
+            assertThat(property.isRequired()).isFalse();
+            assertThat(property.isReadOnly()).isFalse();
+        });
         assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
                 number -> {
                     assertThat(number.getName()).isEqualTo("number");
-                    assertThat(number.isReadOnly()).isFalse();
-                    assertThat(number.isRequired()).isFalse();
                     assertThat(number.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                amount -> {
+                    assertThat(amount.getName()).isEqualTo("amount");
+                    assertThat(amount.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                amountGt -> {
+                    assertThat(amountGt.getName()).isEqualTo("amount~gt");
+                    assertThat(amountGt.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                amountGte -> {
+                    assertThat(amountGte.getName()).isEqualTo("amount~gte");
+                    assertThat(amountGte.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                amountLt -> {
+                    assertThat(amountLt.getName()).isEqualTo("amount~lt");
+                    assertThat(amountLt.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                amountLte -> {
+                    assertThat(amountLte.getName()).isEqualTo("amount~lte");
+                    assertThat(amountLte.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                receivedAfter -> {
+                    assertThat(receivedAfter.getName()).isEqualTo("received~after");
+                    assertThat(receivedAfter.getType()).isEqualTo("datetime");
+                },
+                receivedBefore -> {
+                    assertThat(receivedBefore.getName()).isEqualTo("received~before");
+                    assertThat(receivedBefore.getType()).isEqualTo("datetime");
+                },
+                payBeforeAfter -> {
+                    assertThat(payBeforeAfter.getName()).isEqualTo("pay_before~after");
+                    assertThat(payBeforeAfter.getType()).isEqualTo("datetime");
+                },
+                payBeforeBefore -> {
+                    assertThat(payBeforeBefore.getName()).isEqualTo("pay_before~before");
+                    assertThat(payBeforeBefore.getType()).isEqualTo("datetime");
                 },
                 confidentiality -> {
                     assertThat(confidentiality.getName()).isEqualTo("confidentiality");
-                    assertThat(confidentiality.isReadOnly()).isFalse();
-                    assertThat(confidentiality.isRequired()).isFalse();
                     assertThat(confidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
@@ -301,32 +337,22 @@ class HalFormsTemplateGeneratorTest {
                 },
                 customerName -> {
                     assertThat(customerName.getName()).isEqualTo("customer.name~prefix");
-                    assertThat(customerName.isReadOnly()).isFalse();
-                    assertThat(customerName.isRequired()).isFalse();
                     assertThat(customerName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 customerVat -> {
                     assertThat(customerVat.getName()).isEqualTo("customer.vat");
-                    assertThat(customerVat.isReadOnly()).isFalse();
-                    assertThat(customerVat.isRequired()).isFalse();
                     assertThat(customerVat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 productsName -> {
                     assertThat(productsName.getName()).isEqualTo("products.code");
-                    assertThat(productsName.isReadOnly()).isFalse();
-                    assertThat(productsName.isRequired()).isFalse();
                     assertThat(productsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 previousNumber -> {
                     assertThat(previousNumber.getName()).isEqualTo("previous_invoice.number");
-                    assertThat(previousNumber.isReadOnly()).isFalse();
-                    assertThat(previousNumber.isRequired()).isFalse();
                     assertThat(previousNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 previousConfidentiality -> {
                     assertThat(previousConfidentiality.getName()).isEqualTo("previous_invoice.confidentiality");
-                    assertThat(previousConfidentiality.isReadOnly()).isFalse();
-                    assertThat(previousConfidentiality.isRequired()).isFalse();
                     assertThat(previousConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(previousConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
@@ -340,14 +366,10 @@ class HalFormsTemplateGeneratorTest {
                 },
                 nextNumber -> {
                     assertThat(nextNumber.getName()).isEqualTo("next_invoice.number");
-                    assertThat(nextNumber.isReadOnly()).isFalse();
-                    assertThat(nextNumber.isRequired()).isFalse();
                     assertThat(nextNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 nextConfidentiality -> {
                     assertThat(nextConfidentiality.getName()).isEqualTo("next_invoice.confidentiality");
-                    assertThat(nextConfidentiality.isReadOnly()).isFalse();
-                    assertThat(nextConfidentiality.isRequired()).isFalse();
                     assertThat(nextConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(nextConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
@@ -361,8 +383,6 @@ class HalFormsTemplateGeneratorTest {
                 },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
-                    assertThat(sort.isReadOnly()).isFalse();
-                    assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
@@ -404,41 +424,33 @@ class HalFormsTemplateGeneratorTest {
     void generateSearchTemplate_toManyRelations() {
         var template = generator.generateSearchTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON);
 
+        assertThat(template.getProperties()).allSatisfy(property -> {
+            assertThat(property.isRequired()).isFalse();
+            assertThat(property.isReadOnly()).isFalse();
+        });
         assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
                 name -> {
                     assertThat(name.getName()).isEqualTo("name~prefix");
-                    assertThat(name.isReadOnly()).isFalse();
-                    assertThat(name.isRequired()).isFalse();
                     assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 vat -> {
                     assertThat(vat.getName()).isEqualTo("vat");
-                    assertThat(vat.isReadOnly()).isFalse();
-                    assertThat(vat.isRequired()).isFalse();
                     assertThat(vat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 friendsName -> {
                     assertThat(friendsName.getName()).isEqualTo("friends.name~prefix");
-                    assertThat(friendsName.isReadOnly()).isFalse();
-                    assertThat(friendsName.isRequired()).isFalse();
                     assertThat(friendsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 friendsVat -> {
                     assertThat(friendsVat.getName()).isEqualTo("friends.vat");
-                    assertThat(friendsVat.isReadOnly()).isFalse();
-                    assertThat(friendsVat.isRequired()).isFalse();
                     assertThat(friendsVat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 invoicesNumber -> {
                     assertThat(invoicesNumber.getName()).isEqualTo("invoices.number");
-                    assertThat(invoicesNumber.isReadOnly()).isFalse();
-                    assertThat(invoicesNumber.isRequired()).isFalse();
                     assertThat(invoicesNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 invoicesConfidentiality -> {
                     assertThat(invoicesConfidentiality.getName()).isEqualTo("invoices.confidentiality");
-                    assertThat(invoicesConfidentiality.isReadOnly()).isFalse();
-                    assertThat(invoicesConfidentiality.isRequired()).isFalse();
                     assertThat(invoicesConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(invoicesConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
@@ -450,10 +462,44 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
+                invoicesAmount -> {
+                    assertThat(invoicesAmount.getName()).isEqualTo("invoices.amount");
+                    assertThat(invoicesAmount.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                invoicesAmountGt -> {
+                    assertThat(invoicesAmountGt.getName()).isEqualTo("invoices.amount~gt");
+                    assertThat(invoicesAmountGt.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                invoicesAmountGte -> {
+                    assertThat(invoicesAmountGte.getName()).isEqualTo("invoices.amount~gte");
+                    assertThat(invoicesAmountGte.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                invoicesAmountLt -> {
+                    assertThat(invoicesAmountLt.getName()).isEqualTo("invoices.amount~lt");
+                    assertThat(invoicesAmountLt.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                invoicesAmountLte -> {
+                    assertThat(invoicesAmountLte.getName()).isEqualTo("invoices.amount~lte");
+                    assertThat(invoicesAmountLte.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                },
+                invoicesReceivedAfter -> {
+                    assertThat(invoicesReceivedAfter.getName()).isEqualTo("invoices.received~after");
+                    assertThat(invoicesReceivedAfter.getType()).isEqualTo("datetime");
+                },
+                invoicesReceivedBefore -> {
+                    assertThat(invoicesReceivedBefore.getName()).isEqualTo("invoices.received~before");
+                    assertThat(invoicesReceivedBefore.getType()).isEqualTo("datetime");
+                },
+                invoicesPayBeforeAfter -> {
+                    assertThat(invoicesPayBeforeAfter.getName()).isEqualTo("invoices.pay_before~after");
+                    assertThat(invoicesPayBeforeAfter.getType()).isEqualTo("datetime");
+                },
+                invoicesPayBeforeBefore -> {
+                    assertThat(invoicesPayBeforeBefore.getName()).isEqualTo("invoices.pay_before~before");
+                    assertThat(invoicesPayBeforeBefore.getType()).isEqualTo("datetime");
+                },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
-                    assertThat(sort.isReadOnly()).isFalse();
-                    assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(

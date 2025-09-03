@@ -2,6 +2,10 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -31,7 +35,7 @@ public class ProfileSearchParamRepresentationModel {
 
     @JsonProperty
     public String getType() {
-        return type == null ? null : type.name().toLowerCase();
+        return type == null ? null : type.toString();
     }
 
     @Getter
@@ -57,8 +61,11 @@ public class ProfileSearchParamRepresentationModel {
         public static ProfileSearchParamType from(AttributeSearchFilter filter) {
             return switch (filter) {
                 case ExactSearchFilter ignored -> EXACT;
+                case GreaterThanSearchFilter ignored -> GREATER_THAN;
+                case GreaterThanOrEqualsSearchFilter ignored -> GREATER_THAN_OR_EQUAL;
+                case LessThanSearchFilter ignored -> LESS_THAN;
+                case LessThanOrEqualsSearchFilter ignored -> LESS_THAN_OR_EQUAL;
                 case PrefixSearchFilter ignored -> PREFIX;
-                // TODO: other search filters (ACC-2229)
                 default -> throw new UnsupportedOperationException("Unsupported value: " + filter.getClass());
             };
         }

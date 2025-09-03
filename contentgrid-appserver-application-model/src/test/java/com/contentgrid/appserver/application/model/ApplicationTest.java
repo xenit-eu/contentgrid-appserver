@@ -26,6 +26,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -402,7 +403,7 @@ class ApplicationTest {
     @CsvSource({
             "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
     })
-    void application_searchFilterInvalidAttributeType(Type type) {
+    void application_prefixSearchFilterInvalidAttributeType(Type type) {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
                 .table(TableName.of("test"))
@@ -416,6 +417,37 @@ class ApplicationTest {
                 )
                 .searchFilter(
                         PrefixSearchFilter.builder().name(FilterName.of("filter~prefix"))
+                                .attributePath(PropertyPath.of(AttributeName.of("test")))
+                                .build()
+                )
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "TEXT", "UUID", "BOOLEAN"
+    })
+    void application_orderedSearchFilterInvalidAttributeType(Type type) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(type)
+                        .build()
+                )
+                .searchFilter(
+                        LessThanSearchFilter.builder().name(FilterName.of("filter~ordered"))
                                 .attributePath(PropertyPath.of(AttributeName.of("test")))
                                 .build()
                 )
