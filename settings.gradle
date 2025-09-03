@@ -5,6 +5,17 @@ pluginManagement {
     }
 }
 
+plugins {
+    id 'org.ajoberstar.reckon.settings' version '0.19.2'
+}
+
+reckon {
+    defaultInferredScope = 'patch'
+    snapshots()
+    scopeCalc = calcScopeFromCommitMessages()
+    stageCalc = { inventory, targetNormal -> java.util.Optional.empty() }
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
