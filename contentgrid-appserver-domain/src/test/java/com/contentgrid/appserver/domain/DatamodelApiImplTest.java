@@ -25,6 +25,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.values.ItemCount;
@@ -245,6 +246,34 @@ class DatamodelApiImplTest {
 
             Mockito.verifyNoInteractions(queryEngine, contentStore);
 
+        }
+
+        @Test
+        void notAllowedValue_fails() {
+            var personId = EntityId.of(UUID.randomUUID());
+
+            assertThatThrownBy(() -> {
+                datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                        "number", "invoice-1",
+                        "amount", 1.50,
+                        "received", Instant.now(clock),
+                        "pay_before", Instant.now(clock).plus(30, ChronoUnit.DAYS),
+                        "is_paid", false,
+                        "confidentiality", "xyz123",
+                        "customer", new RelationDataEntry(PERSON.getName(), personId)
+                )), PermissionPredicate.allowAll());
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
+                        })
+                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .containsExactlyInAnyOrder(
+                                "confidentiality"
+                        );
+            });
+
+            Mockito.verifyNoInteractions(queryEngine, contentStore);
         }
 
         @Test
@@ -826,6 +855,31 @@ class DatamodelApiImplTest {
 
             Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any());
             Mockito.verifyNoInteractions(contentStore);
+        }
+
+        @Test
+        void notAllowedValue_fails() {
+            setupEntityQuery();
+            assertThatThrownBy(() -> {
+                datamodelApi.updatePartial(APPLICATION,
+                        EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
+                        MapRequestInputData.fromMap(Map.of(
+                                "confidentiality", "abc"
+                        )), PermissionPredicate.allowAll());
+            }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
+                assertThat(exception.allExceptions())
+                        .allSatisfy(ex -> {
+                            assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
+                        })
+                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .containsExactlyInAnyOrder(
+                                "confidentiality"
+                        );
+            });
+
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verifyNoInteractions(contentStore);
+
         }
 
         @Test

@@ -7,8 +7,8 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.mapper.AbstractDescendingAttributeMapper;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -30,8 +30,8 @@ public class AttributeValidationDataMapper extends AbstractDescendingAttributeMa
         this(List.of(validator));
     }
 
-    public <T extends Constraint> AttributeValidationDataMapper(ConstraintValidator<T> constraintValidator) {
-        this(List.of(new ConstraintValidatorAdapter<>(constraintValidator)));
+    public AttributeValidationDataMapper(ConstraintValidator<?> ...constraintValidators) {
+        this(Arrays.stream(constraintValidators).<Validator>map(ConstraintValidatorAdapter::new).toList());
     }
 
     @Override
