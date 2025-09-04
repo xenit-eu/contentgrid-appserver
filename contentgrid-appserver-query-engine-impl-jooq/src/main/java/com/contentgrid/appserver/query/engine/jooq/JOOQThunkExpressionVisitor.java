@@ -60,8 +60,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType(), right.getDataType()).contains(SQLDataType.CLOB)) {
-                    left = DSL.field(DSL.sql("normalize(?, NFKC)", left), String.class);
-                    right = DSL.field(DSL.sql("normalize(?, NFKC)", right), String.class);
+                    left = normalize(left);
+                    right = normalize(right);
                 }
                 yield ((Field<Object>) left).equal((Field<Object>) right);
             }
@@ -70,8 +70,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType(), right.getDataType()).contains(SQLDataType.CLOB)) {
-                    left = DSL.field(DSL.sql("normalize(?, NFKC)", left), String.class);
-                    right = DSL.field(DSL.sql("normalize(?, NFKC)", right), String.class);
+                    left = normalize(left);
+                    right = normalize(right);
                 }
                 yield ((Field<Object>) left).notEqual((Field<Object>) right);
             }
@@ -203,6 +203,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (terms.size() != 2) {
             throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
         }
+    }
+
+    private static Field<String> normalize(Field<?> field) {
+        return DSL.field(DSL.sql("normalize(?, NFKC)", field), SQLDataType.CLOB);
     }
 
     @Override
