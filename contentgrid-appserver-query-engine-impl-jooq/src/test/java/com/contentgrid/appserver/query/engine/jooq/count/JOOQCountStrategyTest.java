@@ -22,6 +22,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
@@ -130,7 +131,7 @@ class JOOQCountStrategyTest {
     }
 
     static Stream<JOOQCountStrategy> testExactCount() {
-        return Stream.of(new JOOQExactCountStrategy(), new JOOQTimedCountStrategy(500));
+        return Stream.of(new JOOQExactCountStrategy(), new JOOQTimedCountStrategy(Duration.ofMillis(500)));
     }
 
     @ParameterizedTest
@@ -150,31 +151,26 @@ class JOOQCountStrategyTest {
 
     @Test
     void testTimedCount_outOfTime() {
-        // Setup of intercept schema
-        dslContext.createSchema(DSL.name("intercept")).execute();
-        dslContext.createView(DSL.name("intercept", "product"))
-                .as(DSL.sql("""
+        var transaction = transactionManager.getTransaction(TransactionDefinition.withDefaults());
+        try {
+            // Setup of intercept schema
+            dslContext.createSchema(DSL.name("intercept")).execute();
+            dslContext.createView(DSL.name("intercept", "product"))
+                    .as(DSL.sql("""
                         SELECT product.*
                         FROM public.product
                         CROSS JOIN LATERAL pg_sleep(2);
                         """)).execute();
-        dslContext.execute(DSL.sql("SET search_path = intercept, public;"));
+            dslContext.execute(DSL.sql("SET LOCAL search_path = intercept, public;"));
 
-        // Perform test
-        var transaction = transactionManager.getTransaction(TransactionDefinition.withDefaults());
-        try {
-            var countStrategy = new JOOQTimedCountStrategy(500);
+            // Perform test
+            var countStrategy = new JOOQTimedCountStrategy(Duration.ofMillis(500));
 
             var count = countStrategy.count(dslContext, ALLOW_ALL);
 
             assertTrue(count.isEstimated());
         } finally {
-            transactionManager.commit(transaction);
-
-            // Clean up intercept schema
-            dslContext.execute(DSL.sql("SET search_path = public;"));
-            dslContext.dropViewIfExists(DSL.name("intercept", "product")).execute();
-            dslContext.dropSchemaIfExists(DSL.name("intercept")).execute();
+            transactionManager.rollback(transaction);
         }
     }
 

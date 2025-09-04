@@ -47,6 +47,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -77,7 +78,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
-    private final JOOQCountStrategy countStrategy = new JOOQTimedCountStrategy(500);
+    private final JOOQCountStrategy countStrategy = new JOOQTimedCountStrategy(Duration.ofMillis(500));
 
     private static final long VERSION_MODULUS = 1L << 32;
 
