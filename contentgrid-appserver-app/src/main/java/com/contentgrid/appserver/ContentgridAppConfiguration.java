@@ -49,10 +49,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.EnumSet;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
@@ -94,8 +96,9 @@ public class ContentgridAppConfiguration {
     }
 
     @Bean
-    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-        return new JOOQQueryEngine(dslContextResolver);
+    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
+            @Value("${contentgrid.appserver.query.engine.count.timeout}") Duration timeout) {
+        return new JOOQQueryEngine(dslContextResolver, timeout);
     }
 
     @Bean

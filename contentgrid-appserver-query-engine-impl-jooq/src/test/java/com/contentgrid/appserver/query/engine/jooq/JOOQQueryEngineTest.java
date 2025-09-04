@@ -81,6 +81,7 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -2101,7 +2102,7 @@ class JOOQQueryEngineTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-            return new JOOQQueryEngine(dslContextResolver);
+            return new JOOQQueryEngine(dslContextResolver, Duration.ofMillis(500));
         }
     }
 }
