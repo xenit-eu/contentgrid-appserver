@@ -34,7 +34,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -529,14 +528,7 @@ class ThunkExpressionGeneratorTest {
 
         assertInstanceOf(Comparison.class, result);
         Comparison comparison = (Comparison) result;
-        var rightTerm = comparison.getRightTerm();
-
-        // Get inner expression
-        if (rightTerm instanceof StringFunctionExpression functionExpression) {
-            rightTerm = functionExpression.getTerm();
-        }
-        var scalar = assertInstanceOf(Scalar.class, rightTerm);
-        assertEquals("sample text", scalar.getValue());
+        assertEquals("sample text", ((Scalar<?>) comparison.getRightTerm()).getValue());
         assertEquals(operator, comparison.getOperator());
     }
 
