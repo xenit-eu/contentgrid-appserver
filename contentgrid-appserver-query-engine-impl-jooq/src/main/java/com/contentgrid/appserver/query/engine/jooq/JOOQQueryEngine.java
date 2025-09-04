@@ -71,18 +71,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class JOOQQueryEngine implements QueryEngine {
 
+    @NonNull
     private final DSLContextResolver resolver;
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
+    @NonNull
     private final JOOQCountStrategy countStrategy;
 
     private static final long VERSION_MODULUS = 1L << 32;
 
     private static final SecureRandom secureRandom = new SecureRandom();
 
-    public JOOQQueryEngine(DSLContextResolver resolver, Duration countTimeout) {
+    public JOOQQueryEngine(@NonNull DSLContextResolver resolver, @NonNull Duration countTimeout) {
         this.resolver = resolver;
         this.countStrategy = new JOOQTimedCountStrategy(countTimeout);
     }

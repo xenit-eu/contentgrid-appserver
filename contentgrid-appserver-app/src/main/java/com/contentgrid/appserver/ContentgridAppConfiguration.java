@@ -51,6 +51,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.EnumSet;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.InitializingBean;
@@ -97,7 +98,7 @@ public class ContentgridAppConfiguration {
 
     @Bean
     public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-            @Value("${contentgrid.appserver.query.engine.count.timeout}") Duration timeout) {
+            @NonNull @Value("${contentgrid.appserver.query.engine.count.timeout}") Duration timeout) {
         return new JOOQQueryEngine(dslContextResolver, timeout);
     }
 

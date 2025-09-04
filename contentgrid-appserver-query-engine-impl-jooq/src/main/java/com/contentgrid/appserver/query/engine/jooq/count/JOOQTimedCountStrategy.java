@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query.engine.jooq.count;
 
 import com.contentgrid.appserver.domain.values.ItemCount;
 import java.time.Duration;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Select;
@@ -20,6 +21,7 @@ public class JOOQTimedCountStrategy implements JOOQCountStrategy {
     private final JOOQCountStrategy exactCountStrategy = new JOOQExactCountStrategy();
     private final JOOQCountStrategy estimateCountStrategy = new JOOQExplainEstimateCountStrategy();
 
+    @NonNull
     private final Duration timeout;
 
     @Override
