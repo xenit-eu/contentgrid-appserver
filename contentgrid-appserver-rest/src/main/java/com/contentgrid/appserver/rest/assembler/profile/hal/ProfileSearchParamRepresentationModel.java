@@ -2,10 +2,7 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -61,11 +58,13 @@ public class ProfileSearchParamRepresentationModel {
         public static ProfileSearchParamType from(AttributeSearchFilter filter) {
             return switch (filter) {
                 case ExactSearchFilter ignored -> EXACT;
-                case GreaterThanSearchFilter ignored -> GREATER_THAN;
-                case GreaterThanOrEqualsSearchFilter ignored -> GREATER_THAN_OR_EQUAL;
-                case LessThanSearchFilter ignored -> LESS_THAN;
-                case LessThanOrEqualsSearchFilter ignored -> LESS_THAN_OR_EQUAL;
                 case PrefixSearchFilter ignored -> PREFIX;
+                case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
+                    case GREATER_THAN -> GREATER_THAN;
+                    case GREATER_THAN_OR_EQUAL -> GREATER_THAN_OR_EQUAL;
+                    case LESS_THAN -> LESS_THAN;
+                    case LESS_THAN_OR_EQUAL -> LESS_THAN_OR_EQUAL;
+                };
                 default -> throw new UnsupportedOperationException("Unsupported value: " + filter.getClass());
             };
         }

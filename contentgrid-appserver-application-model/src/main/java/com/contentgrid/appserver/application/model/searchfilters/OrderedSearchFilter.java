@@ -7,12 +7,17 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFil
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.Set;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Singular;
 
-public abstract sealed class OrderedSearchFilter extends AttributeSearchFilter permits
-        GreaterThanSearchFilter, GreaterThanOrEqualsSearchFilter, LessThanSearchFilter, LessThanOrEqualsSearchFilter {
+@Getter
+public class OrderedSearchFilter extends AttributeSearchFilter {
 
     private static final Set<Type> SUPPORTED_TYPES = Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME);
+
+    private final Operation operation;
 
     /**
      * Constructs an OrderedSearchFilter with the specified parameters.
@@ -21,14 +26,48 @@ public abstract sealed class OrderedSearchFilter extends AttributeSearchFilter p
      * @param attributePath the path to the attribute to apply the filter on
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected OrderedSearchFilter(@NonNull FilterName name,
+    @Builder
+    OrderedSearchFilter(
+            @NonNull Operation operation,
+            @NonNull FilterName name,
             @NonNull PropertyPath attributePath,
-            @NonNull Set<SearchFilterFlag> flags) {
+            @NonNull @Singular Set<SearchFilterFlag> flags) {
         super(name, attributePath, flags);
+        this.operation = operation;
     }
 
     @Override
     public boolean supports(SimpleAttribute attribute) {
         return SUPPORTED_TYPES.contains(attribute.getType());
+    }
+
+    public enum Operation {
+        GREATER_THAN,
+        GREATER_THAN_OR_EQUAL,
+        LESS_THAN,
+        LESS_THAN_OR_EQUAL,
+    }
+
+    public static OrderedSearchFilterBuilder greaterThan() {
+        return builder().operation(Operation.GREATER_THAN);
+    }
+
+    public static OrderedSearchFilterBuilder greaterThanOrEqual() {
+        return builder().operation(Operation.GREATER_THAN_OR_EQUAL);
+    }
+
+    public static OrderedSearchFilterBuilder lessThan() {
+        return builder().operation(Operation.LESS_THAN);
+    }
+
+    public static OrderedSearchFilterBuilder lessThanOrEqual() {
+        return builder().operation(Operation.LESS_THAN_OR_EQUAL);
+    }
+
+    public static class OrderedSearchFilterBuilder {
+        public OrderedSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = PropertyPath.of(attribute.getName());
+            return this;
+        }
     }
 }

@@ -7,10 +7,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributePath;
@@ -125,10 +122,12 @@ public class ThunkExpressionGenerator {
         return switch (filter) {
             case ExactSearchFilter ignored -> Comparison.areEqual(attr, value);
             case PrefixSearchFilter ignored -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case GreaterThanSearchFilter ignored -> Comparison.greater(attr, value);
-            case GreaterThanOrEqualsSearchFilter ignored -> Comparison.greaterOrEquals(attr, value);
-            case LessThanSearchFilter ignored -> Comparison.less(attr, value);
-            case LessThanOrEqualsSearchFilter ignored -> Comparison.lessOrEquals(attr, value);
+            case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
+                case GREATER_THAN -> Comparison.greater(attr, value);
+                case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
+                case LESS_THAN -> Comparison.less(attr, value);
+                case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
+            };
             default -> throw new IllegalArgumentException("filter %s is not supported".formatted(filter));
         };
     }

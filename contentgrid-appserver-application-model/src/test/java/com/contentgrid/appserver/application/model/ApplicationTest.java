@@ -26,11 +26,8 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -439,30 +436,13 @@ class ApplicationTest {
 
     static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
         var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN);
-        var filters = List.of(
-                LessThanSearchFilter.builder()
-                        .name(FilterName.of("filter~lt"))
-                        .attributePath(PropertyPath.of(AttributeName.of("test")))
-                        .build(),
-                LessThanOrEqualsSearchFilter.builder()
-                        .name(FilterName.of("filter~lte"))
-                        .attributePath(PropertyPath.of(AttributeName.of("test")))
-                        .build(),
-                GreaterThanSearchFilter.builder()
-                        .name(FilterName.of("filter~gt"))
-                        .attributePath(PropertyPath.of(AttributeName.of("test")))
-                        .build(),
-                GreaterThanOrEqualsSearchFilter.builder()
-                        .name(FilterName.of("filter~gte"))
-                        .attributePath(PropertyPath.of(AttributeName.of("test")))
-                        .build()
-        );
-        return types.flatMap(type -> filters.stream().map(filter -> Arguments.of(type, filter)));
+        var operations = List.of(Operation.GREATER_THAN, Operation.GREATER_THAN_OR_EQUAL, Operation.LESS_THAN, Operation.LESS_THAN_OR_EQUAL);
+        return types.flatMap(type -> operations.stream().map(operation -> Arguments.of(type, operation)));
     }
 
     @ParameterizedTest
     @MethodSource
-    void application_orderedSearchFilterInvalidAttributeType(Type type, OrderedSearchFilter filter) {
+    void application_orderedSearchFilterInvalidAttributeType(Type type, Operation operation) {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
                 .table(TableName.of("test"))
@@ -474,7 +454,11 @@ class ApplicationTest {
                         .type(type)
                         .build()
                 )
-                .searchFilter(filter)
+                .searchFilter(OrderedSearchFilter.builder()
+                        .operation(operation)
+                        .name(FilterName.of("filter~ordered"))
+                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .build())
                 .build();
 
         assertThrows(InvalidSearchFilterException.class, () -> {
