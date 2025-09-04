@@ -20,7 +20,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
@@ -98,7 +98,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(customer.isRequired()).isTrue();
                     assertThat(customer.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(customer.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/persons");
                         assertThat(options.getMinItems()).isOne();
                         assertThat(options.getMaxItems()).isOne();
                     });
@@ -109,7 +109,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(products.isRequired()).isFalse();
                     assertThat(products.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(products.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/products?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/products");
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
@@ -120,7 +120,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(previous.isRequired()).isFalse();
                     assertThat(previous.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(previous.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/invoices");
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isOne();
                     });
@@ -131,7 +131,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(next.isRequired()).isFalse();
                     assertThat(next.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(next.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/invoices");
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isOne();
                     });
@@ -184,7 +184,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(invoices.isRequired()).isFalse();
                     assertThat(invoices.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(invoices.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/invoices");
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
@@ -195,7 +195,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(friends.isRequired()).isFalse();
                     assertThat(friends.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                     assertThat(friends.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                        assertThat(options.getLink().getHref()).isEqualTo("/persons");
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
@@ -360,7 +360,7 @@ class HalFormsTemplateGeneratorTest {
                     });
                 },
                 sort -> {
-                    assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+                    assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -451,7 +451,7 @@ class HalFormsTemplateGeneratorTest {
                     });
                 },
                 sort -> {
-                    assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+                    assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.isReadOnly()).isFalse();
                     assertThat(sort.isRequired()).isFalse();
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -548,7 +548,7 @@ class HalFormsTemplateGeneratorTest {
 
         // only _sort is present
         assertThat(template.getProperties()).singleElement().satisfies(sort -> {
-            assertThat(sort.getName()).isEqualTo(EntityRestController.SORT_NAME);
+            assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
             assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
         });
     }
@@ -568,7 +568,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(property.getName()).isEqualTo("previous_invoice");
                         assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                         assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices");
                             assertThat(options.getMinItems()).isZero();
                             assertThat(options.getMaxItems()).isOne();
                         });
@@ -599,7 +599,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                         assertThat(property.isRequired()).isTrue();
                         assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                            assertThat(options.getLink().getHref()).isEqualTo("/persons?page=0");
+                            assertThat(options.getLink().getHref()).isEqualTo("/persons");
                             assertThat(options.getMinItems()).isOne();
                             assertThat(options.getMaxItems()).isOne();
                         });
@@ -623,7 +623,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(property.getName()).isEqualTo("invoices");
                         assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                         assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                            assertThat(options.getLink().getHref()).isEqualTo("/invoices?page=0");
+                            assertThat(options.getLink().getHref()).isEqualTo("/invoices");
                             assertThat(options.getMinItems()).isZero();
                             assertThat(options.getMaxItems()).isNull();
                         });
@@ -647,7 +647,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(property.getName()).isEqualTo("products");
                         assertThat(property.getType()).isEqualTo(HtmlInputType.URL_VALUE);
                         assertThat(property.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                            assertThat(options.getLink().getHref()).isEqualTo("/products?page=0");
+                            assertThat(options.getLink().getHref()).isEqualTo("/products");
                             assertThat(options.getMinItems()).isZero();
                             assertThat(options.getMaxItems()).isNull();
                         });

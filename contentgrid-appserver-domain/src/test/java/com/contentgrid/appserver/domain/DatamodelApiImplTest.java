@@ -1088,7 +1088,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1119,7 +1119,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50), PermissionPredicate.allowAll());
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1156,7 +1156,7 @@ class DatamodelApiImplTest {
                     ));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", "public"), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1182,7 +1182,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue(), Direction.DESC));
 
             // cursor `null` -> first page
-            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, sort), PermissionPredicate.allowAll());
+            var firstPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1207,7 +1207,7 @@ class DatamodelApiImplTest {
                     .thenAnswer(invocation -> fakeFindAll(paginationArg.getValue()));
 
             // cursor `null` -> first page
-            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null), PermissionPredicate.allowAll());
+            var startPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
             var secondPage = (ResultSlice) datamodelApi.findAll(APPLICATION, INVOICE, Map.of(), (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());

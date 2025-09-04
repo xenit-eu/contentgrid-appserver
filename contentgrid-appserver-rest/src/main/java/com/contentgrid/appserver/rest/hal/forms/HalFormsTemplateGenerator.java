@@ -20,6 +20,7 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
+import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.EntityRestController;
 import java.net.URI;
 import java.util.ArrayList;
@@ -136,7 +137,9 @@ public class HalFormsTemplateGenerator {
     }
 
     private URI getCollectionSelfLink(Application application, Entity entity) {
-        return linkTo(methodOn(EntityRestController.class).listEntity(application, entity.getPathSegment(), null, 0, null, Map.of())).toUri();
+        return linkTo(methodOn(EntityRestController.class)
+                .listEntity(application, entity.getPathSegment(), null, Map.of(), null))
+                .toUri();
     }
 
 
@@ -211,7 +214,7 @@ public class HalFormsTemplateGenerator {
         }
         var required = relation.getSourceEndPoint().isRequired();
         var url = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), null, 0, null, Map.of()))
+                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), null, Map.of(), null))
                 .toUri().toString();
         var options = HalFormsOptions.remote(url)
                 .withMinItems(required ? 1L : 0L)
@@ -240,7 +243,7 @@ public class HalFormsTemplateGenerator {
                 .withMinItems(0L)
                 .withPromptField("prompt")
                 .withValueField("value");
-        return Optional.of(HalFormsProperty.named(EntityRestController.SORT_NAME)
+        return Optional.of(HalFormsProperty.named(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME)
                 .withType(HtmlInputType.TEXT_VALUE)
                 .withOptions(options));
     }

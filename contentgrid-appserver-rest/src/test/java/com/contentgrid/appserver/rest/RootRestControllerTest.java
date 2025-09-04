@@ -59,9 +59,9 @@ class RootRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/"))
                 .andExpect(jsonPath("$._links.profile.href").value("http://localhost/profile"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/persons?page=0"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/invoices?page=0"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items?page=0")) // TODO: remove query parameter?
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/persons"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/invoices"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items"))
                 .andExpect(jsonPath("$._links.curies").isArray());
     }
 

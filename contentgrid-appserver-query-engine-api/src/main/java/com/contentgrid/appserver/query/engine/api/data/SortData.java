@@ -28,4 +28,8 @@ public class SortData {
     public List<String> toList() {
         return sortedFields.stream().map(Object::toString).toList();
     }
+
+    public static SortData unsorted() {
+        return new SortData(List.of());
+    }
 }

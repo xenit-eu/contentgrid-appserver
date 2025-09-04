@@ -97,7 +97,7 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
         var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, targetEntity.getPathSegment(), null, 0, null, Map.of(targetFilter.getName().getValue(), instanceId.toString())))
+                .listEntity(application, targetEntity.getPathSegment(), null, Map.of(targetFilter.getName().getValue(), instanceId.toString()), null))
                 .toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }

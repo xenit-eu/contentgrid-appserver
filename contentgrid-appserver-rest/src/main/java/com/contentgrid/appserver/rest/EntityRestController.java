@@ -3,7 +3,6 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -12,11 +11,7 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SortData;
-import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
-import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -24,7 +19,7 @@ import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -54,8 +49,6 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class EntityRestController {
 
-    public static final String SORT_NAME = "_sort";
-
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
     private final EntityDataRepresentationModelAssembler assembler;
@@ -77,20 +70,20 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             PermissionPredicate permissionPredicate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(required = false, name = SORT_NAME) String[] sort,
-            @RequestParam Map<String, String> params
+            @RequestParam Map<String, String> params,
+            EncodedCursorPagination pagination
     ) {
-        var entity = getEntityOrThrow(application, entityName);
-        var sortData = parseSortData(sort);
-        // TODO use pagination from request parameters (ACC-2200)
-        var pagination = new EncodedCursorPagination(null, sortData);
+        // Remove pagination query parameters
+        var paramsWithoutPaging = new HashMap<>(params);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.CURSOR_NAME);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SIZE_NAME);
+        paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
 
-        var results = datamodelApi.findAll(application, entity, params, pagination,
+        var entity = getEntityOrThrow(application, entityName);
+        var results = datamodelApi.findAll(application, entity, paramsWithoutPaging, pagination,
                 permissionPredicate);
 
-        // TODO use page data and count data (ACC-2200)
-        return assembler.withContext(application, entityName)
+        return assembler.withContext(application, entityName, paramsWithoutPaging, pagination)
                 .toCollectionModel(results);
     }
 
@@ -239,30 +232,6 @@ public class EntityRestController {
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
-    }
-
-    private SortData parseSortData(String[] sort) {
-        ArrayList<FieldSort> names = new ArrayList<>();
-
-        if (sort == null) {
-            return new SortData(names);
-        }
-
-        for (String s : sort) {
-            var split = s.split(",", 2);
-            if (split.length == 2) {
-                try {
-                    var direction = Direction.valueOf(split[1].toUpperCase());
-                    names.add(new FieldSort(direction, SortableName.of(split[0])));
-                } catch (IllegalArgumentException e) {
-                    throw InvalidSortParameterException.invalidDirection(split[1]);
-                }
-            } else {
-                names.add(new FieldSort(Direction.ASC, SortableName.of(split[0])));
-            }
-        }
-
-        return new SortData(names);
     }
 
 }

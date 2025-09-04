@@ -30,11 +30,6 @@ public class SimplePageBasedCursorCodec implements CursorCodec {
     @Override
     public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, String> params) {
         PageBasedPagination page = (PageBasedPagination) pagination;
-
-        if (page.isFirstPage()) {
-            return new CursorContext(null, page.getSize(), sort);
-        }
-
         return new CursorContext(Integer.toString(page.getPage()), page.getSize(), sort);
     }
 

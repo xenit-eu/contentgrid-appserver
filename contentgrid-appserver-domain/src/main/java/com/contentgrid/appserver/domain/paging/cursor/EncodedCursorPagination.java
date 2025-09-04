@@ -3,8 +3,6 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -14,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class EncodedCursorPagination implements Pagination {
-    public static final int PAGE_SIZE = 20;
 
     private final String cursor;
 
@@ -22,18 +19,6 @@ public class EncodedCursorPagination implements Pagination {
 
     @NonNull
     private final SortData sort;
-
-    public EncodedCursorPagination(String cursor) {
-        this(cursor, PAGE_SIZE);
-    }
-
-    public EncodedCursorPagination(String cursor, int size) {
-        this(cursor, size, new SortData(List.of()));
-    }
-
-    public EncodedCursorPagination(String cursor, SortData sort) {
-        this(cursor, PAGE_SIZE, sort);
-    }
 
     public CursorContext getCursorContext() {
         return new CursorContext(cursor, size, sort);
@@ -51,23 +36,12 @@ public class EncodedCursorPagination implements Pagination {
 
     @Override
     public boolean isFirstPage() {
-        return cursor == null;
+        throw new UnsupportedOperationException("Cursor is encoded, decode it first with CursorCodec#decodeCursor");
     }
 
     @Override
     public Map<String, Object> getParameters() {
-        // TODO: fix names (ACC-2200)
-        var result = new HashMap<String, Object>();
-        result.put("size", size);
-
-        // omit cursor if null
-        if (cursor != null) {
-            result.put("cursor", cursor);
-        }
-        // omit sort if empty
-        if (!sort.getSortedFields().isEmpty()) {
-            result.put("sort", sort.toList());
-        }
-        return result;
+        // The purpose is to know the uri query parameter names and values, but the names are defined in rest layer
+        throw new UnsupportedOperationException("EncodedCursorPagination can not be used with default PaginationHandlerMethodArgumentResolver. Use EncodedCursorPaginationHandlerMethodArgumentResolver instead.");
     }
 }

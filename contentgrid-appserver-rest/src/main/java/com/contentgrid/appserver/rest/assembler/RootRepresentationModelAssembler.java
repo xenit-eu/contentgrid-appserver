@@ -33,7 +33,7 @@ public class RootRepresentationModelAssembler implements RepresentationModelAsse
 
     private Link getEntityLink(@NonNull Application application, @NonNull Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, 0, null, Map.of()))
+                .listEntity(application, entity.getPathSegment(), null, Map.of(), null))
                 .withRel(ContentGridLinkRelations.ENTITY).expand()
                 .withName(entity.getLinkName().getValue());
     }
