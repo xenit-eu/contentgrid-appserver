@@ -69,6 +69,7 @@ import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionEx
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -2102,7 +2103,7 @@ class JOOQQueryEngineTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-            return new JOOQQueryEngine(dslContextResolver, Duration.ofMillis(500));
+            return new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)));
         }
     }
 }

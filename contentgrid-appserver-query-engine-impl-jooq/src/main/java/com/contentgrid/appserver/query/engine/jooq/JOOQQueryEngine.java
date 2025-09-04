@@ -40,14 +40,12 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,6 +54,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -68,6 +67,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Transactional
 public class JOOQQueryEngine implements QueryEngine {
 
@@ -83,11 +83,6 @@ public class JOOQQueryEngine implements QueryEngine {
     private static final long VERSION_MODULUS = 1L << 32;
 
     private static final SecureRandom secureRandom = new SecureRandom();
-
-    public JOOQQueryEngine(@NonNull DSLContextResolver resolver, @NonNull Duration countTimeout) {
-        this.resolver = resolver;
-        this.countStrategy = new JOOQTimedCountStrategy(countTimeout);
-    }
 
     private static Condition createCondition(JOOQContext context, ThunkExpression<Boolean> expression) {
         return DSL.condition((Field<Boolean>) expression.accept(visitor, context));
