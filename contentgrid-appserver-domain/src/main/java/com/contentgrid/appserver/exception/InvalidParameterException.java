@@ -11,7 +11,6 @@ public class InvalidParameterException extends IllegalArgumentException {
     private final String attributeName;
     @NonNull
     private final Type type;
-    @NonNull
     private final String value;
 
     private static final String fullTemplate = "Invalid argument for attribute %s in entity %s:"
@@ -20,7 +19,7 @@ public class InvalidParameterException extends IllegalArgumentException {
             + " Could not convert value '%s' to %s";
 
     public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type,
-            @NonNull String value, Throwable cause) {
+            String value, Throwable cause) {
         super(entityName == null
                 ? templateWithoutEntity.formatted(attributeName, value, type)
                 : fullTemplate.formatted(attributeName, entityName, value, type),
@@ -32,13 +31,13 @@ public class InvalidParameterException extends IllegalArgumentException {
         this.value = value;
     }
 
-    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, @NonNull String value, Throwable cause) {
+    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, String value, Throwable cause) {
         this(null, attributeName, type, value, cause);
     }
-    public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type, @NonNull String value) {
+    public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type, String value) {
         this(entityName, attributeName, type, value, null);
     }
-    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, @NonNull String value) {
+    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, String value) {
         this(null, attributeName, type, value, null);
     }
 }

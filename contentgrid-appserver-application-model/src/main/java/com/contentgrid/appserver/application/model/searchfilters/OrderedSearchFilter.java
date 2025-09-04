@@ -9,7 +9,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.Set;
 import lombok.NonNull;
 
-public sealed abstract class OrderedSearchFilter extends AttributeSearchFilter permits
+public abstract sealed class OrderedSearchFilter extends AttributeSearchFilter permits
         GreaterThanSearchFilter, GreaterThanOrEqualsSearchFilter, LessThanSearchFilter, LessThanOrEqualsSearchFilter {
 
     private static final Set<Type> SUPPORTED_TYPES = Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME);
