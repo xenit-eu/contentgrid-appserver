@@ -4,7 +4,8 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
-import org.springframework.util.MultiValueMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Page-based cursor: Re-implementation of the standard numeric page-based strategy
@@ -12,7 +13,7 @@ import org.springframework.util.MultiValueMap;
 public class SimplePageBasedCursorCodec implements CursorCodec {
 
     @Override
-    public PageBasedPagination decodeCursor(CursorContext context, EntityName entityName, MultiValueMap<String, String> params) throws CursorDecodeException {
+    public PageBasedPagination decodeCursor(CursorContext context, EntityName entityName, Map<String, List<String>> params) throws CursorDecodeException {
         int pageNumber = 0;
         if (context.cursor() != null && !context.cursor().isBlank()) {
             try {
@@ -28,7 +29,7 @@ public class SimplePageBasedCursorCodec implements CursorCodec {
     }
 
     @Override
-    public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, MultiValueMap<String, String> params) {
+    public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, List<String>> params) {
         PageBasedPagination page = (PageBasedPagination) pagination;
         return new CursorContext(Integer.toString(page.getPage()), page.getSize(), sort);
     }

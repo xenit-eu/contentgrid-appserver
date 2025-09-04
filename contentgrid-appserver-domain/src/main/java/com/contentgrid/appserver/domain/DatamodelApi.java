@@ -16,10 +16,11 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.NonNull;
-import org.springframework.util.MultiValueMap;
 
 /**
  * The Datamodel API is the primary entrypoint for interacting with the data that lives in the application.
@@ -38,7 +39,7 @@ public interface DatamodelApi {
      * @return a slice of entities matching the criteria
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    ResultSlice findAll(@NonNull Application application, @NonNull Entity entity, @NonNull MultiValueMap<String, String> params,
+    ResultSlice findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, List<String>> params,
             @NonNull EncodedCursorPagination pagination,
             @NonNull PermissionPredicate permissionPredicate)
             throws InvalidThunkExpressionException, CursorDecodeException;

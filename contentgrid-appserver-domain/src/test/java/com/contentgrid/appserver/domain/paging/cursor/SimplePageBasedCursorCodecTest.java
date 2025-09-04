@@ -15,7 +15,6 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.springframework.util.MultiValueMap;
 
 class SimplePageBasedCursorCodecTest {
 
@@ -23,7 +22,7 @@ class SimplePageBasedCursorCodecTest {
 
     private static final SortData SORT = new SortData(List.of(new FieldSort(Direction.ASC, SortableName.of("abc")), new FieldSort(Direction.DESC, SortableName.of("def"))));
     private static final EntityName ENTITY = EntityName.of("test");
-    private static final MultiValueMap<String, String> PARAMS = MultiValueMap.fromSingleValue(Map.of());
+    private static final Map<String, List<String>> PARAMS = Map.of();
 
     @Test
     void decodeCursorFromNumber() throws CursorDecodeException {

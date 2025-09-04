@@ -85,12 +85,11 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import org.springframework.util.MultiValueMap;
 
 @ExtendWith(MockitoExtension.class)
 class DatamodelApiImplTest {
 
-    private static final MultiValueMap<String, String> PARAMS = MultiValueMap.fromSingleValue(Map.of());
+    private static final Map<String, List<String>> PARAMS = Map.of();
 
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private QueryEngine queryEngine;
@@ -1177,8 +1176,7 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE,
-                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")),
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
                     new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
@@ -1186,17 +1184,15 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE,
-                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")), nextPageRequest,
-                    PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
+                    nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE,
-                    MultiValueMap.fromSingleValue(Map.of("confidentiality", "public")), nextPageRequest,
-                    PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
+                    nextPageRequest, PermissionPredicate.allowAll());
             assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
         }

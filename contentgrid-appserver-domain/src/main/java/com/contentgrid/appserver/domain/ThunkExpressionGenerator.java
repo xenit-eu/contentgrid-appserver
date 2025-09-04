@@ -33,12 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
-import org.springframework.util.MultiValueMap;
 
 @UtilityClass
 public class ThunkExpressionGenerator {
 
-    static ThunkExpression<Boolean> from(Application application, Entity entity, MultiValueMap<String, String> params) {
+    static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, List<String>> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
 
         for (Map.Entry<String, List<String>> entry : params.entrySet()) {
