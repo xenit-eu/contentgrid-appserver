@@ -197,14 +197,24 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
                     );
                     assertThat(ex.getDecryptableKeys()).isEmpty();
                     assertThat(ex.getCause()).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, keyUnwrappingFailedException -> {
-                        assertThat(keyUnwrappingFailedException.getWrappingKeyId()).isEqualTo(FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID);
-                        assertThat(keyUnwrappingFailedException.getSuppressed())
-                                .satisfiesExactly(suppressed -> {
-                                    assertThat(suppressed).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, suppressedKeyUnwrapException -> {
-                                        assertThat(suppressedKeyUnwrapException.getWrappingKeyId()).isEqualTo(
-                                                secondFailingWrapperKid);
-                                    });
-                                });
+                        // We can't really know the ordering here for sure, so either of those is fine
+                        assertThat(keyUnwrappingFailedException.getWrappingKeyId()).isIn(
+                                FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID,
+                                secondFailingWrapperKid
+                        );
+                        assertThat(keyUnwrappingFailedException.getAllFailedWrappingKeyIds()).containsExactlyInAnyOrder(
+                                FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID,
+                                secondFailingWrapperKid
+                        );
+                        assertThat(keyUnwrappingFailedException.getSuppressed()).satisfiesExactly(suppressed -> {
+                            assertThat(suppressed).isInstanceOfSatisfying(KeyUnwrappingFailedException.class, suppressedKeyUnwrapException -> {
+                                // This is the other one, but we also don't know for sure which one it would be
+                                assertThat(suppressedKeyUnwrapException.getWrappingKeyId()).isIn(
+                                        FailingDataEncryptionKeyWrapper.WRAPPING_KEY_ID,
+                                        secondFailingWrapperKid
+                                ).isNotEqualTo(keyUnwrappingFailedException.getWrappingKeyId());
+                            });
+                        });
                     });
                 });
     }

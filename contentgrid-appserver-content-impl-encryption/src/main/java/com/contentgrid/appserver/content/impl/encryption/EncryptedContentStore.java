@@ -160,19 +160,19 @@ public class EncryptedContentStore implements ContentStore {
     private DecryptionConfig decryptEncryptionParameters(Collection<StoredDataEncryptionKey> encryptedDeks)
             throws KeyUnwrappingFailedException {
         KeyUnwrappingFailedException firstException = null;
-        for (var wrapper : dataEncryptionKeyWrappers) {
-            if (!wrapper.canDecrypt()) {
+
+        for (var encryptedDek : encryptedDeks) {
+            var supportedWrappers = wrappersFor(wrapper -> wrapper.canDecrypt() && wrapper.getSupportedKeyIds().contains(encryptedDek.getWrappingKeyId())).toList();
+            if(supportedWrappers.isEmpty()) {
+                // No wrapper can decrypt this encrypted DEK
                 continue;
             }
-            var supportedKeyIds = wrapper.getSupportedKeyIds();
-            for (var encryptedDek : encryptedDeks) {
-                if(!supportedKeyIds.contains(encryptedDek.getWrappingKeyId())) {
-                    continue;
-                }
-                var maybeEngine = engineFor(encryptedDek.getDataEncryptionAlgorithm());
-                if(maybeEngine.isEmpty()) {
-                    continue;
-                }
+
+            var maybeEngine = engineFor(encryptedDek.getDataEncryptionAlgorithm());
+            if(maybeEngine.isEmpty()) {
+                continue;
+            }
+            for (var wrapper : supportedWrappers) {
                 try {
                     var encryptionParameters = Objects.requireNonNull(wrapper.unwrapEncryptionKey(encryptedDek), "Wrapper %s unwrap of %s returned null".formatted(wrapper, encryptedDek.getWrappingKeyId()));
                     return new DecryptionConfig(
