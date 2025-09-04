@@ -26,7 +26,11 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanOrEqualsSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.GreaterThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.LessThanOrEqualsSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.LessThanSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -39,9 +43,12 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplicationTest {
 
@@ -430,11 +437,32 @@ class ApplicationTest {
         });
     }
 
+    static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
+        var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN);
+        var filters = List.of(
+                LessThanSearchFilter.builder()
+                        .name(FilterName.of("filter~lt"))
+                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .build(),
+                LessThanOrEqualsSearchFilter.builder()
+                        .name(FilterName.of("filter~lte"))
+                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .build(),
+                GreaterThanSearchFilter.builder()
+                        .name(FilterName.of("filter~gt"))
+                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .build(),
+                GreaterThanOrEqualsSearchFilter.builder()
+                        .name(FilterName.of("filter~gte"))
+                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .build()
+        );
+        return types.flatMap(type -> filters.stream().map(filter -> Arguments.of(type, filter)));
+    }
+
     @ParameterizedTest
-    @CsvSource({
-            "TEXT", "UUID", "BOOLEAN"
-    })
-    void application_orderedSearchFilterInvalidAttributeType(Type type) {
+    @MethodSource
+    void application_orderedSearchFilterInvalidAttributeType(Type type, OrderedSearchFilter filter) {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
                 .table(TableName.of("test"))
@@ -446,11 +474,7 @@ class ApplicationTest {
                         .type(type)
                         .build()
                 )
-                .searchFilter(
-                        LessThanSearchFilter.builder().name(FilterName.of("filter~ordered"))
-                                .attributePath(PropertyPath.of(AttributeName.of("test")))
-                                .build()
-                )
+                .searchFilter(filter)
                 .build();
 
         assertThrows(InvalidSearchFilterException.class, () -> {
