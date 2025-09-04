@@ -458,7 +458,7 @@ class JOOQThunkExpressionVisitorTest {
     }
 
     @Test
-    void findAllTermsSymbolicReferences_shouldUseNormalizedSearch() {
+    void findBothTermsSymbolicReferences_shouldUseNormalizedSearch() {
         // entity.name = entity.vat
         ThunkExpression<?> expression = Comparison.areEqual(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
@@ -478,6 +478,24 @@ class JOOQThunkExpressionVisitorTest {
 
         // Without normalization, they don't match
         assertNotEquals(result.get("name"), result.get("vat"));
+    }
+
+    @Test
+    void findBothTermsStringScalars_shouldUseNormalizedSearch() {
+        // ĳ = ij
+        ThunkExpression<?> expression = Comparison.areEqual(
+                Scalar.of("ĳ"),
+                Scalar.of("ij")
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(4, results.size());
     }
 
     @Test

@@ -59,7 +59,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (List.of(left.getDataType(), right.getDataType()).contains(SQLDataType.CLOB)) {
+                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
                     left = normalize(left);
                     right = normalize(right);
                 }
@@ -69,7 +69,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (List.of(left.getDataType(), right.getDataType()).contains(SQLDataType.CLOB)) {
+                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
                     left = normalize(left);
                     right = normalize(right);
                 }
