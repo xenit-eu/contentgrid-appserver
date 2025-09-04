@@ -66,9 +66,18 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
                     public int read() throws IOException {
                         var data = super.read();
                         if(data >= 0) {
-                            return ((byte)data) ^ xorByte;
+                            return ((data & 0xff) ^ xorByte) & 0xff;
                         }
                         return data;
+                    }
+
+                    @Override
+                    public int read(byte[] b, int off, int len) throws IOException {
+                        var result = super.read(b, off, len);
+                        for(int i = off; i < result; i++) {
+                            b[i] ^= xorByte;
+                        }
+                        return result;
                     }
                 };
             }

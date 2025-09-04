@@ -16,5 +16,6 @@ dependencies {
 
     testFixturesImplementation 'org.assertj:assertj-core'
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
+    testFixturesImplementation testFixtures(project(':contentgrid-appserver-content-impl-utils'))
 }
 

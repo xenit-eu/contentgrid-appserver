@@ -35,27 +35,7 @@ public class InMemoryMockContentStore implements ContentStore {
         }
         return new GuardedContentReader(
                 new EmulatedRangedContentReader(
-                        new ContentReader() {
-                            @Override
-                            public InputStream getContentInputStream() {
-                                return new ByteArrayInputStream(stored);
-                            }
-
-                            @Override
-                            public ContentReference getReference() {
-                                return contentReference;
-                            }
-
-                            @Override
-                            public long getContentSize() {
-                                return stored.length;
-                            }
-
-                            @Override
-                            public String getDescription() {
-                                return "In-Memory '%s'".formatted(contentReference);
-                            }
-                        },
+                        new MockContentReader(stored, contentReference),
                         contentRange
                 )
         );

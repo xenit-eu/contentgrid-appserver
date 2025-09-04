@@ -10,6 +10,7 @@ import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.content.api.range.UnsatisfiableContentRangeException;
 import com.contentgrid.appserver.content.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.content.impl.encryption.keys.KeyBytes;
+import com.contentgrid.appserver.content.impl.encryption.testing.AbstractEncryptionEngineTest;
 import com.contentgrid.appserver.content.impl.utils.EmulatedRangedContentReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +27,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class AesCtrEncryptionEngineTest {
+class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     // See test vectors of NIST SP 800-38A (https://doi.org/10.6028/NIST.SP.800-38A)
     // CTR example vectors
     private static final byte[] KEY = HexFormat.of().parseHex("2b7e151628aed2a6abf7158809cf4f3c");
@@ -202,6 +203,11 @@ class AesCtrEncryptionEngineTest {
                 new MockContentReader(encrypted),
                 req
         );
+    }
+
+    @Override
+    protected ContentEncryptionEngine getContentEncryptionEngine() {
+        return new AesCtrEncryptionEngine(128);
     }
 
     @Getter
