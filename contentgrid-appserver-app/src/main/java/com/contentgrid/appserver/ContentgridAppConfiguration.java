@@ -40,6 +40,8 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -49,10 +51,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.EnumSet;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
@@ -94,8 +98,13 @@ public class ContentgridAppConfiguration {
     }
 
     @Bean
-    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-        return new JOOQQueryEngine(dslContextResolver);
+    public JOOQCountStrategy jooqTimedCountStrategy(@Value("${contentgrid.appserver.query.engine.count.timeout:500ms}") Duration timeout) {
+        return new JOOQTimedCountStrategy(timeout);
+    }
+
+    @Bean
+    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy) {
+        return new JOOQQueryEngine(dslContextResolver, countStrategy);
     }
 
     @Bean

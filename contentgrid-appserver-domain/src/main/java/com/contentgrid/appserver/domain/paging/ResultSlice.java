@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.paging;
 
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;

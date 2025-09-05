@@ -1,9 +1,9 @@
-package com.contentgrid.appserver.domain.paging;
+package com.contentgrid.appserver.domain.values;
 
 import lombok.Value;
 
 /**
- * Information about the number of items in a {@link ResultSlice}
+ * Information about the number of items in a result
  */
 public sealed interface ItemCount {
 

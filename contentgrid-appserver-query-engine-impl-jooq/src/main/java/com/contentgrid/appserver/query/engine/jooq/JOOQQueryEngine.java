@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
@@ -38,6 +39,7 @@ import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedExce
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -48,7 +50,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -70,10 +71,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class JOOQQueryEngine implements QueryEngine {
 
+    @NonNull
     private final DSLContextResolver resolver;
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
+
+    @NonNull
+    private final JOOQCountStrategy countStrategy;
 
     private static final long VERSION_MODULUS = 1L << 32;
 
@@ -473,7 +478,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public long exactCount(@NonNull Application application, @NonNull Entity entity,
+    public ItemCount count(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
@@ -481,9 +486,6 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity, alias);
 
         var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-        return Objects.requireNonNull(
-                dslContext.selectCount().from(table)
-                        .where(condition)
-                        .fetchOne(0, long.class));
+        return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));
     }
 }

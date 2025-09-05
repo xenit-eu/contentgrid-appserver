@@ -69,6 +69,7 @@ import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionEx
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
+import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -81,6 +82,7 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -2049,37 +2051,38 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> countExpressions() {
         return Stream.of(
                 // true
-                Arguments.of(Scalar.of(true), 3L),
+                Arguments.of(Scalar.of(true), 3),
                 // false
-                Arguments.of(Scalar.of(false), 0L),
+                Arguments.of(Scalar.of(false), 0),
                 // expression that holds for all products
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_")
-                ), 3L),
+                ), 3),
                 // expression that holds for none of the products
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code__")
-                ), 0L),
+                ), 0),
                 // expression that holds for exactly one product
                 Arguments.of(StringComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_2")
-                ), 1L),
+                ), 1),
                 // expression over a relation
                 Arguments.of(Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("number")),
                         Scalar.of("invoice_1")
-                ), 2L)
+                ), 2)
         );
     }
 
     @ParameterizedTest
     @MethodSource("countExpressions")
     void testCounting(ThunkExpression<Boolean> expression, long count) {
-        var actual = queryEngine.exactCount(APPLICATION, PRODUCT, expression);
-        assertEquals(count, actual);
+        var exact = queryEngine.count(APPLICATION, PRODUCT, expression);
+        assertFalse(exact.isEstimated());
+        assertEquals(count, exact.count());
     }
 
     @SpringBootApplication
@@ -2100,7 +2103,7 @@ class JOOQQueryEngineTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-            return new JOOQQueryEngine(dslContextResolver);
+            return new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)));
         }
     }
 }
