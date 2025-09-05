@@ -11,6 +11,8 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-content-impl-utils'))
     testImplementation "org.testcontainers:testcontainers:1.21.3"
     testImplementation "org.testcontainers:junit-jupiter:1.21.3"
+
     testImplementation "org.testcontainers:minio:1.21.3"
+    testImplementation "org.testcontainers:localstack:1.21.3"
 }
 
