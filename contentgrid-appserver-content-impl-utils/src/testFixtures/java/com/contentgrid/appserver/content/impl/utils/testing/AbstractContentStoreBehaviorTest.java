@@ -125,4 +125,26 @@ public abstract class AbstractContentStoreBehaviorTest {
             }, inputStream.readNBytes(3));
         }
     }
+
+    @Test
+    void writeLargeFile() throws UnwritableContentException, IOException {
+        var contentStore = getContentStore();
+
+        var writer = contentStore.createNewWriter();
+
+        var byteBuffer = new byte[10*1024*1024]; // 10 MiB
+        Arrays.fill(byteBuffer,  (byte)0xbb);
+
+        try(var outputStream = writer.getContentOutputStream()) {
+            for(int i = 0; i < 100; i++) { // Write 10 MiB 100 times => 1 GB
+                outputStream.write(byteBuffer);
+            }
+        }
+
+        // 1 GiB written
+        assertEquals(1000L*1024*1024, writer.getContentSize());
+
+        // Clean up the file again
+        contentStore.remove(writer.getReference());
+    }
 }

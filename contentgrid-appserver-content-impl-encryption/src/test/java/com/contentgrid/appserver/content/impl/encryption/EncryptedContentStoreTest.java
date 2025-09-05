@@ -21,16 +21,18 @@ import com.contentgrid.appserver.content.impl.encryption.keys.WrappingKeyId;
 import com.contentgrid.appserver.content.impl.encryption.testing.InMemoryDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.content.impl.encryption.testing.XorTestEncryptionEngine;
 import com.contentgrid.appserver.content.impl.utils.testing.AbstractContentStoreBehaviorTest;
-import com.contentgrid.appserver.content.impl.utils.testing.InMemoryMockContentStore;
+import com.contentgrid.appserver.content.impl.utils.testing.MockContentStore;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AutoClose;
 import org.junit.jupiter.api.Test;
 
 class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
-    private final ContentStore backingStorage = new InMemoryMockContentStore();
+    @AutoClose
+    private final ContentStore backingStorage = new MockContentStore();
     private final DataEncryptionKeyAccessor keyAccessor = new InMemoryDataEncryptionKeyAccessor();
     private final EncryptedContentStore xorContentStore = new EncryptedContentStore(
             backingStorage,
