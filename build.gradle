@@ -9,7 +9,7 @@ sonar {
         property "sonar.organization", "xenit-eu"
         property "sonar.host.url", "https://sonarcloud.io"
         if (ci.isPullRequest()) {
-            properties["sonar.pullrequest.key"] = ci.pullRequest
+            properties["sonar.pullrequest.key"] = ci.getPullRequest()
             properties["sonar.pullrequest.branch"] = ci.branch
             properties["sonar.pullrequest.base"] = ci.pullRequestTargetBranch
         } else {

@@ -22,4 +22,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./gradlew sonar --parallel -i
+        run: ./gradlew sonar -i
