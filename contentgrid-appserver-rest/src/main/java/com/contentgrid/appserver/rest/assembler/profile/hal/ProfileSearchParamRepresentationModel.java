@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -31,7 +32,7 @@ public class ProfileSearchParamRepresentationModel {
 
     @JsonProperty
     public String getType() {
-        return type == null ? null : type.name().toLowerCase();
+        return type == null ? null : type.toString();
     }
 
     @Getter
@@ -58,7 +59,12 @@ public class ProfileSearchParamRepresentationModel {
             return switch (filter) {
                 case ExactSearchFilter ignored -> EXACT;
                 case PrefixSearchFilter ignored -> PREFIX;
-                // TODO: other search filters (ACC-2229)
+                case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
+                    case GREATER_THAN -> GREATER_THAN;
+                    case GREATER_THAN_OR_EQUAL -> GREATER_THAN_OR_EQUAL;
+                    case LESS_THAN -> LESS_THAN;
+                    case LESS_THAN_OR_EQUAL -> LESS_THAN_OR_EQUAL;
+                };
                 default -> throw new UnsupportedOperationException("Unsupported value: " + filter.getClass());
             };
         }

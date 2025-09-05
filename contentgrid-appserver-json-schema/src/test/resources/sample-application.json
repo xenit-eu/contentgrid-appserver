@@ -338,6 +338,26 @@
           "name": "statusFilter",
           "attributePath": [{"name": "status", "type": "attr"}],
           "type": "exact"
+        },
+        {
+          "name": "budget~gt",
+          "attributePath": [{"name": "budget", "type": "attr"}],
+          "type": "greater"
+        },
+        {
+          "name": "budget~gte",
+          "attributePath": [{"name": "budget", "type": "attr"}],
+          "type": "greater-or-equal"
+        },
+        {
+          "name": "budget~lt",
+          "attributePath": [{"name": "budget", "type": "attr"}],
+          "type": "less"
+        },
+        {
+          "name": "budget~lte",
+          "attributePath": [{"name": "budget", "type": "attr"}],
+          "type": "less-or-equal"
         }
       ],
       "sortableFields": [

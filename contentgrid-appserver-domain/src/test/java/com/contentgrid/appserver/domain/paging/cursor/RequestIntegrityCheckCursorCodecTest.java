@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,27 +29,29 @@ import org.mockito.Mockito;
 class RequestIntegrityCheckCursorCodecTest {
 
     private static final SortData UNSORTED = SortData.unsorted();
+    private static final Map<String, List<String>> PARAMS = Map.of();
     private static final EntityName ENTITY = EntityName.of("test");
 
     public static Stream<Arguments> withoutCursorParams() {
         return Stream.of(
-                Arguments.of(new CursorContext(null, 5, UNSORTED), Map.of("a", "b"))
+                Arguments.of(new CursorContext(null, 5, UNSORTED), Map.of("a", List.of("b")))
         );
     }
 
     public static Stream<Arguments> testParams() {
         return Stream.of(
-                Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of("a", "b")),
-                Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of()),
-                Arguments.of(new CursorContext("ZZZ", 100, UNSORTED), Map.of()),
+                Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of("a", List.of("b"))),
+                Arguments.of(new CursorContext("abc", 1, UNSORTED), PARAMS),
+                Arguments.of(new CursorContext("ZZZ", 100, UNSORTED), PARAMS),
                 Arguments.of(new CursorContext("ZZZ", 100, new SortData(Collections.singletonList(new FieldSort(
-                        Direction.ASC, SortableName.of("abc"))))), Map.of())
+                        Direction.ASC, SortableName.of("abc"))))), PARAMS),
+                Arguments.of(new CursorContext("abc", 1, UNSORTED), Map.of("a", List.of("x", "y", "z")))
         );
     }
 
     @ParameterizedTest
     @MethodSource({"withoutCursorParams", "testParams"})
-    void generateAndVerify(CursorContext cursorContext, Map<String, String> parameters) throws CursorDecodeException {
+    void generateAndVerify(CursorContext cursorContext, Map<String, List<String>> parameters) throws CursorDecodeException {
         CursorCodec mockCodec = Mockito.mock(CursorCodec.class);
 
         // pagination is always passed direct through to the delegate, so it's value is irrelevant
@@ -68,35 +71,44 @@ class RequestIntegrityCheckCursorCodecTest {
 
     @ParameterizedTest
     @MethodSource("testParams")
-    void modifyData(CursorContext cursorContext, Map<String, String> parameters) throws CursorDecodeException {
+    void modifyData(CursorContext cursorContext, Map<String, List<String>> parameters) throws CursorDecodeException {
         CursorCodec mockCodec = Mockito.mock(CursorCodec.class);
 
-        // pageable is always passed direct through to the delegate, so it's value is irrelevant
-        var pageable = new PageBasedPagination(1, 1);
+        // pagination is always passed direct through to the delegate, so it's value is irrelevant
+        var pagination = new PageBasedPagination(1, 1);
         var codec = new RequestIntegrityCheckCursorCodec(mockCodec);
 
-        Mockito.when(mockCodec.encodeCursor(pageable, ENTITY, cursorContext.sort(), parameters)).thenReturn(cursorContext);
+        Mockito.when(mockCodec.encodeCursor(pagination, ENTITY, cursorContext.sort(), parameters)).thenReturn(cursorContext);
 
-        var encodedContext = codec.encodeCursor(pageable, ENTITY, cursorContext.sort(), parameters);
+        var encodedContext = codec.encodeCursor(pagination, ENTITY, cursorContext.sort(), parameters);
 
-        Mockito.when(mockCodec.decodeCursor(cursorContext, ENTITY, parameters)).thenReturn(pageable);
+        Mockito.when(mockCodec.decodeCursor(cursorContext, ENTITY, parameters)).thenReturn(pagination);
 
         // Different ways of messing with the input data
         // - Change query parameter
         assertThatThrownBy(() -> {
             var modified = new HashMap<>(parameters);
-            modified.put("a", "c");
+            modified.put("a", List.of("c"));
             codec.decodeCursor(encodedContext, ENTITY, modified);
         }).isInstanceOf(IntegrityCheckFailedException.class);
 
-        // - Add query parameter
+        // - Add query parameter value
+        assertThatThrownBy(() -> {
+            var modifiedMap = new HashMap<>(parameters);
+            var modifiedList = new ArrayList<>(Optional.ofNullable(parameters.get("a")).orElse(List.of()));
+            modifiedList.add("c");
+            modifiedMap.put("a", modifiedList);
+            codec.decodeCursor(encodedContext, ENTITY, modifiedMap);
+        }).isInstanceOf(IntegrityCheckFailedException.class);
+
+        // - Add query parameter key
         assertThatThrownBy(() -> {
             var modified = new HashMap<>(parameters);
-            modified.put("x", "y");
+            modified.put("x", List.of("y"));
             codec.decodeCursor(encodedContext, ENTITY, modified);
         }).isInstanceOf(IntegrityCheckFailedException.class);
 
-        // - Remove query parameter
+        // - Remove query parameter key
         if (parameters.containsKey("a")) {
             assertThatThrownBy(() -> {
                 var modified = new HashMap<>(parameters);
@@ -155,12 +167,12 @@ class RequestIntegrityCheckCursorCodecTest {
     void extended_whenShortCrc() {
         CursorCodec codec = new RequestIntegrityCheckCursorCodec(new CursorCodec() {
             @Override
-            public Pagination decodeCursor(CursorContext context, EntityName entityName, Map<String, String> parameters) {
+            public Pagination decodeCursor(CursorContext context, EntityName entityName, Map<String, List<String>> parameters) {
                 throw new UnsupportedOperationException("Test implementation can not decode cursors");
             }
 
             @Override
-            public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, String> parameters) {
+            public CursorContext encodeCursor(Pagination pagination, EntityName entityName, SortData sort, Map<String, List<String>> parameters) {
                 return CursorContext.builder()
                         .cursor("1")
                         .pageSize(pagination.getLimit())
@@ -172,7 +184,7 @@ class RequestIntegrityCheckCursorCodecTest {
         CursorCodec.CursorContext context = null;
 
         for (int i = 0; i < 10_000; i++) {
-            var parameters = Map.of("t", Integer.toString(i));
+            var parameters = Map.of("t", List.of(Integer.toString(i)));
 
             context = codec.encodeCursor(new PageBasedPagination(10, 1), EntityName.of("supplier"), new SortData(List.of()), parameters);
 

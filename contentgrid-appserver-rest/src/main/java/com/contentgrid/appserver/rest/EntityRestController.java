@@ -20,7 +20,6 @@ import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
@@ -32,6 +31,7 @@ import org.springframework.http.ETag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -70,11 +70,11 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             PermissionPredicate permissionPredicate,
-            @RequestParam Map<String, String> params,
+            @RequestParam MultiValueMap<String, String> params,
             EncodedCursorPagination pagination
     ) {
         // Remove pagination query parameters
-        var paramsWithoutPaging = new HashMap<>(params);
+        var paramsWithoutPaging = MultiValueMap.fromMultiValue(new HashMap<>(params));
         paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.CURSOR_NAME);
         paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SIZE_NAME);
         paramsWithoutPaging.remove(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);

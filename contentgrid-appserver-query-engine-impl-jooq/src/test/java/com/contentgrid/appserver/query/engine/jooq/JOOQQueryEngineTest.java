@@ -67,7 +67,6 @@ import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedExce
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -585,11 +584,6 @@ class JOOQQueryEngineTest {
                 StringComparison.normalizedEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_¹") // invoice_1
-                ),
-                // starts with
-                StringComparison.startsWith(
-                        StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
-                        StringFunctionExpression.normalize(Scalar.of("b")) // bob
                 ),
                 // contentgrid prefix search
                 StringComparison.contentGridPrefixSearchMatch(

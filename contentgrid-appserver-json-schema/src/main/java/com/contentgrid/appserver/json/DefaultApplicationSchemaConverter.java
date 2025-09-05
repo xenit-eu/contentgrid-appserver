@@ -20,7 +20,9 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -290,6 +292,26 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                     .attributePath(propertyPath)
                     .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
                     .build();
+            case "greater" -> OrderedSearchFilter.greaterThan()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
+            case "greater-or-equal" -> OrderedSearchFilter.greaterThanOrEqual()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
+            case "less" -> OrderedSearchFilter.lessThan()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
+            case "less-or-equal" -> OrderedSearchFilter.lessThanOrEqual()
+                    .name(filterName)
+                    .attributePath(propertyPath)
+                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                    .build();
             default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
         };
     }
@@ -546,16 +568,22 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var jsonFilter = new SearchFilter();
         jsonFilter.setName(filter.getName().getValue());
         jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
-        switch (filter) {
-            case PrefixSearchFilter prefixFilter -> {
-                jsonFilter.setAttributePath(toJsonPropertyPath(prefixFilter.getAttributePath()));
-                jsonFilter.setType("prefix");
-            }
-            case ExactSearchFilter exactFilter -> {
-                jsonFilter.setAttributePath(toJsonPropertyPath(exactFilter.getAttributePath()));
-                jsonFilter.setType("exact");
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + filter);
+        if (filter instanceof AttributeSearchFilter attributeFilter) {
+            jsonFilter.setAttributePath(toJsonPropertyPath(attributeFilter.getAttributePath()));
+            var type = switch (attributeFilter) {
+                case PrefixSearchFilter ignored -> "prefix";
+                case ExactSearchFilter ignored -> "exact";
+                case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
+                    case GREATER_THAN -> "greater";
+                    case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
+                    case LESS_THAN -> "less";
+                    case LESS_THAN_OR_EQUAL -> "less-or-equal";
+                };
+                default -> throw new IllegalStateException("Unexpected value: " + filter);
+            };
+            jsonFilter.setType(type);
+        } else {
+            throw new IllegalStateException("Unexpected value: " + filter);
         }
         return jsonFilter;
     }

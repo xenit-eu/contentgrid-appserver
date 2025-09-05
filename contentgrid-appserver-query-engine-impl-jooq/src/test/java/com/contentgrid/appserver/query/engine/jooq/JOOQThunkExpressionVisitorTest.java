@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -37,7 +38,6 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -259,6 +259,7 @@ class JOOQThunkExpressionVisitorTest {
     private static final UUID ALICE_ID = UUID_GENERATOR.generate();
     private static final UUID BOB_ID = UUID_GENERATOR.generate();
     private static final UUID JOHN_ID = UUID_GENERATOR.generate();
+    private static final UUID THIJS_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
 
@@ -308,6 +309,11 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("id", UUID.class), JOHN_ID)
                 .set(DSL.field("name", String.class), "john")
                 .set(DSL.field("vat", String.class), "vat_3")
+                .execute();
+        dslContext.insertInto(DSL.table("person"))
+                .set(DSL.field("id", UUID.class), THIJS_ID)
+                .set(DSL.field("name", String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
+                .set(DSL.field("vat", String.class), "Thijs")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE1_ID)
@@ -372,9 +378,9 @@ class JOOQThunkExpressionVisitorTest {
     @Test
     void findAliceWithPrefixSearch() {
         // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
-        ThunkExpression<?> expression = StringComparison.startsWith(
-                StringFunctionExpression.contentGridPrefixSearchNormalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name"))),
-                StringFunctionExpression.contentGridPrefixSearchNormalize(Scalar.of("ALI"))
+        ThunkExpression<?> expression = StringComparison.contentGridPrefixSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                Scalar.of("ALI")
         );
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
@@ -452,6 +458,47 @@ class JOOQThunkExpressionVisitorTest {
     }
 
     @Test
+    void findBothTermsSymbolicReferences_shouldUseNormalizedSearch() {
+        // entity.name = entity.vat
+        ThunkExpression<?> expression = Comparison.areEqual(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("vat"))
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        assertEquals(THIJS_ID, result.get("id"));
+
+        // Without normalization, they don't match
+        assertNotEquals(result.get("name"), result.get("vat"));
+    }
+
+    @Test
+    void findBothTermsStringScalars_shouldUseNormalizedSearch() {
+        // ĳ = ij
+        ThunkExpression<?> expression = Comparison.areEqual(
+                Scalar.of("ĳ"),
+                Scalar.of("ij")
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(4, results.size());
+    }
+
+    @Test
     void findInvoiceNextOfAlice() {
         // entity.previous_invoice.customer.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(
@@ -523,10 +570,20 @@ class JOOQThunkExpressionVisitorTest {
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
                         Scalar.of(100L)
                 ),
-                // not equals
+                // equals (string) => should be normalized
+                Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                        Scalar.of("invoice_¹") // invoice_1
+                ),
+                // not equals (double)
+                Comparison.notEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                        Scalar.of(20.0)
+                ),
+                // not equals (string) => should be normalized
                 Comparison.notEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
-                        Scalar.of("invoice_2")
+                        Scalar.of("invoice_²") // invoice_2
                 ),
                 // and, less than, greater than
                 LogicalOperation.conjunction(Stream.of(
@@ -597,11 +654,6 @@ class JOOQThunkExpressionVisitorTest {
                 StringComparison.normalizedEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_¹") // invoice_1
-                ),
-                // starts with
-                StringComparison.startsWith(
-                        StringFunctionExpression.normalize(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))),
-                        StringFunctionExpression.normalize(Scalar.of("b")) // bob
                 ),
                 // contentgrid prefix search
                 StringComparison.contentGridPrefixSearchMatch(

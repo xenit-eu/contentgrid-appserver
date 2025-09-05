@@ -22,7 +22,7 @@ class SimplePageBasedCursorCodecTest {
 
     private static final SortData SORT = new SortData(List.of(new FieldSort(Direction.ASC, SortableName.of("abc")), new FieldSort(Direction.DESC, SortableName.of("def"))));
     private static final EntityName ENTITY = EntityName.of("test");
-    private static final Map<String, String> PARAMS = Map.of();
+    private static final Map<String, List<String>> PARAMS = Map.of();
 
     @Test
     void decodeCursorFromNumber() throws CursorDecodeException {

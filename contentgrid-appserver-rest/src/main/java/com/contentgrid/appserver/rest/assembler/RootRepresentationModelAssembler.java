@@ -14,6 +14,7 @@ import lombok.NonNull;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
+import org.springframework.util.MultiValueMap;
 
 public class RootRepresentationModelAssembler implements RepresentationModelAssembler<Application, EmptyRepresentationModel> {
 
@@ -33,7 +34,7 @@ public class RootRepresentationModelAssembler implements RepresentationModelAsse
 
     private Link getEntityLink(@NonNull Application application, @NonNull Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, Map.of(), null))
+                .listEntity(application, entity.getPathSegment(), null, MultiValueMap.fromSingleValue(Map.of()), null))
                 .withRel(ContentGridLinkRelations.ENTITY).expand()
                 .withName(entity.getLinkName().getValue());
     }

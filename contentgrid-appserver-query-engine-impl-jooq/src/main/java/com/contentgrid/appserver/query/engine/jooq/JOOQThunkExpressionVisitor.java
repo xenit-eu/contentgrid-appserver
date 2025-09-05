@@ -12,10 +12,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.CustomFunctionExpression;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.StartsWith;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.ContentGridPrefixSearchNormalizeExpression;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringFunctionExpression.NormalizeExpression;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
@@ -38,6 +35,7 @@ import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQThunkExpressionVisitor.JOOQContext> {
@@ -61,12 +59,20 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
+                    left = normalize(left);
+                    right = normalize(right);
+                }
                 yield ((Field<Object>) left).equal((Field<Object>) right);
             }
             case NOT_EQUAL_TO -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
+                    left = normalize(left);
+                    right = normalize(right);
+                }
                 yield ((Field<Object>) left).notEqual((Field<Object>) right);
             }
             case GREATER_THAN -> {
@@ -167,25 +173,12 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case CUSTOM -> {
-                if (functionExpression instanceof CustomFunctionExpression<?> customFunctionExpression) {
-                    yield switch (customFunctionExpression) {
-                        case StartsWith startsWith -> {
-                            var leftField = startsWith.getLeftTerm().accept(this, context);
-                            var rightField = startsWith.getRightTerm().accept(this, context);
-                            yield ((Field<Object>) leftField).startsWith((Field<Object>) rightField);
-                        }
-                        case NormalizeExpression normalizeExpression -> {
-                            var field = normalizeExpression.getTerm().accept(this, context);
-                            yield DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
-                        }
-                        case ContentGridPrefixSearchNormalizeExpression expression -> {
-                            var field = expression.getTerm().accept(this, context);
-                            yield DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
-                        }
-                        default -> throw new InvalidThunkExpressionException(
-                                "Function expression with type %s is not supported.".formatted(
-                                        functionExpression.getClass().getSimpleName()));
-                    };
+                if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
+                    var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
+                    var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
+                    var leftField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", left), String.class);
+                    var rightField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", right), String.class);
+                    yield leftField.startsWith(rightField);
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
@@ -210,6 +203,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (terms.size() != 2) {
             throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
         }
+    }
+
+    private static Field<String> normalize(Field<?> field) {
+        return DSL.field(DSL.sql("normalize(?, NFKC)", field), SQLDataType.CLOB);
     }
 
     @Override

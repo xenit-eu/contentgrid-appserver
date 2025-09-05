@@ -67,7 +67,11 @@
                   "description": "The type of filter.",
                   "enum": [
                     "exact",
-                    "prefix"
+                    "prefix",
+                    "greater",
+                    "greater-or-equal",
+                    "less",
+                    "less-or-equal"
                   ]
                 },
                 "flags": {

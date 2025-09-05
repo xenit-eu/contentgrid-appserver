@@ -30,6 +30,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -97,7 +98,8 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
         var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, targetEntity.getPathSegment(), null, Map.of(targetFilter.getName().getValue(), instanceId.toString()), null))
+                .listEntity(application, targetEntity.getPathSegment(), null,
+                        MultiValueMap.fromSingleValue(Map.of(targetFilter.getName().getValue(), instanceId.toString())), null))
                 .toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }

@@ -35,6 +35,7 @@ import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.util.MultiValueMap;
 
 public class HalFormsTemplateGenerator {
 
@@ -138,7 +139,7 @@ public class HalFormsTemplateGenerator {
 
     private URI getCollectionSelfLink(Application application, Entity entity) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, Map.of(), null))
+                .listEntity(application, entity.getPathSegment(), null, MultiValueMap.fromSingleValue(Map.of()), null))
                 .toUri();
     }
 
@@ -214,7 +215,8 @@ public class HalFormsTemplateGenerator {
         }
         var required = relation.getSourceEndPoint().isRequired();
         var url = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), null, Map.of(), null))
+                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(),
+                        null, MultiValueMap.fromSingleValue(Map.of()), null))
                 .toUri().toString();
         var options = HalFormsOptions.remote(url)
                 .withMinItems(required ? 1L : 0L)

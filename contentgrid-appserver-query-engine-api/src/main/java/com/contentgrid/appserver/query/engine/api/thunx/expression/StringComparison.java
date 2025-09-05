@@ -22,28 +22,21 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return key.toUpperCase(Locale.ROOT) + "(" + getLeftTerm() + ", " + getRightTerm() + ")";
     }
 
-    public static Comparison startsWith(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
-        return new StartsWith(leftTerm, rightTerm);
-    }
-
+    /**
+     * Alias of {@link Comparison#areEqual}
+     */
     public static Comparison normalizedEqual(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
-        return Comparison.areEqual(
-                StringFunctionExpression.normalize(leftTerm),
-                StringFunctionExpression.normalize(rightTerm)
-        );
+        return Comparison.areEqual(leftTerm, rightTerm);
     }
 
     public static Comparison contentGridPrefixSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
-        return startsWith(
-                StringFunctionExpression.contentGridPrefixSearchNormalize(leftTerm),
-                StringFunctionExpression.contentGridPrefixSearchNormalize(rightTerm)
-        );
+        return new ContentGridPrefixSearch(leftTerm, rightTerm);
     }
 
-    public static final class StartsWith extends StringComparison {
+    public static final class ContentGridPrefixSearch extends StringComparison {
 
-        private StartsWith(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
-            super("starts_with", leftTerm, rightTerm);
+        private ContentGridPrefixSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+            super("cg_prefix_search", leftTerm, rightTerm);
         }
     }
 }

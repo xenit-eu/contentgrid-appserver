@@ -103,7 +103,7 @@ class ProfileRestControllerTest {
                                         }],
                                         "blueprint:search-param": [{
                                             name: "number",
-                                            type: "exact"
+                                            type: "exact-match"
                                         }]
                                     }
                                 }, {
@@ -113,14 +113,48 @@ class ProfileRestControllerTest {
                                     _embedded: {
                                         "blueprint:constraint": [{
                                             type: "required"
+                                        }],
+                                        "blueprint:search-param": [{
+                                            name: "amount",
+                                            type: "exact-match"
+                                        }, {
+                                            name: "amount~gt",
+                                            type: "greater-than"
+                                        }, {
+                                            name: "amount~gte",
+                                            type: "greater-than-or-equal"
+                                        }, {
+                                            name: "amount~lt",
+                                            type: "less-than"
+                                        }, {
+                                            name: "amount~lte",
+                                            type: "less-than-or-equal"
                                         }]
                                     }
                                 }, {
                                     name: "received",
-                                    type: "datetime"
+                                    type: "datetime",
+                                    _embedded: {
+                                        "blueprint:search-param": [{
+                                            name: "received~after",
+                                            type: "greater-than"
+                                        }, {
+                                            name: "received~before",
+                                            type: "less-than"
+                                        }]
+                                    }
                                 }, {
                                     name: "pay_before",
-                                    type: "datetime"
+                                    type: "datetime",
+                                    _embedded: {
+                                        "blueprint:search-param": [{
+                                            name: "pay_before~after",
+                                            type: "greater-than"
+                                        }, {
+                                            name: "pay_before~before",
+                                            type: "less-than"
+                                        }]
+                                    }
                                 }, {
                                     name: "is_paid",
                                     type: "boolean"
@@ -137,7 +171,7 @@ class ProfileRestControllerTest {
                                         }],
                                         "blueprint:search-param": [{
                                             name: "confidentiality",
-                                            type: "exact"
+                                            type: "exact-match"
                                         }]
                                     }
                                 }, {
@@ -254,6 +288,33 @@ class ProfileRestControllerTest {
                                     properties: [{
                                         name: "number",
                                         type: "text"
+                                    }, {
+                                        name: "amount",
+                                        type: "number"
+                                    }, {
+                                        name: "amount~gt",
+                                        type: "number"
+                                    }, {
+                                        name: "amount~gte",
+                                        type: "number"
+                                    }, {
+                                        name: "amount~lt",
+                                        type: "number"
+                                    }, {
+                                        name: "amount~lte",
+                                        type: "number"
+                                    }, {
+                                        name: "received~after",
+                                        type: "datetime"
+                                    }, {
+                                        name: "received~before",
+                                        type: "datetime"
+                                    }, {
+                                        name: "pay_before~after",
+                                        type: "datetime"
+                                    }, {
+                                        name: "pay_before~before",
+                                        type: "datetime"
                                     }, {
                                         name: "confidentiality",
                                         type: "text",
