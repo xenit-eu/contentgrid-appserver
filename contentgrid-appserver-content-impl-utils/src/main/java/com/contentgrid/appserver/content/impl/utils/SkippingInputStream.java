@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
  * Skips a certain amount of bytes from the delegate {@link InputStream}
  */
 @RequiredArgsConstructor
-class SkippingInputStream extends InputStream {
+public class SkippingInputStream extends InputStream {
     @NonNull
     private final InputStream delegate;
     private final long skipBytes;
