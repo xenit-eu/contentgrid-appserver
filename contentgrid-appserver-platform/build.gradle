@@ -18,6 +18,7 @@ dependencies {
 
         api 'com.fasterxml.uuid:java-uuid-generator:5.1.0'
 
+        api 'io.minio:minio:8.5.17'
 
         api 'com.networknt:json-schema-validator:1.5.8'
         api 'uk.co.datumedge:hamcrest-json:0.3'

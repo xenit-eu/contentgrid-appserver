@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-content-api')
+    implementation project(':contentgrid-appserver-content-impl-utils')
+    implementation 'io.minio:minio'
+
+    testImplementation testFixtures(project(':contentgrid-appserver-content-impl-utils'))
+    testImplementation "org.testcontainers:testcontainers:1.21.3"
+    testImplementation "org.testcontainers:junit-jupiter:1.21.3"
+    testImplementation "org.testcontainers:minio:1.21.3"
+}
+
