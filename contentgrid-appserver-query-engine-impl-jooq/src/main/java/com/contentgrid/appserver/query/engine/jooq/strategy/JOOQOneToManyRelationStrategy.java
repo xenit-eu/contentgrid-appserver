@@ -126,17 +126,10 @@ public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStra
         var sourceRef = getSourceRef(relation);
 
         try {
-            var updated = dslContext.update(table)
+            dslContext.update(table)
                     .set(sourceRef, (UUID) null)
                     .where(sourceRef.eq(id.getValue()))
                     .execute();
-
-            if (updated == 0) {
-                // When nothing is updated; that may be because there is no target entity
-                // that links to the source entity.
-                // We still need to check that the source entity exists before throwing
-                assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
-            }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
         }
