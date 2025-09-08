@@ -42,6 +42,7 @@ import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JO
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
+import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
@@ -266,8 +267,9 @@ public class JOOQQueryEngine implements QueryEngine {
             var relation = application.getRelationForEntity(entity, relationData.getName())
                     .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
             switch (relationData) {
-                case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef());
-                case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs());
+                case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef(),
+                        Scalar.of(true));
+                case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs(), Scalar.of(true));
             }
         }
 
@@ -288,7 +290,7 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull ThunkExpression<Boolean> predicate
     ) throws PermissionDeniedException {
         findById(application, request, predicate)
-                .orElseThrow(() -> new PermissionDeniedException(request.getEntityName(), request.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(request.getEntityName(), request.getEntityId()));
     }
 
     private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
@@ -431,50 +433,60 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
-            @NonNull EntityId targetId) throws QueryEngineException {
+            @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), sourceId), permitReadPredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forRelation(relation);
         return strategy.isLinked(dslContext, relation, sourceId, targetId);
     }
 
     @Override
-    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
-            throws QueryEngineException {
+    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+            @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitReadPredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
         return strategy.findTarget(dslContext, relation, id);
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId)
-            throws QueryEngineException {
+    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
         strategy.create(dslContext, relation, id, targetId);
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
-            throws QueryEngineException {
+    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forRelation(relation);
         strategy.delete(dslContext, relation, id);
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
-            throws QueryEngineException {
+    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.add(dslContext, relation, id, targetIds);
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
-            throws QueryEngineException {
+    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.remove(dslContext, relation, id, targetIds);
+        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), id), permitUpdatePredicate);
     }
 
     @Override

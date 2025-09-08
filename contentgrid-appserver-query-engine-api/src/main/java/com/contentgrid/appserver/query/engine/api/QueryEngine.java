@@ -112,10 +112,11 @@ public interface QueryEngine {
      * @param relation the relation type to check
      * @param sourceId the primary key of the source entity
      * @param targetId the primary key of the target entity
+     * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
+    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -124,10 +125,11 @@ public interface QueryEngine {
      * @param application the application context
      * @param relation the *-to-one relation to query
      * @param id the primary key of the source entity
+     * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**
      * Link the target entity id provided in data with the given source id.
@@ -137,9 +139,10 @@ public interface QueryEngine {
      * @param relation the *-to-one relation for which to set the link
      * @param id the primary key of the source entity
      * @param targetId the primary key of the target entity
+     * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -147,9 +150,10 @@ public interface QueryEngine {
      * @param application the application context
      * @param relation the relation type for which to remove links
      * @param id the primary key of the source entity
+     * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Adds the links provided in data to the entity with the given id.
@@ -159,9 +163,10 @@ public interface QueryEngine {
      * @param relation the *-to-many relation to add links to
      * @param id the primary key of the source entity
      * @param targetIds the primary keys of the target entities
+     * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
@@ -171,9 +176,10 @@ public interface QueryEngine {
      * @param relation the *-to-many relation to remove links from
      * @param id the primary key of the source entity
      * @param targetIds the primary keys of the target entities
+     * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Counts how many entities exist that match the given expression.
