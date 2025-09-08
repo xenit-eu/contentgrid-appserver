@@ -42,6 +42,7 @@ import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -106,6 +107,27 @@ class DatamodelApiImplTest {
 
     private final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
+    private static CompositeAttributeData getAuditMetadataData() {
+        // TODO: have these attributes be filled automatically
+        return CompositeAttributeData.builder()
+                .name(INVOICE_AUDIT_METADATA.getName())
+                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now()))
+                .attribute(CompositeAttributeData.builder()
+                        .name(AttributeName.of("created_by"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
+                        .build())
+                .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), Instant.now()))
+                .attribute(CompositeAttributeData.builder()
+                        .name(AttributeName.of("last_modified_by"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
+                        .build())
+                .build();
+    }
+
     @BeforeEach
     void setup() {
         datamodelApi = new DatamodelApiImpl(
@@ -165,7 +187,7 @@ class DatamodelApiImplTest {
                             "confidentiality", "public",
                             "customer", new RelationDataEntry(PERSON.getName(), personId)
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -173,7 +195,6 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
-                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
                         .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
@@ -187,7 +208,8 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build()
+                                .build(),
+                                getAuditMetadataData()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -206,7 +228,7 @@ class DatamodelApiImplTest {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "received", Instant.now(clock),
                         "confidentiality", "public"
-                )), PermissionPredicate.allowAll());
+                )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -233,7 +255,7 @@ class DatamodelApiImplTest {
                         "is_paid", "maybe",
                         "confidentiality", "public",
                         "customer", "test123"
-                )), PermissionPredicate.allowAll());
+                )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -266,7 +288,7 @@ class DatamodelApiImplTest {
                         "is_paid", false,
                         "confidentiality", "xyz123",
                         "customer", new RelationDataEntry(PERSON.getName(), personId)
-                )), PermissionPredicate.allowAll());
+                )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -299,7 +321,7 @@ class DatamodelApiImplTest {
                                     .map(pid -> new RelationDataEntry(PRODUCT.getName(), pid))
                                     .toList()
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -307,7 +329,6 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
-                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
                         .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
@@ -321,7 +342,8 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build()
+                                .build(),
+                                getAuditMetadataData()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -357,7 +379,7 @@ class DatamodelApiImplTest {
                                     personId
                             ))
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -383,7 +405,7 @@ class DatamodelApiImplTest {
                     "vat", "123456"
                     // person also has a uni-directional "friends" relation that we don't provide here.
                     // The inverse relation is unnamed, so it should also not be processed
-            )), PermissionPredicate.allowAll());
+            )), PermissionPredicate.allowAll(), Optional.empty());
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
@@ -407,7 +429,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -415,9 +437,11 @@ class DatamodelApiImplTest {
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
-            )));
+            )),
+                    PermissionPredicate.allowAll(),
+                    Optional.of(new User("00000000-0000-0000-0000-000000000000", "keycloak", "alice@example.com")));
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
@@ -449,7 +473,7 @@ class DatamodelApiImplTest {
                         "confidentiality", "public",
                         "customer", customer,
                         "products", products
-                 )), PermissionPredicate.allowAll());
+                 )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -496,14 +520,13 @@ class DatamodelApiImplTest {
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-            )), PermissionPredicate.allowAll());
+            )), PermissionPredicate.allowAll(), Optional.empty());
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
-                        .filteredOn(d -> !d.getName().getValue().equals("audit_metadata"))
                         .containsExactlyInAnyOrder(
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
@@ -517,7 +540,8 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "my-file.pdf"))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), "application/pdf"))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 110L))
-                                .build()
+                                .build(),
+                                getAuditMetadataData()
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -542,7 +566,7 @@ class DatamodelApiImplTest {
                             "mimetype", "application/pdf",
                             "length", 120
                     )
-            )), PermissionPredicate.allowAll()))
+            )), PermissionPredicate.allowAll(), Optional.empty()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
                         assertThat(e.getPath().toList()).isEqualTo(List.of("content"));
                     });
@@ -944,7 +968,7 @@ class DatamodelApiImplTest {
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
-            assertThat(createDataCaptor.getValue().getAttributes()).isEmpty();
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(getAuditMetadataData());
 
             Mockito.verifyNoInteractions(contentStore);
         }
@@ -983,7 +1007,8 @@ class DatamodelApiImplTest {
                             .attribute(
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
                             // Mimetype is absent because it's a missing entry
-                            .build()
+                            .build(),
+                    getAuditMetadataData()
             );
 
             Mockito.verifyNoInteractions(contentStore);

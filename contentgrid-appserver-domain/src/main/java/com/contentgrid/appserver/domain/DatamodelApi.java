@@ -15,6 +15,8 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.User;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -61,12 +63,13 @@ public interface DatamodelApi {
      * @param application the application context
      * @param entityName the name of the entity to update
      * @param data the data for the new entity
+     * @param user the user doing the action, for audit purposes (optional)
      * @return the value of the primary key for the newly created entity
      * @throws QueryEngineException if an error occurs during the create operation
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     EntityInstance create(@NonNull Application application, @NonNull EntityName entityName, @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate, @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException;
 

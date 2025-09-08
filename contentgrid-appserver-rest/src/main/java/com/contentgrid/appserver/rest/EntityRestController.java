@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.audit.CurrentUserProvider;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.EntityInstance;
@@ -131,11 +132,14 @@ public class EntityRestController {
         GenericConversionService conversionService = new GenericConversionService();
         conversionService.addConverter(new StringDataEntryToRelationDataEntryConverter(application));
 
+        var user = CurrentUserProvider.getCurrentUser();
+
         var result = datamodelApi.create(
                 application,
                 entity.getName(),
                 new ConversionServiceRequestInputData(data, conversionService),
-                permissionPredicate
+                permissionPredicate,
+                user
         );
 
         var model = assembler.withContext(application, entityName).toModel(result);

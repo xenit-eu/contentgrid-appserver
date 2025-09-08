@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
@@ -28,6 +27,7 @@ import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
 import com.contentgrid.appserver.domain.data.mapper.AttributeDataToDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.AttributeMapper;
+import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
@@ -51,9 +51,10 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
-import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -73,6 +74,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -98,7 +100,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
-            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper
+            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
+            @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
@@ -106,7 +109,9 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
 
-        var combinedMapper = inputMapper.andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
+        var combinedMapper = inputMapper
+                .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
+                .andThen(auditMapper)
                 // Validate constraints
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
@@ -235,7 +240,8 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -249,6 +255,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
+                , AuditAttributeMapper.forCreate(user.orElse(null))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -258,7 +265,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
         exceptionCollector.rethrow();
 
-        attributes.addAll(creationAuditFields(application, entityName));
+//        attributes.addAll(creationAuditFields(application, entityName));
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
@@ -305,7 +312,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        ))
+                        )),
+                AuditAttributeMapper.forCreate(null)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -341,7 +349,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        ))
+                        )),
+                AuditAttributeMapper.forCreate(null)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
