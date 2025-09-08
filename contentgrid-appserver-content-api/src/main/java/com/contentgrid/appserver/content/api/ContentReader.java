@@ -5,7 +5,7 @@ import java.io.InputStream;
 /**
  * A reader to read a specific content object
  */
-public non-sealed interface ContentReader extends ContentAccessor {
+public interface ContentReader extends ContentAccessor {
 
     /**
      * Obtain a stream for reading from this content reader

@@ -1,18 +1,20 @@
 package com.contentgrid.appserver.content.impl.fs;
 
+import com.contentgrid.appserver.content.api.ContentAccessor;
 import com.contentgrid.appserver.content.api.ContentReader;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.api.ContentWriter;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
+import com.contentgrid.appserver.content.impl.utils.CountingInputStream;
 import com.contentgrid.appserver.content.impl.utils.EmulatedRangedContentReader;
 import com.contentgrid.appserver.content.impl.utils.GuardedContentReader;
-import com.contentgrid.appserver.content.impl.utils.GuardedContentWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +46,8 @@ public class FilesystemContentStore implements ContentStore {
         return new GuardedContentReader(
                 new EmulatedRangedContentReader(
                         new FileContentReader(
-                                contentReference,
                                 path,
+                                contentReference,
                                 contentRange.getContentSize()
                         ),
                         contentRange
@@ -54,15 +56,17 @@ public class FilesystemContentStore implements ContentStore {
     }
 
     @Override
-    public ContentWriter createNewWriter() {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         var path = resolvePath(contentReference);
-        return new GuardedContentWriter(
-                new FileContentWriter(
-                        contentReference,
-                        path
-                )
-        );
+        var countInputStream = new CountingInputStream(inputStream);
+        try (var outputStream = Files.newOutputStream(path, StandardOpenOption.CREATE_NEW)) {
+            countInputStream.transferTo(outputStream);
+        } catch (IOException e) {
+            throw new UnwritableContentException(contentReference, e);
+        }
+
+        return new FileContentAccessor(contentReference, countInputStream.getSize());
     }
 
     @Override
@@ -73,4 +77,5 @@ public class FilesystemContentStore implements ContentStore {
             throw new UnwritableContentException(contentReference, e);
         }
     }
+
 }

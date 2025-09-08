@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.content.api;
 
 import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
+import java.io.InputStream;
 
 /**
  * Provides persistence for content objects
@@ -27,13 +28,12 @@ public interface ContentStore {
     ) throws UnreadableContentException;
 
     /**
-     * Obtain an object that is used for writing content
-     * The writer is stateful and can only be used to write content once.
-     * <p>
-     * The store will ensure that the {@link ContentWriter#getReference()} can be used for subsequent read attempts.
-     * @return Writer for storing the content
+     * Write content into the content store
+     * @param inputStream The content to write to the store
+     * @return A content accessor that contains {@link ContentReference} and content size information
+     * @throws UnwritableContentException When the content can not be written for any reason
      */
-    ContentWriter createNewWriter() throws UnwritableContentException;
+    ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException;
 
     /**
      * Removes the content associated with a given content reference

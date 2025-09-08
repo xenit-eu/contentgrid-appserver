@@ -21,16 +21,20 @@ import com.contentgrid.appserver.content.impl.encryption.keys.WrappingKeyId;
 import com.contentgrid.appserver.content.impl.encryption.testing.InMemoryDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.content.impl.encryption.testing.XorTestEncryptionEngine;
 import com.contentgrid.appserver.content.impl.utils.testing.AbstractContentStoreBehaviorTest;
-import com.contentgrid.appserver.content.impl.utils.testing.InMemoryMockContentStore;
+import com.contentgrid.appserver.content.impl.utils.testing.MockContentStore;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AutoClose;
 import org.junit.jupiter.api.Test;
 
 class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
-    private final ContentStore backingStorage = new InMemoryMockContentStore();
+    @AutoClose
+    private final ContentStore backingStorage = new MockContentStore();
     private final DataEncryptionKeyAccessor keyAccessor = new InMemoryDataEncryptionKeyAccessor();
     private final EncryptedContentStore xorContentStore = new EncryptedContentStore(
             backingStorage,
@@ -81,7 +85,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     void refusesStoreWithoutWrappers() {
         var store = new EncryptedContentStore(backingStorage, keyAccessor, List.of(), List.of(new AesCtrEncryptionEngine(128)));
 
-        assertThatThrownBy(store::createNewWriter)
+        assertThatThrownBy(() -> store.writeContent(InputStream.nullInputStream()))
                 .isInstanceOf(NoEncryptableDataEncryptionKeysException.class)
                 .hasMessageContaining("No wrappers can encrypt data encryption keys");
     }
@@ -90,13 +94,13 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     void refusesStoreWithoutEngine() {
         var store = new EncryptedContentStore(backingStorage, keyAccessor, List.of(new EncryptOnlyDataEncryptionKeyWrapper()), List.of());
 
-        assertThatThrownBy(store::createNewWriter)
+        assertThatThrownBy(() -> store.writeContent(InputStream.nullInputStream()))
                 .isInstanceOf(UnencryptableContentException.class)
                 .hasMessageContaining("No encryption engine available");
     }
 
     @Test
-    void decryptUsingMultipleEngines() throws UnwritableContentException, IOException, UnreadableContentException {
+    void decryptUsingMultipleEngines() throws UnwritableContentException, UnreadableContentException {
         var xorEncrypted = write(xorContentStore, TEST_BYTES);
         var aesEncrypted = write(contentStore, TEST_BYTES);
 
@@ -118,7 +122,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptUnsupportedEngine() throws UnwritableContentException, IOException {
+    void decryptUnsupportedEngine() throws UnwritableContentException {
         var xorEncrypted = write(xorContentStore, TEST_BYTES);
 
         assertThatThrownBy(() -> readerFor(contentStore, xorEncrypted))
@@ -128,7 +132,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptKeyNoDecryptWrapper() throws UnwritableContentException, IOException {
+    void decryptKeyNoDecryptWrapper() throws UnwritableContentException {
         var encrypted = write(contentStore, TEST_BYTES);
 
         var otherStore = new EncryptedContentStore(
@@ -150,7 +154,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptKeyFailingWrapper() throws UnwritableContentException, IOException {
+    void decryptKeyFailingWrapper() throws UnwritableContentException {
         var store = new EncryptedContentStore(
                 backingStorage,
                 keyAccessor,
@@ -176,7 +180,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptKeyMultipleFailingWrappers() throws UnwritableContentException, IOException {
+    void decryptKeyMultipleFailingWrappers() throws UnwritableContentException {
         var secondFailingWrapperKid = WrappingKeyId.of("second-failing-wrapper");
         var store = new EncryptedContentStore(
                 backingStorage,
@@ -220,7 +224,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void decryptKeyNoSupportedWrapper() throws UnwritableContentException, IOException {
+    void decryptKeyNoSupportedWrapper() throws UnwritableContentException {
         var store = new EncryptedContentStore(
                 backingStorage,
                 keyAccessor,
@@ -246,12 +250,8 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
     }
 
     private static ContentAccessor write(ContentStore contentStore, byte[] content)
-            throws UnwritableContentException, IOException {
-        var writer = contentStore.createNewWriter();
-        try(var outputStream = writer.getContentOutputStream()) {
-            outputStream.write(content);
-        }
-        return writer;
+            throws UnwritableContentException {
+        return contentStore.writeContent(new ByteArrayInputStream(content));
     }
 
     private static ContentReader readerFor(ContentStore contentStore, ContentAccessor accessor)

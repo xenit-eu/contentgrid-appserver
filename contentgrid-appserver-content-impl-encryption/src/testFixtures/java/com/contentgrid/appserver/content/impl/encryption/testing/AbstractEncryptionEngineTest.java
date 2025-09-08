@@ -10,6 +10,7 @@ import com.contentgrid.appserver.content.impl.encryption.engine.ContentEncryptio
 import com.contentgrid.appserver.content.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.content.impl.utils.EmulatedRangedContentReader;
 import com.contentgrid.appserver.content.impl.utils.testing.MockContentReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,13 +50,14 @@ public abstract class AbstractEncryptionEngineTest {
                 params.getInitializationVector()
         );
 
-        var encryptedStream = new ByteArrayOutputStream();
-        var plainStream = getContentEncryptionEngine().encrypt(encryptedStream, encryptParams);
+        var plainInputStream = new ByteArrayInputStream(TEST_DATA);
+        var encryptedInputStream = getContentEncryptionEngine().encrypt(plainInputStream, encryptParams);
 
         assertThat(encryptParams.isDestroyed()).isTrue();
 
-        try(plainStream) {
-            plainStream.write(TEST_DATA);
+        var encryptedStream = new ByteArrayOutputStream();
+        try (encryptedInputStream) {
+            encryptedInputStream.transferTo(encryptedStream);
         }
 
         // Some data should have been written

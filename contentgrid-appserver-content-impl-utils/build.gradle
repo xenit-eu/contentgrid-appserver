@@ -10,5 +10,6 @@ dependencies {
     testImplementation 'commons-io:commons-io:2.20.0'
 
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
+    testFixturesImplementation project(':contentgrid-appserver-content-impl-fs')
 }
 
