@@ -4,7 +4,7 @@ import com.contentgrid.appserver.content.api.ContentReader;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
 import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.content.impl.encryption.keys.KeyBytes;
-import java.io.OutputStream;
+import java.io.InputStream;
 import javax.security.auth.Destroyable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +28,11 @@ public interface ContentEncryptionEngine {
     /**
      * Encrypt a content stream
      *
-     * @param ciphertextStream The underlying content stream that will receive encrypted content
+     * @param plaintextStream The input stream containing unencrypted content
      * @param encryptionParameters Parameters for the encryption algorithm
-     * @return A stream that receives unencrypted content and will encrypt it before writing it to the ciphertextStream
+     * @return A stream that contains the encrypted content
      */
-    OutputStream encrypt(OutputStream ciphertextStream, EncryptionParameters encryptionParameters);
+    InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters);
 
     /**
      * Decrypt an encrypted content stream

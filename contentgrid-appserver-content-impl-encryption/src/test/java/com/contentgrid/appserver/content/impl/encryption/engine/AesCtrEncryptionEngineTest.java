@@ -64,11 +64,10 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     void encryptTestVector() throws IOException {
         var engine = new AesCtrEncryptionEngine(128);
 
-        var encryptedStream = new ByteArrayOutputStream();
-
         var keyBytes = KeyBytes.copy(KEY);
+        var plainInputStream = new ByteArrayInputStream(PLAINTEXT);
 
-        var plainStream = engine.encrypt(encryptedStream, new EncryptionParameters(
+        var encryptedInputStream = engine.encrypt(plainInputStream, new EncryptionParameters(
                 DataEncryptionAlgorithm.of("AES-CTR"),
                 keyBytes,
                 IV
@@ -77,7 +76,10 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
         // Key is destroyed after initialization
         assertThat(keyBytes.isDestroyed()).isTrue();
 
-        plainStream.write(PLAINTEXT);
+        var encryptedStream = new ByteArrayOutputStream();
+        try (encryptedInputStream) {
+            encryptedInputStream.transferTo(encryptedStream);
+        }
 
         assertThat(encryptedStream.toByteArray()).isEqualTo(CIPHERTEXT);
     }
@@ -126,9 +128,13 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
                 iv
         );
 
+        var plainInputStream = new ByteArrayInputStream(PLAINTEXT);
+        var encryptedInputStream = engine.encrypt(plainInputStream, encryptionParams);
+
         var encryptedStream = new ByteArrayOutputStream();
-        var plainStream = engine.encrypt(encryptedStream, encryptionParams);
-        plainStream.write(PLAINTEXT);
+        try (encryptedInputStream) {
+            encryptedInputStream.transferTo(encryptedStream);
+        }
         var encrypted = encryptedStream.toByteArray();
 
         var offsetStart = BLOCK_1_PLAIN.length + BLOCK_2_PLAIN.length;

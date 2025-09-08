@@ -12,9 +12,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
+import com.contentgrid.appserver.content.api.ContentAccessor;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.api.ContentWriter;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -59,7 +59,6 @@ import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -445,7 +444,7 @@ class DatamodelApiImplTest {
             var fileId = "my-file-123.bin";
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
-            Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 110));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 110));
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
@@ -506,13 +505,12 @@ class DatamodelApiImplTest {
         }
     }
 
-    private static Answer<ContentWriter> contentWriterFor(String fileId, long size) {
+    private static Answer<ContentAccessor> contentAccessorFor(String fileId, long size) {
         return invocation -> {
-            var cw = Mockito.mock(ContentWriter.class, Answers.RETURNS_SMART_NULLS);
-            Mockito.when(cw.getContentOutputStream()).thenReturn(OutputStream.nullOutputStream());
-            Mockito.when(cw.getContentSize()).thenReturn(size);
-            Mockito.when(cw.getReference()).thenReturn(ContentReference.of(fileId));
-            return cw;
+            var ca = Mockito.mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
+            Mockito.when(ca.getContentSize()).thenReturn(size);
+            Mockito.when(ca.getReference()).thenReturn(ContentReference.of(fileId));
+            return ca;
         };
     }
 
@@ -755,7 +753,7 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
 
-            Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 50));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 50));
 
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1117,7 +1115,7 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
-            Mockito.when(contentStore.createNewWriter()).thenAnswer(contentWriterFor(fileId, 150));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 150));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)

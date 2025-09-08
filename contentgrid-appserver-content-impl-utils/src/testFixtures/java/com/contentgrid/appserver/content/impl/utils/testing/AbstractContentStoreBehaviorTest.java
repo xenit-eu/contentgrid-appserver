@@ -1,17 +1,21 @@
 package com.contentgrid.appserver.content.impl.utils.testing;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.content.api.ContentIOException;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
+import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.content.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.content.api.range.UnsatisfiableContentRangeException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -26,18 +30,11 @@ public abstract class AbstractContentStoreBehaviorTest {
     @Test
     void createNewFileAndReadBack() throws IOException, ContentIOException {
         var contentStore = getContentStore();
-        var writer = contentStore.createNewWriter();
-
-        try(var outputStream = writer.getContentOutputStream()) {
-            outputStream.write(TEST_BYTES);
-        }
-
-        // Output stream can only be accessed once
-        assertThrows(IllegalStateException.class, writer::getContentOutputStream);
+        var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
         var reader = contentStore.getReader(
-                writer.getReference(),
-                ResolvedContentRange.fullRange(writer.getContentSize())
+                contentAccessor.getReference(),
+                ResolvedContentRange.fullRange(contentAccessor.getContentSize())
         );
 
         try(var inputStream = reader.getContentInputStream()) {
@@ -49,22 +46,18 @@ public abstract class AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void deleteFile() throws IOException, ContentIOException {
+    void deleteFile() throws ContentIOException {
         var contentStore = getContentStore();
-        var writer = contentStore.createNewWriter();
+        var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
-        try(var outputStream = writer.getContentOutputStream()) {
-            outputStream.write(TEST_BYTES);
-        }
-
-        contentStore.remove(writer.getReference());
+        contentStore.remove(contentAccessor.getReference());
         // File can be removed multiple times without any problem
-        contentStore.remove(writer.getReference());
+        contentStore.remove(contentAccessor.getReference());
 
         assertThrows(UnreadableContentException.class, () -> {
             contentStore.getReader(
-                            writer.getReference(),
-                            ResolvedContentRange.fullRange(writer.getContentSize())
+                            contentAccessor.getReference(),
+                            ResolvedContentRange.fullRange(contentAccessor.getContentSize())
                     )
                     .getContentInputStream();
         });
@@ -80,25 +73,21 @@ public abstract class AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void readIncorrectFileSize() throws IOException, ContentIOException {
+    void readIncorrectFileSize() throws ContentIOException {
         var contentStore = getContentStore();
-        var writer = contentStore.createNewWriter();
-
-        try (var outputStream = writer.getContentOutputStream()) {
-            outputStream.write(TEST_BYTES);
-        }
+        var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
         assertThrows(UnreadableContentException.class, () -> {
             contentStore.getReader(
-                    writer.getReference(),
-                    ContentRangeRequest.createRange(0).resolve(writer.getContentSize() - 1)
+                    contentAccessor.getReference(),
+                    ContentRangeRequest.createRange(0).resolve(contentAccessor.getContentSize() - 1)
             );
         });
 
         assertThrows(UnreadableContentException.class, () -> {
             contentStore.getReader(
-                    writer.getReference(),
-                    ContentRangeRequest.createRange(0).resolve(writer.getContentSize() + 1)
+                    contentAccessor.getReference(),
+                    ContentRangeRequest.createRange(0).resolve(contentAccessor.getContentSize() + 1)
             );
         });
     }
@@ -106,14 +95,10 @@ public abstract class AbstractContentStoreBehaviorTest {
     @Test
     void readRange() throws IOException, UnsatisfiableContentRangeException, ContentIOException {
         var contentStore = getContentStore();
-        var writer = contentStore.createNewWriter();
-
-        try(var outputStream = writer.getContentOutputStream()) {
-            outputStream.write(TEST_BYTES);
-        }
+        var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
         var reader = contentStore.getReader(
-                writer.getReference(),
+                contentAccessor.getReference(),
                 ContentRangeRequest.createRange(5, 7).resolve(TEST_BYTES.length)
         );
         try(var inputStream = reader.getContentInputStream()) {
@@ -127,24 +112,41 @@ public abstract class AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void writeLargeFile() throws UnwritableContentException, IOException {
+    void writeLargeFile() throws UnwritableContentException {
         var contentStore = getContentStore();
 
-        var writer = contentStore.createNewWriter();
+        var targetSize = 1000L * 1024 * 1024; // 1 GiB
+        var largeDataStream = new java.io.InputStream() {
+            private long bytesRead = 0;
 
-        var byteBuffer = new byte[10*1024*1024]; // 10 MiB
-        Arrays.fill(byteBuffer,  (byte)0xbb);
-
-        try(var outputStream = writer.getContentOutputStream()) {
-            for(int i = 0; i < 100; i++) { // Write 10 MiB 100 times => 1 GB
-                outputStream.write(byteBuffer);
+            @Override
+            public int read() {
+                if (bytesRead >= targetSize) {
+                    return -1;
+                }
+                bytesRead++;
+                return 0xbb;
             }
-        }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                if (bytesRead >= targetSize) {
+                    return -1;
+                }
+
+                int toRead = (int) Math.min(len, targetSize - bytesRead);
+                Arrays.fill(b, off, off + toRead, (byte) 0xbb);
+                bytesRead += toRead;
+                return toRead;
+            }
+        };
+
+        var contentAccessor = contentStore.writeContent(largeDataStream);
 
         // 1 GiB written
-        assertEquals(1000L*1024*1024, writer.getContentSize());
+        assertEquals(targetSize, contentAccessor.getContentSize());
 
         // Clean up the file again
-        contentStore.remove(writer.getReference());
+        contentStore.remove(contentAccessor.getReference());
     }
 }

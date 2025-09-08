@@ -9,7 +9,6 @@ import com.contentgrid.appserver.content.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.content.impl.utils.SkippingInputStream;
 import com.contentgrid.appserver.content.impl.utils.ZeroPrefixedInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -21,7 +20,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.security.auth.Destroyable;
@@ -93,8 +91,8 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
 
     @Override
     @SneakyThrows
-    public OutputStream encrypt(OutputStream ciphertextStream, EncryptionParameters encryptionParameters) {
-        return new CipherOutputStream(ciphertextStream, initializeCipher(encryptionParameters, true));
+    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) {
+        return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
     }
 
     @Override

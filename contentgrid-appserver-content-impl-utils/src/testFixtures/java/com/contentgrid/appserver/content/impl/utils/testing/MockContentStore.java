@@ -1,14 +1,15 @@
 package com.contentgrid.appserver.content.impl.utils.testing;
 
+import com.contentgrid.appserver.content.api.ContentAccessor;
 import com.contentgrid.appserver.content.api.ContentReader;
 import com.contentgrid.appserver.content.api.ContentReference;
 import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.api.ContentWriter;
 import com.contentgrid.appserver.content.api.UnreadableContentException;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,8 +35,8 @@ public class MockContentStore implements ContentStore, AutoCloseable {
     }
 
     @Override
-    public ContentWriter createNewWriter() throws UnwritableContentException {
-        return backingStorage.createNewWriter();
+    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+        return backingStorage.writeContent(inputStream);
     }
 
     @Override
