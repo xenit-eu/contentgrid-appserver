@@ -108,6 +108,18 @@ class PermissionsPropagationTest {
                 .getRedirectedUrl();
     }
 
+    private String createProduct() throws Exception {
+        return mockMvc.perform(post("/products")
+                        .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("name", "Test product")
+                        .param("price", "123")
+                ).andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+    }
+
     private String createInvoice(BigDecimal amount) throws Exception {
         return mockMvc.perform(multipart("/invoices")
                         .file(new MockMultipartFile("content", "my-file.pdf", "application/pdf", new byte[12]))
@@ -117,6 +129,8 @@ class PermissionsPropagationTest {
                         .param("amount", amount.toPlainString())
                         .param("confidentiality", "public")
                         .param("customer", createPerson())
+                        .param("products", createProduct())
+                        .param("products", createProduct())
                 ).andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -295,5 +309,124 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
         ).andExpect(isAllowed?status().isNoContent():status().isForbidden());
 
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void getOneRelation(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        mockMvc.perform(get(invoice+"/customer")
+                        .header("X-ABAC-Context", abacContext)
+                )
+                .andExpect(isAllowed?status().isFound():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void updateOneRelation(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        var person = createPerson();
+
+        mockMvc.perform(put(invoice+"/customer")
+                        .header("X-ABAC-Context", abacContext)
+                        .contentType("text/uri-list")
+                        .content(person)
+                )
+                .andExpect(isAllowed?status().isNoContent():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void deleteOneRelation(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        mockMvc.perform(delete(invoice+"/previous-invoice")
+                        .header("X-ABAC-Context", abacContext)
+                )
+                .andExpect(isAllowed?status().isNoContent():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void getManyRelation(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        mockMvc.perform(get(invoice+"/products")
+                        .header("X-ABAC-Context", abacContext)
+                )
+                .andExpect(isAllowed?status().isFound():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void updateManyRelation(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        var product = createProduct();
+
+        mockMvc.perform(post(invoice+"/products")
+                        .header("X-ABAC-Context", abacContext)
+                        .contentType("text/uri-list")
+                        .content(product)
+                )
+                .andExpect(isAllowed?status().isNoContent():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void getManyRelationItem(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        var productsUrl = mockMvc.perform(get(invoice+"/products")
+                .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
+                .accept(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        var productId = objectMapper.readTree(
+                mockMvc.perform(get(productsUrl)
+                                .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
+                                .accept(MediaType.APPLICATION_JSON)
+                        ).andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString()
+        ).get("_embedded").get("item").get(0).get("id").require().textValue();
+
+        mockMvc.perform(get(invoice+"/products/"+productId)
+                .header("X-ABAC-Context", abacContext)
+        ).andExpect(isAllowed?status().isFound():status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("permissionHeaders")
+    void deleteManyRelationItem(String abacContext, boolean isAllowed) throws Exception {
+        var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
+
+        var productsUrl = mockMvc.perform(get(invoice+"/products")
+                        .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
+                        .accept(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        var productId = objectMapper.readTree(
+                mockMvc.perform(get(productsUrl)
+                                .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
+                                .accept(MediaType.APPLICATION_JSON)
+                        ).andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString()
+        ).get("_embedded").get("item").get(0).get("id").require().textValue();
+
+        mockMvc.perform(delete(invoice+"/products/"+productId)
+                .header("X-ABAC-Context", abacContext)
+        ).andExpect(isAllowed?status().isNoContent():status().isForbidden());
     }
 }
