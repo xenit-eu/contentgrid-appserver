@@ -28,6 +28,7 @@ import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
 import com.contentgrid.appserver.domain.data.mapper.AttributeDataToDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.AttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper;
+import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper.Mode;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
@@ -96,6 +97,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
     private final ContentStore contentStore;
     private final CursorCodec cursorCodec;
+    private final Clock clock;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -255,7 +257,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
-                , AuditAttributeMapper.forCreate(user.orElse(null))
+                , new AuditAttributeMapper(Mode.CREATE, user.orElse(null), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -313,7 +315,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                AuditAttributeMapper.forCreate(null)
+                new AuditAttributeMapper(Mode.UPDATE, null, clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -350,7 +352,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                AuditAttributeMapper.forCreate(null)
+                new AuditAttributeMapper(Mode.UPDATE, null, clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);

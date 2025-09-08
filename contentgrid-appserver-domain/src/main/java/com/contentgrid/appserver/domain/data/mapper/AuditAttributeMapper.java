@@ -49,6 +49,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
 
     private final Mode mode;
     private final User user;
+    private final Clock clock;
 
     @Override
     public Optional<DataEntry> mapAttribute(Attribute attribute, Optional<DataEntry> inputData)
@@ -71,7 +72,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
     protected Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute, Optional<DataEntry> inputData) {
         if ((simpleAttribute.hasFlag(CreatedDateFlag.class) && mode == Mode.CREATE)
                 || simpleAttribute.hasFlag(ModifiedDateFlag.class)) {
-            return Optional.of(new InstantDataEntry(Instant.now()));
+            return Optional.of(new InstantDataEntry(Instant.now(clock)));
         }
         return inputData;
     }
@@ -109,10 +110,4 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
         return inputData;
     }
 
-    public static AuditAttributeMapper forCreate(User user) {
-        return new AuditAttributeMapper(Mode.CREATE, user);
-    }
-    public static AuditAttributeMapper forUpdate(User user) {
-        return new AuditAttributeMapper(Mode.UPDATE, user);
-    }
 }

@@ -105,25 +105,28 @@ class DatamodelApiImplTest {
 
     private DatamodelApi datamodelApi;
 
-    private final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
+    private static final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
-    private static CompositeAttributeData getAuditMetadataData() {
-        // TODO: have these attributes be filled automatically
-        return CompositeAttributeData.builder()
-                .name(INVOICE_AUDIT_METADATA.getName())
-                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now()))
-                .attribute(CompositeAttributeData.builder()
-                        .name(AttributeName.of("created_by"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
-                        .build())
-                .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), Instant.now()))
+    private static CompositeAttributeData getAuditMetadataData(boolean create) {
+        var builder = CompositeAttributeData.builder()
+                .name(INVOICE_AUDIT_METADATA.getName());
+        if (create) {
+            builder
+                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now(clock)))
+                    .attribute(CompositeAttributeData.builder()
+                            .name(AttributeName.of("created_by"))
+                            .attribute(new SimpleAttributeData<>(AttributeName.of("id"), "<none>"))
+                            .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), "<none>"))
+                            .attribute(new SimpleAttributeData<>(AttributeName.of("name"), "<none>"))
+                            .build());
+        }
+        return builder
+                .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), Instant.now(clock)))
                 .attribute(CompositeAttributeData.builder()
                         .name(AttributeName.of("last_modified_by"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), null))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), null))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), "<none>"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), "<none>"))
+                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), "<none>"))
                         .build())
                 .build();
     }
@@ -133,7 +136,8 @@ class DatamodelApiImplTest {
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
                 contentStore,
-                codec
+                codec,
+                clock
         );
     }
 
@@ -209,7 +213,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
                                 .build(),
-                                getAuditMetadataData()
+                                getAuditMetadataData(true)
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -343,7 +347,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
                                 .build(),
-                                getAuditMetadataData()
+                                getAuditMetadataData(true)
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -541,7 +545,7 @@ class DatamodelApiImplTest {
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), "application/pdf"))
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 110L))
                                 .build(),
-                                getAuditMetadataData()
+                                getAuditMetadataData(true)
                 );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
@@ -625,7 +629,8 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
 
             Mockito.verifyNoInteractions(contentStore);
@@ -702,7 +707,8 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
 
@@ -805,7 +811,8 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
 
@@ -854,7 +861,8 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 50L))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
 
         }
@@ -894,8 +902,9 @@ class DatamodelApiImplTest {
                     // amount is missing here, and thus not overwritten
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), Instant.now(clock)),
-                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null) // Is set to null
+                    new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null), // Is set to null
                     // is_paid is missing here, and thus not overwritten
+                    getAuditMetadataData(false)
             );
 
             Mockito.verifyNoInteractions(contentStore);
@@ -968,7 +977,7 @@ class DatamodelApiImplTest {
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
-            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(getAuditMetadataData());
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(getAuditMetadataData(false));
 
             Mockito.verifyNoInteractions(contentStore);
         }
@@ -1008,7 +1017,7 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "file-123.pdf"))
                             // Mimetype is absent because it's a missing entry
                             .build(),
-                    getAuditMetadataData()
+                    getAuditMetadataData(false)
             );
 
             Mockito.verifyNoInteractions(contentStore);
@@ -1100,7 +1109,8 @@ class DatamodelApiImplTest {
                             // Mimetype is not overwritten, so it's also not present here
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(),
                                     "test132.pdf"))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
 
@@ -1135,7 +1145,8 @@ class DatamodelApiImplTest {
                                     new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
 
@@ -1169,7 +1180,8 @@ class DatamodelApiImplTest {
                             // Filename is not overwritten, so it's also not present here
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
 
@@ -1204,7 +1216,8 @@ class DatamodelApiImplTest {
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
                                     "application/pdf"))
                             .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 150L))
-                            .build()
+                            .build(),
+                    getAuditMetadataData(false)
             );
         }
     }
