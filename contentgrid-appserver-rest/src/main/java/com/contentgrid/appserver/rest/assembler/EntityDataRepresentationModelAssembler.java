@@ -118,7 +118,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         // no need to switch based on relation type
         return linkBuilderFactory.linkTo(methodOn(XToOneRelationRestController.class)
                 .getRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
-                        relation.getSourceEndPoint().getPathSegment()))
+                        relation.getSourceEndPoint().getPathSegment(), null))
                 .withRel(ContentGridLinkRelations.RELATION)
                 .withName(relation.getSourceEndPoint().getLinkName().getValue());
     }

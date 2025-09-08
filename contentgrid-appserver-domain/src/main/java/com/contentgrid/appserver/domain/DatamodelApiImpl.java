@@ -301,36 +301,36 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
-            @NonNull EntityId targetId) throws QueryEngineException {
+            @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
         return queryEngine.isLinked(application, relation, sourceId, targetId);
     }
 
     @Override
     public Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation,
-            @NonNull EntityId id) throws QueryEngineException {
+            @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
         return queryEngine.findTarget(application, relation, id);
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId)
+    public void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.setLink(application, relation, id, targetId);
     }
 
     @Override
-    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id)
+    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.unsetLink(application, relation, id);
     }
 
     @Override
-    public void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
+    public void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.addLinks(application, relation, id, targetIds);
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds)
+    public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.removeLinks(application, relation, id, targetIds);
     }

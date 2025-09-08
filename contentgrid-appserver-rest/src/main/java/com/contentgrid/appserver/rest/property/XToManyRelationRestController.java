@@ -110,7 +110,8 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            @RequestBody URIList body
+            @RequestBody URIList body,
+            PermissionPredicate permissionPredicate
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
@@ -128,7 +129,7 @@ public class XToManyRelationRestController {
             targetIds.add(maybeId.get());
         }
         try {
-            datamodelApi.addRelationItems(application, relation, instanceId, targetIds);
+            datamodelApi.addRelationItems(application, relation, instanceId, targetIds, permissionPredicate);
         } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -142,11 +143,12 @@ public class XToManyRelationRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            @PathVariable PathSegmentName propertyName
+            @PathVariable PathSegmentName propertyName,
+            PermissionPredicate permissionPredicate
     ) {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
-            datamodelApi.deleteRelation(application, relation, instanceId);
+            datamodelApi.deleteRelation(application, relation, instanceId, permissionPredicate);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
@@ -161,10 +163,11 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            @PathVariable EntityId itemId
+            @PathVariable EntityId itemId,
+            PermissionPredicate permissionPredicate
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId)) {
+        if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId, permissionPredicate)) {
             var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId, null)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
@@ -178,11 +181,12 @@ public class XToManyRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            @PathVariable EntityId itemId
+            @PathVariable EntityId itemId,
+            PermissionPredicate permissionPredicate
     ) {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
-            datamodelApi.removeRelationItem(application, relation, instanceId, itemId);
+            datamodelApi.removeRelationItem(application, relation, instanceId, itemId, permissionPredicate);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {
