@@ -81,7 +81,7 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
      * This automatically determines the arity of the relation and creates a data type from it that includes the targeted entity name
      */
     static DataType of(@NonNull Relation relation) {
-        var targetName = relation.getTargetEndPoint().getEntity().getName();
+        var targetName = relation.getTargetEndPoint().getEntity();
         return switch (relation) {
             case OneToOneRelation ignored -> RelationDataType.to(targetName);
             case ManyToOneRelation ignored -> RelationDataType.to(targetName);

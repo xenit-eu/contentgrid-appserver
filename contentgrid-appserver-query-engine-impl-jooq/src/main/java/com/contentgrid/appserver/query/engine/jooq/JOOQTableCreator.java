@@ -32,7 +32,7 @@ public class JOOQTableCreator implements TableCreator {
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
             var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-            strategy.make(dslContext, relation);
+            strategy.make(dslContext, application, relation);
         }
     }
 
@@ -75,7 +75,7 @@ public class JOOQTableCreator implements TableCreator {
         // drop relations first
         for (var relation : application.getRelations()) {
             var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-            strategy.destroy(dslContext, relation);
+            strategy.destroy(dslContext, application, relation);
         }
 
         // Drop entity tables after relations are dropped

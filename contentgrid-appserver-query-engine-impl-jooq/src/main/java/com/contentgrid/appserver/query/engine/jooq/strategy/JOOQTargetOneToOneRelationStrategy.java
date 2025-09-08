@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -17,52 +18,52 @@ import org.springframework.dao.DataIntegrityViolationException;
 final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<TargetOneToOneRelation> {
 
     @Override
-    public Table<?> getTable(TargetOneToOneRelation relation) {
-        return JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
+    public Table<?> getTable(Application application, TargetOneToOneRelation relation) {
+        return JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
     }
 
     @Override
-    public Field<UUID> getSourceRef(TargetOneToOneRelation relation) {
-        return getForeignKey(relation);
+    public Field<UUID> getSourceRef(Application application, TargetOneToOneRelation relation) {
+        return getForeignKey(application, relation);
     }
 
     @Override
-    public Field<UUID> getTargetRef(TargetOneToOneRelation relation) {
-        return getPrimaryKey(relation);
+    public Field<UUID> getTargetRef(Application application, TargetOneToOneRelation relation) {
+        return getPrimaryKey(application, relation);
     }
 
     @Override
-    protected Field<UUID> getPrimaryKey(TargetOneToOneRelation relation) {
-        return JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
+    protected Field<UUID> getPrimaryKey(Application application, TargetOneToOneRelation relation) {
+        return JOOQUtils.resolvePrimaryKey(application.getRelationTargetEntity(relation));
     }
 
     @Override
-    protected Field<UUID> getForeignKey(TargetOneToOneRelation relation) {
-        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), relation.getSourceEndPoint().getEntity().getPrimaryKey()
+    protected Field<UUID> getForeignKey(Application application, TargetOneToOneRelation relation) {
+        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), application.getRelationSourceEntity(relation).getPrimaryKey()
                 .getType(), relation.getTargetEndPoint().isRequired());
     }
 
     @Override
-    protected Entity getForeignEntity(TargetOneToOneRelation relation) {
-        return relation.getSourceEndPoint().getEntity();
+    protected Entity getForeignEntity(Application application, TargetOneToOneRelation relation) {
+        return application.getRelationSourceEntity(relation);
     }
 
     @Override
-    public void make(DSLContext dslContext, TargetOneToOneRelation relation) {
-        super.make(dslContext, relation);
+    public void make(DSLContext dslContext, Application application, TargetOneToOneRelation relation) {
+        super.make(dslContext, application, relation);
 
         // Make column unique
-        dslContext.alterTable(getTable(relation))
-                .add(DSL.unique(getForeignKey(relation)))
+        dslContext.alterTable(getTable(application, relation))
+                .add(DSL.unique(getForeignKey(application, relation)))
                 .execute();
     }
 
     @Override
-    public void create(DSLContext dslContext, TargetOneToOneRelation relation, EntityId id,
+    public void create(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityId id,
             EntityId targetId) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
 
         try {
             var updated = dslContext.update(table)
@@ -71,7 +72,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                     .execute();
 
             if (updated == 0) {
-                throw new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity().getName(), targetId);
+                throw new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(), targetId);
             }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found

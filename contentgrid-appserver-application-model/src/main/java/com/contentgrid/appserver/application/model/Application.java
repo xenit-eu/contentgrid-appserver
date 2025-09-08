@@ -73,14 +73,14 @@ public class Application {
         });
 
         relations.forEach(relation -> {
-            if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity().getName())) {
-                throw new EntityDefinitionNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity().getName()));
+            if (!this.entities.containsKey(relation.getSourceEndPoint().getEntity())) {
+                throw new EntityDefinitionNotFoundException("Source %s is not a valid entity".formatted(relation.getSourceEndPoint().getEntity()));
             }
-            if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity().getName())) {
-                throw new EntityDefinitionNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity().getName()));
+            if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity())) {
+                throw new EntityDefinitionNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity()));
             }
             if (this.relations.stream().filter(relation::collides).count() > 1) {
-                throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity().getName(), relation.getSourceEndPoint().getName()));
+                throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity(), relation.getSourceEndPoint().getName()));
             }
             if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
@@ -148,9 +148,9 @@ public class Application {
      */
     public Optional<Relation> getRelationForEntity(EntityName entityName, RelationName relationName) {
         for (var relation : relations) {
-            if (relation.getSourceEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getSourceEndPoint().getName(), relationName)) {
+            if (relation.getSourceEndPoint().getEntity().equals(entityName) && Objects.equals(relation.getSourceEndPoint().getName(), relationName)) {
                 return Optional.of(relation);
-            } else if (relation.getTargetEndPoint().getEntity().getName().equals(entityName) && Objects.equals(relation.getTargetEndPoint().getName(), relationName)) {
+            } else if (relation.getTargetEndPoint().getEntity().equals(entityName) && Objects.equals(relation.getTargetEndPoint().getName(), relationName)) {
                 return Optional.of(relation.inverse());
             }
         }
@@ -180,14 +180,27 @@ public class Application {
     }
 
     public Optional<Relation> getRelationForPath(PathSegmentName entitySegment, PathSegmentName relationSegment) {
-        for (var relation : relations) {
-            if (relation.getSourceEndPoint().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getSourceEndPoint().getPathSegment(), relationSegment)) {
-                return Optional.of(relation);
-            } else if (relation.getTargetEndPoint().getEntity().getPathSegment().equals(entitySegment) && Objects.equals(relation.getTargetEndPoint().getPathSegment(), relationSegment)) {
-                return Optional.of(relation.inverse());
-            }
-        }
-        return Optional.empty();
+        return getEntityByPathSegment(entitySegment)
+                .map(entity -> {
+                    for (var relation : relations) {
+                        if (relation.getSourceEndPoint().getEntity().equals(entity.getName())
+                                && Objects.equals(relation.getSourceEndPoint().getPathSegment(), relationSegment)) {
+                            return relation;
+                        } else if (relation.getTargetEndPoint().getEntity().equals(entity.getName())
+                                && Objects.equals(relation.getTargetEndPoint().getPathSegment(), relationSegment)) {
+                            return relation.inverse();
+                        }
+                    }
+                    return null;
+                });
+    }
+
+    public Entity getRelationSourceEntity(Relation relation) {
+        return getRequiredEntityByName(relation.getSourceEndPoint().getEntity());
+    }
+
+    public Entity getRelationTargetEntity(Relation relation) {
+        return getRequiredEntityByName(relation.getTargetEndPoint().getEntity());
     }
 
     /**
@@ -202,10 +215,10 @@ public class Application {
     public Set<Relation> getRelationsForSourceEntity(Entity entity) {
         var results = new HashSet<Relation>();
         for (var relation : relations) {
-            if (relation.getSourceEndPoint().getEntity().equals(entity)) {
+            if (relation.getSourceEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);
             }
-            if (relation.getTargetEndPoint().getEntity().equals(entity)) {
+            if (relation.getTargetEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation.inverse());
             }
         }
@@ -226,10 +239,10 @@ public class Application {
     public Set<Relation> getRelationsForTargetEntity(Entity entity) {
         var results = new HashSet<Relation>();
         for (var relation : relations) {
-            if (relation.getTargetEndPoint().getEntity().equals(entity)) {
+            if (relation.getTargetEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);
             }
-            if (relation.getSourceEndPoint().getEntity().equals(entity)) {
+            if (relation.getSourceEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation.inverse());
             }
         }
@@ -271,7 +284,7 @@ public class Application {
                                 .formatted(relationPath.getFirst().getValue(), entityName)));
 
                     // Move to the target entity
-                    currentEntity = relation.getTargetEndPoint().getEntity();
+                    currentEntity = getRelationTargetEntity(relation);
                     currentPath = currentPath.getRest();
                 }
             }

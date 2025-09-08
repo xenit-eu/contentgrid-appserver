@@ -1887,7 +1887,7 @@ class JOOQQueryEngineTest {
                             SymbolicReference.of(ENTITY_VAR,
                                     SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
                                     SymbolicReference.path(
-                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                            APPLICATION.getRelationSourceEntity(relation).getPrimaryKey().getName()
                                                     .getValue())),
                             Scalar.of(id.getValue())
                     );
@@ -1897,12 +1897,12 @@ class JOOQQueryEngineTest {
                                     SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
                                     SymbolicReference.pathVar("x"),
                                     SymbolicReference.path(
-                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                            APPLICATION.getRelationSourceEntity(relation).getPrimaryKey().getName()
                                                     .getValue())),
                             Scalar.of(id.getValue())
                     );
                 }
-                var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
+                var slice = queryEngine.findAll(APPLICATION, APPLICATION.getRelationTargetEntity(relation), expression,
                         null, DEFAULT_PAGE_DATA);
                 assertTrue(slice.getEntities().isEmpty());
             } else {

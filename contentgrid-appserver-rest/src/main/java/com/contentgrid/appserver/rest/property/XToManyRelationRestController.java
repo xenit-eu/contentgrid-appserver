@@ -56,7 +56,7 @@ public class XToManyRelationRestController {
     }
 
     private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
-        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
+        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
                                 .getEntity(application, targetPathSegment, null, null),
@@ -73,10 +73,10 @@ public class XToManyRelationRestController {
             PermissionPredicate permissionPredicate
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity().getName(), instanceId), permissionPredicate)
+        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), instanceId), permissionPredicate)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
-        var targetEntity = relation.getTargetEndPoint().getEntity();
+        var targetEntity = application.getRelationTargetEntity(relation);
 
         if(relation.getTargetEndPoint().getName() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
@@ -168,7 +168,7 @@ public class XToManyRelationRestController {
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
         if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId, permissionPredicate)) {
-            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(), itemId, null)).toUri();
+            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, application.getRelationTargetEntity(relation).getPathSegment(), itemId, null)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);

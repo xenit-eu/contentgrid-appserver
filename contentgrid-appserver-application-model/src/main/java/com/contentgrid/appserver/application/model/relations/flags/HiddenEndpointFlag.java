@@ -24,7 +24,7 @@ public class HiddenEndpointFlag implements RelationEndpointFlag {
         }
 
         if (endPoint.getDescription() != null) {
-            throw new InvalidFlagException("Hidden relation endpoint can not have a linkName");
+            throw new InvalidFlagException("Hidden relation endpoint can not have a description");
         }
 
         var otherEndpoint = otherEndpoint(relation, endPoint);

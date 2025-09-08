@@ -165,7 +165,7 @@ public class ThunkExpressionGenerator {
                         pathElements.add(SymbolicReference.pathVar("_"));
                     }
 
-                    currentEntity = relation.getTargetEndPoint().getEntity();
+                    currentEntity = application.getRelationTargetEntity(relation);
                     currentPath = currentPath.getRest();
                 }
             }

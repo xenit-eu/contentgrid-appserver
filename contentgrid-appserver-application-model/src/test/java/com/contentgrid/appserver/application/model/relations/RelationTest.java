@@ -83,8 +83,8 @@ class RelationTest {
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), oneToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), oneToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("target"), oneToOneRelation.getSourceEndPoint().getLinkName());
@@ -123,8 +123,8 @@ class RelationTest {
                         .build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, oneToOneRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, oneToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), oneToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), oneToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), oneToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), oneToOneRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("target"), oneToOneRelation.getSourceEndPoint().getLinkName());
@@ -319,8 +319,8 @@ class RelationTest {
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), manyToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("target"), manyToOneRelation.getSourceEndPoint().getLinkName());
@@ -358,8 +358,8 @@ class RelationTest {
                         .build())
                 .targetReference(ColumnName.of("target"))
                 .build();
-        assertEquals(SOURCE, manyToOneRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, manyToOneRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToOneRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), manyToOneRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("target"), manyToOneRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("target"), manyToOneRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("target"), manyToOneRelation.getSourceEndPoint().getLinkName());
@@ -414,8 +414,8 @@ class RelationTest {
                 .targetEndPoint(RelationEndPoint.builder().entity(TARGET).build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
-        assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), oneToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), oneToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("targets"), oneToManyRelation.getSourceEndPoint().getLinkName());
@@ -454,8 +454,8 @@ class RelationTest {
                         .build())
                 .sourceReference(ColumnName.of("_source_id__targets"))
                 .build();
-        assertEquals(SOURCE, oneToManyRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, oneToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), oneToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), oneToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), oneToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), oneToManyRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("targets"), oneToManyRelation.getSourceEndPoint().getLinkName());
@@ -512,8 +512,8 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("targets"), manyToManyRelation.getSourceEndPoint().getLinkName());
@@ -557,8 +557,8 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_id"))
                 .targetReference(ColumnName.of("target_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
-        assertEquals(TARGET, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(TARGET.getName(), manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("targets"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("targets"), manyToManyRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("targets"), manyToManyRelation.getSourceEndPoint().getLinkName());
@@ -601,8 +601,8 @@ class RelationTest {
                 .sourceReference(ColumnName.of("source_src_id"))
                 .targetReference(ColumnName.of("source_tgt_id"))
                 .build();
-        assertEquals(SOURCE, manyToManyRelation.getSourceEndPoint().getEntity());
-        assertEquals(SOURCE, manyToManyRelation.getTargetEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToManyRelation.getSourceEndPoint().getEntity());
+        assertEquals(SOURCE.getName(), manyToManyRelation.getTargetEndPoint().getEntity());
         assertEquals(RelationName.of("sources"), manyToManyRelation.getSourceEndPoint().getName());
         assertEquals(PathSegmentName.of("sources"), manyToManyRelation.getSourceEndPoint().getPathSegment());
         assertEquals(LinkName.of("sources"), manyToManyRelation.getSourceEndPoint().getLinkName());

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
@@ -21,27 +22,27 @@ import org.springframework.jdbc.BadSqlGrammarException;
 final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
 
     @Override
-    public Table<?> getTable(OneToManyRelation relation) {
-        return JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
+    public Table<?> getTable(Application application, OneToManyRelation relation) {
+        return JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
     }
 
     @Override
-    public Field<UUID> getSourceRef(OneToManyRelation relation) {
-        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), relation.getSourceEndPoint().getEntity().getPrimaryKey()
+    public Field<UUID> getSourceRef(Application application, OneToManyRelation relation) {
+        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), application.getRelationSourceEntity(relation).getPrimaryKey()
                 .getType(), relation.getTargetEndPoint().isRequired());
     }
 
     @Override
-    public Field<UUID> getTargetRef(OneToManyRelation relation) {
-        return JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
+    public Field<UUID> getTargetRef(Application application, OneToManyRelation relation) {
+        return JOOQUtils.resolvePrimaryKey(application.getRelationTargetEntity(relation));
     }
 
     @Override
-    public void make(DSLContext dslContext, OneToManyRelation relation) {
-        var targetTable = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var sourceTable = JOOQUtils.resolveTable(relation.getSourceEndPoint().getEntity());
-        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getSourceEndPoint().getEntity());
+    public void make(DSLContext dslContext, Application application, OneToManyRelation relation) {
+        var targetTable = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var sourceTable = JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
+        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
 
         try {
             dslContext.alterTable(targetTable)
@@ -53,9 +54,9 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void destroy(DSLContext dslContext, OneToManyRelation relation) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
+    public void destroy(DSLContext dslContext, Application application, OneToManyRelation relation) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
         try {
             dslContext.alterTable(table).dropColumnIfExists(sourceRef).execute();
         } catch (BadSqlGrammarException e) {
@@ -68,11 +69,11 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void add(DSLContext dslContext, OneToManyRelation relation, EntityId id,
+    public void add(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id,
             Set<EntityId> targetIds) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
         var refs = getRefs(targetIds);
 
         try {
@@ -82,8 +83,8 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                     .returning(targetRef)
                     .fetchSet(targetRef);
 
-            checkModifiedItems(refs, updated, targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity()
-                    .getName(), targetId));
+            checkModifiedItems(refs, updated, targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(),
+                    targetId));
 
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
@@ -91,11 +92,11 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void remove(DSLContext dslContext, OneToManyRelation relation, EntityId id,
+    public void remove(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id,
             Set<EntityId> targetIds) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
         var refs = getRefs(targetIds);
 
         try {
@@ -119,9 +120,9 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void delete(DSLContext dslContext, OneToManyRelation relation, EntityId id) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
+    public void delete(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
 
         try {
             dslContext.update(table)
@@ -134,9 +135,9 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void deleteAll(DSLContext dslContext, OneToManyRelation relation) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
+    public void deleteAll(DSLContext dslContext, Application application, OneToManyRelation relation) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
 
         try {
             dslContext.update(table)
