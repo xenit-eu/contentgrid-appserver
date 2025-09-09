@@ -1596,7 +1596,8 @@ class JOOQQueryEngineTest {
         return Stream.of(
                 Arguments.of(PERSON, JOHN_ID),
                 Arguments.of(INVOICE, INVOICE2_ID),
-                Arguments.of(PRODUCT, PRODUCT3_ID)
+                Arguments.of(PRODUCT, PRODUCT3_ID),
+                Arguments.of(PRODUCT, PRODUCT1_ID) // PRODUCT1_ID is present in join-table of relation invoices, this is automatically deleted
         );
     }
 
@@ -1625,8 +1626,7 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> invalidDeleteData() {
         return Stream.of(
                 Arguments.of(PERSON, ALICE_ID), // ALICE_ID is present in required relation customer
-                Arguments.of(INVOICE, INVOICE1_ID), // INVOICE1_ID is still present in join-table of relation products
-                Arguments.of(PRODUCT, PRODUCT1_ID) // PRODUCT1_ID is still present in join-table of relation invoices
+                Arguments.of(INVOICE, INVOICE1_ID) // INVOICE1_ID is still present in join-table of relation products
         );
     }
 

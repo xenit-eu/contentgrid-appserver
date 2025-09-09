@@ -407,6 +407,11 @@ public class JOOQQueryEngine implements QueryEngine {
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
 
         try {
+            // Remove relations that reference this entity
+            for (var relation : application.getRelationsForSourceEntity(entity)) {
+                JOOQRelationStrategyFactory.forRelation(relation)
+                        .delete(dslContext, relation, entityRequest.getEntityId());
+            }
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
