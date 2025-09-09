@@ -12,10 +12,8 @@ import org.jooq.Field;
 import org.jooq.Table;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<ManyToOneRelation> implements
+final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<ManyToOneRelation> implements
         HasSourceTableColumnRef<ManyToOneRelation> {
 
     @Override

@@ -16,10 +16,8 @@ import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
+final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
 
     @Override
     public Table<?> getTable(ManyToManyRelation relation) {

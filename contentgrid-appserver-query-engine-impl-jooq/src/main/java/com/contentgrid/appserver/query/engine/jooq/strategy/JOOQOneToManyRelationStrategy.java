@@ -17,10 +17,8 @@ import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
+final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
 
     @Override
     public Table<?> getTable(OneToManyRelation relation) {

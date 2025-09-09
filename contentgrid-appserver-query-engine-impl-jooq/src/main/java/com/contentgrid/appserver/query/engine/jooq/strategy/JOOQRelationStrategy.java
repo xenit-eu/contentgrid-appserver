@@ -6,25 +6,23 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public abstract sealed class JOOQRelationStrategy<R extends Relation>
-        permits JOOQXToOneRelationStrategy, JOOQXToManyRelationStrategy {
+public sealed interface JOOQRelationStrategy<R extends Relation>
+        permits HasSourceTableColumnRef, JOOQXToManyRelationStrategy, JOOQXToOneRelationStrategy {
 
-    public abstract Table<?> getTable(R relation);
+    Table<?> getTable(R relation);
 
-    public abstract Field<UUID> getSourceRef(R relation);
+    Field<UUID> getSourceRef(R relation);
 
-    public abstract Field<UUID> getTargetRef(R relation);
+    Field<UUID> getTargetRef(R relation);
 
-    public abstract void make(DSLContext dslContext, R relation);
+    void make(DSLContext dslContext, R relation);
 
-    public abstract void destroy(DSLContext dslContext, R relation);
+    void destroy(DSLContext dslContext, R relation);
 
-    public abstract boolean isLinked(DSLContext dslContext, R relation, EntityId sourceId, EntityId targetId);
+    boolean isLinked(DSLContext dslContext, R relation, EntityId sourceId, EntityId targetId);
 
-    public abstract void delete(DSLContext dslContext, R relation, EntityId id);
+    void delete(DSLContext dslContext, R relation, EntityId id);
 
-    public abstract void deleteAll(DSLContext dslContext, R relation);
+    void deleteAll(DSLContext dslContext, R relation);
 }
