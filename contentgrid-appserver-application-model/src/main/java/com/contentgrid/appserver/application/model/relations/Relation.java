@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.application.model.relations;
 
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
@@ -155,18 +154,6 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          */
         public boolean hasFlag(Class<? extends RelationEndpointFlag> flagClass) {
             return getFlags().stream().anyMatch(flagClass::isInstance);
-        }
-
-        public static class RelationEndPointBuilder {
-
-            public RelationEndPointBuilder entity(EntityName entity) {
-                this.entity = entity;
-                return this;
-            }
-
-            public RelationEndPointBuilder entity(Entity entity) {
-                return this.entity(entity.getName());
-            }
         }
 
     }
