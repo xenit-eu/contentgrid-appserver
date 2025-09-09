@@ -48,7 +48,7 @@ public class ProfileRelationRepresentationModelAssembler {
 
     private Link getTargetProfileLink(Application application, Relation relation) {
         return linkTo(methodOn(ProfileRestController.class)
-                .getHalFormsEntityProfile(application, relation.getTargetEndPoint().getEntity().getPathSegment()))
+                .getHalFormsEntityProfile(application, application.getRelationTargetEntity(relation).getPathSegment()))
                 .withRel(BlueprintLinkRelations.TARGET_ENTITY);
     }
 

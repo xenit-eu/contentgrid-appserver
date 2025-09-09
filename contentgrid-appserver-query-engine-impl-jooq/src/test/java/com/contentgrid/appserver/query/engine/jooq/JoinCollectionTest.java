@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -11,6 +12,7 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -53,13 +55,13 @@ class JoinCollectionTest {
 
     private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
                     .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
                     .linkName(LinkName.of("next_invoice"))
@@ -71,13 +73,13 @@ class JoinCollectionTest {
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
                     .linkName(LinkName.of("customer"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(PERSON)
+                    .entity(PERSON.getName())
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
                     .linkName(LinkName.of("invoices"))
@@ -89,13 +91,13 @@ class JoinCollectionTest {
 
     private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("products"))
                     .pathSegment(PathSegmentName.of("products"))
                     .linkName(LinkName.of("products"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(PRODUCT)
+                    .entity(PRODUCT.getName())
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
                     .linkName(LinkName.of("invoices"))
@@ -106,6 +108,16 @@ class JoinCollectionTest {
             .build();
 
     private static final ManyToManyRelation PRODUCT_INVOICES = INVOICE_PRODUCTS.inverse();
+
+    private static final Application APPLICATION = Application.builder()
+            .name(ApplicationName.of("JoinCollectionTest"))
+            .entity(PERSON)
+            .entity(INVOICE)
+            .entity(PRODUCT)
+            .relation(INVOICE_PREVIOUS)
+            .relation(INVOICE_CUSTOMER)
+            .relation(INVOICE_PRODUCTS)
+            .build();
 
     private static Stream<Arguments> relations() {
         return Stream.of(
@@ -188,10 +200,10 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        relations.forEach(joins::addRelation);
+        relations.forEach(relation -> joins.addRelation(APPLICATION, relation));
         // currentTable should be the target table of the last relation
         if (!relations.isEmpty()) {
-            assertEquals(relations.getLast().getTargetEndPoint().getEntity().getTable(), joins.getCurrentTable());
+            assertEquals(APPLICATION.getRelationTargetEntity(relations.getLast()).getTable(), joins.getCurrentTable());
         }
         var result = joins.collect(condition);
 
@@ -222,10 +234,10 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        relations.forEach(joins::addRelation);
+        relations.forEach(relation -> joins.addRelation(APPLICATION, relation));
         // currentTable should be the target table of the last relation
         if (!relations.isEmpty()) {
-            assertEquals(relations.getLast().getTargetEndPoint().getEntity().getTable(), joins.getCurrentTable());
+            assertEquals(APPLICATION.getRelationTargetEntity(relations.getLast()).getTable(), joins.getCurrentTable());
         }
 
         // resetCurrentTable() should set currentTable back to rootTable
@@ -251,9 +263,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(INVOICE_CUSTOMER); // left term
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER); // left term
         joins.resetCurrentTable();
-        joins.addRelation(INVOICE_PRODUCTS); // right term
+        joins.addRelation(APPLICATION, INVOICE_PRODUCTS); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table("person").as("p1"))
@@ -279,9 +291,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(INVOICE_PREVIOUS); // left term
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS); // left term
         joins.resetCurrentTable();
-        joins.addRelation(INVOICE_NEXT); // right term
+        joins.addRelation(APPLICATION, INVOICE_NEXT); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table("invoice").as("i1"))
@@ -302,8 +314,8 @@ class JoinCollectionTest {
     @Test
     void addRelationTest_illegalRelation() {
         var joins = new JoinCollection(INVOICE.getTable());
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(PERSON_INVOICES));
-        joins.addRelation(INVOICE_CUSTOMER);
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(INVOICE_NEXT));
+        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, PERSON_INVOICES));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER);
+        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, INVOICE_NEXT));
     }
 }

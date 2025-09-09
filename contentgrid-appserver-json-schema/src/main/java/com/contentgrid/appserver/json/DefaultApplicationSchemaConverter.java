@@ -12,7 +12,6 @@ import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -95,8 +94,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } else {
             Set<com.contentgrid.appserver.application.model.relations.Relation> set = new HashSet<>();
             for (Relation rel : schema.getRelations()) {
-                com.contentgrid.appserver.application.model.relations.Relation relation = fromJsonRelation(rel,
-                        entities);
+                com.contentgrid.appserver.application.model.relations.Relation relation = fromJsonRelation(rel);
                 set.add(relation);
             }
             relations = set;
@@ -345,53 +343,10 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
     }
 
-    private record Endpoints(RelationEndPoint source, RelationEndPoint target) {}
-
-    private com.contentgrid.appserver.application.model.Entity findEntity(String name,
-            Set<com.contentgrid.appserver.application.model.Entity> entities) {
-        return entities.stream()
-                .filter(e -> e.getName().getValue().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new EntityDefinitionNotFoundException("Entity not found: " + name));
-    }
-
     private com.contentgrid.appserver.application.model.relations.Relation fromJsonRelation(
-            Relation jsonRelation,
-            Set<com.contentgrid.appserver.application.model.Entity> entities) throws UnknownFlagException {
-        var sourceEp = jsonRelation.getSourceEndpoint();
-        var targetEp = jsonRelation.getTargetEndpoint();
-        var sourceEntity = findEntity(sourceEp.getEntityName(), entities);
-        var targetEntity = findEntity(targetEp.getEntityName(), entities);
-        var sourceName =
-                sourceEp.getName() != null ? RelationName.of(
-                        sourceEp.getName()) : null;
-        var targetName =
-                targetEp.getName() != null ? RelationName.of(
-                        targetEp.getName()) : null;
-        var sourcePath = sourceEp.getPathSegment() != null
-                ? PathSegmentName.of(sourceEp.getPathSegment())
-                : null;
-        var targetPath = targetEp.getPathSegment() != null
-                ? PathSegmentName.of(targetEp.getPathSegment())
-                : null;
-        var sourceLink = sourceEp.getLinkName() != null ? LinkName.of(sourceEp.getLinkName()) : null;
-        var targetLink = targetEp.getLinkName() != null ? LinkName.of(targetEp.getLinkName()) : null;
-        var sourceEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
-                .entity(sourceEntity)
-                .name(sourceName)
-                .pathSegment(sourcePath)
-                .linkName(sourceLink)
-                .description(sourceEp.getDescription())
-                .flags(fromJsonRelationEndpointFlags(sourceEp))
-                .build();
-        var targetEndPoint = com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
-                .entity(targetEntity)
-                .name(targetName)
-                .pathSegment(targetPath)
-                .linkName(targetLink)
-                .description(targetEp.getDescription())
-                .flags(fromJsonRelationEndpointFlags(targetEp))
-                .build();
+            Relation jsonRelation) throws UnknownFlagException {
+        var sourceEndPoint = fromJsonRelationEndPoint(jsonRelation.getSourceEndpoint());
+        var targetEndPoint = fromJsonRelationEndPoint(jsonRelation.getTargetEndpoint());
 
         return switch (jsonRelation) {
             case OneToOneRelation oto -> SourceOneToOneRelation.builder()
@@ -414,6 +369,23 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                             .targetReference(ColumnName.of(mtm.getTargetReference()))
                             .build();
         };
+    }
+
+    private com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint fromJsonRelationEndPoint(
+            RelationEndPoint endPoint) throws UnknownFlagException {
+        var entityName = EntityName.of(endPoint.getEntityName());
+        var relationName = endPoint.getName() != null ? RelationName.of(endPoint.getName()) : null;
+        var pathSegment = endPoint.getPathSegment() != null ? PathSegmentName.of(endPoint.getPathSegment()) : null;
+        var linkName = endPoint.getLinkName() != null ? LinkName.of(endPoint.getLinkName()) : null;
+
+        return com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.builder()
+                .entity(entityName)
+                .name(relationName)
+                .pathSegment(pathSegment)
+                .linkName(linkName)
+                .description(endPoint.getDescription())
+                .flags(fromJsonRelationEndpointFlags(endPoint))
+                .build();
     }
 
     private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
@@ -664,7 +636,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private RelationEndPoint toJsonRelationEndpoint(
             com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint relationEndPoint) {
         var rep = new RelationEndPoint();
-        rep.setEntityName(relationEndPoint.getEntity().getName().getValue());
+        rep.setEntityName(relationEndPoint.getEntity().getValue());
         rep.setName(relationEndPoint.getName() != null ? relationEndPoint.getName().getValue() : null);
         rep.setPathSegment(
                 relationEndPoint.getPathSegment() != null ? relationEndPoint.getPathSegment().getValue() : null);

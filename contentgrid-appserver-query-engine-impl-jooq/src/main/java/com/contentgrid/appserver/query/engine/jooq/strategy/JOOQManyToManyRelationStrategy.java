@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
@@ -20,31 +21,31 @@ import org.springframework.jdbc.BadSqlGrammarException;
 final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
 
     @Override
-    public Table<?> getTable(ManyToManyRelation relation) {
+    public Table<?> getTable(Application application, ManyToManyRelation relation) {
         return JOOQUtils.resolveTable(relation.getJoinTable());
     }
 
     @Override
-    public Field<UUID> getSourceRef(ManyToManyRelation relation) {
-        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), relation.getSourceEndPoint().getEntity().getPrimaryKey()
+    public Field<UUID> getSourceRef(Application application, ManyToManyRelation relation) {
+        return (Field<UUID>) JOOQUtils.resolveField(relation.getSourceReference(), application.getRelationSourceEntity(relation).getPrimaryKey()
                 .getType(), true);
     }
 
     @Override
-    public Field<UUID> getTargetRef(ManyToManyRelation relation) {
-        return (Field<UUID>) JOOQUtils.resolveField(relation.getTargetReference(), relation.getTargetEndPoint().getEntity().getPrimaryKey()
+    public Field<UUID> getTargetRef(Application application, ManyToManyRelation relation) {
+        return (Field<UUID>) JOOQUtils.resolveField(relation.getTargetReference(), application.getRelationTargetEntity(relation).getPrimaryKey()
                 .getType(), true);
     }
 
     @Override
-    public void make(DSLContext dslContext, ManyToManyRelation relation) {
-        var joinTable = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
-        var sourceTable = JOOQUtils.resolveTable(relation.getSourceEndPoint().getEntity());
-        var targetTable = JOOQUtils.resolveTable(relation.getTargetEndPoint().getEntity());
-        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getSourceEndPoint().getEntity());
-        var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(relation.getTargetEndPoint().getEntity());
+    public void make(DSLContext dslContext, Application application, ManyToManyRelation relation) {
+        var joinTable = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
+        var sourceTable = JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
+        var targetTable = JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
+        var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
+        var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationTargetEntity(relation));
 
         try {
             dslContext.createTable(joinTable)
@@ -59,8 +60,8 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void destroy(DSLContext dslContext, ManyToManyRelation relation) {
-        var table = getTable(relation);
+    public void destroy(DSLContext dslContext, Application application, ManyToManyRelation relation) {
+        var table = getTable(application, relation);
         try {
             dslContext.dropTable(table).execute();
         } catch (BadSqlGrammarException e) {
@@ -69,10 +70,10 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void add(DSLContext dslContext, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+    public void add(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
         var step = dslContext.insertInto(table, sourceRef, targetRef);
 
         for (var targetId : targetIds) {
@@ -89,10 +90,10 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void remove(DSLContext dslContext, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+    public void remove(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
         var refs = targetIds.stream()
                 .map(EntityId::getValue)
                 .toList();
@@ -107,9 +108,9 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void delete(DSLContext dslContext, ManyToManyRelation relation, EntityId id) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
+    public void delete(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
 
         dslContext.deleteFrom(table)
                 .where(sourceRef.eq(id.getValue()))
@@ -117,7 +118,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void deleteAll(DSLContext dslContext, ManyToManyRelation relation) {
-        dslContext.deleteFrom(getTable(relation)).execute();
+    public void deleteAll(DSLContext dslContext, Application application, ManyToManyRelation relation) {
+        dslContext.deleteFrom(getTable(application, relation)).execute();
     }
 }

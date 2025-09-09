@@ -1,11 +1,11 @@
 package com.contentgrid.appserver.application.model.relations;
 
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
@@ -83,14 +83,14 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          * The entity at this endpoint of the relation.
          */
         @NonNull
-        Entity entity;
+        EntityName entity;
 
         @NonNull
         Set<RelationEndpointFlag> flags;
 
         @Builder
         RelationEndPoint(
-                @NonNull Entity entity,
+                @NonNull EntityName entity,
                 RelationName name,
                 PathSegmentName pathSegment,
                 LinkName linkName,
@@ -123,17 +123,17 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             return (
                     // Check name
                     this.name != null
-                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.entity, other.entity)
                             && Objects.equals(this.name, other.name)
             ) || (
                     // Check pathSegment
                     this.pathSegment != null
-                            && Objects.equals(this.entity.getPathSegment(), other.entity.getPathSegment())
+                            && Objects.equals(this.entity, other.entity)
                             && Objects.equals(this.pathSegment, other.pathSegment)
             ) || (
                     // Check linkName
                     this.linkName != null
-                            && Objects.equals(this.entity.getName(), other.entity.getName())
+                            && Objects.equals(this.entity, other.entity)
                             && Objects.equals(this.linkName, other.linkName)
             );
         }

@@ -49,7 +49,7 @@ public class XToOneRelationRestController {
     }
 
     private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
-        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
+        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
                                 .getEntity(application, targetPathSegment, null, null),
@@ -66,7 +66,7 @@ public class XToOneRelationRestController {
             PermissionPredicate permissionPredicate
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var targetPathSegment = relation.getTargetEndPoint().getEntity().getPathSegment();
+        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
         try {
             var targetId = datamodelApi.findRelationTarget(application, relation, instanceId, permissionPredicate)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relation.getSourceEndPoint().getName())));

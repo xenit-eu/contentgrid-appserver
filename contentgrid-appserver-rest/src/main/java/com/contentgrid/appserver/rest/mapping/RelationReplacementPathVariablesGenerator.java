@@ -17,14 +17,16 @@ class RelationReplacementPathVariablesGenerator implements ReplacementPathVariab
 
     @Override
     public Stream<ReplacementPathVariableValues> generateForApplication(@NonNull Application application) {
-        return application.getRelations()
+        var result = application.getRelations()
                 .stream()
                 .flatMap(relation -> Stream.of(relation, relation.inverse()))
                 .filter(this::isSupported)
                 .map(Relation::getSourceEndPoint)
                 .filter(endpoint -> endpoint.getPathSegment() != null)
-                .map(endpoint -> new ReplacementPathVariableValues(endpoint.getEntity().getPathSegment(),
-                        endpoint.getPathSegment()));
+                .map(endpoint -> new ReplacementPathVariableValues(application.getRequiredEntityByName(
+                        endpoint.getEntity()).getPathSegment(), endpoint.getPathSegment()))
+                .toList();
+        return result.stream();
     }
 
     private boolean isSupported(Relation relation) {

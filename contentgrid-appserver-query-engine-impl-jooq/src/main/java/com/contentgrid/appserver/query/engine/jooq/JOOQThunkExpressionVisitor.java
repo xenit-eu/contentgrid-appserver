@@ -300,8 +300,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         .formatted(pathElement, pathElement.getClass().getSimpleName()));
             }
         }
-        context.getJoinCollection().addRelation(relation);
-        return handlePath(relation.getTargetEndPoint().getEntity(), tail, context);
+        context.getJoinCollection().addRelation(context.getApplication(), relation);
+        return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
     }
 
     @Override

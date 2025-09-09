@@ -2,14 +2,10 @@ package com.contentgrid.appserver.application.model.relations;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -22,24 +18,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class RelationTest {
-    private static final SimpleAttribute ATTRIBUTE1 = SimpleAttribute.builder().name(AttributeName.of("attribute1")).type(Type.TEXT).column(
-            ColumnName.of("column1")).build();
-    private static final SimpleAttribute ATTRIBUTE2 = SimpleAttribute.builder().name(AttributeName.of("attribute2")).type(Type.TEXT).column(ColumnName.of("column2")).build();
-
-    private static final Entity SOURCE = Entity.builder()
-            .name(EntityName.of("Source"))
-            .table(TableName.of("source"))
-            .pathSegment(PathSegmentName.of("sources"))
-            .linkName(LinkName.of("sources"))
-            .attribute(ATTRIBUTE1)
-            .build();
-    private static final Entity TARGET = Entity.builder()
-            .name(EntityName.of("Target"))
-            .table(TableName.of("target"))
-            .pathSegment(PathSegmentName.of("targets"))
-            .linkName(LinkName.of("targets"))
-            .attribute(ATTRIBUTE2)
-            .build();
+    private static final EntityName SOURCE = EntityName.of("source");
+    private static final EntityName TARGET = EntityName.of("target");
 
     private static final String SOURCE_DESCRIPTION = "A link to the target of the source entity";
     private static final String TARGET_DESCRIPTION = "A link to the source of the target entity";
@@ -250,7 +230,8 @@ class RelationTest {
     void targetOneToOne_sourceRequired() {
         var builder = TargetOneToOneRelation.builder()
                 .sourceEndPoint(RelationEndPoint.builder()
-                        .entity(SOURCE).name(RelationName.of("target"))
+                        .entity(SOURCE)
+                        .name(RelationName.of("target"))
                         .pathSegment(PathSegmentName.of("target"))
                         .linkName(LinkName.of("target"))
                         .description(SOURCE_DESCRIPTION)

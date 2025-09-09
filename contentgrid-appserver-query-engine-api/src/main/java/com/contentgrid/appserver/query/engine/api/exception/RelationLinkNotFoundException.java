@@ -19,7 +19,7 @@ public class RelationLinkNotFoundException extends QueryEngineException {
     private final EntityId targetId;
 
     public EntityName getSourceEntityName() {
-        return relation.getSourceEndPoint().getEntity().getName();
+        return relation.getSourceEndPoint().getEntity();
     }
 
     public RelationName getSourceRelationName() {
@@ -27,7 +27,7 @@ public class RelationLinkNotFoundException extends QueryEngineException {
     }
 
     public EntityName getTargetEntityName() {
-        return relation.getTargetEndPoint().getEntity().getName();
+        return relation.getTargetEndPoint().getEntity();
     }
 
     @Override

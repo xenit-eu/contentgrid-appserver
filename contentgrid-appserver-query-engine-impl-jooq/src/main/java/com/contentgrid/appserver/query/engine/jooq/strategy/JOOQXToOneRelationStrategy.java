@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -19,17 +20,17 @@ import org.springframework.jdbc.BadSqlGrammarException;
 public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> implements JOOQRelationStrategy<R>
         permits JOOQSourceOneToOneRelationStrategy, JOOQManyToOneRelationStrategy, JOOQTargetOneToOneRelationStrategy {
 
-    protected abstract Field<UUID> getPrimaryKey(R relation);
+    protected abstract Field<UUID> getPrimaryKey(Application application, R relation);
 
-    protected abstract Field<UUID> getForeignKey(R relation);
+    protected abstract Field<UUID> getForeignKey(Application application, R relation);
 
-    protected abstract Entity getForeignEntity(R relation);
+    protected abstract Entity getForeignEntity(Application application, R relation);
 
     @Override
-    public void make(DSLContext dslContext, R relation) {
-        var table = getTable(relation);
-        var foreignKey = getForeignKey(relation);
-        var foreignEntity = getForeignEntity(relation);
+    public void make(DSLContext dslContext, Application application, R relation) {
+        var table = getTable(application, relation);
+        var foreignKey = getForeignKey(application, relation);
+        var foreignEntity = getForeignEntity(application, relation);
         var foreignTable = JOOQUtils.resolveTable(foreignEntity);
         var foreignPrimaryKey = JOOQUtils.resolvePrimaryKey(foreignEntity);
 
@@ -43,9 +44,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
     }
 
     @Override
-    public void destroy(DSLContext dslContext, R relation) {
-        var table = getTable(relation);
-        var foreignKey = getForeignKey(relation);
+    public void destroy(DSLContext dslContext, Application application, R relation) {
+        var table = getTable(application, relation);
+        var foreignKey = getForeignKey(application, relation);
         try {
             dslContext.alterTable(table).dropColumnIfExists(foreignKey).execute();
         } catch (BadSqlGrammarException e) {
@@ -54,19 +55,19 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
     }
 
     @Override
-    public boolean isLinked(DSLContext dslContext, R relation, EntityId sourceId, EntityId targetId) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+    public boolean isLinked(DSLContext dslContext, Application application, R relation, EntityId sourceId, EntityId targetId) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
 
         return dslContext.fetchExists(DSL.selectOne().from(table)
                 .where(DSL.and(sourceRef.eq(sourceId.getValue()), targetRef.eq(targetId.getValue()))));
     }
 
-    public Optional<EntityId> findTarget(DSLContext dslContext, R relation, EntityId id) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var targetRef = getTargetRef(relation);
+    public Optional<EntityId> findTarget(DSLContext dslContext, Application application, R relation, EntityId id) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var targetRef = getTargetRef(application, relation);
 
         return dslContext.select(targetRef)
                 .from(table)
@@ -76,13 +77,13 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                 .map(EntityId::of);
     }
 
-    public abstract void create(DSLContext dslContext, R relation, EntityId id, EntityId targetId);
+    public abstract void create(DSLContext dslContext, Application application, R relation, EntityId id, EntityId targetId);
 
     @Override
-    public void delete(DSLContext dslContext, R relation, EntityId id) {
-        var table = getTable(relation);
-        var sourceRef = getSourceRef(relation);
-        var foreignKey = getForeignKey(relation);
+    public void delete(DSLContext dslContext, Application application, R relation, EntityId id) {
+        var table = getTable(application, relation);
+        var sourceRef = getSourceRef(application, relation);
+        var foreignKey = getForeignKey(application, relation);
 
         try {
             dslContext.update(table)
@@ -95,9 +96,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
     }
 
     @Override
-    public void deleteAll(DSLContext dslContext, R relation) {
-        var table = getTable(relation);
-        var foreignKey = getForeignKey(relation);
+    public void deleteAll(DSLContext dslContext, Application application, R relation) {
+        var table = getTable(application, relation);
+        var foreignKey = getForeignKey(application, relation);
 
         try {
             dslContext.update(table)

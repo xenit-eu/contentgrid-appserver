@@ -128,7 +128,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         try {
             var entry = inputData.get(relationName.getValue(), RelationDataEntry.class);
             if(entry instanceof RelationDataEntry e) {
-                if(!Objects.equals(relation.getTargetEndPoint().getEntity().getName(), e.getTargetEntity())) {
+                if(!Objects.equals(relation.getTargetEndPoint().getEntity(), e.getTargetEntity())) {
                     throw new InvalidDataTypeException(DataType.of(relation), DataType.of(e));
                 }
             }
@@ -146,7 +146,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             var listResult = inputData.getList(relationName.getValue(), RelationDataEntry.class);
             return switch (listResult) {
                 case DataResult<List<? extends DataEntry>> v -> {
-                    var targetEntity = relation.getTargetEndPoint().getEntity().getName();
+                    var targetEntity = relation.getTargetEndPoint().getEntity();
                     var builder = MultipleRelationDataEntry.builder()
                             .targetEntity(targetEntity);
 

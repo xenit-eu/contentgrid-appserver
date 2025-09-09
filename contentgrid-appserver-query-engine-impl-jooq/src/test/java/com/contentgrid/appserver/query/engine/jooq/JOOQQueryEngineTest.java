@@ -284,14 +284,14 @@ class JOOQQueryEngineTest {
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("customer"))
                     .pathSegment(PathSegmentName.of("customer"))
                     .linkName(LinkName.of("customer"))
                     .flag(RequiredEndpointFlag.INSTANCE)
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(PERSON)
+                    .entity(PERSON.getName())
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
                     .linkName(LinkName.of("invoices"))
@@ -301,13 +301,13 @@ class JOOQQueryEngineTest {
 
     private static final ManyToManyRelation PERSON_FRIENDS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(PERSON)
+                    .entity(PERSON.getName())
                     .name(RelationName.of("friends"))
                     .pathSegment(PathSegmentName.of("friends"))
                     .linkName(LinkName.of("friends"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(PERSON)
+                    .entity(PERSON.getName())
                     .build())
             .joinTable(TableName.of("person__friends"))
             .sourceReference(ColumnName.of("person_src_id"))
@@ -316,13 +316,13 @@ class JOOQQueryEngineTest {
 
     private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("previous_invoice"))
                     .pathSegment(PathSegmentName.of("previous-invoice"))
                     .linkName(LinkName.of("previous_invoice"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("next_invoice"))
                     .pathSegment(PathSegmentName.of("next-invoice"))
                     .linkName(LinkName.of("next_invoice"))
@@ -332,13 +332,13 @@ class JOOQQueryEngineTest {
 
     private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
-                    .entity(INVOICE)
+                    .entity(INVOICE.getName())
                     .name(RelationName.of("products"))
                     .pathSegment(PathSegmentName.of("products"))
                     .linkName(LinkName.of("products"))
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
-                    .entity(PRODUCT)
+                    .entity(PRODUCT.getName())
                     .name(RelationName.of("invoices"))
                     .pathSegment(PathSegmentName.of("invoices"))
                     .linkName(LinkName.of("invoices"))
@@ -1887,7 +1887,7 @@ class JOOQQueryEngineTest {
                             SymbolicReference.of(ENTITY_VAR,
                                     SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
                                     SymbolicReference.path(
-                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                            APPLICATION.getRelationSourceEntity(relation).getPrimaryKey().getName()
                                                     .getValue())),
                             Scalar.of(id.getValue())
                     );
@@ -1897,12 +1897,12 @@ class JOOQQueryEngineTest {
                                     SymbolicReference.path(relation.getTargetEndPoint().getName().getValue()),
                                     SymbolicReference.pathVar("x"),
                                     SymbolicReference.path(
-                                            relation.getSourceEndPoint().getEntity().getPrimaryKey().getName()
+                                            APPLICATION.getRelationSourceEntity(relation).getPrimaryKey().getName()
                                                     .getValue())),
                             Scalar.of(id.getValue())
                     );
                 }
-                var slice = queryEngine.findAll(APPLICATION, relation.getTargetEndPoint().getEntity(), expression,
+                var slice = queryEngine.findAll(APPLICATION, APPLICATION.getRelationTargetEntity(relation), expression,
                         null, DEFAULT_PAGE_DATA);
                 assertTrue(slice.getEntities().isEmpty());
             } else {
@@ -1920,13 +1920,13 @@ class JOOQQueryEngineTest {
                 // Non-existing relation
                 Arguments.of(INVOICE2_ID, ManyToOneRelation.builder()
                         .sourceEndPoint(RelationEndPoint.builder()
-                                .entity(INVOICE)
+                                .entity(INVOICE.getName())
                                 .name(RelationName.of("supplier"))
                                 .pathSegment(PathSegmentName.of("supplier"))
                                 .linkName(LinkName.of("supplier"))
                                 .build())
                         .targetEndPoint(RelationEndPoint.builder()
-                                .entity(PERSON)
+                                .entity(PERSON.getName())
                                 .name(RelationName.of("non_existing"))
                                 .pathSegment(PathSegmentName.of("non-existing"))
                                 .linkName(LinkName.of("non_existing"))

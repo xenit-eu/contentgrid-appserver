@@ -117,7 +117,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         // Links for *-to-many relations are the same as links for *-to-one relations,
         // no need to switch based on relation type
         return linkBuilderFactory.linkTo(methodOn(XToOneRelationRestController.class)
-                .getRelation(application, relation.getSourceEndPoint().getEntity().getPathSegment(), id,
+                .getRelation(application, application.getRelationSourceEntity(relation).getPathSegment(), id,
                         relation.getSourceEndPoint().getPathSegment(), null))
                 .withRel(ContentGridLinkRelations.RELATION)
                 .withName(relation.getSourceEndPoint().getLinkName().getValue());

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -52,45 +53,47 @@ public class JoinCollection {
         return this.currentAlias;
     }
 
-    public void addRelation(Relation relation) {
-        if (!relation.getSourceEndPoint().getEntity().getTable().equals(currentTable)) {
+    public void addRelation(Application application, Relation relation) {
+        var sourceEntity = application.getRelationSourceEntity(relation);
+        var targetEntity = application.getRelationTargetEntity(relation);
+        if (!sourceEntity.getTable().equals(currentTable)) {
             throw new IllegalArgumentException("Relation source table %s does not match table %s"
-                    .formatted(relation.getSourceEndPoint().getEntity().getTable(), currentTable));
+                    .formatted(sourceEntity.getTable(), currentTable));
         }
         var sourceAlias = currentAlias;
         switch (relation) {
             case SourceOneToOneRelation oneToOneRelation -> {
-                var targetAlias = this.generateAlias(relation.getTargetEndPoint().getEntity().getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new TargetColumnJoin(sourceAlias, targetAlias, currentTable,
-                        relation.getTargetEndPoint().getEntity().getPrimaryKey(),
+                        targetEntity.getPrimaryKey(),
                         oneToOneRelation.getTargetReference()));
             }
             case ManyToOneRelation manyToOneRelation -> {
-                var targetAlias = this.generateAlias(relation.getTargetEndPoint().getEntity().getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new TargetColumnJoin(sourceAlias, targetAlias, currentTable,
-                        relation.getTargetEndPoint().getEntity().getPrimaryKey(),
+                        targetEntity.getPrimaryKey(),
                         manyToOneRelation.getTargetReference()));
             }
             case TargetOneToOneRelation oneToOneRelation -> {
-                var targetAlias = this.generateAlias(relation.getTargetEndPoint().getEntity().getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new SourceColumnJoin(sourceAlias, targetAlias, currentTable,
-                        relation.getSourceEndPoint().getEntity().getPrimaryKey(),
+                        sourceEntity.getPrimaryKey(),
                         oneToOneRelation.getSourceReference()));
             }
             case OneToManyRelation oneToManyRelation -> {
-                var targetAlias = this.generateAlias(relation.getTargetEndPoint().getEntity().getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new SourceColumnJoin(sourceAlias, targetAlias, currentTable,
-                        relation.getSourceEndPoint().getEntity().getPrimaryKey(),
+                        sourceEntity.getPrimaryKey(),
                         oneToManyRelation.getSourceReference()));
             }
             case ManyToManyRelation manyToManyRelation -> {
                 var joinTableAlias = this.generateAlias(manyToManyRelation.getJoinTable());
                 joins.add(new SourceColumnJoin(sourceAlias, joinTableAlias, currentTable,
-                        relation.getSourceEndPoint().getEntity().getPrimaryKey(),
+                        sourceEntity.getPrimaryKey(),
                         manyToManyRelation.getSourceReference()));
-                var targetAlias = this.generateAlias(relation.getTargetEndPoint().getEntity().getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new TargetColumnJoin(joinTableAlias, targetAlias, currentTable,
-                        relation.getTargetEndPoint().getEntity().getPrimaryKey(),
+                        targetEntity.getPrimaryKey(),
                         manyToManyRelation.getTargetReference()));
             }
         }

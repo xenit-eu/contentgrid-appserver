@@ -215,7 +215,7 @@ public class HalFormsTemplateGenerator {
         }
         var required = relation.getSourceEndPoint().isRequired();
         var url = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, relation.getTargetEndPoint().getEntity().getPathSegment(),
+                .listEntity(application, application.getRelationTargetEntity(relation).getPathSegment(),
                         null, MultiValueMap.fromSingleValue(Map.of()), null))
                 .toUri().toString();
         var options = HalFormsOptions.remote(url)
