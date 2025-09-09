@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest;
 
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
@@ -83,7 +83,7 @@ public class ContentGridRestConfiguration {
     }
 
     @Bean
-    SlicedResourcesAssembler<EntityData> slicedResourcesAssembler(PaginationHandlerMethodArgumentResolver resolver) {
+    SlicedResourcesAssembler<EntityInstance> slicedResourcesAssembler(PaginationHandlerMethodArgumentResolver resolver) {
         return new SlicedResourcesAssembler<>(resolver);
     }
 

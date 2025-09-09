@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -64,8 +64,8 @@ class RelationRestControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
-    private final DatamodelApi datamodelApi = Mockito.mock(DatamodelApi.class);
+    @MockitoBean(enforceOverride = true)
+    private DatamodelApiImpl datamodelApi;
 
     @TestConfiguration
     static class TestConfig {

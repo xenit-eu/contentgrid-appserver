@@ -7,10 +7,10 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler.EntityContext;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
@@ -40,18 +40,18 @@ import org.springframework.util.MultiValueMap;
 
 @Component
 @RequiredArgsConstructor
-public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityData, EntityDataRepresentationModel, EntityContext> {
+public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityInstance, EntityDataRepresentationModel, EntityContext> {
 
     private final HalFormsTemplateGenerator templateGenerator;
-    private final SlicedResourcesAssembler<EntityData> slicedResourcesAssembler;
+    private final SlicedResourcesAssembler<EntityInstance> slicedResourcesAssembler;
     private final MethodLinkBuilderFactory<WebMvcLinkBuilder> linkBuilderFactory;
 
     @Override
-    public EntityDataRepresentationModel toModel(@NonNull EntityData entityData, @NonNull EntityContext context) {
-        Entity entity = context.application().getEntityByName(entityData.getName()).orElseThrow();
-        var id = entityData.getId();
+    public EntityDataRepresentationModel toModel(@NonNull EntityInstance entityData, @NonNull EntityContext context) {
+        Entity entity = context.application().getEntityByName(entityData.getIdentity().getEntityName()).orElseThrow();
+        var id = entityData.getIdentity().getEntityId();
 
-        var model = EntityDataRepresentationModel.from(entity, entityData);
+        var model = EntityDataRepresentationModel.from(entityData);
         model.add(getSelfLink(context.application(), entity, id));
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
@@ -83,7 +83,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     @Override
-    public CollectionModel<EntityDataRepresentationModel> toCollectionModel(Iterable<? extends EntityData> entities,
+    public CollectionModel<EntityDataRepresentationModel> toCollectionModel(Iterable<? extends EntityInstance> entities,
             EntityContext context) {
         if (entities instanceof ResultSlice slice) {
             return toSlicedModel(slice, context);
@@ -93,11 +93,11 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         return result;
     }
 
-    public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment) {
+    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment) {
         return withContext(application, entityPathSegment, MultiValueMap.fromSingleValue(Map.of()), null);
     }
 
-    public RepresentationModelAssembler<EntityData, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment, MultiValueMap<String, String> params, EncodedCursorPagination pagination) {
+    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, PathSegmentName entityPathSegment, MultiValueMap<String, String> params, EncodedCursorPagination pagination) {
         return withContext(new EntityContext(application, entityPathSegment, params, pagination));
     }
 

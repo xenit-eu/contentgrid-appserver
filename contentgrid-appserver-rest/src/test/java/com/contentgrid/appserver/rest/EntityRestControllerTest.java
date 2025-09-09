@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -351,7 +352,7 @@ class EntityRestControllerTest {
     class GetEntity {
 
         @Test
-        void testSuccessfullyRetrieveEntityInstance() throws Exception {
+        void getEntityWithoutContent() throws Exception {
             // First create an entity
             Map<String, Object> product = new HashMap<>();
             product.put("name", "Retrievable Product");
@@ -378,6 +379,8 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.name", is("Retrievable Product")))
                     .andExpect(jsonPath("$.price", is(99.99)))
                     .andExpect(jsonPath("$.in_stock", is(true)))
+                    .andExpect(jsonPath("$.release_date", is("2023-02-20T14:30:00Z")))
+                    .andExpect(jsonPath("$.picture", nullValue()))
                     .andExpect(jsonPath("$._links.self.href", notNullValue()))
                     .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
                     .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
@@ -395,6 +398,8 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.name", is("Retrievable Product")))
                     .andExpect(jsonPath("$.price", is(99.99)))
                     .andExpect(jsonPath("$.in_stock", is(true)))
+                    .andExpect(jsonPath("$.release_date", is("2023-02-20T14:30:00Z")))
+                    .andExpect(jsonPath("$.picture", nullValue()))
                     .andExpect(jsonPath("$._links.self.href", notNullValue()))
                     .andExpect(jsonPath("$._links.cg:content[0].name", is("picture")))
                     .andExpect(jsonPath("$._links.cg:relation[0].name", is("invoices")))
@@ -457,6 +462,26 @@ class EntityRestControllerTest {
                                 }
                             }
                             """.replace("${ENTITY_ID}", id)));
+        }
+
+        @Test
+        void getEntityWithContent() throws Exception {
+            var invoice = createInvoice();
+
+            mockMvc.perform(post(invoice.getRedirectedUrl()+"/content")
+                    .header(HttpHeaders.IF_NONE_MATCH, "*")
+                    .contentType("text/plain")
+                    .content("My small content")
+            ).andExpect(status().isNoContent());
+
+            mockMvc.perform(get(invoice.getRedirectedUrl()))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(jsonPath("$.pay_before", nullValue()))
+                    .andExpect(jsonPath("$.content.id").doesNotExist())
+                    .andExpect(jsonPath("$.content.filename", nullValue()))
+                    .andExpect(jsonPath("$.content.mimetype", is("text/plain;charset=UTF-8")))
+                    .andExpect(jsonPath("$.content.length", is(16)));
         }
 
         @Test

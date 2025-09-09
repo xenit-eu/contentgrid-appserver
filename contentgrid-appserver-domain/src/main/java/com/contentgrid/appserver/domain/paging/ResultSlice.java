@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.domain.paging;
 
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.ItemCount;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.hateoas.pagination.api.Slice;
@@ -11,8 +11,8 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value
-public class ResultSlice implements Slice<EntityData> {
-    List<EntityData> entities;
+public class ResultSlice implements Slice<EntityInstance> {
+    List<? extends EntityInstance> entities;
 
     PaginationControls controls;
 
@@ -20,8 +20,8 @@ public class ResultSlice implements Slice<EntityData> {
     ItemCount totalItemCount;
 
     @Override
-    public List<EntityData> getContent() {
-        return entities;
+    public List<EntityInstance> getContent() {
+        return (List<EntityInstance>)entities;
     }
 
     @Override

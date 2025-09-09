@@ -14,6 +14,7 @@ import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -21,13 +22,13 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,7 +49,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ContentApiImplTest {
 
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
-    private DatamodelApi datamodelApi;
+    private DatamodelApiImpl datamodelApi;
 
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private ContentStore contentStore;
@@ -68,28 +69,21 @@ class ContentApiImplTest {
     void findContentPresent() throws UnreadableContentException {
         var entityId = EntityId.of(UUID.randomUUID());
         Mockito.when(datamodelApi.findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), entityId)), Mockito.any()))
-                .thenReturn(Optional.of(EntityData.builder()
-                        .name(PRODUCT.getName())
-                        .id(entityId)
-                        .attribute(CompositeAttributeData.builder()
-                                .name(PRODUCT_PICTURE.getName())
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getId().getName(), "content.bin"))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getMimetype().getName(),
-                                        "image/jpeg"))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getLength().getName(), 123L))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getFilename().getName(),
-                                        "IMG_123.jpg"))
-                                .build()
+                .thenReturn(Optional.of(new InternalEntityInstance(
+                        EntityIdentity.forEntity(PRODUCT.getName(), entityId),
+                        new LinkedHashMap<>(),
+                        List.of(
+                                createContentData("content.bin")
                         )
-                        .build()));
+                )));
 
         var maybeContent = contentApi.find(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(),
                 PermissionPredicate.allowAll());
 
         assertThat(maybeContent).hasValueSatisfying(content -> {
-            assertThat(content.getLength()).isEqualTo(123);
-            assertThat(content.getMimeType()).isEqualTo("image/jpeg");
-            assertThat(content.getFilename()).isEqualTo("IMG_123.jpg");
+            assertThat(content.getLength()).isEqualTo(140);
+            assertThat(content.getMimeType()).isEqualTo("text/plain");
+            assertThat(content.getFilename()).isEqualTo("readme.txt");
         });
 
         // Fetching content object actually doesn't contact the store yet
@@ -108,25 +102,20 @@ class ContentApiImplTest {
             }
         });
 
-        Mockito.verify(contentStore).getReader(ContentReference.of("content.bin"), ResolvedContentRange.fullRange(123));
+        Mockito.verify(contentStore).getReader(ContentReference.of("content.bin"), ResolvedContentRange.fullRange(140));
     }
 
     @Test
     void findContentAbsent() {
         var entityId = EntityId.of(UUID.randomUUID());
         Mockito.when(datamodelApi.findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), entityId)), Mockito.any()))
-                .thenReturn(Optional.of(EntityData.builder()
-                        .name(PRODUCT.getName())
-                        .id(entityId)
-                        .attribute(CompositeAttributeData.builder()
-                                .name(PRODUCT_PICTURE.getName())
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getLength().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getFilename().getName(), null))
-                                .build()
+                .thenReturn(Optional.of(new InternalEntityInstance(
+                        EntityIdentity.forEntity(PRODUCT.getName(), entityId),
+                        new LinkedHashMap<>(),
+                        List.of(
+                                createContentData(null)
                         )
-                        .build()));
+                )));
 
         assertThat(contentApi.find(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), PermissionPredicate.allowAll())).isEmpty();
 
@@ -137,7 +126,7 @@ class ContentApiImplTest {
         return CompositeAttributeData.builder()
                 .name(PRODUCT_PICTURE.getName())
                 .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getId().getName(), contentId))
-                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getLength().getName(), hasContent?140:null))
+                .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getLength().getName(), hasContent?140L:null))
                 .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getMimetype().getName(), hasContent?"text/plain":null))
                 .attribute(new SimpleAttributeData<>(PRODUCT_PICTURE.getFilename().getName(), hasContent?"readme.txt":null))
                 .build();
@@ -146,9 +135,10 @@ class ContentApiImplTest {
     @SneakyThrows
     private void setupEntity(EntityId entityId, boolean hasContent) {
         Mockito.when(datamodelApi.findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), entityId)), Mockito.any()))
-                .thenReturn(Optional.of(new EntityData(
+                .thenReturn(Optional.of(new InternalEntityInstance(
                         EntityIdentity.forEntity(PRODUCT.getName(), entityId)
                                 .withVersion(ENTITY_VERSION),
+                        new LinkedHashMap<>(),
                         List.of(
                                 createContentData(hasContent?"content-id":null)
                         )
@@ -183,12 +173,13 @@ class ContentApiImplTest {
 
         setupEntity(entityId, hasContent);
 
-        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityData>any(), Mockito.any(), Mockito.any()))
+        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(args -> {
-                    var originalData = args.getArgument(1, EntityData.class);
-                    return new EntityData(
+                    var originalData = args.getArgument(1, EntityInstance.class);
+                    return new InternalEntityInstance(
                             originalData.getIdentity()
                                     .withVersion(Version.exactly("new-version")),
+                            new LinkedHashMap<>(),
                             List.of(
                                     createContentData("new-content-id")
                             )
@@ -201,7 +192,7 @@ class ContentApiImplTest {
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
-                Mockito.<EntityData>assertArg(entityData -> {
+                Mockito.<EntityInstance>assertArg(entityData -> {
                     assertThat(entityData.getIdentity().getEntityId()).isEqualTo(entityId);
                     assertThat(entityData.getIdentity().getVersion()).isEqualTo(ENTITY_VERSION);
                 }),
@@ -235,12 +226,13 @@ class ContentApiImplTest {
         var entityId = EntityId.of(UUID.randomUUID());
 
         setupEntity(entityId, hasContent);
-        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityData>any(), Mockito.any(), Mockito.any()))
+        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(args -> {
-                    var originalData = args.getArgument(1, EntityData.class);
-                    return new EntityData(
+                    var originalData = args.getArgument(1, EntityInstance.class);
+                    return new InternalEntityInstance(
                             originalData.getIdentity()
                                     .withVersion(Version.exactly("new-version")),
+                            new LinkedHashMap<>(),
                             List.of(
                                     createContentData(null)
                             )
@@ -251,7 +243,7 @@ class ContentApiImplTest {
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
-                Mockito.<EntityData>assertArg(entityData -> {
+                Mockito.<EntityInstance>assertArg(entityData -> {
                     assertThat(entityData.getIdentity().getEntityId()).isEqualTo(entityId);
                     assertThat(entityData.getIdentity().getVersion()).isEqualTo(ENTITY_VERSION);
                 }),

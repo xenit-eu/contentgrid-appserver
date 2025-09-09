@@ -1,21 +1,17 @@
 package com.contentgrid.appserver.domain.data.validation;
 
-import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.Validator;
-import com.contentgrid.appserver.query.engine.api.data.AttributeData;
-import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,16 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ContentAttributeModificationValidator implements Validator {
-    private final EntityData entityData;
+    private final EntityInstance entityData;
 
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
         if(attribute instanceof ContentAttribute contentAttribute && dataEntry instanceof MapDataEntry mapDataEntry) {
-            var contentIdPresent = resolveData(attributePath.withSuffix(contentAttribute.getId().getName()))
-                    .map(data -> data instanceof SimpleAttributeData<?> simpleData && simpleData.getValue() != null)
+            var hasContent = resolveData(attributePath)
+                    .map(MapDataEntry.class::isInstance)
                     .orElse(false);
-            if(!contentIdPresent) {
+            if(!hasContent) {
                 for (var contentSubAttribute : contentAttribute.getAttributes()) {
                     if(!isEmpty(mapDataEntry.get(contentSubAttribute.getName().getValue()))) {
                         throw new ContentMissingInvalidDataException(contentSubAttribute.getName());
@@ -60,18 +56,15 @@ public class ContentAttributeModificationValidator implements Validator {
         };
     }
 
-    private Optional<AttributeData> resolveData(AttributePath path) {
+    private Optional<PlainDataEntry> resolveData(AttributePath path) {
         if(entityData == null) {
             return Optional.empty();
         }
-        var attributeData = entityData.getAttributeByName(path.getFirst());
+        var attributeData = entityData.getData().get(path.getFirst().getValue());
         var rest = path.getRest();
         while(rest != null) {
-            if(attributeData.isEmpty()) {
-                return Optional.empty();
-            }
-            if(attributeData.get() instanceof CompositeAttributeData compositeAttributeData) {
-                attributeData = compositeAttributeData.getAttributeByName(rest.getFirst());
+            if(attributeData instanceof MapDataEntry mapDataEntry) {
+                attributeData = mapDataEntry.get(rest.getFirst().getValue());
             } else {
                 log.warn("Data is not composite along path {}", path);
                 return Optional.empty();
@@ -79,6 +72,6 @@ public class ContentAttributeModificationValidator implements Validator {
             rest = rest.getRest();
         }
 
-        return attributeData;
+        return Optional.ofNullable(attributeData);
     }
 }

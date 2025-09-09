@@ -5,13 +5,13 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
@@ -113,7 +113,7 @@ public class EntityRestController {
                 .body(assembler.withContext(application, entityName).toModel(result));
     }
 
-    private String calculateETag(EntityData result) {
+    private String calculateETag(EntityInstance result) {
         return Optional.ofNullable(conversionService.convert(result.getIdentity().getVersion(), ETag.class))
                 .map(ETag::formattedTag)
                 .orElse(null);

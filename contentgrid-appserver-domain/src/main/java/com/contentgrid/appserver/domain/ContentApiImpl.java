@@ -20,7 +20,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -38,15 +37,15 @@ import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
 public class ContentApiImpl implements ContentApi {
-    private final DatamodelApi datamodelApi;
+    private final DatamodelApiImpl datamodelApi;
     private final ContentStore contentStore;
 
     private AttributeDataContent extractContent(
             @NonNull Application application,
-            @NonNull EntityData entityData,
+            @NonNull InternalEntityInstance entityData,
             @NonNull AttributeName attributeName
     ) {
-        var contentAttribute = application.getRequiredEntityByName(entityData.getName())
+        var contentAttribute = application.getRequiredEntityByName(entityData.getIdentity().getEntityName())
                 .getAttributeByName(attributeName)
                 .filter(ContentAttribute.class::isInstance)
                 .map(ContentAttribute.class::cast)
@@ -54,7 +53,7 @@ public class ContentApiImpl implements ContentApi {
 
         return new AttributeDataContent(
                 contentAttribute,
-                (CompositeAttributeData) entityData.getAttributeByName(attributeName).orElse(null)
+                entityData.getByAttributeName(attributeName, CompositeAttributeData.class).orElse(null)
         );
     }
 
@@ -82,7 +81,7 @@ public class ContentApiImpl implements ContentApi {
         return extractContent(application, updated, attributeName);
     }
 
-    private EntityData requireEntityWithConstraint(
+    private InternalEntityInstance requireEntityWithConstraint(
             Application application,
             EntityName entityName,
             EntityId id,
