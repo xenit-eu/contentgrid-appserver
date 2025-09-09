@@ -4,12 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
-import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
-import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
@@ -41,6 +36,7 @@ import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionEx
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.strategy.HasSourceTableColumnRef;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -225,28 +221,15 @@ public class JOOQQueryEngine implements QueryEngine {
             var relation = application.getRelationForEntity(entity, relationData.getName())
                     .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
 
-            switch (relationData) {
-                case XToOneRelationData xToOneRelationData -> {
-                    // add to step if owning relation, otherwise add to non-owning relations
-                    if (relation instanceof SourceOneToOneRelation || relation instanceof ManyToOneRelation) {
-                        var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-                        var targetRef = strategy.getTargetRef(relation);
-                        step = step.set(targetRef, xToOneRelationData.getRef().getValue());
-                    } else if (relation instanceof TargetOneToOneRelation) {
-                        nonOwningRelations.add(relationData);
-                    } else {
-                        throw new InvalidDataException("Relation '%s' is not a one-to-one or many-to-one relation"
-                                .formatted(relationData.getName()));
-                    }
+            if(relationData instanceof XToOneRelationData toOneRelationData) {
+                var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
+                if(strategy instanceof HasSourceTableColumnRef hasSourceTableColumnRef) {
+                    step = step.set(hasSourceTableColumnRef.getSourceTableColumnRef(relation), toOneRelationData.getRef().getValue());
+                } else {
+                    nonOwningRelations.add(relationData);
                 }
-                case XToManyRelationData ignored -> {
-                    if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-                        nonOwningRelations.add(relationData);
-                    } else {
-                        throw new InvalidDataException("Relation '%s' is not a one-to-many or many-to-many relation"
-                                .formatted(relationData.getName()));
-                    }
-                }
+            } else {
+                nonOwningRelations.add(relationData);
             }
         }
 
@@ -409,8 +392,13 @@ public class JOOQQueryEngine implements QueryEngine {
         try {
             // Remove relations that reference this entity
             for (var relation : application.getRelationsForSourceEntity(entity)) {
-                JOOQRelationStrategyFactory.forRelation(relation)
-                        .delete(dslContext, relation, entityRequest.getEntityId());
+                var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+                // If data is not stored in the table of this entity, cascade-delete it
+                // Do not delete relations that are stored in this entity, as the row will be deleted anyway,
+                // and we might run into relations that are required on this side (and thus can't be cleared)
+                if(!(strategy instanceof HasSourceTableColumnRef<?>)) {
+                    strategy.delete(dslContext, relation, entityRequest.getEntityId());
+                }
             }
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))

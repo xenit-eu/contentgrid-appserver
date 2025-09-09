@@ -15,7 +15,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<ManyToOneRelation> {
+public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<ManyToOneRelation> implements
+        HasSourceTableColumnRef<ManyToOneRelation> {
 
     @Override
     public Table<?> getTable(ManyToOneRelation relation) {
@@ -66,5 +67,10 @@ public final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrat
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
         }
+    }
+
+    @Override
+    public Field<UUID> getSourceTableColumnRef(ManyToOneRelation relation) {
+        return getForeignKey(relation);
     }
 }
