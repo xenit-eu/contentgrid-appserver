@@ -158,7 +158,7 @@ public interface DatamodelApi {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException;
+    boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -170,7 +170,7 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Link the target entity id with the given source id.
@@ -182,7 +182,7 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity to link
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId) throws QueryEngineException;
+    void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -192,7 +192,7 @@ public interface DatamodelApi {
      * @param id the primary key of the source entity
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id) throws QueryEngineException;
+    void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Adds the target entity links to the entity with the given id.
@@ -204,7 +204,7 @@ public interface DatamodelApi {
      * @param targetIds the primary keys of the target entities to link
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
+    void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Removes the target entity links from the entity with the given id.
@@ -216,7 +216,7 @@ public interface DatamodelApi {
      * @param targetIds the primary keys of the target entities to unlink
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds) throws QueryEngineException;
+    void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Unlink the given target id from the given source id of the given relation.
@@ -228,8 +228,8 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    default void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) throws QueryEngineException {
-        removeRelationItems(application, relation, sourceId, Set.of(targetId));
+    default void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        removeRelationItems(application, relation, sourceId, Set.of(targetId), permissionPredicate);
     }
 
 }

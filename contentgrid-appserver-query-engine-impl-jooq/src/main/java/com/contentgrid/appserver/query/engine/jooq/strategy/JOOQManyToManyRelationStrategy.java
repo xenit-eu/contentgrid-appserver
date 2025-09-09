@@ -16,10 +16,8 @@ import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
+final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
 
     @Override
     public Table<?> getTable(ManyToManyRelation relation) {
@@ -113,14 +111,9 @@ public final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStr
         var table = getTable(relation);
         var sourceRef = getSourceRef(relation);
 
-        var deleted = dslContext.deleteFrom(table)
+        dslContext.deleteFrom(table)
                 .where(sourceRef.eq(id.getValue()))
                 .execute();
-
-        if (deleted == 0) {
-            // Check if the entity exists, but there just was no data in the many-to-many relation
-            assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
-        }
     }
 
     @Override

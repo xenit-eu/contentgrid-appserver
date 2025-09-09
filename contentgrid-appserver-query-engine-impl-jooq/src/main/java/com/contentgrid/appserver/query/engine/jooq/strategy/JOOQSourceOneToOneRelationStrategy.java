@@ -14,10 +14,8 @@ import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<SourceOneToOneRelation> {
+final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<SourceOneToOneRelation> implements HasSourceTableColumnRef<SourceOneToOneRelation> {
 
     @Override
     public Table<?> getTable(SourceOneToOneRelation relation) {
@@ -81,5 +79,10 @@ public final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelation
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
         }
+    }
+
+    @Override
+    public Field<UUID> getSourceTableColumnRef(SourceOneToOneRelation relation) {
+        return getForeignKey(relation);
     }
 }

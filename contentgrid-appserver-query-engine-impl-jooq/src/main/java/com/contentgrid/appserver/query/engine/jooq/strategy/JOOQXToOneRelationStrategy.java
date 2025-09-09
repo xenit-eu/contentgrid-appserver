@@ -10,14 +10,13 @@ import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Record1;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> extends JOOQRelationStrategy<R>
+public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> implements JOOQRelationStrategy<R>
         permits JOOQSourceOneToOneRelationStrategy, JOOQManyToOneRelationStrategy, JOOQTargetOneToOneRelationStrategy {
 
     protected abstract Field<UUID> getPrimaryKey(R relation);
@@ -69,23 +68,12 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
         var sourceRef = getSourceRef(relation);
         var targetRef = getTargetRef(relation);
 
-        var result = dslContext.select(targetRef)
+        return dslContext.select(targetRef)
                 .from(table)
                 .where(sourceRef.eq(id.getValue()))
-                .fetchOne();
-
-        if (result == null) {
-            // no rows found matching where clause
-            // This may be because there is no target entity nothing linking to this source entity
-            // We still need to check that the source entity exists before throwing
-            assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
-            return Optional.empty();
-        } else if (result.value1() == null) {
-            // row found, but target id was null
-            return Optional.empty();
-        } else {
-            return Optional.of(EntityId.of(result.value1()));
-        }
+                .fetchOptional()
+                .map(Record1::value1)
+                .map(EntityId::of);
     }
 
     public abstract void create(DSLContext dslContext, R relation, EntityId id, EntityId targetId);
@@ -97,17 +85,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> exte
         var foreignKey = getForeignKey(relation);
 
         try {
-            var updated = dslContext.update(table)
+            dslContext.update(table)
                     .set(foreignKey, (UUID) null)
                     .where(sourceRef.eq(id.getValue()))
                     .execute();
-
-            if (updated == 0) {
-                // When nothing is updated; that may be because there is no target entity
-                // that links to the source entity.
-                // We still need to check that the source entity exists before throwing
-                assertEntityExists(dslContext, relation.getSourceEndPoint().getEntity(), id);
-            }
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
         }
