@@ -18,6 +18,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -48,15 +49,14 @@ public class Application {
      * Constructs an Application with the specified parameters.
      *
      * @param name the application name
-     * @param entities list of entities within this application
-     * @param relations list of relations between entities
+     * @param entities set of entities within this application
+     * @param relations set of relations between entities
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull ApplicationName name, @Singular List<Entity> entities, @Singular List<Relation> relations) {
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
-        this.relations = new LinkedHashSet<>(relations);
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -81,12 +81,13 @@ public class Application {
             if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity())) {
                 throw new EntityDefinitionNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity()));
             }
-            if (this.relations.stream().filter(relation::collides).count() > 1) {
+            if (this.relations.stream().anyMatch(relation::collides)) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity(), relation.getSourceEndPoint().getName()));
             }
             if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
+            this.relations.add(relation);
         });
 
         // Validating entity search filters (happens here rather than in Entity because they might go across relations)
@@ -112,14 +113,14 @@ public class Application {
      * Internal set of relations defined in this application.
      */
     @Getter(AccessLevel.NONE)
-    Set<Relation> relations;
+    Set<Relation> relations = new LinkedHashSet<>();
 
     /**
-     * Returns an unmodifiable list of relations.
-     * @return an unmodifiable list of relations
+     * Returns an unmodifiable set of relations.
+     * @return an unmodifiable set of relations
      */
-    public List<Relation> getRelations() {
-        return List.copyOf(relations);
+    public Set<Relation> getRelations() {
+        return Collections.unmodifiableSet(relations);
     }
 
     /**

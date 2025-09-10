@@ -30,7 +30,7 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     Map<AttributeName, Attribute> attributes = new LinkedHashMap<>();
 
     @Builder
-    CompositeAttributeImpl(@NonNull AttributeName name, String description, @Singular List<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
+    CompositeAttributeImpl(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
         this.name = name;
         this.description = description;
         this.flags = flags;
