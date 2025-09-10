@@ -40,7 +40,7 @@ class HalFormsTemplateGeneratorTest {
     void generateCreateTemplate() {
         var template = generator.generateCreateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
 
-        assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
+        assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.isReadOnly()).isFalse();
@@ -103,17 +103,6 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isOne();
                     });
                 },
-                products -> {
-                    assertThat(products.getName()).isEqualTo("products");
-                    assertThat(products.isReadOnly()).isFalse();
-                    assertThat(products.isRequired()).isFalse();
-                    assertThat(products.getType()).isEqualTo(HtmlInputType.URL_VALUE);
-                    assertThat(products.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
-                        assertThat(options.getLink().getHref()).isEqualTo("/products");
-                        assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
-                    });
-                },
                 previous -> {
                     assertThat(previous.getName()).isEqualTo("previous_invoice");
                     assertThat(previous.isReadOnly()).isFalse();
@@ -135,6 +124,17 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isOne();
                     });
+                },
+                products -> {
+                    assertThat(products.getName()).isEqualTo("products");
+                    assertThat(products.isReadOnly()).isFalse();
+                    assertThat(products.isRequired()).isFalse();
+                    assertThat(products.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(products.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Remote.class, options -> {
+                        assertThat(options.getLink().getHref()).isEqualTo("/products");
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
                 }
         );
 
@@ -145,7 +145,7 @@ class HalFormsTemplateGeneratorTest {
     void generateCreateTemplate_noContent() {
         var template = generator.generateCreateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON);
 
-        assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
+        assertThat(template.getProperties()).satisfiesExactly(
                 name -> {
                     assertThat(name.getName()).isEqualTo("name");
                     assertThat(name.isReadOnly()).isFalse();
@@ -210,7 +210,7 @@ class HalFormsTemplateGeneratorTest {
     void generateUpdateTemplate() {
         var template = generator.generateUpdateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
 
-        assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
+        assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.isReadOnly()).isFalse();
@@ -281,7 +281,7 @@ class HalFormsTemplateGeneratorTest {
             assertThat(property.isRequired()).isFalse();
             assertThat(property.isReadOnly()).isFalse();
         });
-        assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
+        assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -343,10 +343,6 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(customerVat.getName()).isEqualTo("customer.vat");
                     assertThat(customerVat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
-                productsName -> {
-                    assertThat(productsName.getName()).isEqualTo("products.code");
-                    assertThat(productsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                },
                 previousNumber -> {
                     assertThat(previousNumber.getName()).isEqualTo("previous_invoice.number");
                     assertThat(previousNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -381,11 +377,15 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isNull();
                     });
                 },
+                productsName -> {
+                    assertThat(productsName.getName()).isEqualTo("products.code");
+                    assertThat(productsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
-                        assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                        assertThat(options.getInline()).satisfiesExactly(
                                 numberAsc -> assertThat(numberAsc.toString())
                                         .contains("value=number,asc")
                                         .contains("property=number")
@@ -428,7 +428,7 @@ class HalFormsTemplateGeneratorTest {
             assertThat(property.isRequired()).isFalse();
             assertThat(property.isReadOnly()).isFalse();
         });
-        assertThat(template.getProperties()).satisfiesExactlyInAnyOrder(
+        assertThat(template.getProperties()).satisfiesExactly(
                 name -> {
                     assertThat(name.getName()).isEqualTo("name~prefix");
                     assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -502,7 +502,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
-                        assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                        assertThat(options.getInline()).satisfiesExactly(
                                 vatAsc -> assertThat(vatAsc.toString())
                                         .contains("value=vat,asc")
                                         .contains("property=vat")
@@ -634,7 +634,7 @@ class HalFormsTemplateGeneratorTest {
         var relationLink = "/invoices/%s/customer".formatted(ENTITY_ID);
         var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_CUSTOMER, relationLink);
 
-        assertThat(templates).satisfiesExactlyInAnyOrder(
+        assertThat(templates).singleElement().satisfies(
                 setCustomer -> {
                     assertThat(setCustomer.getKey()).isEqualTo("set-customer");
                     assertThat(setCustomer.getHttpMethod()).isEqualTo(HttpMethod.PUT);
@@ -659,7 +659,7 @@ class HalFormsTemplateGeneratorTest {
         var relationLink = "/persons/%s/invoices".formatted(ENTITY_ID);
         var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON_INVOICES, relationLink);
 
-        assertThat(templates).satisfiesExactlyInAnyOrder(
+        assertThat(templates).singleElement().satisfies(
                 addInvoices -> {
                     assertThat(addInvoices.getKey()).isEqualTo("add-invoices");
                     assertThat(addInvoices.getHttpMethod()).isEqualTo(HttpMethod.POST);

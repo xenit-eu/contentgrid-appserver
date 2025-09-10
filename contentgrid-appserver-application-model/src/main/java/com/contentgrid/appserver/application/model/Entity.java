@@ -24,8 +24,8 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -188,25 +188,25 @@ public class Entity implements HasAttributes {
      * Internal map of attributes by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<AttributeName, Attribute> attributes = new HashMap<>();
+    Map<AttributeName, Attribute> attributes = new LinkedHashMap<>();
 
     /**
      * Internal map of search filters by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<FilterName, SearchFilter> searchFilters = new HashMap<>();
+    Map<FilterName, SearchFilter> searchFilters = new LinkedHashMap<>();
 
     /**
      * Internal map of sortable fields by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<SortableName, SortableField> sortableFields = new HashMap<>();
+    Map<SortableName, SortableField> sortableFields = new LinkedHashMap<>();
 
     /**
      * Internal map of content attributes by path segment.
      */
     @Getter(AccessLevel.NONE)
-    Map<PathSegmentName, ContentAttribute> contentAttributes = new HashMap<>();
+    Map<PathSegmentName, ContentAttribute> contentAttributes = new LinkedHashMap<>();
 
     /**
      * Returns an unmodifiable list of attributes (primary key excluded).

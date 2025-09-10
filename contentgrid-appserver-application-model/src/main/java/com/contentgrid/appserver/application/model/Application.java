@@ -18,8 +18,10 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,15 +48,15 @@ public class Application {
      * Constructs an Application with the specified parameters.
      *
      * @param name the application name
-     * @param entities set of entities within this application
-     * @param relations set of relations between entities
+     * @param entities list of entities within this application
+     * @param relations list of relations between entities
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    Application(@NonNull ApplicationName name, @Singular List<Entity> entities, @Singular List<Relation> relations) {
         this.name = name;
-        this.relations = relations;
+        this.relations = new LinkedHashSet<>(relations);
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -101,22 +103,31 @@ public class Application {
      * Internal map of entities by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<EntityName, Entity> entities = new HashMap<>();
+    Map<EntityName, Entity> entities = new LinkedHashMap<>();
 
     @Getter(AccessLevel.NONE)
-    Map<PathSegmentName, Entity> pathSegmentEntities = new HashMap<>();
+    Map<PathSegmentName, Entity> pathSegmentEntities = new LinkedHashMap<>();
 
     /**
-     * The set of relations defined in this application.
+     * Internal set of relations defined in this application.
      */
+    @Getter(AccessLevel.NONE)
     Set<Relation> relations;
 
     /**
-     * Returns an unmodifiable set of entities.
-     * @return an unmodifiable set of entities
+     * Returns an unmodifiable list of relations.
+     * @return an unmodifiable list of relations
      */
-    public Set<Entity> getEntities() {
-        return Set.copyOf(entities.values());
+    public List<Relation> getRelations() {
+        return List.copyOf(relations);
+    }
+
+    /**
+     * Returns an unmodifiable list of entities.
+     * @return an unmodifiable list of entities
+     */
+    public List<Entity> getEntities() {
+        return List.copyOf(entities.values());
     }
 
     /**
@@ -213,7 +224,7 @@ public class Application {
      * @return a Set containing all the relations where the entity is the source entity
      */
     public Set<Relation> getRelationsForSourceEntity(Entity entity) {
-        var results = new HashSet<Relation>();
+        var results = new LinkedHashSet<Relation>();
         for (var relation : relations) {
             if (relation.getSourceEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);
@@ -237,7 +248,7 @@ public class Application {
      * @return a Set containing all the relations where the entity is the target entity
      */
     public Set<Relation> getRelationsForTargetEntity(Entity entity) {
-        var results = new HashSet<Relation>();
+        var results = new LinkedHashSet<Relation>();
         for (var relation : relations) {
             if (relation.getTargetEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);
