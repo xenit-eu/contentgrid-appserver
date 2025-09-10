@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +27,7 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     Set<AttributeFlag> flags;
 
     @Getter(AccessLevel.NONE)
-    Map<AttributeName, Attribute> attributes = new HashMap<>();
+    Map<AttributeName, Attribute> attributes = new LinkedHashMap<>();
 
     @Builder
     CompositeAttributeImpl(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {

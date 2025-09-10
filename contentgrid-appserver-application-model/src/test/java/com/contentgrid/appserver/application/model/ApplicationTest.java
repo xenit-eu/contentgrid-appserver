@@ -459,6 +459,55 @@ class ApplicationTest {
         });
     }
 
+    @Test
+    void application_preservesInsertionOrder() {
+        var builder = Application.builder()
+                .name(ApplicationName.of("ApplicationTest"));
+
+        // insert 25 entities and 25 relations
+        for (int i = 0; i < 25; i++) {
+            builder.entity(Entity.builder()
+                    .name(EntityName.of("entity-" + i))
+                    .table(TableName.of("entity_" + i))
+                    .pathSegment(PathSegmentName.of("entities-" + i))
+                    .linkName(LinkName.of("entities " + i))
+                    .build());
+
+            var prev = Math.max(0, i - 1);
+            builder.relation(SourceOneToOneRelation.builder()
+                    .sourceEndPoint(RelationEndPoint.builder()
+                            .entity(EntityName.of("entity-" + i))
+                            .name(RelationName.of("previous_" + prev))
+                            .pathSegment(PathSegmentName.of("previous-" + prev))
+                            .linkName(LinkName.of("previous " + prev))
+                            .build())
+                    .targetEndPoint(RelationEndPoint.builder()
+                            .entity(EntityName.of("entity-" + prev))
+                            .name(RelationName.of("next_" + i))
+                            .pathSegment(PathSegmentName.of("next-" + i))
+                            .linkName(LinkName.of("next " + i))
+                            .build())
+                    .targetReference(ColumnName.of("previous_" + prev))
+                    .build());
+        }
+
+        var application = builder.build();
+
+        // Assert order of entities preserved
+        var count = 0;
+        for (var entity : application.getEntities()) {
+            assertEquals(EntityName.of("entity-" + count), entity.getName());
+            count += 1;
+        }
+
+        // Assert order of relations preserved
+        count = 0;
+        for (var relation : application.getRelations()) {
+            assertEquals(EntityName.of("entity-" + count), relation.getSourceEndPoint().getEntity());
+            count += 1;
+        }
+    }
+
     /**
      * Test if we can create the application we use for integration testing:
      * https://console.contentgrid.com/app-frontend/integration-test-do-not-touch

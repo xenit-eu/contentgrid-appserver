@@ -18,8 +18,11 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,7 +57,6 @@ public class Application {
     @Builder
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
-        this.relations = relations;
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -79,12 +81,13 @@ public class Application {
             if (!this.entities.containsKey(relation.getTargetEndPoint().getEntity())) {
                 throw new EntityDefinitionNotFoundException("Target %s is not a valid entity".formatted(relation.getTargetEndPoint().getEntity()));
             }
-            if (this.relations.stream().filter(relation::collides).count() > 1) {
+            if (this.relations.stream().anyMatch(relation::collides)) {
                 throw new DuplicateElementException("Duplicate relation on entity %s named %s".formatted(relation.getSourceEndPoint().getEntity(), relation.getSourceEndPoint().getName()));
             }
             if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
+            this.relations.add(relation);
         });
 
         // Validating entity search filters (happens here rather than in Entity because they might go across relations)
@@ -101,22 +104,31 @@ public class Application {
      * Internal map of entities by name.
      */
     @Getter(AccessLevel.NONE)
-    Map<EntityName, Entity> entities = new HashMap<>();
+    Map<EntityName, Entity> entities = new LinkedHashMap<>();
 
     @Getter(AccessLevel.NONE)
-    Map<PathSegmentName, Entity> pathSegmentEntities = new HashMap<>();
+    Map<PathSegmentName, Entity> pathSegmentEntities = new LinkedHashMap<>();
 
     /**
-     * The set of relations defined in this application.
+     * Internal set of relations defined in this application.
      */
-    Set<Relation> relations;
+    @Getter(AccessLevel.NONE)
+    Set<Relation> relations = new LinkedHashSet<>();
 
     /**
-     * Returns an unmodifiable set of entities.
-     * @return an unmodifiable set of entities
+     * Returns an unmodifiable set of relations.
+     * @return an unmodifiable set of relations
      */
-    public Set<Entity> getEntities() {
-        return Set.copyOf(entities.values());
+    public Set<Relation> getRelations() {
+        return Collections.unmodifiableSet(relations);
+    }
+
+    /**
+     * Returns an unmodifiable list of entities.
+     * @return an unmodifiable list of entities
+     */
+    public List<Entity> getEntities() {
+        return List.copyOf(entities.values());
     }
 
     /**
@@ -213,7 +225,7 @@ public class Application {
      * @return a Set containing all the relations where the entity is the source entity
      */
     public Set<Relation> getRelationsForSourceEntity(Entity entity) {
-        var results = new HashSet<Relation>();
+        var results = new LinkedHashSet<Relation>();
         for (var relation : relations) {
             if (relation.getSourceEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);
@@ -237,7 +249,7 @@ public class Application {
      * @return a Set containing all the relations where the entity is the target entity
      */
     public Set<Relation> getRelationsForTargetEntity(Entity entity) {
-        var results = new HashSet<Relation>();
+        var results = new LinkedHashSet<Relation>();
         for (var relation : relations) {
             if (relation.getTargetEndPoint().getEntity().equals(entity.getName())) {
                 results.add(relation);

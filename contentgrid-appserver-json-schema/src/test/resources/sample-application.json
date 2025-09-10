@@ -577,15 +577,13 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Department",
-        "required": false,
         "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "employees",
         "pathSegment": "employees",
         "linkName": "employees",
-        "entityName": "Employee",
-        "required": false
+        "entityName": "Employee"
       },
       "sourceReference": "dept_id"
     },
@@ -595,15 +593,13 @@
         "name": "manager",
         "pathSegment": "manager",
         "linkName": "manager",
-        "entityName": "Employee",
-        "required": false
+        "entityName": "Employee"
       },
       "targetEndpoint": {
         "name": "subordinates",
         "pathSegment": "subordinates",
         "linkName": "subordinates",
-        "entityName": "Employee",
-        "required": false
+        "entityName": "Employee"
       },
       "sourceReference": "manager_id"
     },
@@ -613,12 +609,10 @@
         "name": "projects",
         "pathSegment": "projects",
         "linkName": "projects",
-        "entityName": "Department",
-        "required": false
+        "entityName": "Department"
       },
       "targetEndpoint": {
         "entityName": "Project",
-        "required": false,
         "flags": ["hidden"]
       },
       "sourceReference": "dept_id"
@@ -627,7 +621,6 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Employee",
-        "required": false,
         "flags": ["hidden"]
       },
       "targetEndpoint": {
@@ -635,7 +628,7 @@
         "pathSegment": "manager",
         "linkName": "manager",
         "entityName": "Project",
-        "required": true
+        "flags": ["required"]
       },
       "sourceReference": "manager_id"
     },
@@ -643,7 +636,6 @@
       "type": "one-to-many",
       "sourceEndpoint": {
         "entityName": "Project",
-        "required": false,
         "flags": ["hidden"]
       },
       "targetEndpoint": {
@@ -651,7 +643,7 @@
         "pathSegment": "project",
         "linkName": "project",
         "entityName": "Document",
-        "required": true
+        "flags": ["required"]
       },
       "sourceReference": "proj_id"
     },
@@ -661,15 +653,13 @@
         "name": "projects",
         "pathSegment": "projects",
         "linkName": "projects",
-        "entityName": "Employee",
-        "required": false
+        "entityName": "Employee"
       },
       "targetEndpoint": {
         "name": "employees",
         "pathSegment": "employees",
         "linkName": "employees",
-        "entityName": "Project",
-        "required": false
+        "entityName": "Project"
       },
       "joinTable": "employee_projects",
       "sourceReference": "emp_id",
@@ -681,15 +671,13 @@
         "name": "skills",
         "pathSegment": "skills",
         "linkName": "skills",
-        "entityName": "Employee",
-        "required": false
+        "entityName": "Employee"
       },
       "targetEndpoint": {
         "name": "employees",
         "pathSegment": "employees",
         "linkName": "employees",
-        "entityName": "Skill",
-        "required": false
+        "entityName": "Skill"
       },
       "joinTable": "employee_skills",
       "sourceReference": "emp_id",
@@ -702,14 +690,13 @@
         "pathSegment": "secret-information",
         "linkName": "secret-information",
         "entityName": "Employee",
-        "required": true
+        "flags": ["required"]
       },
       "targetEndpoint": {
         "name": "employee",
         "pathSegment": "employee",
         "linkName": "employee",
-        "entityName": "SecretInformation",
-        "required": false
+        "entityName": "SecretInformation"
       },
       "targetReference": "secret_information_id"
     }

@@ -390,9 +390,6 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
         Set<RelationEndpointFlag> set = new HashSet<>();
-        if(endPoint.isRequired()) {
-            set.add(RequiredEndpointFlag.INSTANCE);
-        }
         for (String flag : Objects.requireNonNullElseGet(endPoint.getFlags(), List::<String>of)) {
             RelationEndpointFlag relationEndpointFlag = switch (flag) {
                 case "hidden" -> HiddenEndpointFlag.INSTANCE;
@@ -430,9 +427,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .toList();
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
-        schema.setEntities(entities.stream().sorted(Comparator.comparing(Entity::getName)).toList());
-        schema.setRelations(relations.stream()
-                .sorted(Comparator.comparing(relation -> relation.getSourceEndpoint().getEntityName())).toList());
+        schema.setEntities(entities);
+        schema.setRelations(relations);
         return schema;
     }
 
@@ -444,8 +440,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setDescription(entity.getDescription());
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
-        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute)
-                .sorted(Comparator.comparing(Attribute::getName)).toList());
+        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
         jsonEntity.setSortableFields(entity.getSortableFields().stream().map(this::toJsonSortableField).toList());
         return jsonEntity;
@@ -641,7 +636,6 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         rep.setPathSegment(
                 relationEndPoint.getPathSegment() != null ? relationEndPoint.getPathSegment().getValue() : null);
         rep.setLinkName(relationEndPoint.getLinkName() != null ? relationEndPoint.getLinkName().getValue() : null);
-        rep.setRequired(relationEndPoint.isRequired());
         rep.setDescription(relationEndPoint.getDescription());
         rep.setFlags(toJsonRelationEndpointFlags(relationEndPoint.getFlags()));
         return rep;
@@ -652,7 +646,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .flatMap(flag -> switch (flag) {
                     case HiddenEndpointFlag ignored -> Stream.of("hidden");
                     case VisibleEndpointFlag ignored -> Stream.empty(); // Is just the implicit inverse of "HiddenEndpointFlag"
-                    case RequiredEndpointFlag ignored -> Stream.empty(); // Already explicitly set as a property
+                    case RequiredEndpointFlag ignored -> Stream.of("required");
                     default -> throw new IllegalArgumentException("Unknown flag %s".formatted(flag));
         }).toList();
 
