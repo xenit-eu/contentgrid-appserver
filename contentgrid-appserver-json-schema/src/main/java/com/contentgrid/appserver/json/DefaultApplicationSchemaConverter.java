@@ -427,9 +427,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .toList();
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
-        schema.setEntities(entities.stream().sorted(Comparator.comparing(Entity::getName)).toList());
-        schema.setRelations(relations.stream()
-                .sorted(Comparator.comparing(relation -> relation.getSourceEndpoint().getEntityName())).toList());
+        schema.setEntities(entities);
+        schema.setRelations(relations);
         return schema;
     }
 
@@ -441,8 +440,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setDescription(entity.getDescription());
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey(toJsonSimpleAttribute(entity.getPrimaryKey()));
-        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute)
-                .sorted(Comparator.comparing(Attribute::getName)).toList());
+        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
         jsonEntity.setSortableFields(entity.getSortableFields().stream().map(this::toJsonSortableField).toList());
         return jsonEntity;
