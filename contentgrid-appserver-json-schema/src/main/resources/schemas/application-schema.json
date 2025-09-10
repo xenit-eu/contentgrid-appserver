@@ -256,10 +256,6 @@
           "type": "string",
           "description": "A description of the relationEndPoint"
         },
-        "required": {
-          "type": "boolean",
-          "description": "Indicates whether the relation is required for the entity"
-        },
         "flags": {
           "type": "array",
           "description": "A list of flags for the relation",
@@ -269,8 +265,7 @@
         }
       },
       "required": [
-        "entityName",
-        "required"
+        "entityName"
       ]
     },
     "relationEndpointFlag": {

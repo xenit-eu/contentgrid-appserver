@@ -17,7 +17,6 @@ public class RelationEndPoint {
     @NonNull
     private String entityName;
     private String description;
-    private boolean required;
     private String linkName;
 
     @JsonInclude(Include.NON_EMPTY)

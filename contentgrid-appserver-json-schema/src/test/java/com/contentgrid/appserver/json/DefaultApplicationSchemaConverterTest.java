@@ -208,13 +208,11 @@ class DefaultApplicationSchemaConverterTest {
                                     "entityName": "target",
                                     "name": "source",
                                     "pathSegment": "source",
-                                    "linkName": "source",
-                                    "required": false
+                                    "linkName": "source"
                                 },
                             "targetEndpoint":
                                 {
                                     "entityName": "source",
-                                    "required": false,
                                     "flags": ["hidden"]
                                 },
                             "targetReference":"source_ref"
@@ -322,13 +320,11 @@ class DefaultApplicationSchemaConverterTest {
                                     "entityName": "target",
                                     "name": "source",
                                     "pathSegment": "source",
-                                    "linkName": "source",
-                                    "required": false
+                                    "linkName": "source"
                                 },
                             "targetEndpoint":
                                 {
                                     "entityName": "source",
-                                    "required": false,
                                     "flags": [ "hidden" ]
                                 },
                             "sourceReference":"target_ref"
