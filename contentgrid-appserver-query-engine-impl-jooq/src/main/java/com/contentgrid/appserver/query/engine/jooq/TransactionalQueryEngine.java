@@ -141,6 +141,7 @@ public class TransactionalQueryEngine implements QueryEngine {
             delegate.unsetLink(application, relationRequest, permitUpdatePredicate);
             return null;
         });
+
     }
 
     @Override
@@ -151,6 +152,7 @@ public class TransactionalQueryEngine implements QueryEngine {
             delegate.addLinks(application, relationRequest, targetIds, permitUpdatePredicate);
             return null;
         });
+
     }
 
     @Override

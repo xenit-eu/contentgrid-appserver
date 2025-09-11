@@ -137,24 +137,11 @@ public interface QueryEngine {
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param relation the *-to-one relation to query
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-one relation to query
      * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    default Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
-        return findTarget(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                permitReadPredicate
-        ).map(EntityIdAndVersion::entityId);
-    }
-
     Optional<EntityIdAndVersion> findTarget(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**
@@ -162,48 +149,21 @@ public interface QueryEngine {
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param relation the *-to-one relation for which to set the link
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-one relation for which to set the link
      * @param targetId the primary key of the target entity
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    default void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        setLink(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                targetId,
-                permitUpdatePredicate
-        );
-    }
-
     void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
      *
      * @param application the application context
-     * @param relation the relation type for which to remove links
-     * @param id the primary key of the source entity
+     * @param relationRequest the relation type for which to remove links
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    default void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        unsetLink(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                permitUpdatePredicate
-        );
-    }
-
     void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
@@ -211,25 +171,11 @@ public interface QueryEngine {
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param relation the *-to-many relation to add links to
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-many relation to add links to
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    default void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        addLinks(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                targetIds,
-                permitUpdatePredicate
-        );
-    }
-
     void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
@@ -237,25 +183,11 @@ public interface QueryEngine {
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param relation the *-to-many relation to remove links from
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-many relation to remove links from
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    default void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        removeLinks(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                targetIds,
-                permitUpdatePredicate
-        );
-    }
-
     void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
