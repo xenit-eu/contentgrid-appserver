@@ -24,6 +24,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
+import com.contentgrid.appserver.spring.test.WithMockJwt;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -45,6 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
 @AutoConfigureMockMvc
+@WithMockJwt
 class DynamicDispatchApplicationHandlerMappingTest {
 
     private static final Entity TEST_ENTITY = Entity.builder()
@@ -128,6 +130,13 @@ class DynamicDispatchApplicationHandlerMappingTest {
             return ResponseEntity.ok("Entity %s".formatted(
                     APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow().getName()
                             .getValue()));
+        }
+
+        @PostMapping(value = "/{entityName}", consumes = "application/json")
+        ResponseEntity<String> createEntity(
+                @PathVariable String entityName
+        ) {
+            return ResponseEntity.ok("Created");
         }
 
         @GetMapping("/{entityName}/{contentAttributeName}")
@@ -218,6 +227,12 @@ class DynamicDispatchApplicationHandlerMappingTest {
         mockMvc.perform(get("/test-entities"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Entity test-entity"));
+        mockMvc.perform(get("/others"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/others")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
     }
 
     @Test

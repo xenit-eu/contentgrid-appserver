@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -153,7 +154,7 @@ public class EntityRestController {
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            HttpServletRequest request,
+            NativeWebRequest request,
             PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var inputData = new ConversionServiceRequestInputData(

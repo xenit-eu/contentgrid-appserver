@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,6 +57,7 @@ import org.springframework.util.LinkedMultiValueMap;
 
 @SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
 @AutoConfigureMockMvc
+@WithMockJwt
 class EntityRestControllerTest {
 
     @Autowired

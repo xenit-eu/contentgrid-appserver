@@ -36,6 +36,7 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
+import com.contentgrid.appserver.spring.test.WithMockJwt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -65,6 +66,7 @@ import org.springframework.util.LinkedMultiValueMap;
  */
 @SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
+@WithMockJwt
 class RelationRestControllerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());
