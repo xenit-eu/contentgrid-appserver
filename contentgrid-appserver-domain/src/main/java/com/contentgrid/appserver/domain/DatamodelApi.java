@@ -158,7 +158,15 @@ public interface DatamodelApi {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    default boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        return hasRelationTarget(application, RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                sourceId,
+                relation.getSourceEndPoint().getName()
+        ), targetId, permissionPredicate);
+    }
+
+    boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -170,7 +178,18 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    default Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        return findRelationTarget(
+                application,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ), permissionPredicate
+        ).map(rt -> rt.getTargetEntityIdentity().getEntityId());
+    }
+
+    Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Link the target entity id with the given source id.
