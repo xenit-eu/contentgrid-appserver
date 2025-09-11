@@ -103,6 +103,10 @@ public class ModelTestFixtures {
                     .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
+                    .name(FilterName.of("parent"))
+                    .attributePath(PropertyPath.of(RelationName.of("parent"), AttributeName.of("id")))
+                    .build())
+            .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("invoices.number"))
                     .attributePath(PropertyPath.of(RelationName.of("invoices"), AttributeName.of("number")))
                     .build())
@@ -511,6 +515,22 @@ public class ModelTestFixtures {
             .targetReference(ColumnName.of("person_tgt_id"))
             .build();
 
+    public static final OneToManyRelation PERSON_CHILDREN = OneToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(PERSON.getName())
+                    .name(RelationName.of("children"))
+                    .pathSegment(PathSegmentName.of("children"))
+                    .linkName(LinkName.of("children"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(PERSON.getName())
+                    .name(RelationName.of("parent"))
+                    .pathSegment(PathSegmentName.of("parent"))
+                    .linkName(LinkName.of("parent"))
+                    .build())
+            .sourceReference(ColumnName.of("parent"))
+            .build();
+
     public static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE.getName())
@@ -555,6 +575,7 @@ public class ModelTestFixtures {
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
+            .relation(PERSON_CHILDREN)
             .relation(INVOICE_PRODUCTS)
             .build();
 }

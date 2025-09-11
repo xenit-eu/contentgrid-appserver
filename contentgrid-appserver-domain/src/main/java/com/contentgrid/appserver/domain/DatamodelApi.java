@@ -7,12 +7,14 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -202,6 +204,17 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the set operation
      */
     void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+
+    default void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        var relation  = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        setRelation(
+                application,
+                relation,
+                relationRequest.getEntityId(),
+                targetId,
+                permissionPredicate
+        );
+    }
 
     /**
      * Removes all links from the entity with the given id for the specified relation.

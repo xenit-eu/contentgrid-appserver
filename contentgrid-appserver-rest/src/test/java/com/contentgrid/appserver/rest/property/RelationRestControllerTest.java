@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.property;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
@@ -15,29 +16,35 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import java.util.Optional;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,8 +54,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.util.LinkedMultiValueMap;
 
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
@@ -59,13 +66,18 @@ class RelationRestControllerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());
     private static final EntityId INVOICE_ID = EntityId.of(UUID.randomUUID());
-    private static final EntityId PRODUCT_ID = EntityId.of(UUID.randomUUID());
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean(enforceOverride = true)
-    private DatamodelApiImpl datamodelApi;
+    @Autowired
+    private DatamodelApi datamodelApi;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private TableCreator tableCreator;
 
     @TestConfiguration
     static class TestConfig {
@@ -76,255 +88,210 @@ class RelationRestControllerTest {
             return new SingleApplicationResolver(APPLICATION);
         }
 
-        @Bean
-        @Primary
-        public TableCreator noopTableCreator() {
-            return new TableCreator() {
-                @Override
-                public void createTables(Application application) {
-                    // avoid creating tables, we don't need them
                 }
 
-                @Override
-                public void dropTables(Application application) {
-                    // no tables were created
-                }
-            };
-        }
+    @BeforeEach
+    void setup() {
+        tableCreator.createTables(APPLICATION);
     }
 
     @AfterEach
-    void resetMocks() {
-        Mockito.reset(datamodelApi);
+    void teardown() {
+        tableCreator.dropTables(APPLICATION);
+    }
+
+    private EntityIdentity createEntity(Entity entity) throws Exception {
+        var params = new LinkedMultiValueMap<String, String>();
+
+        for (var attribute : entity.getAttributes()) {
+            if (attribute instanceof SimpleAttribute sa && sa.hasConstraint(RequiredConstraint.class)) {
+                params.add(sa.getName().getValue(), switch (sa.getType()) {
+                    case LONG, DOUBLE -> "123";
+                    case BOOLEAN -> "true";
+                    case DATETIME -> Instant.now().toString();
+                    case UUID, TEXT -> UUID.randomUUID().toString();
+                });
+                sa.getConstraint(AllowedValuesConstraint.class).ifPresent(allowedValues -> {
+                    params.set(sa.getName().getValue(), allowedValues.getValues().getFirst());
+                });
+            }
+
+        }
+
+        for(var relation: APPLICATION.getRelationsForSourceEntity(entity)) {
+            if(relation.getSourceEndPoint().hasFlag(RequiredEndpointFlag.class)) {
+                var relatedEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+                var relationEntity = createEntity(relatedEntity);
+                params.add(relation.getSourceEndPoint().getName().getValue(), "http://localhost/%s/%s".formatted(
+                        relatedEntity.getPathSegment(),
+                        relationEntity.getEntityId()
+                ));
+            }
+        }
+
+        var response = mockMvc.perform(post("/{entity}", entity.getPathSegment())
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .params(params)
+                )
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+
+        var id = objectMapper.readTree(response.getContentAsByteArray()).get("id").asText();
+        return EntityIdentity.forEntity(
+                entity.getName(),
+                EntityId.of(UUID.fromString(id))
+        );
     }
 
     @Nested
     class ValidInput {
 
-        @Test
-        void followOneToOneRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            Mockito.doReturn(Optional.of(targetId)).when(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
-
-            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isFound())
-                    .andExpect(
-                            header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
-
-            Mockito.verify(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
+        static Stream<Arguments> toOneRelations() {
+            return Stream.of(
+                    Arguments.argumentSet("one-to-one", INVOICE_PREVIOUS),
+                    Arguments.argumentSet("many-to-one", PERSON_CHILDREN.inverse())
+            );
         }
 
-        @Test
-        void followManyToOneRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            Mockito.doReturn(Optional.of(targetId)).when(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_CUSTOMER), Mockito.eq(INVOICE_ID), Mockito.any());
-
-            mockMvc.perform(get("/invoices/{sourceId}/customer", INVOICE_ID))
-                    .andExpect(status().isFound())
-                    .andExpect(
-                            header().string(HttpHeaders.LOCATION, "http://localhost/persons/%s".formatted(targetId)));
-
-            Mockito.verify(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_CUSTOMER), Mockito.eq(INVOICE_ID), Mockito.any());
+        static Stream<Arguments> toManyRelations() {
+            return Stream.of(
+                    Arguments.argumentSet("one-to-many", PERSON_CHILDREN, "parent"),
+                    Arguments.argumentSet("many-to-many", INVOICE_PRODUCTS.inverse(), "products"),
+                    Arguments.argumentSet("many-to-many (uni-directional)", PERSON_FRIENDS, "_internal_person__friends")
+            );
         }
 
-        @Test
-        void followOneToManyRelation() throws Exception {
-            Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(PERSON.getName())
-                            .id(PERSON_ID)
-                            .build()))
-                    .when(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
 
-            mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll());
+
+            // Then check if the redirect is correct
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isFound())
-                    .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/invoices?customer=%s".formatted(PERSON_ID)));
-
-            Mockito.verify(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
+                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
         }
 
-        @Test
-        void followManyToManyRelation() throws Exception {
-            Mockito.doReturn(Optional.of(EntityData.builder()
-                            .name(PRODUCT.getName())
-                            .id(PRODUCT_ID)
-                            .build()))
-                    .when(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID)), Mockito.any());
+        @ParameterizedTest
+        @MethodSource("toManyRelations")
+        void getToManyRelation(Relation relation, String queryParam) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
 
-            mockMvc.perform(get("/products/{sourceId}/invoices", PRODUCT_ID))
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isFound())
                     .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/invoices?products=%s".formatted(PRODUCT_ID)));
-
-            Mockito.verify(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PRODUCT.getName(), PRODUCT_ID)), Mockito.any());
+                            "http://localhost/%s?%s=%s".formatted(targetEntity.getPathSegment(), queryParam, sourceEntityIdentity.getEntityId())));
         }
 
-        @Test
-        void followUnidirectionalToManyRelation() throws Exception {
-            Mockito.doReturn(Optional.of(EntityData.builder()
-                    .name(PERSON.getName())
-                    .id(PERSON_ID)
-                    .build()))
-                    .when(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
+        @ParameterizedTest
+        @MethodSource("toManyRelations")
+        void getToManyRelationItem(Relation relation, String queryParam) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
 
-            mockMvc.perform(get("/persons/{sourceId}/friends", PERSON_ID))
-                    .andExpect(status().isFound())
-                    .andExpect(header().string(HttpHeaders.LOCATION,
-                            "http://localhost/persons?_internal_person__friends=%s".formatted(PERSON_ID)));
+            datamodelApi.addRelationItems(APPLICATION, relation, sourceEntityIdentity.getEntityId(), Set.of(targetEntityIdentity.getEntityId()), PermissionPredicate.allowAll());
 
-            Mockito.verify(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
-        }
-
-        @Test
-        void followOneToManyRelationItem() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            Mockito.doReturn(true).when(datamodelApi)
-                    .hasRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(targetId), Mockito.any());
-
-            mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}/{targetId}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity.getEntityId()))
                     .andExpect(status().isFound())
                     .andExpect(
-                            header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
-
-            Mockito.verify(datamodelApi)
-                    .hasRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(targetId), Mockito.any());
+                            header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
         }
 
-        @Test
-        void followManyToManyRelationItem() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void setToOneRelation(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
 
-            Mockito.doReturn(true).when(datamodelApi)
-                    .hasRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT_INVOICES), Mockito.eq(PRODUCT_ID), Mockito.eq(targetId), Mockito.any());
-
-            mockMvc.perform(get("/products/{sourceId}/invoices/{targetId}", PRODUCT_ID, targetId))
-                    .andExpect(status().isFound())
-                    .andExpect(
-                            header().string(HttpHeaders.LOCATION, "http://localhost/invoices/%s".formatted(targetId)));
-
-            Mockito.verify(datamodelApi)
-                    .hasRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT_INVOICES), Mockito.eq(PRODUCT_ID), Mockito.eq(targetId), Mockito.any());
-        }
-
-        @Test
-        void setOneToOneRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
+                            .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.eq(targetId), Mockito.any());
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+
         }
 
-        @Test
-        void setManyToOneRelation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
+        @ParameterizedTest
+        @MethodSource({"toOneRelations", "toManyRelations"})
+        void clearRelation(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
 
-            mockMvc.perform(put("/invoices/{sourceId}/customer", INVOICE_ID)
+            var createMethod = relation instanceof OneToManyRelation|| relation instanceof ManyToManyRelation?HttpMethod.POST:HttpMethod.PUT;
+            // First create the relation
+            mockMvc.perform(request(createMethod, "/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .contentType("text/uri-list")
-                            .content("http://localhost/persons/%s%n".formatted(targetId)))
+                    .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId()))
+            ).andExpect(status().is2xxSuccessful());
+
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+
+
+            // Then delete it again
+            mockMvc.perform(delete("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).setRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_CUSTOMER), Mockito.eq(INVOICE_ID), Mockito.eq(targetId), Mockito.any());
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isFalse();
         }
 
-        @Test
-        void clearOneToOneRelation() throws Exception {
-            mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
-                    .andExpect(status().isNoContent());
+        @ParameterizedTest
+        @MethodSource("toManyRelations")
+        void addToManyRelationItems(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity1 = createEntity(targetEntity);
+            var targetEntityIdentity2 = createEntity(targetEntity);
 
-            Mockito.verify(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
-        }
-
-        @Test
-        void clearManyToOneRelation() throws Exception {
-            mockMvc.perform(delete("/invoices/{sourceId}/customer", INVOICE_ID))
-                    .andExpect(status().isNoContent());
-
-            Mockito.verify(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_CUSTOMER), Mockito.eq(INVOICE_ID), Mockito.any());
-        }
-
-        @Test
-        void clearOneToManyRelation() throws Exception {
-            mockMvc.perform(delete("/persons/{sourceId}/invoices", PERSON_ID))
-                    .andExpect(status().isNoContent());
-
-            Mockito.verify(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.any());
-        }
-
-        @Test
-        void clearManyToManyRelation() throws Exception {
-            mockMvc.perform(delete("/products/{sourceId}/invoices", PRODUCT_ID))
-                    .andExpect(status().isNoContent());
-
-            Mockito.verify(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT_INVOICES), Mockito.eq(PRODUCT_ID), Mockito.any());
-        }
-
-        @Test
-        void addOneToManyRelationItems() throws Exception {
-            var invoice1 = EntityId.of(UUID.randomUUID());
-            var invoice2 = EntityId.of(UUID.randomUUID());
-
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            mockMvc.perform(post("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
-                                    invoice2)))
+                            .content("http://localhost/%s/%s%nhttp://localhost/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
+                                    targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()))
+                    )
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(Set.of(invoice1, invoice2)), Mockito.any());
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), PermissionPredicate.allowAll())).isTrue();
         }
 
-        @Test
-        void addManyToManyRelationItems() throws Exception {
-            var invoice1 = EntityId.of(UUID.randomUUID());
-            var invoice2 = EntityId.of(UUID.randomUUID());
+        @ParameterizedTest
+        @MethodSource("toManyRelations")
+        void removeToManyRelationItem(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity1 = createEntity(targetEntity);
+            var targetEntityIdentity2 = createEntity(targetEntity);
 
-            mockMvc.perform(post("/products/{sourceId}/invoices", PRODUCT_ID)
-                            .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
-                                    invoice2)))
+            datamodelApi.addRelationItems(APPLICATION, relation, sourceEntityIdentity.getEntityId(), Set.of(targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()), PermissionPredicate.allowAll());
+
+
+            mockMvc.perform(delete("/{entity}/{sourceId}/{relation}/{id}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity2.getEntityId()))
                     .andExpect(status().isNoContent());
 
-            Mockito.verify(datamodelApi).addRelationItems(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT_INVOICES), Mockito.eq(PRODUCT_ID), Mockito.eq(Set.of(invoice1, invoice2)), Mockito.any());
-        }
-
-        @Test
-        void removeOneToManyRelationItem() throws Exception {
-            mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
-                    .andExpect(status().isNoContent());
-
-            Mockito.verify(datamodelApi)
-                    .removeRelationItem(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID),
-                            Mockito.eq(INVOICE_ID), Mockito.any());
-        }
-
-        @Test
-        void removeManyToManyRelationItem() throws Exception {
-            mockMvc.perform(delete("/products/{sourceId}/invoices/{targetId}", PRODUCT_ID, INVOICE_ID))
-                    .andExpect(status().isNoContent());
-
-            Mockito.verify(datamodelApi)
-                    .removeRelationItem(Mockito.eq(APPLICATION), Mockito.eq(PRODUCT_INVOICES), Mockito.eq(PRODUCT_ID),
-                            Mockito.eq(INVOICE_ID), Mockito.any());
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), PermissionPredicate.allowAll())).isFalse();
         }
     }
 
@@ -364,7 +331,8 @@ class RelationRestControllerTest {
 
         @Test
         void setRelationNoData() throws Exception {
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            var invoice = createEntity(INVOICE);
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
                     .andExpect(status().isBadRequest())
@@ -373,17 +341,19 @@ class RelationRestControllerTest {
 
         @Test
         void setRelationMissingContent() throws Exception {
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+            var invoice = createEntity(INVOICE);
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void setRelationTooManyData() throws Exception {
+            var invoice = createEntity(INVOICE);
             var target1 = EntityId.of(UUID.randomUUID());
             var target2 = EntityId.of(UUID.randomUUID());
 
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(target1, target2)))
                     .andExpect(status().isBadRequest())
@@ -393,7 +363,8 @@ class RelationRestControllerTest {
         @ParameterizedTest
         @MethodSource("invalidUrls")
         void setRelationInvalidUrl(String url) throws Exception {
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            var invoice = createEntity(INVOICE);
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content(url))
                     .andExpect(status().isBadRequest())
@@ -403,8 +374,9 @@ class RelationRestControllerTest {
         @ParameterizedTest
         @MethodSource("invalidContentType")
         void setRelationInvalidMimeType(String contentType) throws Exception {
+            var invoice = createEntity(INVOICE);
             var targetId = EntityId.of(UUID.randomUUID());
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType(contentType)
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isUnsupportedMediaType())
@@ -414,7 +386,8 @@ class RelationRestControllerTest {
 
         @Test
         void addRelationNoData() throws Exception {
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            var person = createEntity(PERSON);
+            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
                     .andExpect(status().isBadRequest())
@@ -423,7 +396,8 @@ class RelationRestControllerTest {
 
         @Test
         void addRelationMissingContent() throws Exception {
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID))
+            var person = createEntity(PERSON);
+            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId()))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
@@ -431,8 +405,9 @@ class RelationRestControllerTest {
         @ParameterizedTest
         @MethodSource("invalidContentType")
         void addRelationInvalidMimeType(String contentType) throws Exception {
+            var person = createEntity(PERSON);
             var targetId = EntityId.of(UUID.randomUUID());
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType(contentType)
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(status().isUnsupportedMediaType())
@@ -443,7 +418,8 @@ class RelationRestControllerTest {
         @ParameterizedTest
         @MethodSource("invalidUrls")
         void addRelationInvalidUrl(String url) throws Exception {
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            var person = createEntity(PERSON);
+            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType("text/uri-list")
                             .content(url))
                     .andExpect(status().isBadRequest())
@@ -512,14 +488,8 @@ class RelationRestControllerTest {
     @Nested
     class DatabaseFailures {
 
-        private static final ConstraintViolationException FOREIGN_KEY_NOT_FOUND = new ConstraintViolationException("Foreign key not found");
-        private static final ConstraintViolationException FOREIGN_KEY_REQUIRED = new ConstraintViolationException("Foreign key is required");
-
         @Test
         void followToOneRelationSourceIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
-
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
@@ -527,19 +497,14 @@ class RelationRestControllerTest {
 
         @Test
         void followToOneRelationTargetIdNotFound() throws Exception {
-            Mockito.doReturn(Optional.empty()).when(datamodelApi)
-                    .findRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
-
-            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+            var invoice = createEntity(INVOICE);
+            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void followToManyRelationSourceIdNotFound() throws Exception {
-            Mockito.doReturn(Optional.empty()).when(datamodelApi)
-                    .findById(Mockito.eq(APPLICATION), Mockito.eq(EntityRequest.forEntity(PERSON.getName(), PERSON_ID)), Mockito.any());
-
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
@@ -547,70 +512,45 @@ class RelationRestControllerTest {
 
         @Test
         void followToManyRelationItemSourceIdOrTargetIdNotFound() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
+            var invoice = createEntity(INVOICE);
+            var person = createEntity(PERSON);
 
-            // Returns false if sourceId or targetId does not exist, or if there is no relation between sourceId and targetId
-            Mockito.doReturn(false).when(datamodelApi)
-                    .hasRelationTarget(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(targetId), Mockito.any());
-
-            mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, targetId))
+            mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void setRelationEntityIdNotFound() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
+            var invoice = createEntity(INVOICE);
 
-            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), targetId)).when(datamodelApi)
-                    .setRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.eq(targetId), Mockito.any());
-
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isNotFound())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
-        }
-
-        @Test
-        void setRelationForeignKeyConstraintViolation() throws Exception {
-            var targetId = EntityId.of(UUID.randomUUID());
-
-            Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .setRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.eq(targetId), Mockito.any());
-
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
-                            .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%n".formatted(targetId)))
+                            .content("http://localhost/invoices/%s%n".formatted(UUID.randomUUID())))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void addRelationEntityIdNotFound() throws Exception {
-            var invoice1 = EntityId.of(UUID.randomUUID());
-            var invoice2 = EntityId.of(UUID.randomUUID());
+            var invoice1 = createEntity(INVOICE);
+            var invoice2 = createEntity(INVOICE);
 
-            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), invoice1)).when(datamodelApi)
-                    .addRelationItems(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(Set.of(invoice1, invoice2)), Mockito.any());
-
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            mockMvc.perform(post("/persons/{sourceId}/invoices", UUID.randomUUID())
                             .contentType("text/uri-list")
-                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
-                                    invoice2)))
+                            .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1.getEntityId(),
+                                    invoice2.getEntityId())))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void addRelationForeignKeyConstraintViolation() throws Exception {
+            var person = createEntity(PERSON);
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
-            Mockito.doThrow(FOREIGN_KEY_NOT_FOUND).when(datamodelApi)
-                    .addRelationItems(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(Set.of(invoice1, invoice2)), Mockito.any());
-
-            mockMvc.perform(post("/persons/{sourceId}/invoices", PERSON_ID)
+            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
@@ -620,40 +560,38 @@ class RelationRestControllerTest {
 
         @Test
         void clearRelationEntityIdNotFound() throws Exception {
-            Mockito.doThrow(new EntityIdNotFoundException(INVOICE.getName(), INVOICE_ID)).when(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
-
-            mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+            mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", UUID.randomUUID()))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void clearRelationForeignKeyRequired() throws Exception {
-            Mockito.doThrow(FOREIGN_KEY_REQUIRED).when(datamodelApi)
-                    .deleteRelation(Mockito.eq(APPLICATION), Mockito.eq(INVOICE_PREVIOUS), Mockito.eq(INVOICE_ID), Mockito.any());
+            var invoice = createEntity(INVOICE);
 
-            mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+            mockMvc.perform(delete("/invoices/{sourceId}/customer", invoice.getEntityId()))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void removeRelationDataEntityIdNotFound() throws Exception {
-            Mockito.doThrow(new RelationLinkNotFoundException(PERSON_INVOICES, PERSON_ID, INVOICE_ID)).when(datamodelApi)
-                    .removeRelationItem(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(INVOICE_ID), Mockito.any());
+            var person = createEntity(PERSON);
+            var invoice = createEntity(INVOICE);
 
-            mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
+            mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
 
         @Test
         void removeRelationDataForeignKeyRequired() throws Exception {
-            Mockito.doThrow(FOREIGN_KEY_REQUIRED).when(datamodelApi)
-                    .removeRelationItem(Mockito.eq(APPLICATION), Mockito.eq(PERSON_INVOICES), Mockito.eq(PERSON_ID), Mockito.eq(INVOICE_ID), Mockito.any());
+            var person = createEntity(PERSON);
+            var invoice = createEntity(INVOICE);
 
-            mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", PERSON_ID, INVOICE_ID))
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(INVOICE.getName(), invoice.getEntityId(), INVOICE_CUSTOMER.getSourceEndPoint().getName()), person.getEntityId(), PermissionPredicate.allowAll());
+
+            mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(status().isBadRequest())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }

@@ -199,6 +199,28 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
                     });
+                },
+                children -> {
+                    assertThat(children.getName()).isEqualTo("children");
+                    assertThat(children.isReadOnly()).isFalse();
+                    assertThat(children.isRequired()).isFalse();
+                    assertThat(children.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(children.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
+                        assertThat(options.getLink().getHref()).isEqualTo("/persons");
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
+                },
+                parent -> {
+                    assertThat(parent.getName()).isEqualTo("parent");
+                    assertThat(parent.isReadOnly()).isFalse();
+                    assertThat(parent.isRequired()).isFalse();
+                    assertThat(parent.getType()).isEqualTo(HtmlInputType.URL_VALUE);
+                    assertThat(parent.getOptions()).isInstanceOfSatisfying(Remote.class, options -> {
+                        assertThat(options.getLink().getHref()).isEqualTo("/persons");
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isOne();
+                    });
                 }
         );
 
@@ -444,6 +466,10 @@ class HalFormsTemplateGeneratorTest {
                 friendsVat -> {
                     assertThat(friendsVat.getName()).isEqualTo("friends.vat");
                     assertThat(friendsVat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                parent -> {
+                    assertThat(parent.getName()).isEqualTo("parent");
+                    assertThat(parent.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 invoicesNumber -> {
                     assertThat(invoicesNumber.getName()).isEqualTo("invoices.number");
