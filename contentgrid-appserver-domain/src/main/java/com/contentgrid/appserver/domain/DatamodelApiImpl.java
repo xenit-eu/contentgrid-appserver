@@ -357,15 +357,19 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
+    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.setLink(application, relation, id, targetId, permissionPredicate.predicate());
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        // TODO: wire relationRequest through to the query engine
+        queryEngine.setLink(application, relation, relationRequest.getEntityId(), targetId, permissionPredicate.predicate());
     }
 
     @Override
-    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate)
+    public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.unsetLink(application, relation, id, permissionPredicate.predicate());
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        // TODO: wire relationRequest through to the query engine
+        queryEngine.unsetLink(application, relation, relationRequest.getEntityId(), permissionPredicate.predicate());
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
@@ -152,7 +153,12 @@ public class XToManyRelationRestController {
     ) {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
-            datamodelApi.deleteRelation(application, relation, instanceId, permissionPredicate);
+            var request = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    instanceId,
+                    relation.getSourceEndPoint().getName()
+            );
+            datamodelApi.deleteRelation(application, request, permissionPredicate);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

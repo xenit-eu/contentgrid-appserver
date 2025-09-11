@@ -199,32 +199,19 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param relation the relation to set
-     * @param id the primary key of the source entity
      * @param targetId the primary key of the target entity to link
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
-
-    default void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        var relation  = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        setRelation(
-                application,
-                relation,
-                relationRequest.getEntityId(),
-                targetId,
-                permissionPredicate
-        );
-    }
+    void setRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
      *
      * @param application the application context
-     * @param relation the relation type for which to remove links
-     * @param id the primary key of the source entity
+     * @param relation the relation for which to remove links
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void deleteRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Adds the target entity links to the entity with the given id.
