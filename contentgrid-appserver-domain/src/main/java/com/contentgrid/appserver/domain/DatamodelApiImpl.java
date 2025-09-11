@@ -2,15 +2,20 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
+import com.contentgrid.appserver.domain.data.mapper.AttributeDataToDataEntryMapper;
+import com.contentgrid.appserver.domain.data.mapper.AttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
@@ -33,6 +38,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
@@ -44,6 +50,8 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -100,6 +108,17 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     }
 
+    private ResponseOutputDataMapper createOutputDataMapper(
+            @NonNull Application application,
+            @NonNull EntityName entityName
+    ) {
+        var entity = application.getRequiredEntityByName(entityName);
+        return new ResponseOutputDataMapper(
+                entity.getAttributes(),
+                new AttributeDataToDataEntryMapper()
+        );
+    }
+
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull Map<String, List<String>> params, @NonNull EncodedCursorPagination pagination,
@@ -129,12 +148,16 @@ public class DatamodelApiImpl implements DatamodelApi {
         var count = calculateCount(() -> queryEngine.count(application, entity, fullFilter),
                 offsetData, result.getEntities().size(), hasNext);
 
-        if (hasNext) {
-            // Remove the extra row again
-            return new ResultSlice(result.getEntities().subList(0, offsetData.getLimit()), controls, count);
-        } else {
-            return new ResultSlice(result.getEntities(), controls, count);
-        }
+        var outputMapper = createOutputDataMapper(application, entity.getName());
+
+        var entities = result.getEntities()
+                .subList(0, Math.min(offsetData.getLimit(), result.getEntities().size()))
+                .stream()
+                .map(outputMapper::mapAttributes)
+                .toList();
+
+        return new ResultSlice(entities, controls, count);
+
     }
 
     private OffsetData convertPaginationToOffset(@NonNull EncodedCursorPagination encodedPagination, EntityName entityName, Map<String, List<String>> params) {
@@ -171,16 +194,18 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public Optional<EntityData> findById(
+    public Optional<InternalEntityInstance> findById(
             @NonNull Application application,
             @NonNull EntityRequest entityRequest,
             @NonNull PermissionPredicate permissionPredicate
     ) {
-        return queryEngine.findById(application, entityRequest, permissionPredicate.predicate());
+        var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
+        return queryEngine.findById(application, entityRequest, permissionPredicate.predicate())
+                .map(outputMapper::mapAttributes);
     }
 
     @Override
-    public EntityData create(
+    public InternalEntityInstance create(
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
@@ -218,12 +243,14 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .relations(relations)
                 .build();
 
-        return queryEngine.create(application, createData, permissionPredicate.predicate());
+        var outputMapper = createOutputDataMapper(application, entityName);
+
+        return outputMapper.mapAttributes(queryEngine.create(application, createData, permissionPredicate.predicate()));
     }
 
     @Override
-    public EntityData update(@NonNull Application application,
-            @NonNull EntityData existingEntity, @NonNull RequestInputData data,
+    public InternalEntityInstance update(@NonNull Application application,
+            @NonNull EntityInstance existingEntity, @NonNull RequestInputData data,
             @NonNull PermissionPredicate permissionPredicate
     )
             throws QueryEngineException, InvalidPropertyDataException {
@@ -253,12 +280,13 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
 
-        return updateData.getUpdated();
+        var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
+        return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
     @Override
-    public EntityData updatePartial(@NonNull Application application,
-            @NonNull EntityData existingEntity,
+    public InternalEntityInstance updatePartial(@NonNull Application application,
+            @NonNull EntityInstance existingEntity,
             @NonNull RequestInputData data,
             @NonNull PermissionPredicate permissionPredicate
     ) throws QueryEngineException, InvalidPropertyDataException {
@@ -288,15 +316,19 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
 
-        return updateData.getUpdated();
+        var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
+        return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
     @Override
-    public EntityData deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate)
+    public InternalEntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate)
             throws EntityIdNotFoundException {
-        return queryEngine.delete(application, entityRequest, permissionPredicate.predicate())
+        var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
+
+        var deleted =  queryEngine.delete(application, entityRequest, permissionPredicate.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
+        return outputMapper.mapAttributes(deleted);
     }
 
     @Override
@@ -333,5 +365,37 @@ public class DatamodelApiImpl implements DatamodelApi {
     public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.removeLinks(application, relation, id, targetIds, permissionPredicate.predicate());
+    }
+
+    @RequiredArgsConstructor
+    public static class ResponseOutputDataMapper {
+        private final List<Attribute> attributes;
+        private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
+
+        public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
+            var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(attributes.size());
+            for (var attribute : attributes) {
+                try {
+                    data.put(
+                            attribute.getName().getValue(),
+                            attributeMapper.mapAttribute(attribute, entityData.getAttributeByName(attribute.getName()))
+                    );
+                } catch (InvalidPropertyDataException e) {
+                    throw new IllegalStateException(
+                            "Invalid data from storage for %s (attribute %s)".formatted(
+                                    entityData.getIdentity(),
+                                    attribute.getName()
+                            ),
+                            e
+                    );
+                }
+            }
+
+            return new InternalEntityInstance(
+                    entityData.getIdentity(),
+                    Collections.unmodifiableSequencedMap(data),
+                    entityData.getAttributes()
+            );
+        }
     }
 }

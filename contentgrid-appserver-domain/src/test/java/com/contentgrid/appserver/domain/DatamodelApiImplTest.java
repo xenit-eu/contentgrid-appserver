@@ -18,10 +18,12 @@ import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
@@ -164,7 +166,7 @@ class DatamodelApiImplTest {
                     PermissionPredicate.allowAll()
             );
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
@@ -296,7 +298,7 @@ class DatamodelApiImplTest {
                     PermissionPredicate.allowAll()
             );
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
@@ -352,7 +354,7 @@ class DatamodelApiImplTest {
                     PermissionPredicate.allowAll()
             );
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToManyRelationData.builder()
@@ -377,7 +379,7 @@ class DatamodelApiImplTest {
                     // The inverse relation is unnamed, so it should also not be processed
             )), PermissionPredicate.allowAll());
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(PERSON.getName());
@@ -454,7 +456,7 @@ class DatamodelApiImplTest {
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
             )), PermissionPredicate.allowAll());
 
-            assertThat(result.getId()).isEqualTo(entityId);
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
             assertThat(createDataCaptor.getValue()).satisfies(createData -> {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
@@ -1382,9 +1384,9 @@ class DatamodelApiImplTest {
             Mockito.verifyNoMoreInteractions(queryEngine);
         }
 
-        private double getAmount(EntityData entity) {
-            var data = entity.getAttributeByName(INVOICE_AMOUNT.getName()).orElseThrow();
-            return ((SimpleAttributeData<Double>) data).getValue();
+        private double getAmount(EntityInstance entity) {
+            var data = entity.getData().get(INVOICE_AMOUNT.getName().getValue());
+            return ((DecimalDataEntry) data).getValue().doubleValue();
         }
         private String getConfidentiality(EntityData entity) {
             var data = entity.getAttributeByName(INVOICE_CONFIDENTIALITY.getName()).orElseThrow();
@@ -1443,9 +1445,9 @@ class DatamodelApiImplTest {
                             .name(INVOICE_NUMBER.getName())
                             .value("invoice_" + i)
                             .build())
-                    .attribute(SimpleAttributeData.<Double>builder()
+                    .attribute(SimpleAttributeData.<BigDecimal>builder()
                             .name(INVOICE_AMOUNT.getName())
-                            .value(i * 100.0)
+                            .value(BigDecimal.valueOf(i * 100.0))
                             .build())
                     .attribute(SimpleAttributeData.<String>builder()
                             .name(INVOICE_CONFIDENTIALITY.getName())

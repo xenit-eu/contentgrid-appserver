@@ -31,7 +31,6 @@ import com.contentgrid.appserver.content.api.ContentStore;
 import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
-import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
@@ -72,12 +71,12 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 public class ContentgridAppConfiguration {
 
     @Bean
-    public DatamodelApi api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec) {
+    public DatamodelApiImpl api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec) {
         return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec);
     }
 
     @Bean
-    public ContentApi contentApi(DatamodelApi datamodelApi, ContentStore contentStore) {
+    public ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStore contentStore) {
         return new ContentApiImpl(datamodelApi, contentStore);
     }
 
