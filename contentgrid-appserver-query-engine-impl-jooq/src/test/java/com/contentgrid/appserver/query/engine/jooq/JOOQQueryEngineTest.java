@@ -1918,22 +1918,6 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidUnsetRelationData() {
         return Stream.of(
-                // Non-existing relation
-                Arguments.of(INVOICE2_ID, ManyToOneRelation.builder()
-                        .sourceEndPoint(RelationEndPoint.builder()
-                                .entity(INVOICE.getName())
-                                .name(RelationName.of("supplier"))
-                                .pathSegment(PathSegmentName.of("supplier"))
-                                .linkName(LinkName.of("supplier"))
-                                .build())
-                        .targetEndPoint(RelationEndPoint.builder()
-                                .entity(PERSON.getName())
-                                .name(RelationName.of("non_existing"))
-                                .pathSegment(PathSegmentName.of("non-existing"))
-                                .linkName(LinkName.of("non_existing"))
-                                .build())
-                        .targetReference(ColumnName.of("customer")) // Sneaky provide existing column
-                        .build()),
                 // Non-existing source id of an owning *-to-one relation
                 Arguments.of(ALICE_ID, INVOICE_PREVIOUS),
                 // Non-existing source id of a non-owning *-to-one relation

@@ -2,10 +2,11 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -106,57 +107,58 @@ public class TransactionalQueryEngine implements QueryEngine {
     }
 
     @Override
-    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+    public boolean isLinked(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate)
             throws QueryEngineException {
         return runInReadOnlyTransaction(() ->
-                delegate.isLinked(application, relation, sourceId, targetId, permitReadPredicate)
+                delegate.isLinked(application, relationRequest, targetId, permitReadPredicate)
         );
     }
 
     @Override
-    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation,
-            @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
+    public Optional<EntityIdAndVersion> findTarget(@NonNull Application application,
+            @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitReadPredicate)
+            throws QueryEngineException {
         return runInReadOnlyTransaction(() ->
-                delegate.findTarget(application, relation, id, permitReadPredicate)
+                delegate.findTarget(application, relationRequest, permitReadPredicate)
         );
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.setLink(application, relation, id, targetId, permitUpdatePredicate);
+            delegate.setLink(application, relationRequest, targetId, permitUpdatePredicate);
             return null;
         });
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.unsetLink(application, relation, id, permitUpdatePredicate);
+            delegate.unsetLink(application, relationRequest, permitUpdatePredicate);
             return null;
         });
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.addLinks(application, relation, id, targetIds, permitUpdatePredicate);
+            delegate.addLinks(application, relationRequest, targetIds, permitUpdatePredicate);
             return null;
         });
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.removeLinks(application, relation, id, targetIds, permitUpdatePredicate);
+            delegate.removeLinks(application, relationRequest, targetIds, permitUpdatePredicate);
             return null;
         });
     }

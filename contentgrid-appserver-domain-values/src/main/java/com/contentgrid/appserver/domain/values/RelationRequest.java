@@ -30,7 +30,7 @@ public class RelationRequest {
     VersionConstraint versionConstraint;
 
     public static RelationRequest forRelation(EntityName entityName, EntityId entityId, RelationName relationName) {
-        return new RelationRequest(entityName, entityId, relationName, Version.unspecified());
+        return new RelationRequest(entityName, entityId, relationName, VersionConstraint.ANY);
     }
 
     public String toString() {

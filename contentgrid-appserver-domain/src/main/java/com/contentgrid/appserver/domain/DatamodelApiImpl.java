@@ -347,29 +347,24 @@ public class DatamodelApiImpl implements DatamodelApi {
     public Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
              @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.findTarget(application, relation, relationRequest.getEntityId(), permissionPredicate.predicate())
-                // TODO: wire this through to the query engine
-                .map(targetId -> new RelationTarget(
+        return queryEngine.findTarget(application, relationRequest, permissionPredicate.predicate())
+                .map(entityIdAndVersion -> new RelationTarget(
                         RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
-                                .withVersion(Version.exactly(targetId.getValue().toString())),
-                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId)
+                                .withVersion(entityIdAndVersion.version()),
+                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), entityIdAndVersion.entityId())
                 ));
     }
 
     @Override
     public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        // TODO: wire relationRequest through to the query engine
-        queryEngine.setLink(application, relation, relationRequest.getEntityId(), targetId, permissionPredicate.predicate());
+        queryEngine.setLink(application, relationRequest, targetId, permissionPredicate.predicate());
     }
 
     @Override
     public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        // TODO: wire relationRequest through to the query engine
-        queryEngine.unsetLink(application, relation, relationRequest.getEntityId(), permissionPredicate.predicate());
+        queryEngine.unsetLink(application, relationRequest, permissionPredicate.predicate());
     }
 
     @Override

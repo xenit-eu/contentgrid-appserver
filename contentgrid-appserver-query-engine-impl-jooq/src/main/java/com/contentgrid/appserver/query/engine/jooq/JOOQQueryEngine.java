@@ -4,16 +4,19 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
+import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -42,6 +45,10 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +59,7 @@ import java.util.Set;
 import java.util.function.Function;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -247,10 +255,24 @@ public class JOOQQueryEngine implements QueryEngine {
         for (var relationData : nonOwningRelations) {
             var relation = application.getRelationForEntity(entity, relationData.getName())
                     .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    id,
+                    relation.getSourceEndPoint().getName()
+            );
             switch (relationData) {
-                case XToOneRelationData xToOneRelationData -> this.setLink(application, relation, id, xToOneRelationData.getRef(),
-                        Scalar.of(true));
-                case XToManyRelationData xToManyRelationData -> this.addLinks(application, relation, id, xToManyRelationData.getRefs(), Scalar.of(true));
+                case XToOneRelationData xToOneRelationData -> setLink(
+                        application,
+                        relationRequest,
+                        xToOneRelationData.getRef(),
+                        Scalar.of(true)
+                );
+                case XToManyRelationData xToManyRelationData -> addLinks(
+                        application,
+                        relationRequest,
+                        xToManyRelationData.getRefs(),
+                        Scalar.of(true)
+                );
             }
         }
 
@@ -422,62 +444,111 @@ public class JOOQQueryEngine implements QueryEngine {
         }
     }
 
+    /**
+     * Converts the entity that a relation points to into a version.
+     * <p>
+     * The version hash includes entity & relation name as well as the IDs on both sides
+     * of the relation to ensure that version hashes can not be reused for a different relation
+     */
+    private static Version getRelationVersion(RelationRequest relationRequest, Optional<EntityId> maybeEntityId) {
+        return maybeEntityId.map(entityId -> Version.exactly(hash(
+                        relationRequest.getEntityName().getValue(),
+                        relationRequest.getEntityId().getValue().toString(),
+                        relationRequest.getRelationName().getValue(),
+                        entityId.getValue().toString()
+                )))
+                .orElseGet(Version::nonExisting);
+    }
+
+    @SneakyThrows(NoSuchAlgorithmException.class)
+    private static String hash(String... inputs) {
+        var md = MessageDigest.getInstance("SHA256");
+        for (var input : inputs) {
+            md.update(input.getBytes(StandardCharsets.UTF_8));
+            md.update((byte) 0); // NUL-byte as separator for fields
+        }
+        var digest = md.digest();
+        // An always-positive bigint, limited to 16 bytes (truncated sha-256 hash), to reduce the size of the version
+        // This reduces the size of the version from 50 characters to a more sensible 25 characters
+        return new BigInteger(1, digest, 0, 16).toString(Character.MAX_RADIX);
+    }
+
     @Override
-    public boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+    public boolean isLinked(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), sourceId), permitReadPredicate);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitReadPredicate);
         var dslContext = resolver.resolve(application);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-        return strategy.isLinked(dslContext, application, relation, sourceId, targetId);
+        return strategy.isLinked(dslContext, application, relation, relationRequest.getEntityId(), targetId);
     }
 
     @Override
-    public Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public Optional<EntityIdAndVersion> findTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitReadPredicate);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitReadPredicate);
         var dslContext = resolver.resolve(application);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        return strategy.findTarget(dslContext, application, relation, id);
+        var maybeEntityId = strategy.findTarget(dslContext, application, relation, relationRequest.getEntityId());
+        var version = getRelationVersion(relationRequest, maybeEntityId);
+        if(!relationRequest.getVersionConstraint().isSatisfiedBy(version)) {
+            throw new UnsatisfiedVersionException(version, relationRequest.getVersionConstraint());
+        }
+
+        return maybeEntityId.map(entityId -> new EntityIdAndVersion(entityId, version));
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId,
+    public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        findTarget(application, relationRequest, permitUpdatePredicate); // implicit permission check + version check
+
         var dslContext = resolver.resolve(application);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        strategy.create(dslContext, application, relation, id, targetId);
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        strategy.create(dslContext, application, relation, relationRequest.getEntityId(), targetId);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
     }
 
     @Override
-    public void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id,
+    public void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
-        var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-        strategy.delete(dslContext, application, relation, id);
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
+            // implicit permission check + version check
+            findTarget(application, relationRequest, permitUpdatePredicate);
+        } else {
+            assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
+        }
+
+        JOOQRelationStrategyFactory.forRelation(relation)
+                .delete(dslContext, application, relation, relationRequest.getEntityId());
+
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
     }
 
     @Override
-    public void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds,
+    public void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.add(dslContext, application, relation, id, targetIds);
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        strategy.add(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
     }
 
     @Override
-    public void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds,
+    public void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.remove(dslContext, application, relation, id, targetIds);
-        assertPermission(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id), permitUpdatePredicate);
+        strategy.remove(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
+        assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
     }
 
     @Override
