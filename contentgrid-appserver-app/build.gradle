@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
 
+    api project(':contentgrid-appserver-autoconfigure')
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
     api project(':contentgrid-appserver-contentstore-api')
