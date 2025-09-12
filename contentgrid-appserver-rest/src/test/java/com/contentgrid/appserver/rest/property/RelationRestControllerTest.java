@@ -29,11 +29,13 @@ import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -43,6 +45,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,11 +150,67 @@ class RelationRestControllerTest {
     @Nested
     class ValidInput {
 
-        static Stream<Arguments> toOneRelations() {
+        static Stream<ArgumentSet> toOneRelations() {
             return Stream.of(
                     Arguments.argumentSet("one-to-one", INVOICE_PREVIOUS),
                     Arguments.argumentSet("many-to-one", PERSON_CHILDREN.inverse())
             );
+        }
+
+        interface ETagHandler {
+            Map.Entry<String, String> prepareETag(DatamodelApi api, RelationRequest relation, EntityIdentity targetIdentity);
+        }
+
+        private static final ETagHandler EMPTY_RELATION = (api,rel, target) -> {
+            api.deleteRelation(APPLICATION, rel, PermissionPredicate.allowAll());
+            return Map.entry("If-None-Match", "*");
+        };
+
+        private static final ETagHandler SET_RELATION = (api, rel, target) -> {
+            api.setRelation(APPLICATION, rel, target.getEntityId(), PermissionPredicate.allowAll());
+            var result = api.findRelationTarget(APPLICATION, rel, PermissionPredicate.allowAll()).orElseThrow();
+
+            var version = (ExactlyVersion)result.getRelationIdentity().getVersion();
+
+            return Map.entry("If-Match", "\"%s\"".formatted(version.getVersion()));
+        };
+
+        private static final ETagHandler FAILING_EMPTY_RELATION = (api, rel, target) -> {
+            var setRel = SET_RELATION.prepareETag(api, rel, target);
+            EMPTY_RELATION.prepareETag(api, rel, target);
+            return setRel;
+        };
+
+        private static final ETagHandler FAILING_SET_RELATION_EMPTY = (api, rel, target) -> {
+            var emptyRel = EMPTY_RELATION.prepareETag(api, rel, target);
+            SET_RELATION.prepareETag(api, rel, target);
+            return emptyRel;
+        };
+
+        private static final ETagHandler FAILING_SET_RELATION_OTHER = (api, rel, target) -> {
+            SET_RELATION.prepareETag(api, rel, target);
+            return Map.entry("If-Match", "\"non-matching\"");
+        };
+
+        static Stream<ArgumentSet> eTagHandlers() {
+            return Stream.of(
+                    Arguments.argumentSet("If-None-Match for non-existing", EMPTY_RELATION, true),
+                    Arguments.argumentSet("If-None-Match for existing", FAILING_EMPTY_RELATION, false),
+                    Arguments.argumentSet("If-Match for matching existing", SET_RELATION, true),
+                    Arguments.argumentSet("If-Match for non-existing", FAILING_SET_RELATION_EMPTY, false),
+                    Arguments.argumentSet("If-Match for non-matching existing", FAILING_SET_RELATION_OTHER, false)
+            );
+        }
+
+        static Stream<Arguments> toOneRelations_eTag() {
+            return toOneRelations()
+                    .flatMap(toOneRel -> eTagHandlers().map(eTagHandler -> {
+                        var args = Stream.concat(
+                                Stream.of(toOneRel.get()),
+                                Stream.of(eTagHandler.get())
+                        ).toArray();
+                        return Arguments.argumentSet(toOneRel.getName()+" "+eTagHandler.getName(), args);
+                    }));
         }
 
         static Stream<Arguments> toManyRelations() {
@@ -161,7 +220,6 @@ class RelationRestControllerTest {
                     Arguments.argumentSet("many-to-many (uni-directional)", PERSON_FRIENDS, "_internal_person__friends")
             );
         }
-
 
         @ParameterizedTest
         @MethodSource("toOneRelations")
@@ -181,6 +239,7 @@ class RelationRestControllerTest {
             // Then check if the redirect is correct
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isFound())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
         }
 
@@ -193,6 +252,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isFound())
+                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                     .andExpect(header().string(HttpHeaders.LOCATION,
                             "http://localhost/%s?%s=%s".formatted(targetEntity.getPathSegment(), queryParam, sourceEntityIdentity.getEntityId())));
         }
@@ -209,6 +269,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}/{targetId}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity.getEntityId()))
                     .andExpect(status().isFound())
+                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                     .andExpect(
                             header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
         }
@@ -227,7 +288,30 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+        }
 
+        @ParameterizedTest
+        @MethodSource("toOneRelations_eTag")
+        void setToOneRelation_eTag(Relation relation, ETagHandler eTagHandler, boolean succeeds) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            var relationRequest = RelationRequest.forRelation(
+                    sourceEntityIdentity.getEntityName(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            );
+
+            var eTagHeader = eTagHandler.prepareETag(datamodelApi, relationRequest, targetEntityIdentity);
+
+            mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .contentType("text/uri-list")
+                            .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId()))
+                            .header(eTagHeader.getKey(), eTagHeader.getValue())
+                    )
+                    .andExpect(succeeds?status().isNoContent():status().isPreconditionFailed());
         }
 
         @ParameterizedTest
@@ -253,6 +337,28 @@ class RelationRestControllerTest {
                     .andExpect(status().isNoContent());
 
             assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isFalse();
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations_eTag")
+        void clearToOneRelation_eTag(Relation relation, ETagHandler eTagHandler, boolean succeeds) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            var relationRequest = RelationRequest.forRelation(
+                    sourceEntityIdentity.getEntityName(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            );
+
+            var eTagHeader = eTagHandler.prepareETag(datamodelApi, relationRequest, targetEntityIdentity);
+
+            mockMvc.perform(delete("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(eTagHeader.getKey(), eTagHeader.getValue())
+                    )
+                    .andExpect(succeeds?status().isNoContent():status().isPreconditionFailed());
         }
 
         @ParameterizedTest
