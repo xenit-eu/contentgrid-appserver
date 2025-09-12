@@ -24,13 +24,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProp
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Condition;
-import org.springframework.context.annotation.ConditionContext;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @AutoConfiguration(after = {JooqAutoConfiguration.class, ApplicationResolverAutoConfiguration.class})
@@ -60,7 +55,6 @@ public class JOOQQueryEngineAutoConfiguration {
     }
 
     @Configuration
-    @Conditional(NotTest.class)
     @ConditionalOnBean(ApplicationResolver.class)
     @ConditionalOnBooleanProperty("contentgrid.appserver.query-engine.bootstrap-tables")
     static class TableBootstrapConfiguration {
@@ -73,18 +67,6 @@ public class JOOQQueryEngineAutoConfiguration {
         @Bean
         DisposableBean destroyTables(TableCreator tableCreator, ApplicationResolver applicationResolver) {
             return () -> tableCreator.dropTables(applicationResolver.resolve(ApplicationName.of("default")));
-        }
-    }
-
-
-    private static class NotTest implements Condition {
-
-        @Override
-        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            if(context.getEnvironment() instanceof ConfigurableEnvironment configurableEnvironment) {
-                return !configurableEnvironment.getPropertySources().contains("test");
-            }
-            return true;
         }
     }
 }
