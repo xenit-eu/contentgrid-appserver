@@ -7,12 +7,14 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -158,7 +160,15 @@ public interface DatamodelApi {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    default boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        return hasRelationTarget(application, RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                sourceId,
+                relation.getSourceEndPoint().getName()
+        ), targetId, permissionPredicate);
+    }
+
+    boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -170,7 +180,18 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    default Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        return findRelationTarget(
+                application,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ), permissionPredicate
+        ).map(rt -> rt.getTargetEntityIdentity().getEntityId());
+    }
+
+    Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Link the target entity id with the given source id.
@@ -183,6 +204,17 @@ public interface DatamodelApi {
      * @throws QueryEngineException if an error occurs during the set operation
      */
     void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+
+    default void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        var relation  = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        setRelation(
+                application,
+                relation,
+                relationRequest.getEntityId(),
+                targetId,
+                permissionPredicate
+        );
+    }
 
     /**
      * Removes all links from the entity with the given id for the specified relation.

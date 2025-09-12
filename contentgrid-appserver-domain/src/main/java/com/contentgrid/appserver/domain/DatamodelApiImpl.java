@@ -11,6 +11,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AttributeAndRelationMapper;
@@ -28,6 +29,7 @@ import com.contentgrid.appserver.domain.data.validation.ContentAttributeModifica
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
@@ -36,6 +38,9 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -332,15 +337,23 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId,
+    public boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        return queryEngine.isLinked(application, relation, sourceId, targetId, permissionPredicate.predicate());
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        return queryEngine.isLinked(application, relation, relationRequest.getEntityId(), targetId, permissionPredicate.predicate());
     }
 
     @Override
-    public Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation,
-            @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        return queryEngine.findTarget(application, relation, id, permissionPredicate.predicate());
+    public Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
+             @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+        return queryEngine.findTarget(application, relation, relationRequest.getEntityId(), permissionPredicate.predicate())
+                // TODO: wire this through to the query engine
+                .map(targetId -> new RelationTarget(
+                        RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
+                                .withVersion(Version.exactly(targetId.getValue().toString())),
+                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId)
+                ));
     }
 
     @Override
