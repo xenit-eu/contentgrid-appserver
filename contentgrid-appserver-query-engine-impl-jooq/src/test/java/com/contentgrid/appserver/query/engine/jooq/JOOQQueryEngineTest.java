@@ -105,6 +105,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
@@ -2363,8 +2364,11 @@ class JOOQQueryEngineTest {
         }
 
         @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
-            return new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)));
+        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, PlatformTransactionManager transactionManager) {
+            return new TransactionalQueryEngine(
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
+                    transactionManager
+            );
         }
     }
 }

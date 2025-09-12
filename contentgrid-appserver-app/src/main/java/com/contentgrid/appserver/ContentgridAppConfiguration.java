@@ -39,6 +39,7 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
+import com.contentgrid.appserver.query.engine.jooq.TransactionalQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -64,6 +65,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -102,8 +104,11 @@ public class ContentgridAppConfiguration {
     }
 
     @Bean
-    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy) {
-        return new JOOQQueryEngine(dslContextResolver, countStrategy);
+    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy, PlatformTransactionManager transactionManager) {
+        return new TransactionalQueryEngine(
+                new JOOQQueryEngine(dslContextResolver, countStrategy),
+                transactionManager
+        ) ;
     }
 
     @Bean
