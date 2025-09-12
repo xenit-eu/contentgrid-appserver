@@ -1,0 +1,26 @@
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+//    implementation project(':contentgrid-appserver-platform')
+
+    compileOnly project(':contentgrid-appserver-application-model')
+    compileOnly project(':contentgrid-appserver-content-api')
+    compileOnly project(':contentgrid-appserver-content-impl-encryption')
+    compileOnly project(':contentgrid-appserver-content-impl-fs')
+    compileOnly project(':contentgrid-appserver-content-impl-s3')
+    compileOnly project(':contentgrid-appserver-domain')
+    compileOnly project(':contentgrid-appserver-json-schema')
+    compileOnly project(':contentgrid-appserver-query-engine-api')
+    compileOnly project(':contentgrid-appserver-query-engine-impl-jooq')
+    compileOnly project(':contentgrid-appserver-rest')
+
+    compileOnly 'io.minio:minio'
+    compileOnly 'org.flywaydb:flyway-core'
+    compileOnly 'org.flywaydb:flyway-database-postgresql'
+    compileOnly 'org.springframework.hateoas:spring-hateoas'
+}
