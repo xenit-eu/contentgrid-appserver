@@ -27,6 +27,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +78,12 @@ class EntityRestControllerTest {
         @Primary
         public SingleApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(APPLICATION);
+        }
+
+        @Bean
+        @Primary
+        Clock brokenClock() {
+            return Clock.fixed(Instant.ofEpochSecond(1234567890), ZoneOffset.UTC);
         }
     }
 
@@ -1013,9 +1022,9 @@ class EntityRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                     ).andExpect(status().isOk())
                     .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
-                    .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("20")))
+                    .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("2009-02-13")))
                     .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("alice@example.com")))
-                    .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("20")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("2009-02-13")))
             ;
         }
 
