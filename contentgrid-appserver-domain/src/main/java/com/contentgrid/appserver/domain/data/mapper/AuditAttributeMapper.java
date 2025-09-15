@@ -63,10 +63,17 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
             Optional<DataEntry> inputData) throws InvalidDataException {
         if (compositeAttribute instanceof UserAttribute userAttr && (
                 (userAttr.hasFlag(CreatorFlag.class) && mode == Mode.CREATE) || userAttr.hasFlag(ModifierFlag.class))) {
+
+            var id = user != null ? new StringDataEntry(user.getId()) : MissingDataEntry.INSTANCE;
+            var username = user != null ? new StringDataEntry(user.getName()) : MissingDataEntry.INSTANCE;
+            var namespace = user != null && user.getNamespace() != null
+                    ? new StringDataEntry(user.getNamespace())
+                    : MissingDataEntry.INSTANCE;
+
             return Optional.of(MapDataEntry.builder()
-                    .item(userAttr.getId().getName().getValue(), new StringDataEntry(user != null ? user.getId() : "<none>"))
-                    .item(userAttr.getNamespace().getName().getValue(), new StringDataEntry(user != null ? user.getNamespace() != null ? user.getNamespace() : "<none>" : "<none>"))
-                    .item(userAttr.getUsername().getName().getValue(), new StringDataEntry(user != null ? user.getName() : "<none>"))
+                    .item(userAttr.getId().getName().getValue(), id)
+                    .item(userAttr.getNamespace().getName().getValue(), namespace)
+                    .item(userAttr.getUsername().getName().getValue(), username)
                     .build()
             );
         } else if (inputData.isPresent() && inputData.get() instanceof MapDataEntry mapDataEntry) {

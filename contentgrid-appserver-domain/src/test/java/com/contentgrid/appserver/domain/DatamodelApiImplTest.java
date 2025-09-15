@@ -111,22 +111,12 @@ class DatamodelApiImplTest {
                 .name(INVOICE_AUDIT_METADATA.getName());
         if (create) {
             builder
-                .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now(clock)))
-                    .attribute(CompositeAttributeData.builder()
-                            .name(AttributeName.of("created_by"))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("id"), "<none>"))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), "<none>"))
-                            .attribute(new SimpleAttributeData<>(AttributeName.of("name"), "<none>"))
-                            .build());
+                    .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now(clock)))
+                    .attribute(CompositeAttributeData.builder().name(AttributeName.of("created_by")).build());
         }
         return builder
                 .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), Instant.now(clock)))
-                .attribute(CompositeAttributeData.builder()
-                        .name(AttributeName.of("last_modified_by"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("id"), "<none>"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("namespace"), "<none>"))
-                        .attribute(new SimpleAttributeData<>(AttributeName.of("name"), "<none>"))
-                        .build())
+                .attribute(CompositeAttributeData.builder().name(AttributeName.of("last_modified_by")).build())
                 .build();
     }
 
