@@ -40,14 +40,10 @@ public class AuthorizationContextArgumentResolver implements HandlerMethodArgume
         return Optional.ofNullable(SecurityContextHolder.getContext())
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
-                .map(authentication -> new User(authentication.getName(), namespace(authentication), authentication.getName()));
+                .map(authentication -> authentication instanceof Jwt jwt
+                        ? new User(jwt.getSubject(), jwt.getClaimAsString("iss"),
+                                jwt.getClaimAsString("name") != null ? jwt.getClaimAsString("name") : jwt.getSubject())
+                        : new User(authentication.getName(), null, authentication.getName()));
 
-    }
-
-    private static String namespace(Authentication authentication) {
-        if (authentication instanceof Jwt jwt) {
-            return jwt.getClaimAsString("iss");
-        }
-        return null;
     }
 }
