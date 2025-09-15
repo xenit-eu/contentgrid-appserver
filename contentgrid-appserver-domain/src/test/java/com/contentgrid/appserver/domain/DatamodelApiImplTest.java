@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
@@ -611,7 +610,7 @@ class DatamodelApiImplTest {
                             "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                             "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -646,7 +645,7 @@ class DatamodelApiImplTest {
                                 "received", Instant.now(clock),
                                 "confidentiality", "public"
                         )),
-                        PermissionPredicate.allowAll()
+                        PermissionPredicate.allowAll(), Optional.empty()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -687,7 +686,7 @@ class DatamodelApiImplTest {
                                     "length", 0xbad
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -728,7 +727,7 @@ class DatamodelApiImplTest {
                                         "length", 0xbad
                                 )
                         )),
-                        PermissionPredicate.allowAll()
+                        PermissionPredicate.allowAll(), Optional.empty()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -758,7 +757,7 @@ class DatamodelApiImplTest {
                                         "mimetype", dataEntry
                                 )
                         )),
-                        PermissionPredicate.allowAll()
+                        PermissionPredicate.allowAll(), Optional.empty()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -791,7 +790,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -839,7 +838,7 @@ class DatamodelApiImplTest {
                             "confidentiality", "public",
                             "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -892,7 +891,7 @@ class DatamodelApiImplTest {
                             "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                             "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -918,7 +917,7 @@ class DatamodelApiImplTest {
                         EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "number", NullDataEntry.INSTANCE // Required value set to null
-                        )), PermissionPredicate.allowAll());
+                        )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -942,7 +941,7 @@ class DatamodelApiImplTest {
                         EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "confidentiality", "abc"
-                        )), PermissionPredicate.allowAll());
+                        )), PermissionPredicate.allowAll(), Optional.empty());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -973,7 +972,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
-                    )), PermissionPredicate.allowAll());
+                    )), PermissionPredicate.allowAll(), Optional.empty());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -1004,7 +1003,7 @@ class DatamodelApiImplTest {
                                     "length", 0xbad
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1040,7 +1039,7 @@ class DatamodelApiImplTest {
                                 "length", 0xbad
                         )
                         )),
-                        PermissionPredicate.allowAll()
+                        PermissionPredicate.allowAll(), Optional.empty()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -1068,7 +1067,7 @@ class DatamodelApiImplTest {
                                         "mimetype", NullDataEntry.INSTANCE
                                 )
                         )),
-                        PermissionPredicate.allowAll()
+                        PermissionPredicate.allowAll(), Optional.empty()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -1097,7 +1096,7 @@ class DatamodelApiImplTest {
                                     "mimetype", MissingDataEntry.INSTANCE
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1132,7 +1131,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1168,7 +1167,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll()
+                    PermissionPredicate.allowAll(), Optional.empty()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1202,7 +1201,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-                    )), PermissionPredicate.allowAll());
+                    )), PermissionPredicate.allowAll(), Optional.empty());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());

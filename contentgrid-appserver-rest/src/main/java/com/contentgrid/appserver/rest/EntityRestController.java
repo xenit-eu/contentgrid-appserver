@@ -19,7 +19,6 @@ import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAss
 import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -174,6 +173,7 @@ public class EntityRestController {
             PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
+        var user = CurrentUserProvider.getCurrentUser();
 
         try {
             var updateResult = datamodelApi.update(
@@ -181,7 +181,8 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    permissionPredicate
+                    permissionPredicate,
+                    user
             );
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
@@ -201,6 +202,7 @@ public class EntityRestController {
             PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
+        var user = CurrentUserProvider.getCurrentUser();
 
         try {
             var updateResult = datamodelApi.updatePartial(
@@ -208,7 +210,8 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    permissionPredicate
+                    permissionPredicate,
+                    user
             );
 
             return ResponseEntity.ok()

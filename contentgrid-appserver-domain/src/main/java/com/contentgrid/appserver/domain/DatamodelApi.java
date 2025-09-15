@@ -16,7 +16,6 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.User;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -84,12 +83,13 @@ public interface DatamodelApi {
      */
     default EntityInstance update(@NonNull Application application, @NonNull EntityRequest entityRequest,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest, permissionPredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return update(application, original, data, permissionPredicate);
+        return update(application, original, data, permissionPredicate, user);
     }
 
     /**
@@ -103,7 +103,8 @@ public interface DatamodelApi {
      */
     EntityInstance update(@NonNull Application application, @NonNull EntityInstance original,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -119,12 +120,13 @@ public interface DatamodelApi {
      */
     default EntityInstance updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException {
         var original = findById(application, entityRequest, permissionPredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return updatePartial(application, original, data, permissionPredicate);
+        return updatePartial(application, original, data, permissionPredicate, user);
     }
 
     /**
@@ -139,7 +141,8 @@ public interface DatamodelApi {
      */
     EntityInstance updatePartial(@NonNull Application application, @NonNull EntityInstance original,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException;
 

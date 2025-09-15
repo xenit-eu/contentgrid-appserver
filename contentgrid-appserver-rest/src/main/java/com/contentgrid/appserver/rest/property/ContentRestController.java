@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.audit.CurrentUserProvider;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
@@ -219,6 +220,7 @@ public class ContentRestController {
             PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
+        var user = CurrentUserProvider.getCurrentUser();
 
         var fileData = new FileDataEntry(
                 requestBody.getFilename(),
@@ -234,7 +236,8 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    permissionPredicate
+                    permissionPredicate,
+                    user
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -263,6 +266,8 @@ public class ContentRestController {
                 file::getInputStream
         );
 
+        var user = CurrentUserProvider.getCurrentUser();
+
         try {
             var newContent = contentApi.update(
                     application,
@@ -271,7 +276,8 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    permissionPredicate
+                    permissionPredicate,
+                    user
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -291,6 +297,8 @@ public class ContentRestController {
             PermissionPredicate permissionPredicate
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
+        var user = CurrentUserProvider.getCurrentUser();
+
         try {
             contentApi.delete(
                     application,
@@ -298,7 +306,8 @@ public class ContentRestController {
                     instanceId,
                     entityAndContent.attributeName(),
                     versionConstraint,
-                    permissionPredicate
+                    permissionPredicate,
+                    user
             );
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);

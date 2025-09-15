@@ -3,18 +3,8 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -41,29 +31,25 @@ import com.contentgrid.appserver.domain.data.validation.ContentAttributeModifica
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
-import com.contentgrid.appserver.domain.values.EntityIdentity;
-import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.User;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
-import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -72,15 +58,9 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.time.Clock;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -267,8 +247,6 @@ public class DatamodelApiImpl implements DatamodelApi {
         var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
         exceptionCollector.rethrow();
 
-//        attributes.addAll(creationAuditFields(application, entityName));
-
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
         if(!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
@@ -285,22 +263,12 @@ public class DatamodelApiImpl implements DatamodelApi {
         return outputMapper.mapAttributes(queryEngine.create(application, createData, permissionPredicate.predicate()));
     }
 
-    private List<AttributeData> creationAuditFields(@NonNull Application application, @NonNull EntityName entityName) {
-        var entity = application.getRequiredEntityByName(entityName);
-        return AuditHelper2.contributeAuditMetadata(entity);
-//        return findAuditFieldsForFlags(entity.getAttributes(), CreatorFlag.class, CreatedDateFlag.class);
-    }
-
-//    private List<AttributeData> modificationAuditFields(@NonNull Application application, @NonNull EntityName entityName) {
-//        var entity = application.getRequiredEntityByName(entityName);
-//        return findAuditFieldsForFlags(entity.getAttributes(), ModifierFlag.class, ModifiedDateFlag.class);
-//    }
-
 
     @Override
     public InternalEntityInstance update(@NonNull Application application,
             @NonNull EntityInstance existingEntity, @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     )
             throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
@@ -315,7 +283,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, null, clock)
+                new AuditAttributeMapper(Mode.UPDATE, user.orElse(null), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -338,7 +306,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     public InternalEntityInstance updatePartial(@NonNull Application application,
             @NonNull EntityInstance existingEntity,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -352,7 +321,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, null, clock)
+                new AuditAttributeMapper(Mode.UPDATE, user.orElse(null), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);

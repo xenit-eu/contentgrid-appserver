@@ -17,6 +17,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -70,13 +71,15 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public Content update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull DataEntry.FileDataEntry file, @NonNull PermissionPredicate permissionPredicate)
-            throws InvalidPropertyDataException {
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
+            @NonNull DataEntry.FileDataEntry file, @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
+    ) throws InvalidPropertyDataException {
         var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint, permissionPredicate);
 
         var updated = datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), file
-        )), permissionPredicate);
+        )), permissionPredicate, user);
 
         return extractContent(application, updated, attributeName);
     }
@@ -105,12 +108,13 @@ public class ContentApiImpl implements ContentApi {
 
     @Override
     public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint, @NonNull PermissionPredicate permissionPredicate) throws InvalidPropertyDataException {
+            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
+            @NonNull PermissionPredicate permissionPredicate, @NonNull Optional<User> user) throws InvalidPropertyDataException {
         var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
                 permissionPredicate);
         datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), NullDataEntry.INSTANCE
-        )), permissionPredicate);
+        )), permissionPredicate, user);
     }
 
     // package-private for testing

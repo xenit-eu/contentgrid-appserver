@@ -173,7 +173,8 @@ class ContentApiImplTest {
 
         setupEntity(entityId, hasContent);
 
-        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(), Mockito.any()))
+        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(),
+                        Mockito.any(), Mockito.any()))
                 .thenAnswer(args -> {
                     var originalData = args.getArgument(1, EntityInstance.class);
                     return new InternalEntityInstance(
@@ -188,7 +189,7 @@ class ContentApiImplTest {
 
         var file = new FileDataEntry("my-file.jpg", "image/jpeg", InputStream::nullInputStream);
         contentApi.update(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), constraint, file,
-                PermissionPredicate.allowAll());
+                PermissionPredicate.allowAll(), Optional.empty());
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
@@ -199,7 +200,7 @@ class ContentApiImplTest {
                 Mockito.assertArg(inputData -> {
                     assertThat(inputData.get("picture", FileDataEntry.class)).isEqualTo(file);
                 }),
-                Mockito.any()
+                Mockito.any(), Mockito.any()
         );
 
         Mockito.verifyNoMoreInteractions(datamodelApi, contentStore);
@@ -214,7 +215,8 @@ class ContentApiImplTest {
 
         var file = new FileDataEntry("my-file.jpg", "image/jpeg", InputStream::nullInputStream);
         assertThatThrownBy(() -> {
-            contentApi.update(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), constraint, file, PermissionPredicate.allowAll());
+            contentApi.update(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), constraint, file,
+                    PermissionPredicate.allowAll(), Optional.empty());
         }).isInstanceOf(UnsatisfiedVersionException.class);
 
         Mockito.verifyNoMoreInteractions(datamodelApi, contentStore);
@@ -226,7 +228,8 @@ class ContentApiImplTest {
         var entityId = EntityId.of(UUID.randomUUID());
 
         setupEntity(entityId, hasContent);
-        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(), Mockito.any()))
+        Mockito.when(datamodelApi.updatePartial(Mockito.eq(APPLICATION), Mockito.<EntityInstance>any(), Mockito.any(),
+                        Mockito.any(), Mockito.any()))
                 .thenAnswer(args -> {
                     var originalData = args.getArgument(1, EntityInstance.class);
                     return new InternalEntityInstance(
@@ -239,7 +242,8 @@ class ContentApiImplTest {
                     );
                 });
 
-        contentApi.delete(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), versionConstraint, PermissionPredicate.allowAll());
+        contentApi.delete(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), versionConstraint,
+                PermissionPredicate.allowAll(), Optional.empty());
 
         Mockito.verify(datamodelApi).updatePartial(
                 Mockito.eq(APPLICATION),
@@ -250,7 +254,7 @@ class ContentApiImplTest {
                 Mockito.assertArg(inputData -> {
                     assertThat(inputData.get("picture", FileDataEntry.class)).isEqualTo(NullDataEntry.INSTANCE);
                 }),
-                Mockito.any()
+                Mockito.any(), Mockito.any()
         );
 
         Mockito.verifyNoMoreInteractions(datamodelApi, contentStore);
@@ -264,7 +268,8 @@ class ContentApiImplTest {
         setupEntity(entityId, hasContent);
 
         assertThatThrownBy(() -> {
-            contentApi.delete(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), versionConstraint, PermissionPredicate.allowAll());
+            contentApi.delete(APPLICATION, PRODUCT.getName(), entityId, PRODUCT_PICTURE.getName(), versionConstraint,
+                    PermissionPredicate.allowAll(), Optional.empty());
         }).isInstanceOf(UnsatisfiedVersionException.class);
 
         Mockito.verifyNoMoreInteractions(datamodelApi, contentStore);

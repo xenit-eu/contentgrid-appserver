@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import java.io.IOException;
@@ -30,7 +31,8 @@ public interface ContentApi {
             @NonNull AttributeName attributeName,
             @NonNull VersionConstraint versionConstraint,
             @NonNull FileDataEntry file,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     ) throws InvalidPropertyDataException;
 
     void delete(
@@ -39,7 +41,8 @@ public interface ContentApi {
             @NonNull EntityId id,
             @NonNull AttributeName attributeName,
             @NonNull VersionConstraint versionConstraint,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull PermissionPredicate permissionPredicate,
+            @NonNull Optional<User> user
     ) throws InvalidPropertyDataException;
 
     /**

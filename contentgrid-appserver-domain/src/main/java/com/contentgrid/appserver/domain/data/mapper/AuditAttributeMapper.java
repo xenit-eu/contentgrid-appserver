@@ -2,7 +2,6 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
@@ -11,36 +10,19 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
-import com.contentgrid.appserver.domain.data.RequestInputData;
-import com.contentgrid.appserver.domain.data.type.DataType;
-import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.domain.values.User;
-import com.contentgrid.appserver.query.engine.api.data.AttributeData;
-import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.springframework.util.InvalidMimeTypeException;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
 
 @RequiredArgsConstructor
 public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> {
@@ -83,7 +65,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
                 (userAttr.hasFlag(CreatorFlag.class) && mode == Mode.CREATE) || userAttr.hasFlag(ModifierFlag.class))) {
             return Optional.of(MapDataEntry.builder()
                     .item(userAttr.getId().getName().getValue(), new StringDataEntry(user != null ? user.getId() : "<none>"))
-                    .item(userAttr.getNamespace().getName().getValue(), new StringDataEntry(user != null ? user.getNamespace() : "<none>"))
+                    .item(userAttr.getNamespace().getName().getValue(), new StringDataEntry(user != null ? user.getNamespace() != null ? user.getNamespace() : "<none>" : "<none>"))
                     .item(userAttr.getUsername().getName().getValue(), new StringDataEntry(user != null ? user.getName() : "<none>"))
                     .build()
             );

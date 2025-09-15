@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -183,6 +185,7 @@ class EntityRestControllerTest {
                 .getResponse();
     }
 
+    @WithMockJwt("foo")
     private MockHttpServletResponse createInvoice() throws Exception {
         var personCreate = createPerson()
                 .getRedirectedUrl();
@@ -992,6 +995,30 @@ class EntityRestControllerTest {
                     .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.name").value("test"));
         }
+
+        @Test
+        void testUpdateAuditMetadata() throws Exception {
+            var createResponse = createInvoice();
+
+            mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    { "number": "456", "amount": "123" }
+                                    """)
+                            .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")))
+                    )
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                    ).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
+                    .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("20")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("alice@example.com")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("20")))
+            ;
+        }
+
     }
 
     @Nested
