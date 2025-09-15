@@ -3,9 +3,8 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.audit.CurrentUserProvider;
 import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
@@ -70,7 +69,7 @@ public class EntityRestController {
     public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            PermissionPredicate permissionPredicate,
+            AuthorizationContext authorizationContext,
             @RequestParam MultiValueMap<String, String> params,
             EncodedCursorPagination pagination
     ) {
@@ -82,7 +81,7 @@ public class EntityRestController {
 
         var entity = getEntityOrThrow(application, entityName);
         var results = datamodelApi.findAll(application, entity, paramsWithoutPaging, pagination,
-                permissionPredicate);
+                authorizationContext);
 
         return assembler.withContext(application, entityName, paramsWithoutPaging, pagination)
                 .toCollectionModel(results);
@@ -93,7 +92,7 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
@@ -105,7 +104,7 @@ public class EntityRestController {
                         // All expensive operations have already happened (the body is not that large),
                         // so there is no point in still discarding it
                         EntityRequest.forEntity(entity.getName(), instanceId),
-                        permissionPredicate
+                        authorizationContext
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -125,21 +124,18 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @RequestBody RequestInputData data,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
         GenericConversionService conversionService = new GenericConversionService();
         conversionService.addConverter(new StringDataEntryToRelationDataEntryConverter(application));
 
-        var user = CurrentUserProvider.getCurrentUser();
-
         var result = datamodelApi.create(
                 application,
                 entity.getName(),
                 new ConversionServiceRequestInputData(data, conversionService),
-                permissionPredicate,
-                user
+                authorizationContext
         );
 
         var model = assembler.withContext(application, entityName).toModel(result);
@@ -154,13 +150,13 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             NativeWebRequest request,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var inputData = new ConversionServiceRequestInputData(
                 MultipartRequestInputData.fromRequest(request),
                 conversionService
         );
-        return createEntity(application, entityName, inputData, permissionPredicate);
+        return createEntity(application, entityName, inputData, authorizationContext);
     }
 
     @PutMapping("/{entityName}/{id}")
@@ -170,10 +166,9 @@ public class EntityRestController {
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
             @RequestBody RequestInputData data,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
-        var user = CurrentUserProvider.getCurrentUser();
 
         try {
             var updateResult = datamodelApi.update(
@@ -181,8 +176,7 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    permissionPredicate,
-                    user
+                    authorizationContext
             );
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
@@ -199,10 +193,9 @@ public class EntityRestController {
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
             @RequestBody RequestInputData data,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
-        var user = CurrentUserProvider.getCurrentUser();
 
         try {
             var updateResult = datamodelApi.updatePartial(
@@ -210,8 +203,7 @@ public class EntityRestController {
                     EntityRequest.forEntity(entity.getName(), id)
                             .withVersionConstraint(requestedVersion),
                     data,
-                    permissionPredicate,
-                    user
+                    authorizationContext
             );
 
             return ResponseEntity.ok()
@@ -228,13 +220,13 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
             var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
-            var deleted = datamodelApi.deleteEntity(application, request, permissionPredicate);
+            var deleted = datamodelApi.deleteEntity(application, request, authorizationContext);
             return ResponseEntity.ok()
                     .body(assembler.withContext(application, entityName).toModel(deleted));
         } catch(EntityIdNotFoundException e) {

@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
@@ -42,7 +42,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
@@ -135,7 +134,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull Map<String, List<String>> params, @NonNull EncodedCursorPagination pagination,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws InvalidThunkExpressionException {
 
@@ -143,7 +142,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
         var fullFilter = LogicalOperation.conjunction(
                 filter,
-                permissionPredicate.predicate()
+                authorizationContext.predicate()
         );
         validateSortData(entity, sort);
 
@@ -210,10 +209,10 @@ public class DatamodelApiImpl implements DatamodelApi {
     public Optional<InternalEntityInstance> findById(
             @NonNull Application application,
             @NonNull EntityRequest entityRequest,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     ) {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
-        return queryEngine.findById(application, entityRequest, permissionPredicate.predicate())
+        return queryEngine.findById(application, entityRequest, authorizationContext.predicate())
                 .map(outputMapper::mapAttributes);
     }
 
@@ -222,8 +221,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
-            @NonNull PermissionPredicate permissionPredicate,
-            @NonNull Optional<User> user
+            @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -237,7 +235,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
-                , new AuditAttributeMapper(Mode.CREATE, user.orElse(null), clock)
+                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -260,15 +258,14 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var outputMapper = createOutputDataMapper(application, entityName);
 
-        return outputMapper.mapAttributes(queryEngine.create(application, createData, permissionPredicate.predicate()));
+        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate()));
     }
 
 
     @Override
     public InternalEntityInstance update(@NonNull Application application,
             @NonNull EntityInstance existingEntity, @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate,
-            @NonNull Optional<User> user
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
@@ -283,7 +280,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, user.orElse(null), clock)
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -296,7 +293,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate());
 
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
         return outputMapper.mapAttributes(updateData.getUpdated());
@@ -306,8 +303,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     public InternalEntityInstance updatePartial(@NonNull Application application,
             @NonNull EntityInstance existingEntity,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate,
-            @NonNull Optional<User> user
+            @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
@@ -321,7 +317,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, user.orElse(null), clock)
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -334,18 +330,18 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, permissionPredicate.predicate());
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate());
 
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
     @Override
-    public InternalEntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate)
+    public InternalEntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull AuthorizationContext authorizationContext)
             throws EntityIdNotFoundException {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
 
-        var deleted =  queryEngine.delete(application, entityRequest, permissionPredicate.predicate())
+        var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
         return outputMapper.mapAttributes(deleted);
@@ -353,15 +349,15 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        return queryEngine.isLinked(application, relationRequest, targetId, permissionPredicate.predicate());
+            @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
+        return queryEngine.isLinked(application, relationRequest, targetId, authorizationContext.predicate());
     }
 
     @Override
     public Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
-             @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+             @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.findTarget(application, relationRequest, permissionPredicate.predicate())
+        return queryEngine.findTarget(application, relationRequest, authorizationContext.predicate())
                 .map(entityIdAndVersion -> new RelationTarget(
                         RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
                                 .withVersion(entityIdAndVersion.version()),
@@ -370,36 +366,36 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
+    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.setLink(application, relationRequest, targetId, permissionPredicate.predicate());
+        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate());
     }
 
     @Override
-    public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull PermissionPredicate permissionPredicate)
+    public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.unsetLink(application, relationRequest, permissionPredicate.predicate());
+        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate());
     }
 
     @Override
-    public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
         queryEngine.addLinks(
                 application,
                 relation,
                 targetIds,
-                permissionPredicate.predicate()
+                authorizationContext.predicate()
         );
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
         queryEngine.removeLinks(
                 application,
                 relation,
                 targetIds,
-                permissionPredicate.predicate()
+                authorizationContext.predicate()
         );
     }
 

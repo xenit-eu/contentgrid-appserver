@@ -10,7 +10,7 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -61,9 +61,9 @@ public class ContentApiImpl implements ContentApi {
     @Override
     public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
             @NonNull EntityId id, @NonNull AttributeName attributeName,
-            @NonNull PermissionPredicate permissionPredicate) {
+            @NonNull AuthorizationContext authorizationContext) {
 
-        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), permissionPredicate)
+        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
                 .map(entityData -> extractContent(application, entityData, attributeName))
                 .filter(content -> content.getContentId().isPresent())
                 .map(Content.class::cast);
@@ -72,14 +72,14 @@ public class ContentApiImpl implements ContentApi {
     @Override
     public Content update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
             @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
-            @NonNull DataEntry.FileDataEntry file, @NonNull PermissionPredicate permissionPredicate,
-            @NonNull Optional<User> user
+            @NonNull DataEntry.FileDataEntry file, @NonNull AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
-        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint, permissionPredicate);
+        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
+                authorizationContext);
 
         var updated = datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), file
-        )), permissionPredicate, user);
+        )), authorizationContext);
 
         return extractContent(application, updated, attributeName);
     }
@@ -90,8 +90,8 @@ public class ContentApiImpl implements ContentApi {
             EntityId id,
             AttributeName attributeName,
             VersionConstraint versionConstraint,
-            @NonNull PermissionPredicate permissionPredicate) {
-        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), permissionPredicate)
+            @NonNull AuthorizationContext authorizationContext) {
+        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
                 .orElseThrow(() -> new EntityIdNotFoundException(
                         entityName, id));
 
@@ -109,12 +109,12 @@ public class ContentApiImpl implements ContentApi {
     @Override
     public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
             @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
-            @NonNull PermissionPredicate permissionPredicate, @NonNull Optional<User> user) throws InvalidPropertyDataException {
+            @NonNull AuthorizationContext authorizationContext) throws InvalidPropertyDataException {
         var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
-                permissionPredicate);
+                authorizationContext);
         datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
                 attributeName.getValue(), NullDataEntry.INSTANCE
-        )), permissionPredicate, user);
+        )), authorizationContext);
     }
 
     // package-private for testing

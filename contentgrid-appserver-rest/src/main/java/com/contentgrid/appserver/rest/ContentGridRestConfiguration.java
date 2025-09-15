@@ -45,7 +45,7 @@ public class ContentGridRestConfiguration {
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
                 resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
                 resolvers.add(new VersionConstraintArgumentResolver());
-                resolvers.add(new PermissionPredicateArgumentResolver(abacContextSupplier));
+                resolvers.add(new AuthorizationContextArgumentResolver(abacContextSupplier));
                 resolvers.add(paginationHandlerMethodArgumentResolver);
             }
 

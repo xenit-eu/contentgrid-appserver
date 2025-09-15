@@ -17,7 +17,7 @@ import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
@@ -180,7 +180,7 @@ class DatamodelApiImplTest {
                             "confidentiality", "public",
                             "customer", new RelationDataEntry(PERSON.getName(), personId)
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -221,7 +221,7 @@ class DatamodelApiImplTest {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "received", Instant.now(clock),
                         "confidentiality", "public"
-                )), PermissionPredicate.allowAll(), Optional.empty());
+                )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -248,7 +248,7 @@ class DatamodelApiImplTest {
                         "is_paid", "maybe",
                         "confidentiality", "public",
                         "customer", "test123"
-                )), PermissionPredicate.allowAll(), Optional.empty());
+                )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -281,7 +281,7 @@ class DatamodelApiImplTest {
                         "is_paid", false,
                         "confidentiality", "xyz123",
                         "customer", new RelationDataEntry(PERSON.getName(), personId)
-                )), PermissionPredicate.allowAll(), Optional.empty());
+                )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -314,7 +314,7 @@ class DatamodelApiImplTest {
                                     .map(pid -> new RelationDataEntry(PRODUCT.getName(), pid))
                                     .toList()
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -372,7 +372,7 @@ class DatamodelApiImplTest {
                                     personId
                             ))
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -398,7 +398,7 @@ class DatamodelApiImplTest {
                     "vat", "123456"
                     // person also has a uni-directional "friends" relation that we don't provide here.
                     // The inverse relation is unnamed, so it should also not be processed
-            )), PermissionPredicate.allowAll(), Optional.empty());
+            )), AuthorizationContext.allowAll());
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
@@ -430,9 +430,9 @@ class DatamodelApiImplTest {
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
-            )),
-                    PermissionPredicate.allowAll(),
-                    Optional.of(new User("00000000-0000-0000-0000-000000000000", "keycloak", "alice@example.com")));
+            )), AuthorizationContext.allowAll(
+                    new User("00000000-0000-0000-0000-000000000000", "keycloak", "alice@example.com")
+            ));
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
@@ -466,7 +466,7 @@ class DatamodelApiImplTest {
                         "confidentiality", "public",
                         "customer", customer,
                         "products", products
-                 )), PermissionPredicate.allowAll(), Optional.empty());
+                 )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -513,7 +513,7 @@ class DatamodelApiImplTest {
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-            )), PermissionPredicate.allowAll(), Optional.empty());
+            )), AuthorizationContext.allowAll());
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
 
@@ -559,7 +559,7 @@ class DatamodelApiImplTest {
                             "mimetype", "application/pdf",
                             "length", 120
                     )
-            )), PermissionPredicate.allowAll(), Optional.empty()))
+            )), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
                         assertThat(e.getPath().toList()).isEqualTo(List.of("content"));
                     });
@@ -600,7 +600,7 @@ class DatamodelApiImplTest {
                             "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                             "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -635,7 +635,7 @@ class DatamodelApiImplTest {
                                 "received", Instant.now(clock),
                                 "confidentiality", "public"
                         )),
-                        PermissionPredicate.allowAll(), Optional.empty()
+                        AuthorizationContext.allowAll()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -676,7 +676,7 @@ class DatamodelApiImplTest {
                                     "length", 0xbad
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -717,7 +717,7 @@ class DatamodelApiImplTest {
                                         "length", 0xbad
                                 )
                         )),
-                        PermissionPredicate.allowAll(), Optional.empty()
+                        AuthorizationContext.allowAll()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -747,7 +747,7 @@ class DatamodelApiImplTest {
                                         "mimetype", dataEntry
                                 )
                         )),
-                        PermissionPredicate.allowAll(), Optional.empty()
+                        AuthorizationContext.allowAll()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -780,7 +780,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -828,7 +828,7 @@ class DatamodelApiImplTest {
                             "confidentiality", "public",
                             "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -881,7 +881,7 @@ class DatamodelApiImplTest {
                             "pay_before", NullDataEntry.INSTANCE, // Non-required value set to null
                             "is_paid", MissingDataEntry.INSTANCE // Non-required value is missing completely
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -907,7 +907,7 @@ class DatamodelApiImplTest {
                         EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "number", NullDataEntry.INSTANCE // Required value set to null
-                        )), PermissionPredicate.allowAll(), Optional.empty());
+                        )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -931,7 +931,7 @@ class DatamodelApiImplTest {
                         EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())),
                         MapRequestInputData.fromMap(Map.of(
                                 "confidentiality", "abc"
-                        )), PermissionPredicate.allowAll(), Optional.empty());
+                        )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -962,7 +962,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
-                    )), PermissionPredicate.allowAll(), Optional.empty());
+                    )), AuthorizationContext.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -993,7 +993,7 @@ class DatamodelApiImplTest {
                                     "length", 0xbad
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1029,7 +1029,7 @@ class DatamodelApiImplTest {
                                 "length", 0xbad
                         )
                         )),
-                        PermissionPredicate.allowAll(), Optional.empty()
+                        AuthorizationContext.allowAll()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -1057,7 +1057,7 @@ class DatamodelApiImplTest {
                                         "mimetype", NullDataEntry.INSTANCE
                                 )
                         )),
-                        PermissionPredicate.allowAll(), Optional.empty()
+                        AuthorizationContext.allowAll()
                 );
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
@@ -1086,7 +1086,7 @@ class DatamodelApiImplTest {
                                     "mimetype", MissingDataEntry.INSTANCE
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1121,7 +1121,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1157,7 +1157,7 @@ class DatamodelApiImplTest {
                                     "mimetype", "application/pdf"
                             )
                     )),
-                    PermissionPredicate.allowAll(), Optional.empty()
+                    AuthorizationContext.allowAll()
             );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1191,7 +1191,7 @@ class DatamodelApiImplTest {
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                     "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
-                    )), PermissionPredicate.allowAll(), Optional.empty());
+                    )), AuthorizationContext.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
@@ -1229,7 +1229,7 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1239,7 +1239,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1248,7 +1248,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1262,7 +1262,7 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 50, SortData.unsorted()), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 50, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1272,7 +1272,7 @@ class DatamodelApiImplTest {
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1281,7 +1281,7 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1302,7 +1302,7 @@ class DatamodelApiImplTest {
 
             // cursor `null` -> first page
             var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
-                    new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+                    new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1310,14 +1310,14 @@ class DatamodelApiImplTest {
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
             var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
-                    nextPageRequest, PermissionPredicate.allowAll());
+                    nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(4100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(7900.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
             var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
-                    nextPageRequest, PermissionPredicate.allowAll());
+                    nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(8100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(11900.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1332,20 +1332,20 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, sort), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, sort), AuthorizationContext.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
             EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, PermissionPredicate.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
             assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1359,24 +1359,24 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), PermissionPredicate.allowAll());
+            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) startPage.next().orElseThrow(), PermissionPredicate.allowAll());
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) secondPage.next().orElseThrow(), PermissionPredicate.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) startPage.next().orElseThrow(), AuthorizationContext.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) secondPage.next().orElseThrow(), AuthorizationContext.allowAll());
 
             // Verify that navigating to current page remains the same
-            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.current(), PermissionPredicate.allowAll());
+            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.current(), AuthorizationContext.allowAll());
             assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
             assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
 
             // Verify that previous page is the same as second page
-            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.previous().orElseThrow(), PermissionPredicate.allowAll());
+            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.previous().orElseThrow(), AuthorizationContext.allowAll());
             assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
             assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
 
             // Verify that first page is the same as starting page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.first(), PermissionPredicate.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.first(), AuthorizationContext.allowAll());
             assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
             assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
         }
@@ -1448,7 +1448,7 @@ class DatamodelApiImplTest {
                         .when(queryEngine).count(any(), any(), any());
             }
 
-            var result = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), PermissionPredicate.allowAll());
+            var result = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(expected, result.getTotalItemCount());
 
             // assert count was not called when stubNeeded is false
@@ -1546,7 +1546,7 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture(), Mockito.any()))
                     .thenReturn(Optional.of(data));
 
-            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id), PermissionPredicate.allowAll());
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id), AuthorizationContext.allowAll());
             assertEquals(invoice, deleteArg.getValue().getEntityName());
             assertEquals(id, deleteArg.getValue().getEntityId());
         }
@@ -1561,7 +1561,7 @@ class DatamodelApiImplTest {
 
             assertThatThrownBy(() ->
                     datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id),
-                            PermissionPredicate.allowAll())
+                            AuthorizationContext.allowAll())
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }
