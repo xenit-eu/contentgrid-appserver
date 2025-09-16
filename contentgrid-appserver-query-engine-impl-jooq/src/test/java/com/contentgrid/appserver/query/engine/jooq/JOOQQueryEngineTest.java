@@ -286,6 +286,13 @@ class JOOQQueryEngineTest {
                     .build())
             .build();
 
+    private static final Entity ADDRESS = Entity.builder()
+            .name(EntityName.of("address"))
+            .table(TableName.of("address"))
+            .pathSegment(PathSegmentName.of("addresses"))
+            .linkName(LinkName.of("addresses"))
+            .build();
+
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE.getName())
@@ -352,15 +359,33 @@ class JOOQQueryEngineTest {
             .targetReference(ColumnName.of("product_id"))
             .build();
 
+    private static final OneToManyRelation PERSON_ADDRESSES = OneToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(PERSON.getName())
+                    .name(RelationName.of("addresses"))
+                    .pathSegment(PathSegmentName.of("addresses"))
+                    .linkName(LinkName.of("addresses"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ADDRESS.getName())
+                    .name(RelationName.of("person"))
+                    .pathSegment(PathSegmentName.of("person"))
+                    .linkName(LinkName.of("person"))
+                    .build())
+            .sourceReference(ColumnName.of("person_id"))
+            .build();
+
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("invoicing-application"))
             .entity(INVOICE)
             .entity(PERSON)
             .entity(PRODUCT)
+            .entity(ADDRESS)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
             .relation(INVOICE_PRODUCTS)
+            .relation(PERSON_ADDRESSES)
             .build();
 
     private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
@@ -373,6 +398,8 @@ class JOOQQueryEngineTest {
     private static final EntityId PRODUCT1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId ADDRESS1_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId ADDRESS2_ID = EntityId.of(UUID_GENERATOR.generate());
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -475,6 +502,10 @@ class JOOQQueryEngineTest {
                         DSL.field("invoice_id", UUID.class), DSL.field("product_id", UUID.class))
                 .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
                 .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
+                .execute();
+        dslContext.insertInto(DSL.table("address"), DSL.field("id", UUID.class))
+                .values(ADDRESS1_ID.getValue())
+                .values(ADDRESS2_ID.getValue())
                 .execute();
     }
 
@@ -2107,7 +2138,7 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> validAddRelationData() {
         return Stream.of(
                 // One-to-many: new values
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
+                Arguments.of(BOB_ID, PERSON_ADDRESSES, Set.of(ADDRESS1_ID, ADDRESS2_ID)),
                 // Many-to-many: new values
                 Arguments.of(INVOICE2_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // One-to-many: already linked values
@@ -2144,6 +2175,8 @@ class JOOQQueryEngineTest {
                 Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
                 // One-to-many: non-existing target ref
                 Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
+                // One-to-many: value already linked with another customer
+                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
                 // Many-to-many: non-existing source ref
                 Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // Many-to-many: non-existing target ref

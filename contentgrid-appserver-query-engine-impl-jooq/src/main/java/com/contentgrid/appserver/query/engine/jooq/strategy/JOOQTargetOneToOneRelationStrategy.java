@@ -4,6 +4,9 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -83,7 +86,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                 )
                 .from(table)
                 .where(newRowCondition.or(oldRowCondition))
-                .forNoKeyUpdate() // Explicitly take a lock on the returned rows
+                .forUpdate() // Needs to be for update (not for no key update), because updating a unique index is a key update
                 .fetch();
 
         org.jooq.Record oldRecord = null;
@@ -120,6 +123,18 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             throw new EntityIdNotFoundException(
                     relation.getSourceEndPoint().getEntity(),
                     id
+            );
+        } else if(newRecord.get(sourceRef) != null) {
+            throw new BlindRelationOverwriteException(
+                    RelationIdentity.forRelation(
+                            relation.getTargetEndPoint().getEntity(),
+                            EntityId.of(newRecord.get(targetRef)),
+                            relation.getTargetEndPoint().getName()
+                    ),
+                    EntityIdentity.forEntity(
+                            relation.getSourceEndPoint().getEntity(),
+                            EntityId.of(newRecord.get(sourceRef))
+                    )
             );
         }
 

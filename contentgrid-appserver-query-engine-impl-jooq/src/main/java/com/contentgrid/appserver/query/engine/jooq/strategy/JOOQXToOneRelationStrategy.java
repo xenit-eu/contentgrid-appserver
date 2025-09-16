@@ -4,6 +4,9 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
@@ -105,6 +108,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
+        var savepointName = DSL.name("x_to_one_update_"+UUID.randomUUID());
+        dslContext.savepoint(savepointName).execute();
+
         try {
             var newValue = dslContext.update(table)
                     .set(targetRef, expectedId.mapToNewValue(targetRef, targetRef, targetValue))
@@ -121,7 +127,26 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                 throw new ExpectedIdMismatchException((IdSpecified) expectedId, newValue);
             }
         } catch (DuplicateKeyException e) {
-            throw new ConstraintViolationException("Target %s already linked".formatted(targetValue), e);
+            dslContext.rollback().toSavepoint(savepointName).execute();
+
+            var conflictingRowId = dslContext.select(sourceRef)
+                    .from(table)
+                    .where(targetRef.eq(targetValue))
+                    .fetchOptional(sourceRef);
+
+            var ex = new BlindRelationOverwriteException(
+                    RelationIdentity.forRelation(
+                            relation.getTargetEndPoint().getEntity(),
+                            EntityId.of(targetValue),
+                            relation.getTargetEndPoint().getName()
+                    ),
+                    EntityIdentity.forEntity(
+                            relation.getSourceEndPoint().getEntity(),
+                            EntityId.of(conflictingRowId.orElseThrow())
+                    )
+            );
+            ex.initCause(e);
+            throw ex;
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
         }
