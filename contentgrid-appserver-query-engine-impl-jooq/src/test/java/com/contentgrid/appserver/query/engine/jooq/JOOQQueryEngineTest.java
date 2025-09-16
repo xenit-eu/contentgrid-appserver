@@ -1776,11 +1776,14 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> validSetRelationData() {
         return Stream.of(
                 // Owning one-to-one
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, INVOICE2_ID),
+                Arguments.argumentSet("one-to-one", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE2_ID),
                 // Non-owning one-to-one
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID),
+                Arguments.argumentSet("one-to-one (target)", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID),
                 // Many-to-one
-                Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER, JOHN_ID /* originally ALICE_ID */)
+                Arguments.argumentSet("many-to-one", INVOICE1_ID, INVOICE_CUSTOMER, JOHN_ID /* originally ALICE_ID */),
+                // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                // so next_invoice of INVOICE1_ID contains INVOICE2_ID. This is visible on the relation, so it's allowed to overwrite it
+                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID)
         );
     }
 

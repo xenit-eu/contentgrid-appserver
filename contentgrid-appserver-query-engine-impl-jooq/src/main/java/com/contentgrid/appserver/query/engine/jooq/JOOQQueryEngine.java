@@ -39,6 +39,8 @@ import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionEx
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId;
+import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedIdMismatchException;
 import com.contentgrid.appserver.query.engine.jooq.strategy.HasSourceTableColumnRef;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -502,12 +504,25 @@ public class JOOQQueryEngine implements QueryEngine {
     @Override
     public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
-        findTarget(application, relationRequest, permitUpdatePredicate); // implicit permission check + version check
+
+        // implicit permission check + version check
+        var expectedId = findTarget(application, relationRequest, permitUpdatePredicate)
+                .map(entityIdAndVersion -> ExpectedId.exactly(entityIdAndVersion.entityId()))
+                .orElse(ExpectedId.exactly(null));
 
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        strategy.create(dslContext, application, relation, relationRequest.getEntityId(), targetId);
+        try {
+            strategy.create(dslContext, application, relation, relationRequest.getEntityId(), targetId, expectedId);
+        } catch (ExpectedIdMismatchException e) {
+            var ex = new UnsatisfiedVersionException(
+                    getRelationVersion(relationRequest, e.getActualEntityId()),
+                    relationRequest.getVersionConstraint()
+            );
+            ex.initCause(e);
+            throw ex;
+        }
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
     }
 
@@ -518,7 +533,22 @@ public class JOOQQueryEngine implements QueryEngine {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
             // implicit permission check + version check
-            findTarget(application, relationRequest, permitUpdatePredicate);
+            var expectedId = findTarget(application, relationRequest, permitUpdatePredicate)
+                    .map(entityIdAndVersion -> ExpectedId.exactly(entityIdAndVersion.entityId()))
+                    .orElse(ExpectedId.exactly(null));
+
+            try {
+                JOOQRelationStrategyFactory.forToOneRelation(relation)
+                        .delete(dslContext, application, relation, relationRequest.getEntityId(), expectedId);
+            } catch (ExpectedIdMismatchException e) {
+                var ex = new UnsatisfiedVersionException(
+                        getRelationVersion(relationRequest, e.getActualEntityId()),
+                        relationRequest.getVersionConstraint()
+                );
+                ex.initCause(e);
+                throw ex;
+            }
+
         } else {
             assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         }
