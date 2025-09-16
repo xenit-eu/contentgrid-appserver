@@ -14,6 +14,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
@@ -64,11 +65,11 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
         if (compositeAttribute instanceof UserAttribute userAttr && (
                 (userAttr.hasFlag(CreatorFlag.class) && mode == Mode.CREATE) || userAttr.hasFlag(ModifierFlag.class))) {
 
-            var id = user != null ? new StringDataEntry(user.getId()) : MissingDataEntry.INSTANCE;
-            var username = user != null ? new StringDataEntry(user.getName()) : MissingDataEntry.INSTANCE;
+            var id = user != null ? new StringDataEntry(user.getId()) : NullDataEntry.INSTANCE;
+            var username = user != null ? new StringDataEntry(user.getName()) : NullDataEntry.INSTANCE;
             var namespace = user != null && user.getNamespace() != null
                     ? new StringDataEntry(user.getNamespace())
-                    : MissingDataEntry.INSTANCE;
+                    : NullDataEntry.INSTANCE;
 
             return Optional.of(MapDataEntry.builder()
                     .item(userAttr.getId().getName().getValue(), id)

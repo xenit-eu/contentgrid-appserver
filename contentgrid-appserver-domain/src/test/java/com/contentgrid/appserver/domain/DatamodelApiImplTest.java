@@ -44,6 +44,7 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
+import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -68,6 +69,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,11 +114,19 @@ class DatamodelApiImplTest {
         if (create) {
             builder
                     .attribute(new SimpleAttributeData<>(AttributeName.of("created_date"), Instant.now(clock)))
-                    .attribute(CompositeAttributeData.builder().name(AttributeName.of("created_by")).build());
+                    .attribute(CompositeAttributeData.builder().name(AttributeName.of("created_by"))
+                            .attribute(new SimpleAttributeData<String>(AttributeName.of("id"), null))
+                            .attribute(new SimpleAttributeData<String>(AttributeName.of("namespace"), null))
+                            .attribute(new SimpleAttributeData<String>(AttributeName.of("name"), null))
+                            .build());
         }
         return builder
                 .attribute(new SimpleAttributeData<>(AttributeName.of("last_modified_date"), Instant.now(clock)))
-                .attribute(CompositeAttributeData.builder().name(AttributeName.of("last_modified_by")).build())
+                .attribute(CompositeAttributeData.builder().name(AttributeName.of("last_modified_by"))
+                        .attribute(new SimpleAttributeData<String>(AttributeName.of("id"), null))
+                        .attribute(new SimpleAttributeData<String>(AttributeName.of("namespace"), null))
+                        .attribute(new SimpleAttributeData<String>(AttributeName.of("name"), null))
+                        .build())
                 .build();
     }
 
@@ -418,7 +428,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void auditMetadata_included() throws InvalidPropertyDataException {
+        void auditMetadata_onCreate() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
@@ -441,18 +451,118 @@ class DatamodelApiImplTest {
                 assertThat(createData.getAttributes())
                         .anySatisfy(data -> {
                             assertThat(data.getName()).isEqualTo(AttributeName.of("audit_metadata"));
+                            assertThat(subValueMatches(data, "created_date", Instant.now(clock))).isTrue();
+                            assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
                             assertThat(((CompositeAttributeData) data).getAttributes())
-                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
-                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_date")))
                                     .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_by"))
-                                            && ((CompositeAttributeData) sub).getAttributeByName(AttributeName.of("name")).isPresent())
+                                            &&  subValueMatches(sub, "name", "alice@example.com"))
                                     .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
-                                            && ((CompositeAttributeData) sub).getAttributeByName(AttributeName.of("name")).isPresent())
+                                            && subValueMatches(sub, "name", "alice@example.com"))
                             ;
                         });
             });
 
             Mockito.verifyNoInteractions(contentStore);
+        }
+
+        @Test
+        void auditMetadata_onUpdate() throws InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any()))
+                    .thenReturn(new UpdateResult(
+                            EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
+                            EntityData.builder().name(INVOICE.getName()).id(entityId).build()
+                    ));
+            var existing = new InternalEntityInstance(
+                    EntityIdentity.forEntity(INVOICE.getName(), entityId),
+                    new LinkedHashMap<>(),
+                    List.of());
+
+            var result = datamodelApi.update(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId)
+            )), AuthorizationContext.allowAll(
+                    new User("00000000-0000-0000-0000-000000000000", "keycloak", "alice@example.com")
+            ));
+
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
+
+            assertThat(updateDataCaptor.getValue()).satisfies(updateData -> {
+                assertThat(updateData.getAttributes())
+                        .anySatisfy(data -> {
+                            assertThat(data.getName()).isEqualTo(AttributeName.of("audit_metadata"));
+                            assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+                            assertThat(((CompositeAttributeData) data).getAttributes())
+                                    .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_by")))
+                                    .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                                            && subValueMatches(sub, "name", "alice@example.com"))
+                            ;
+                        });
+            });
+
+            Mockito.verifyNoInteractions(contentStore);
+        }
+
+        @Test
+        void auditMetadata_onPartialUpdate() throws InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any()))
+                    .thenReturn(new UpdateResult(
+                            EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
+                            EntityData.builder().name(INVOICE.getName()).id(entityId).build()
+                    ));
+            var existing = new InternalEntityInstance(
+                    EntityIdentity.forEntity(INVOICE.getName(), entityId),
+                    new LinkedHashMap<>(),
+                    List.of());
+
+            var result = datamodelApi.updatePartial(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId)
+            )), AuthorizationContext.allowAll(
+                    new User("00000000-0000-0000-0000-000000000000", "keycloak", "alice@example.com")
+            ));
+
+            assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
+
+            assertThat(updateDataCaptor.getValue()).satisfies(updateData -> {
+                assertThat(updateData.getAttributes())
+                        .anySatisfy(data -> {
+                            assertThat(data.getName()).isEqualTo(AttributeName.of("audit_metadata"));
+                            assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+                            assertThat(((CompositeAttributeData) data).getAttributes())
+                                    .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_by")))
+                                    .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
+                                    .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                                            && subValueMatches(sub, "name", "alice@example.com"))
+                            ;
+                        });
+            });
+
+            Mockito.verifyNoInteractions(contentStore);
+        }
+
+
+        private static boolean subValueMatches(AttributeData data, String subAttrName, Object value) {
+            if (data instanceof CompositeAttributeData composite) {
+                var sub = composite.getAttributeByName(AttributeName.of(subAttrName));
+                if (sub.isEmpty()) {
+                    return false;
+                }
+                if (sub.get() instanceof SimpleAttributeData<?> simpData) {
+                    return value.equals(simpData.getValue());
+                }
+            }
+            return false;
         }
 
         @ParameterizedTest

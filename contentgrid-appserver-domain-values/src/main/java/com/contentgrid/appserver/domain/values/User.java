@@ -1,10 +1,11 @@
 package com.contentgrid.appserver.domain.values;
 
+import lombok.NonNull;
 import lombok.Value;
 
 @Value
 public class User {
-    String id;
+    @NonNull String id;
     String namespace;
-    String name;
+    @NonNull String name;
 }
