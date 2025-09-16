@@ -638,6 +638,31 @@ class RelationRestControllerTest {
         }
 
         @Test
+        void setRelationBlindOverwrite() throws Exception {
+            var invoice1 = createEntity(INVOICE);
+            var invoice2 = createEntity(INVOICE);
+            var invoice3 = createEntity(INVOICE);
+
+            // link invoice1 -> invoice2
+            mockMvc.perform(put("/invoices/{id}/previous-invoice", invoice1.getEntityId())
+                            .contentType("text/uri-list")
+                            .content("http://localhost/invoices/%s%n".formatted(invoice2.getEntityId()))
+                    )
+                    .andExpect(status().is2xxSuccessful());
+
+            // try to link invoice3 -> invoice2
+            mockMvc.perform(put("/invoices/{id}/previous-invoice", invoice3.getEntityId())
+                            .contentType("text/uri-list")
+                            .content("http://localhost/invoices/%s%n".formatted(invoice2.getEntityId()))
+                    )
+                    .andExpect(status().isConflict())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/integrity/relation-overwrite"))
+                    .andExpect(jsonPath("$.affected-relation").value("http://localhost/invoices/%s/next-invoice".formatted(invoice2.getEntityId())))
+                    .andExpect(jsonPath("$.existing-item").value("http://localhost/invoices/%s".formatted(invoice1.getEntityId())));
+        }
+
+        @Test
         void addRelationEntityIdNotFound() throws Exception {
             var invoice1 = createEntity(INVOICE);
             var invoice2 = createEntity(INVOICE);
