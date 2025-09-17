@@ -98,14 +98,4 @@ public class ContentGridRestConfiguration {
         return new EncodedCursorPaginationHandlerMethodArgumentResolver();
     }
 
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoderProvider) throws Exception {
-        var builder = http.with(new AnonymousHttpConfigurer(), customizer -> {});
-        var decoder = jwtDecoderProvider.getIfAvailable();
-        if (decoder != null) {
-            builder.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(decoder)));
-        }
-
-        return builder.build();
-    }
 }

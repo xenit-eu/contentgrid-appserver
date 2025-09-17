@@ -64,9 +64,8 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
+@SpringBootTest(properties = {"contentgrid.thunx.abac.source=none", "contentgrid.security.unauthenticated.allow=true"})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
-@WithMockJwt
 class RelationRestControllerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());

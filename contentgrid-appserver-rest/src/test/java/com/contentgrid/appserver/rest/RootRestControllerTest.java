@@ -12,7 +12,6 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.spring.test.WithMockJwt;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +21,8 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
+@SpringBootTest(properties = {"contentgrid.thunx.abac.source=none", "contentgrid.security.unauthenticated.allow=true"})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
-@WithMockJwt
 class RootRestControllerTest {
 
     @Autowired

@@ -16,7 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -46,10 +45,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
         "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
-        "contentgrid.thunx.abac.source=none"
+        "contentgrid.thunx.abac.source=none",
+        "contentgrid.security.unauthenticated.allow=true"
 })
 @AutoConfigureMockMvc
-@WithMockJwt
 class ContentRestControllerTest {
 
     private static final MockMultipartFile INVOICE_CONTENT_FILE = new MockMultipartFile(
