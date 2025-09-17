@@ -12,6 +12,7 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataE
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import com.contentgrid.appserver.security.AnonymousHttpConfigurer;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
@@ -20,6 +21,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +31,10 @@ import org.springframework.format.Formatter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -90,5 +96,16 @@ public class ContentGridRestConfiguration {
     @Bean
     EncodedCursorPaginationHandlerMethodArgumentResolver encodedCursorPaginationHandlerMethodArgumentResolver() {
         return new EncodedCursorPaginationHandlerMethodArgumentResolver();
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoderProvider) throws Exception {
+        var builder = http.with(new AnonymousHttpConfigurer(), customizer -> {});
+        var decoder = jwtDecoderProvider.getIfAvailable();
+        if (decoder != null) {
+            builder.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(decoder)));
+        }
+
+        return builder.build();
     }
 }

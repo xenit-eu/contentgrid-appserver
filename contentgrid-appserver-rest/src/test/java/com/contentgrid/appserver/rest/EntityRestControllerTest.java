@@ -194,7 +194,6 @@ class EntityRestControllerTest {
                 .getResponse();
     }
 
-    @WithMockJwt("foo")
     private MockHttpServletResponse createInvoice() throws Exception {
         var personCreate = createPerson()
                 .getRedirectedUrl();
