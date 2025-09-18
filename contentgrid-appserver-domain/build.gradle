@@ -10,7 +10,7 @@ dependencies {
     api 'com.contentgrid.hateoas:contentgrid-pagination-api'
 
     implementation 'org.slf4j:slf4j-api'
-    implementation project(':contentgrid-appserver-content-api')
+    implementation project(':contentgrid-appserver-contentstore-api')
     implementation 'org.springframework:spring-core'
     implementation 'com.contentgrid.hateoas:contentgrid-pagination-offset:0.0.4'
 

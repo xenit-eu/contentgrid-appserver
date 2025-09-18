@@ -12,9 +12,11 @@ The project is organized into modules:
   - Relationships (One-to-One, One-to-Many, Many-to-One, Many-to-Many)
   - Constraints (Required, Unique, Allowed Values)
   - Search filters (Exact, Prefix)
-- **contentgrid-appserver-content-api**: Defines interfaces and data structures to query object storage.
-- **contentgrid-appserver-content-impl-fs**: Implementation of *contentgrid-appserver-content-api*, using filesystem storage.
-- **contentgrid-appserver-content-impl-utils**: Content utils for dealing with input and output streams.
+- **contentgrid-appserver-contentstore-api**: Defines interfaces and data structures to query object storage.
+- **contentgrid-appserver-contentstore-impl-fs**: Implementation of contentstore API, using filesystem storage.
+- **contentgrid-appserver-contentstore-impl-s3**: Implementation of contentstore API, using S3-compatible storage.
+- **contentgrid-appserver-contentstore-impl-encryption**: Encryption wrapper around any contentstore implementation
+- **contentgrid-appserver-contentstore-impl-utils**: Content utils for dealing with input and output streams.
 - **contentgrid-appserver-domain**: Core domain layer defining apis and implementations to deal with entities, relations and content.
 - **contentgrid-appserver-domain-values**: Defines core data structures for representing input and output data.
 - **contentgrid-appserver-json-schema**: Serialization and deserialization of Applications.
