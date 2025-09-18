@@ -67,7 +67,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
     @Override
     public void create(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityId id,
-            EntityId targetId, ExpectedId expectedId) throws ExpectedIdMismatchException {
+            EntityId targetId, ExpectedId expectedTargetId) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
@@ -107,14 +107,9 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         var maybeOldId = Optional.ofNullable(oldRecord)
                 .map(r -> r.get(targetRef));
 
-        switch (expectedId) {
-            case UnspecifiedExpectedId ignored -> {
-                // No check necessary
-            }
-            case IdSpecified idSpecified -> {
-                if(!Objects.equals(idSpecified.getEntityId().map(EntityId::getValue), maybeOldId)) {
-                    throw new ExpectedIdMismatchException(idSpecified, maybeOldId.orElse(null));
-                }
+        if(expectedTargetId instanceof IdSpecified expectedTargetIdSpecified) {
+            if(!Objects.equals(expectedTargetIdSpecified.getEntityId().map(EntityId::getValue), maybeOldId)) {
+                throw new ExpectedIdMismatchException(expectedTargetIdSpecified, maybeOldId.orElse(null));
             }
         }
 
@@ -162,13 +157,13 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
     @Override
     public void delete(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityId id,
-            ExpectedId expectedId) throws ExpectedIdMismatchException {
+            ExpectedId expectedTargetId) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
         var maybeResult = dslContext.update(table)
-                .set(sourceRef, expectedId.mapToNewValue(targetRef, sourceRef, null))
+                .set(sourceRef, expectedTargetId.mapToNewValue(targetRef, sourceRef, null))
                 .where(sourceRef.eq(id.getValue()))
                 .returning(sourceRef, targetRef)
                 .fetchOptional();
@@ -178,7 +173,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             // This is fine for a delete, as the database is already in the expected state.
             // However, we still need to check that this matches the expected state, to properly signal failure when
             // it was expected that something was pointing to the entity
-            if(expectedId instanceof ExpectedId.ExactlyExpectedId exactlyExpectedId) {
+            if(expectedTargetId instanceof ExpectedId.ExactlyExpectedId exactlyExpectedId) {
                 throw new ExpectedIdMismatchException(exactlyExpectedId, null);
             }
             return;
@@ -188,7 +183,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
         if(result.get(sourceRef) != null) {
             // Optimistic locking failure, sourceRef was not cleared, because it was not pointed to by the original target
-            throw new ExpectedIdMismatchException((IdSpecified) expectedId, result.get(targetRef));
+            throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, result.get(targetRef));
         }
 
     }

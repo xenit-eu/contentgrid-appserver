@@ -86,9 +86,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
     }
 
     public void create(DSLContext dslContext, Application application, R relation, EntityId id, EntityId targetId,
-            ExpectedId expectedId)
+            ExpectedId expectedTargetId)
             throws ExpectedIdMismatchException {
-        setValue(dslContext, application, relation, id, expectedId, targetId.getValue());
+        setValue(dslContext, application, relation, id, expectedTargetId, targetId.getValue());
     }
 
     @Override
@@ -98,12 +98,12 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         delete(dslContext, application, relation, id, ExpectedId.unspecified());
     }
 
-    public void delete(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedId)
+    public void delete(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId)
             throws ExpectedIdMismatchException {
-        setValue(dslContext, application, relation, id, expectedId, null);
+        setValue(dslContext, application, relation, id, expectedTargetId, null);
     }
 
-    private void setValue(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedId, UUID targetValue) throws ExpectedIdMismatchException {
+    private void setValue(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId, UUID targetValue) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
@@ -113,7 +113,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
 
         try {
             var newValue = dslContext.update(table)
-                    .set(targetRef, expectedId.mapToNewValue(targetRef, targetRef, targetValue))
+                    .set(targetRef, expectedTargetId.mapToNewValue(targetRef, targetRef, targetValue))
                     .where(sourceRef.eq(id.getValue()))
                     .returning(targetRef)
                     .fetchOptional()
@@ -124,7 +124,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                     .get(targetRef);
 
             if (!Objects.equals(newValue, targetValue)) {
-                throw new ExpectedIdMismatchException((IdSpecified) expectedId, newValue);
+                throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, newValue);
             }
         } catch (DuplicateKeyException e) {
             dslContext.rollback().toSavepoint(savepointName).execute();
