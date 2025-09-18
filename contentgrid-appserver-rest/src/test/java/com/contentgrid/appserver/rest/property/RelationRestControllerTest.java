@@ -265,7 +265,13 @@ class RelationRestControllerTest {
             var sourceEntityIdentity = createEntity(sourceEntity);
             var targetEntityIdentity = createEntity(targetEntity);
 
-            datamodelApi.addRelationItems(APPLICATION, relation, sourceEntityIdentity.getEntityId(), Set.of(targetEntityIdentity.getEntityId()), PermissionPredicate.allowAll());
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            );
+
+            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity.getEntityId()), PermissionPredicate.allowAll());
 
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}/{targetId}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity.getEntityId()))
                     .andExpect(status().isFound())
@@ -390,7 +396,13 @@ class RelationRestControllerTest {
             var targetEntityIdentity1 = createEntity(targetEntity);
             var targetEntityIdentity2 = createEntity(targetEntity);
 
-            datamodelApi.addRelationItems(APPLICATION, relation, sourceEntityIdentity.getEntityId(), Set.of(targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()), PermissionPredicate.allowAll());
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            );
+
+            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()), PermissionPredicate.allowAll());
 
 
             mockMvc.perform(delete("/{entity}/{sourceId}/{relation}/{id}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity2.getEntityId()))

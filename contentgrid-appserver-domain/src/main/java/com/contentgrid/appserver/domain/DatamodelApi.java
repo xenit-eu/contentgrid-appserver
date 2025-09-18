@@ -219,11 +219,10 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param relation the relation to add links to
-     * @param id the primary key of the source entity
      * @param targetIds the primary keys of the target entities to link
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Removes the target entity links from the entity with the given id.
@@ -231,11 +230,10 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param relation the relation to remove links from
-     * @param id the primary key of the source entity
      * @param targetIds the primary keys of the target entities to unlink
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
 
     /**
      * Unlink the given target id from the given source id of the given relation.
@@ -243,12 +241,11 @@ public interface DatamodelApi {
      *
      * @param application the application context
      * @param relation the relation to remove an item from
-     * @param sourceId the primary key of the source entity
      * @param targetId the primary key of the target entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    default void removeRelationItem(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        removeRelationItems(application, relation, sourceId, Set.of(targetId), permissionPredicate);
+    default void removeRelationItem(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+        removeRelationItems(application, relation, Set.of(targetId), permissionPredicate);
     }
 
 }

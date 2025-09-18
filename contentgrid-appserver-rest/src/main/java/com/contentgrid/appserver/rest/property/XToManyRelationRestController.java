@@ -119,6 +119,11 @@ public class XToManyRelationRestController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
         var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                instanceId,
+                relation.getSourceEndPoint().getName()
+        );
         var matcher = getMatcherForTargetEntity(application, relation);
         var targetIds = new java.util.HashSet<EntityId>();
 
@@ -130,7 +135,7 @@ public class XToManyRelationRestController {
             targetIds.add(maybeId.get());
         }
         try {
-            datamodelApi.addRelationItems(application, relation, instanceId, targetIds, permissionPredicate);
+            datamodelApi.addRelationItems(application, relationRequest, targetIds, permissionPredicate);
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
@@ -196,7 +201,12 @@ public class XToManyRelationRestController {
     ) {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
-            datamodelApi.removeRelationItem(application, relation, instanceId, itemId, permissionPredicate);
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    instanceId,
+                    relation.getSourceEndPoint().getName()
+            );
+            datamodelApi.removeRelationItem(application, relationRequest, itemId, permissionPredicate);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

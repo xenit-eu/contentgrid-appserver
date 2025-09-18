@@ -366,30 +366,22 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.addLinks(
                 application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
+                relation,
                 targetIds,
                 permissionPredicate.predicate()
         );
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
         queryEngine.removeLinks(
                 application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
+                relation,
                 targetIds,
                 permissionPredicate.predicate()
         );
