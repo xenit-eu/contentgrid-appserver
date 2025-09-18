@@ -7,6 +7,7 @@ pluginManagement {
 
 plugins {
     id 'org.ajoberstar.reckon.settings' version '0.19.2'
+    id 'eu.xenit.enterprise-conventions.oss' version '0.6.2'
 }
 
 reckon {
