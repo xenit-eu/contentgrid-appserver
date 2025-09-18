@@ -48,8 +48,10 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -283,6 +285,13 @@ class JOOQQueryEngineTest {
                     .build())
             .build();
 
+    private static final Entity ADDRESS = Entity.builder()
+            .name(EntityName.of("address"))
+            .table(TableName.of("address"))
+            .pathSegment(PathSegmentName.of("addresses"))
+            .linkName(LinkName.of("addresses"))
+            .build();
+
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE.getName())
@@ -349,15 +358,33 @@ class JOOQQueryEngineTest {
             .targetReference(ColumnName.of("product_id"))
             .build();
 
+    private static final OneToManyRelation PERSON_ADDRESSES = OneToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(PERSON.getName())
+                    .name(RelationName.of("addresses"))
+                    .pathSegment(PathSegmentName.of("addresses"))
+                    .linkName(LinkName.of("addresses"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ADDRESS.getName())
+                    .name(RelationName.of("person"))
+                    .pathSegment(PathSegmentName.of("person"))
+                    .linkName(LinkName.of("person"))
+                    .build())
+            .sourceReference(ColumnName.of("person_id"))
+            .build();
+
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("invoicing-application"))
             .entity(INVOICE)
             .entity(PERSON)
             .entity(PRODUCT)
+            .entity(ADDRESS)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
             .relation(INVOICE_PRODUCTS)
+            .relation(PERSON_ADDRESSES)
             .build();
 
     private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
@@ -370,6 +397,8 @@ class JOOQQueryEngineTest {
     private static final EntityId PRODUCT1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId ADDRESS1_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId ADDRESS2_ID = EntityId.of(UUID_GENERATOR.generate());
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -473,6 +502,10 @@ class JOOQQueryEngineTest {
                 .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
                 .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
                 .execute();
+        dslContext.insertInto(DSL.table("address"), DSL.field("id", UUID.class))
+                .values(ADDRESS1_ID.getValue())
+                .values(ADDRESS2_ID.getValue())
+                .execute();
     }
 
     void assertEntitiesUnchanged(Entity entity, List<EntityId> expected) {
@@ -487,17 +520,98 @@ class JOOQQueryEngineTest {
         assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID));
         assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
 
-        assertTrue(queryEngine.isLinked(APPLICATION, PERSON_FRIENDS, BOB_ID, ALICE_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE1_ID, ALICE_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE2_ID, BOB_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE2_ID, INVOICE1_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT1_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT2_ID, TRUE_EXPRESSION));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        PERSON_FRIENDS.getSourceEndPoint().getEntity(),
+                        BOB_ID,
+                        PERSON_FRIENDS.getSourceEndPoint().getName()
+                ),
+                ALICE_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_CUSTOMER.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_CUSTOMER.getSourceEndPoint().getName()
+                ),
+                ALICE_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_CUSTOMER.getSourceEndPoint().getEntity(),
+                        INVOICE2_ID,
+                        INVOICE_CUSTOMER.getSourceEndPoint().getName()
+                ),
+                BOB_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE2_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT2_ID,
+                TRUE_EXPRESSION
+        ));
 
         // These are tried in invalidSetRelationData and invalidAddRelationData
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE1_ID, TRUE_EXPRESSION));
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE2_ID, TRUE_EXPRESSION));
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT3_ID, TRUE_EXPRESSION));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE2_ID,
+                TRUE_EXPRESSION
+        ));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT3_ID,
+                TRUE_EXPRESSION
+        ));
     }
 
     static Stream<ThunkExpression<Boolean>> validExpressions() {
@@ -858,14 +972,29 @@ class JOOQQueryEngineTest {
 
         for (var relationData : data.getRelations()) {
             var relation = APPLICATION.getRelationForEntity(entity, relationData.getName()).orElseThrow();
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    createdEntity.getId(),
+                    relation.getSourceEndPoint().getName()
+            );
             if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
                 var xToManyRelationData = assertInstanceOf(XToManyRelationData.class, relationData);
                 for (var ref : xToManyRelationData.getRefs()) {
-                    assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), ref, TRUE_EXPRESSION));
+                    assertTrue(queryEngine.isLinked(
+                            APPLICATION,
+                            relationRequest,
+                            ref,
+                            TRUE_EXPRESSION
+                    ));
                 }
             } else {
                 var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, relationData);
-                assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), xToOneRelationData.getRef(), TRUE_EXPRESSION));
+                assertTrue(queryEngine.isLinked(
+                        APPLICATION,
+                        relationRequest,
+                        xToOneRelationData.getRef(),
+                        TRUE_EXPRESSION
+                ));
             }
         }
     }
@@ -1675,8 +1804,24 @@ class JOOQQueryEngineTest {
     @Test
     void deleteAll() {
         // unlink relations for invoice first
-        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, TRUE_EXPRESSION);
-        queryEngine.unsetLink(APPLICATION, INVOICE_PRODUCTS, INVOICE2_ID, TRUE_EXPRESSION);
+        queryEngine.unsetLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                TRUE_EXPRESSION
+        );
+        queryEngine.unsetLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE2_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                TRUE_EXPRESSION
+        );
 
         // delete all invoices
         queryEngine.deleteAll(APPLICATION, INVOICE);
@@ -1684,8 +1829,24 @@ class JOOQQueryEngineTest {
         assertTrue(slice.getEntities().isEmpty());
 
         // unlink relations for person
-        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, ALICE_ID, TRUE_EXPRESSION);
-        queryEngine.unsetLink(APPLICATION, PERSON_FRIENDS, BOB_ID, TRUE_EXPRESSION);
+        queryEngine.unsetLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        PERSON_FRIENDS.getSourceEndPoint().getEntity(),
+                        ALICE_ID,
+                        PERSON_FRIENDS.getSourceEndPoint().getName()
+                ),
+                TRUE_EXPRESSION
+        );
+        queryEngine.unsetLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        PERSON_FRIENDS.getSourceEndPoint().getEntity(),
+                        BOB_ID,
+                        PERSON_FRIENDS.getSourceEndPoint().getName()
+                ),
+                TRUE_EXPRESSION
+        );
 
         // now we can safely delete all persons (no invoices left with a required customer)
         queryEngine.deleteAll(APPLICATION, PERSON);
@@ -1741,20 +1902,28 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> validSetRelationData() {
         return Stream.of(
                 // Owning one-to-one
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, INVOICE2_ID),
+                Arguments.argumentSet("one-to-one", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE2_ID),
                 // Non-owning one-to-one
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID),
+                Arguments.argumentSet("one-to-one (target)", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID),
                 // Many-to-one
-                Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER, JOHN_ID /* originally ALICE_ID */)
+                Arguments.argumentSet("many-to-one", INVOICE1_ID, INVOICE_CUSTOMER, JOHN_ID /* originally ALICE_ID */),
+                // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                // so next_invoice of INVOICE1_ID contains INVOICE2_ID. This is visible on the relation, so it's allowed to overwrite it
+                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse(), INVOICE1_ID)
         );
     }
 
     @ParameterizedTest
     @MethodSource("validSetRelationData")
     void setRelationValidData(EntityId id, Relation relation, EntityId targetId) {
-        queryEngine.setLink(APPLICATION, relation, id, targetId, TRUE_EXPRESSION);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        );
+        queryEngine.setLink(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION);
 
-        assertTrue(queryEngine.isLinked(APPLICATION, relation, id, targetId, TRUE_EXPRESSION));
+        assertTrue(queryEngine.isLinked(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION));
     }
 
     static Stream<Arguments> invalidSetRelationData() {
@@ -1777,7 +1946,16 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidSetRelationData")
     void setRelationInvalidData(EntityId id, Relation relation, EntityId targetId) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.setLink(APPLICATION, relation, id, targetId, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.setLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ),
+                targetId,
+                TRUE_EXPRESSION
+        ));
         assertNothingChanged();
     }
 
@@ -1846,13 +2024,33 @@ class JOOQQueryEngineTest {
                 Scalar.of(100)
         );
 
+        var relationRequest = RelationRequest.forRelation(
+                INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                subject.getId(),
+                INVOICE_PREVIOUS.getSourceEndPoint().getName()
+        );
+
         if(allowed) {
-            queryEngine.setLink(APPLICATION, INVOICE_PREVIOUS, subject.getId(), newEntity.getId(), permissionCheck);
-            assertThat(queryEngine.findTarget(APPLICATION, INVOICE_PREVIOUS, subject.getId(), TRUE_EXPRESSION))
+            queryEngine.setLink(
+                    APPLICATION,
+                    relationRequest,
+                    newEntity.getId(),
+                    permissionCheck
+            );
+            assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
+                    .map(EntityIdAndVersion::entityId)
                     .hasValue(newEntity.getId());
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.setLink(APPLICATION, INVOICE_PREVIOUS, subject.getId(), newEntity.getId(), permissionCheck));
-            assertThat(queryEngine.findTarget(APPLICATION, INVOICE_PREVIOUS, subject.getId(), TRUE_EXPRESSION))
+            assertThrows(PermissionDeniedException.class, () -> {
+                queryEngine.setLink(
+                        APPLICATION,
+                        relationRequest,
+                        newEntity.getId(),
+                        permissionCheck
+                );
+            });
+            assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
+                    .map(EntityIdAndVersion::entityId)
                     .hasValue(originalEntity.getId());
         }
     }
@@ -1877,7 +2075,16 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validUnsetRelationData")
     void unsetRelationValidData(EntityId id, Relation relation) {
-        queryEngine.unsetLink(APPLICATION, relation, id, TRUE_EXPRESSION);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        );
+        queryEngine.unsetLink(
+                APPLICATION,
+                relationRequest,
+                TRUE_EXPRESSION
+        );
 
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
             if (relation.getTargetEndPoint().getName() != null) {
@@ -1911,29 +2118,13 @@ class JOOQQueryEngineTest {
                 throw new AssertionError("Unidirectional relations not supported");
             }
         } else {
-            var maybeRelationData = queryEngine.findTarget(APPLICATION, relation, id, TRUE_EXPRESSION);
+            var maybeRelationData = queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION);
             assertTrue(maybeRelationData.isEmpty());
         }
     }
 
     static Stream<Arguments> invalidUnsetRelationData() {
         return Stream.of(
-                // Non-existing relation
-                Arguments.of(INVOICE2_ID, ManyToOneRelation.builder()
-                        .sourceEndPoint(RelationEndPoint.builder()
-                                .entity(INVOICE.getName())
-                                .name(RelationName.of("supplier"))
-                                .pathSegment(PathSegmentName.of("supplier"))
-                                .linkName(LinkName.of("supplier"))
-                                .build())
-                        .targetEndPoint(RelationEndPoint.builder()
-                                .entity(PERSON.getName())
-                                .name(RelationName.of("non_existing"))
-                                .pathSegment(PathSegmentName.of("non-existing"))
-                                .linkName(LinkName.of("non_existing"))
-                                .build())
-                        .targetReference(ColumnName.of("customer")) // Sneaky provide existing column
-                        .build()),
                 // Non-existing source id of an owning *-to-one relation
                 Arguments.of(ALICE_ID, INVOICE_PREVIOUS),
                 // Non-existing source id of a non-owning *-to-one relation
@@ -1950,7 +2141,15 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidUnsetRelationData")
     void unsetRelationInvalidData(EntityId id, Relation relation) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.unsetLink(APPLICATION, relation, id, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.unsetLink(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ),
+                TRUE_EXPRESSION
+        ));
         assertNothingChanged();
     }
 
@@ -1999,13 +2198,30 @@ class JOOQQueryEngineTest {
                 Scalar.of(100)
         );
 
+        var relationRequest = RelationRequest.forRelation(
+                INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                subject.getId(),
+                INVOICE_PREVIOUS.getSourceEndPoint().getName()
+        );
+
         if(allowed) {
-            queryEngine.unsetLink(APPLICATION, INVOICE_PREVIOUS, subject.getId(), permissionCheck);
-            assertThat(queryEngine.findTarget(APPLICATION, INVOICE_PREVIOUS, subject.getId(), TRUE_EXPRESSION))
+            queryEngine.unsetLink(
+                    APPLICATION,
+                    relationRequest,
+                    permissionCheck
+            );
+            assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
                     .isEmpty();
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.unsetLink(APPLICATION, INVOICE_PREVIOUS, subject.getId(),  permissionCheck));
-            assertThat(queryEngine.findTarget(APPLICATION, INVOICE_PREVIOUS, subject.getId(), TRUE_EXPRESSION))
+            assertThrows(PermissionDeniedException.class, () -> {
+                queryEngine.unsetLink(
+                        APPLICATION,
+                        relationRequest,
+                        permissionCheck
+                );
+            });
+            assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
+                    .map(EntityIdAndVersion::entityId)
                     .hasValue(originalEntity.getId());
         }
     }
@@ -2013,7 +2229,7 @@ class JOOQQueryEngineTest {
     static Stream<Arguments> validAddRelationData() {
         return Stream.of(
                 // One-to-many: new values
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
+                Arguments.of(BOB_ID, PERSON_ADDRESSES, Set.of(ADDRESS1_ID, ADDRESS2_ID)),
                 // Many-to-many: new values
                 Arguments.of(INVOICE2_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // One-to-many: already linked values
@@ -2028,9 +2244,19 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validAddRelationData")
     void addRelationValidData(EntityId id, Relation relation, Set<EntityId> targetIds) {
-        queryEngine.addLinks(APPLICATION, relation, id, targetIds, TRUE_EXPRESSION);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        );
+        queryEngine.addLinks(
+                APPLICATION,
+                relationRequest,
+                targetIds,
+                TRUE_EXPRESSION
+        );
         for (var ref : targetIds) {
-            assertTrue(queryEngine.isLinked(APPLICATION, relation, id, ref, TRUE_EXPRESSION));
+            assertTrue(queryEngine.isLinked(APPLICATION, relationRequest, ref, TRUE_EXPRESSION));
         }
     }
 
@@ -2040,6 +2266,8 @@ class JOOQQueryEngineTest {
                 Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
                 // One-to-many: non-existing target ref
                 Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
+                // One-to-many: value already linked with another customer
+                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
                 // Many-to-many: non-existing source ref
                 Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
                 // Many-to-many: non-existing target ref
@@ -2054,7 +2282,16 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidAddRelationData")
     void addRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.addLinks(APPLICATION, relation, id, targetIds, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.addLinks(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ),
+                targetIds,
+                TRUE_EXPRESSION
+        ));
         assertNothingChanged();
     }
 
@@ -2125,14 +2362,19 @@ class JOOQQueryEngineTest {
                 Scalar.of(100)
         ));
 
-        var code = assertThatCode(() ->
-                queryEngine.addLinks(
-                        APPLICATION,
-                        INVOICE_PRODUCTS.inverse(),
-                        subject.getId(),
-                        Set.of(newEntity.getId()),
-                        permissionCheck
-                )
+        var subjectRelationRequest = RelationRequest.forRelation(
+                INVOICE_PRODUCTS.inverse().getSourceEndPoint().getEntity(),
+                subject.getId(),
+                INVOICE_PRODUCTS.inverse().getSourceEndPoint().getName()
+        );
+        var code = assertThatCode(() -> {
+                    queryEngine.addLinks(
+                            APPLICATION,
+                            subjectRelationRequest,
+                            Set.of(newEntity.getId()),
+                            permissionCheck
+                    );
+                }
         );
 
         if(allowed) {
@@ -2140,7 +2382,12 @@ class JOOQQueryEngineTest {
         } else {
             code.isInstanceOf(PermissionDeniedException.class);
         }
-        assertThat(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS.inverse(), subject.getId(), newEntity.getId(), TRUE_EXPRESSION)).isEqualTo(allowed);
+        assertThat(queryEngine.isLinked(
+                APPLICATION,
+                subjectRelationRequest,
+                newEntity.getId(),
+                TRUE_EXPRESSION
+        )).isEqualTo(allowed);
     }
 
     static Stream<Arguments> invalidRemoveRelationData() {
@@ -2161,14 +2408,33 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidRemoveRelationData")
     void removeRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.removeLinks(APPLICATION, relation, id, targetIds, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.removeLinks(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        relation.getSourceEndPoint().getEntity(),
+                        id,
+                        relation.getSourceEndPoint().getName()
+                ),
+                targetIds,
+                TRUE_EXPRESSION
+        ));
         assertNothingChanged();
     }
 
     @Test
     void removeRelationValidData() {
-        queryEngine.removeLinks(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, Set.of(PRODUCT1_ID), TRUE_EXPRESSION);
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT1_ID, TRUE_EXPRESSION));
+        var relationRequest = RelationRequest.forRelation(
+                INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                INVOICE1_ID,
+                INVOICE_PRODUCTS.getSourceEndPoint().getName()
+        );
+        queryEngine.removeLinks(
+                APPLICATION,
+                relationRequest,
+                Set.of(PRODUCT1_ID),
+                TRUE_EXPRESSION
+        );
+        assertFalse(queryEngine.isLinked(APPLICATION, relationRequest, PRODUCT1_ID, TRUE_EXPRESSION));
     }
 
     @ParameterizedTest
@@ -2202,22 +2468,26 @@ class JOOQQueryEngineTest {
                 Scalar.of(100)
         );
 
-        var code = assertThatCode(() ->
-                queryEngine.removeLinks(
-                        APPLICATION,
-                        INVOICE_PRODUCTS,
-                        subject.getId(),
-                        Set.of(PRODUCT1_ID),
-                        permissionCheck
-                )
+        var relationRequest = RelationRequest.forRelation(
+                INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                subject.getId(),
+                INVOICE_PRODUCTS.getSourceEndPoint().getName()
         );
+        var code = assertThatCode(() -> {
+            queryEngine.removeLinks(
+                    APPLICATION,
+                    relationRequest,
+                    Set.of(PRODUCT1_ID),
+                    permissionCheck
+            );
+        });
 
         if(allowed) {
             code.doesNotThrowAnyException();
         } else {
             code.isInstanceOf(PermissionDeniedException.class);
         }
-        assertThat(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, subject.getId(), PRODUCT1_ID, TRUE_EXPRESSION)).isEqualTo(!allowed);
+        assertThat(queryEngine.isLinked(APPLICATION, relationRequest, PRODUCT1_ID, TRUE_EXPRESSION)).isEqualTo(!allowed);
     }
 
     @Test

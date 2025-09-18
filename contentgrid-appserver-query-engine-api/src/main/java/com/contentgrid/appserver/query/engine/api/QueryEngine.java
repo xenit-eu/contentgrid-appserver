@@ -2,10 +2,10 @@ package com.contentgrid.appserver.query.engine.api;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
@@ -109,77 +109,71 @@ public interface QueryEngine {
      * Determines whether the given source and target entities are linked by the specified relation.
      *
      * @param application the application context
-     * @param relation the relation type to check
-     * @param sourceId the primary key of the source entity
+     * @param relationRequest the relation to check
      * @param targetId the primary key of the target entity
      * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
+    boolean isLinked(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param relation the *-to-one relation to query
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-one relation to query
      * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    Optional<EntityId> findTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
+    Optional<EntityIdAndVersion> findTarget(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**
      * Link the target entity id provided in data with the given source id.
      * This operation can only be used for many-to-one or one-to-one relationships.
      *
      * @param application the application context
-     * @param relation the *-to-one relation for which to set the link
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-one relation for which to set the link
      * @param targetId the primary key of the target entity
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
      *
      * @param application the application context
-     * @param relation the relation type for which to remove links
-     * @param id the primary key of the source entity
+     * @param relationRequest the relation type for which to remove links
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void unsetLink(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Adds the links provided in data to the entity with the given id.
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param relation the *-to-many relation to add links to
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-many relation to add links to
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
      * This operation can only be used for many-to-many or one-to-many relationships.
      *
      * @param application the application context
-     * @param relation the *-to-many relation to remove links from
-     * @param id the primary key of the source entity
+     * @param relationRequest the *-to-many relation to remove links from
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
 
     /**
      * Counts how many entities exist that match the given expression.

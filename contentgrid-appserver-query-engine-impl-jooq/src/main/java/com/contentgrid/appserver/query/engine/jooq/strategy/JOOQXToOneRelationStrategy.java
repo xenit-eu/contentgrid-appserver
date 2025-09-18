@@ -4,17 +4,25 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record1;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
 
 public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> implements JOOQRelationStrategy<R>
@@ -77,21 +85,70 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                 .map(EntityId::of);
     }
 
-    public abstract void create(DSLContext dslContext, Application application, R relation, EntityId id, EntityId targetId);
+    public void create(DSLContext dslContext, Application application, R relation, EntityId id, EntityId targetId,
+            ExpectedId expectedTargetId)
+            throws ExpectedIdMismatchException {
+        setValue(dslContext, application, relation, id, expectedTargetId, targetId.getValue());
+    }
 
     @Override
+    // This exception actually doesn't happen here, because we don't expect any ID
+    @SneakyThrows(ExpectedIdMismatchException.class)
     public void delete(DSLContext dslContext, Application application, R relation, EntityId id) {
+        delete(dslContext, application, relation, id, ExpectedId.unspecified());
+    }
+
+    public void delete(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId)
+            throws ExpectedIdMismatchException {
+        setValue(dslContext, application, relation, id, expectedTargetId, null);
+    }
+
+    private void setValue(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId, UUID targetValue) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
-        var foreignKey = getForeignKey(application, relation);
+        var targetRef = getTargetRef(application, relation);
+
+        var savepointName = DSL.name("x_to_one_update_"+UUID.randomUUID());
+        dslContext.savepoint(savepointName).execute();
 
         try {
-            dslContext.update(table)
-                    .set(foreignKey, (UUID) null)
+            var newValue = dslContext.update(table)
+                    .set(targetRef, expectedTargetId.mapToNewValue(targetRef, targetRef, targetValue))
                     .where(sourceRef.eq(id.getValue()))
-                    .execute();
+                    .returning(targetRef)
+                    .fetchOptional()
+                    .orElseThrow(() -> {
+                        var entityName = relation.getSourceEndPoint().getEntity();
+                        return new EntityIdNotFoundException(entityName, id);
+                    })
+                    .get(targetRef);
+
+            if (!Objects.equals(newValue, targetValue)) {
+                throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, newValue);
+            }
+        } catch (DuplicateKeyException e) {
+            dslContext.rollback().toSavepoint(savepointName).execute();
+
+            var conflictingRowId = dslContext.select(sourceRef)
+                    .from(table)
+                    .where(targetRef.eq(targetValue))
+                    .fetchOptional(sourceRef);
+
+            var ex = new BlindRelationOverwriteException(
+                    RelationIdentity.forRelation(
+                            relation.getTargetEndPoint().getEntity(),
+                            EntityId.of(targetValue),
+                            relation.getTargetEndPoint().getName()
+                    ),
+                    EntityIdentity.forEntity(
+                            relation.getSourceEndPoint().getEntity(),
+                            EntityId.of(conflictingRowId.orElseThrow())
+                    )
+            );
+            ex.initCause(e);
+            throw ex;
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
+            throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
         }
     }
 

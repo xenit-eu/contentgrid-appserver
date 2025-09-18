@@ -37,7 +37,7 @@ public class RelationIdentity {
     }
 
     public String toString() {
-        return "Relation '%s' on '%s' %s (%s)".formatted(relationName, entityName, entityId, version);
+        return "Relation '%s' on entity '%s' %s (%s)".formatted(relationName, entityName, entityId, version);
     }
 
 }

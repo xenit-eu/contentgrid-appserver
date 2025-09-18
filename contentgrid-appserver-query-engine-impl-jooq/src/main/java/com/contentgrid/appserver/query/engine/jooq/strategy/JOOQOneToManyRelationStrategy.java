@@ -3,14 +3,19 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
@@ -77,14 +82,41 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
         var refs = getRefs(targetIds);
 
         try {
-            var updated = dslContext.update(table)
-                    .set(sourceRef, id.getValue())
+            var updatedItems = dslContext.update(table)
+                    .set(sourceRef, DSL.coalesce(sourceRef, id.getValue())) // Only use the new value when sourceRef was null
                     .where(targetRef.in(refs))
-                    .returning(targetRef)
-                    .fetchSet(targetRef);
+                    .returning(sourceRef, targetRef)
+                    .fetch();
 
-            checkModifiedItems(refs, updated, targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(),
-                    targetId));
+            var maybeException = updatedItems.stream()
+                    .filter(updatedItem -> !Objects.equals(updatedItem.get(sourceRef), id.getValue()))
+                    .map(item -> new BlindRelationOverwriteException(
+                            RelationIdentity.forRelation(
+                                    relation.getTargetEndPoint().getEntity(),
+                                    EntityId.of(item.get(targetRef)),
+                                    relation.getTargetEndPoint().getName()
+                            ),
+                            EntityIdentity.forEntity(
+                                    relation.getSourceEndPoint().getEntity(),
+                                    EntityId.of(item.get(sourceRef))
+                            )
+                    ))
+                    .reduce((a, b) -> {
+                        a.addSuppressed(b);
+                        return a;
+                    });
+
+            if(maybeException.isPresent()) {
+                throw maybeException.get();
+            }
+
+
+
+            checkModifiedItems(
+                    refs,
+                    updatedItems.stream().map(i -> i.get(targetRef)).collect(Collectors.toSet()),
+                    targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(), targetId)
+            );
 
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist

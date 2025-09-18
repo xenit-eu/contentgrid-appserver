@@ -40,7 +40,6 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -339,45 +338,53 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.isLinked(application, relation, relationRequest.getEntityId(), targetId, permissionPredicate.predicate());
+        return queryEngine.isLinked(application, relationRequest, targetId, permissionPredicate.predicate());
     }
 
     @Override
     public Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
              @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.findTarget(application, relation, relationRequest.getEntityId(), permissionPredicate.predicate())
-                // TODO: wire this through to the query engine
-                .map(targetId -> new RelationTarget(
+        return queryEngine.findTarget(application, relationRequest, permissionPredicate.predicate())
+                .map(entityIdAndVersion -> new RelationTarget(
                         RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
-                                .withVersion(Version.exactly(targetId.getValue().toString())),
-                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId)
+                                .withVersion(entityIdAndVersion.version()),
+                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), entityIdAndVersion.entityId())
                 ));
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
+    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.setLink(application, relation, id, targetId, permissionPredicate.predicate());
+        queryEngine.setLink(application, relationRequest, targetId, permissionPredicate.predicate());
     }
 
     @Override
-    public void deleteRelation(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate)
+    public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.unsetLink(application, relation, id, permissionPredicate.predicate());
+        queryEngine.unsetLink(application, relationRequest, permissionPredicate.predicate());
     }
 
     @Override
-    public void addRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.addLinks(application, relation, id, targetIds, permissionPredicate.predicate());
+        queryEngine.addLinks(
+                application,
+                relation,
+                targetIds,
+                permissionPredicate.predicate()
+        );
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
+    public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate)
             throws QueryEngineException {
-        queryEngine.removeLinks(application, relation, id, targetIds, permissionPredicate.predicate());
+        queryEngine.removeLinks(
+                application,
+                relation,
+                targetIds,
+                permissionPredicate.predicate()
+        );
     }
 
     @RequiredArgsConstructor
