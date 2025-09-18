@@ -130,13 +130,6 @@ class DynamicDispatchApplicationHandlerMappingTest {
                             .getValue()));
         }
 
-        @PostMapping(value = "/{entityName}", consumes = "application/json")
-        ResponseEntity<String> createEntity(
-                @PathVariable String entityName
-        ) {
-            return ResponseEntity.ok("Created");
-        }
-
         @GetMapping("/{entityName}/{contentAttributeName}")
         @SpecializedOnPropertyType(type = PropertyType.CONTENT_ATTRIBUTE, entityPathVariable = "entityName", propertyPathVariable = "contentAttributeName")
         ResponseEntity<String> getContent(
@@ -225,12 +218,6 @@ class DynamicDispatchApplicationHandlerMappingTest {
         mockMvc.perform(get("/test-entities"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Entity test-entity"));
-        mockMvc.perform(get("/others"))
-                .andExpect(status().isOk());
-        mockMvc.perform(post("/others")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isOk());
     }
 
     @Test

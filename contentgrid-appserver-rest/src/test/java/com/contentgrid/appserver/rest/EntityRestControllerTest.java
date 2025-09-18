@@ -82,7 +82,7 @@ class EntityRestControllerTest {
 
         @Bean
         @Primary
-        Clock brokenClock() {
+        Clock fixedClock() {
             return Clock.fixed(Instant.ofEpochSecond(1234567890), ZoneOffset.UTC);
         }
     }
