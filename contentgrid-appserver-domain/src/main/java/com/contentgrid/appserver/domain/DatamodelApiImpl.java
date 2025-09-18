@@ -338,8 +338,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.isLinked(application, relation, relationRequest.getEntityId(), targetId, permissionPredicate.predicate());
+        return queryEngine.isLinked(application, relationRequest, targetId, permissionPredicate.predicate());
     }
 
     @Override

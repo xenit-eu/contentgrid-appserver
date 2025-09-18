@@ -2,7 +2,6 @@ package com.contentgrid.appserver.query.engine.api;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
@@ -110,26 +109,12 @@ public interface QueryEngine {
      * Determines whether the given source and target entities are linked by the specified relation.
      *
      * @param application the application context
-     * @param relation the relation type to check
-     * @param sourceId the primary key of the source entity
+     * @param relationRequest the relation to check
      * @param targetId the primary key of the target entity
      * @param permitReadPredicate predicate that has to pass for the relation to be allowed to be read
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    default boolean isLinked(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException {
-        return isLinked(
-                application,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        sourceId,
-                        relation.getSourceEndPoint().getName()
-                ),
-                targetId,
-                permitReadPredicate
-        );
-    }
-
     boolean isLinked(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate) throws QueryEngineException;
 
     /**

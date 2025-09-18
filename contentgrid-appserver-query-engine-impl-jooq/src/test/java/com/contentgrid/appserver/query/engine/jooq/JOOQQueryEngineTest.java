@@ -92,7 +92,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import lombok.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
@@ -521,17 +520,98 @@ class JOOQQueryEngineTest {
         assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID));
         assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
 
-        assertTrue(queryEngine.isLinked(APPLICATION, PERSON_FRIENDS, BOB_ID, ALICE_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE1_ID, ALICE_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_CUSTOMER, INVOICE2_ID, BOB_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE2_ID, INVOICE1_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT1_ID, TRUE_EXPRESSION));
-        assertTrue(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT2_ID, TRUE_EXPRESSION));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        PERSON_FRIENDS.getSourceEndPoint().getEntity(),
+                        BOB_ID,
+                        PERSON_FRIENDS.getSourceEndPoint().getName()
+                ),
+                ALICE_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_CUSTOMER.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_CUSTOMER.getSourceEndPoint().getName()
+                ),
+                ALICE_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_CUSTOMER.getSourceEndPoint().getEntity(),
+                        INVOICE2_ID,
+                        INVOICE_CUSTOMER.getSourceEndPoint().getName()
+                ),
+                BOB_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE2_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertTrue(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT2_ID,
+                TRUE_EXPRESSION
+        ));
 
         // These are tried in invalidSetRelationData and invalidAddRelationData
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE1_ID, TRUE_EXPRESSION));
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PREVIOUS, INVOICE1_ID, INVOICE2_ID, TRUE_EXPRESSION));
-        assertFalse(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS, INVOICE1_ID, PRODUCT3_ID, TRUE_EXPRESSION));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE1_ID,
+                TRUE_EXPRESSION
+        ));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PREVIOUS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PREVIOUS.getSourceEndPoint().getName()
+                ),
+                INVOICE2_ID,
+                TRUE_EXPRESSION
+        ));
+        assertFalse(queryEngine.isLinked(
+                APPLICATION,
+                RelationRequest.forRelation(
+                        INVOICE_PRODUCTS.getSourceEndPoint().getEntity(),
+                        INVOICE1_ID,
+                        INVOICE_PRODUCTS.getSourceEndPoint().getName()
+                ),
+                PRODUCT3_ID,
+                TRUE_EXPRESSION
+        ));
     }
 
     static Stream<ThunkExpression<Boolean>> validExpressions() {
@@ -892,14 +972,29 @@ class JOOQQueryEngineTest {
 
         for (var relationData : data.getRelations()) {
             var relation = APPLICATION.getRelationForEntity(entity, relationData.getName()).orElseThrow();
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    createdEntity.getId(),
+                    relation.getSourceEndPoint().getName()
+            );
             if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
                 var xToManyRelationData = assertInstanceOf(XToManyRelationData.class, relationData);
                 for (var ref : xToManyRelationData.getRefs()) {
-                    assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), ref, TRUE_EXPRESSION));
+                    assertTrue(queryEngine.isLinked(
+                            APPLICATION,
+                            relationRequest,
+                            ref,
+                            TRUE_EXPRESSION
+                    ));
                 }
             } else {
                 var xToOneRelationData = assertInstanceOf(XToOneRelationData.class, relationData);
-                assertTrue(queryEngine.isLinked(APPLICATION, relation, createdEntity.getId(), xToOneRelationData.getRef(), TRUE_EXPRESSION));
+                assertTrue(queryEngine.isLinked(
+                        APPLICATION,
+                        relationRequest,
+                        xToOneRelationData.getRef(),
+                        TRUE_EXPRESSION
+                ));
             }
         }
     }
@@ -1821,18 +1916,14 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validSetRelationData")
     void setRelationValidData(EntityId id, Relation relation, EntityId targetId) {
-        queryEngine.setLink(
-                APPLICATION,
-                RelationRequest.forRelation(
-                        relation.getSourceEndPoint().getEntity(),
-                        id,
-                        relation.getSourceEndPoint().getName()
-                ),
-                targetId,
-                TRUE_EXPRESSION
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
         );
+        queryEngine.setLink(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION);
 
-        assertTrue(queryEngine.isLinked(APPLICATION, relation, id, targetId, TRUE_EXPRESSION));
+        assertTrue(queryEngine.isLinked(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION));
     }
 
     static Stream<Arguments> invalidSetRelationData() {
@@ -2271,19 +2362,16 @@ class JOOQQueryEngineTest {
                 Scalar.of(100)
         ));
 
-        var code = assertThatCode(() ->
-                {
-                    @NonNull Relation relation = INVOICE_PRODUCTS.inverse();
-                    @NonNull EntityId id = subject.getId();
-                    @NonNull Set<EntityId> targetIds = Set.of(newEntity.getId());
+        var subjectRelationRequest = RelationRequest.forRelation(
+                INVOICE_PRODUCTS.inverse().getSourceEndPoint().getEntity(),
+                subject.getId(),
+                INVOICE_PRODUCTS.inverse().getSourceEndPoint().getName()
+        );
+        var code = assertThatCode(() -> {
                     queryEngine.addLinks(
                             APPLICATION,
-                            RelationRequest.forRelation(
-                                    relation.getSourceEndPoint().getEntity(),
-                                    id,
-                                    relation.getSourceEndPoint().getName()
-                            ),
-                            targetIds,
+                            subjectRelationRequest,
+                            Set.of(newEntity.getId()),
                             permissionCheck
                     );
                 }
@@ -2294,7 +2382,12 @@ class JOOQQueryEngineTest {
         } else {
             code.isInstanceOf(PermissionDeniedException.class);
         }
-        assertThat(queryEngine.isLinked(APPLICATION, INVOICE_PRODUCTS.inverse(), subject.getId(), newEntity.getId(), TRUE_EXPRESSION)).isEqualTo(allowed);
+        assertThat(queryEngine.isLinked(
+                APPLICATION,
+                subjectRelationRequest,
+                newEntity.getId(),
+                TRUE_EXPRESSION
+        )).isEqualTo(allowed);
     }
 
     static Stream<Arguments> invalidRemoveRelationData() {
