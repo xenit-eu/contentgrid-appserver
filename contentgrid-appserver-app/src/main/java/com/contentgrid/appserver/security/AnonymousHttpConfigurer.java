@@ -23,8 +23,8 @@ public class AnonymousHttpConfigurer extends AbstractHttpConfigurer<AnonymousHtt
 
         var allowUnauthenticated = context.getEnvironment().getProperty("contentgrid.security.unauthenticated.allow", Boolean.class);
         if (Boolean.TRUE.equals(allowUnauthenticated)) {
-            http.anonymous(
-                    anonymous -> anonymous.authenticationFilter(new AnonymousUsernamePasswordAuthenticationFilter()));
+            http.anonymous(anonymous ->
+                    anonymous.authenticationFilter(new AnonymousUsernamePasswordAuthenticationFilter()));
         }
     }
 
@@ -44,3 +44,4 @@ public class AnonymousHttpConfigurer extends AbstractHttpConfigurer<AnonymousHtt
         }
     }
 }
+
