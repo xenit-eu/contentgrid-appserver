@@ -3,6 +3,9 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -33,10 +36,11 @@ public class ExactSearchFilter extends AttributeSearchFilter {
     @Builder
     ExactSearchFilter(
             @NonNull FilterName name,
+            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags
     ) throws InvalidSearchFilterException {
-        super(name, attributePath, flags);
+        super(name, translations, attributePath, flags);
     }
 
     @Override
@@ -44,7 +48,16 @@ public class ExactSearchFilter extends AttributeSearchFilter {
         return true;
     }
 
-    public static class ExactSearchFilterBuilder {
+    public static ExactSearchFilterBuilder builder() {
+        return new ExactSearchFilterBuilder()
+                .translations(new TranslatableImpl<>(SearchFilterTranslations::new));
+    }
+
+    public static class ExactSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ExactSearchFilterBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
         public ExactSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
             this.attributePath = PropertyPath.of(attribute.getName());
             return this;

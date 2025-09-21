@@ -5,16 +5,25 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
+import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
+import lombok.experimental.Delegate;
 
 @Value
 public class UserAttribute implements CompositeAttribute {
@@ -22,7 +31,11 @@ public class UserAttribute implements CompositeAttribute {
     @NonNull
     AttributeName name;
 
-    String description;
+    @EqualsAndHashCode.Exclude
+    @NonNull
+    @Delegate
+    @Getter(value = AccessLevel.NONE)
+    Translatable<AttributeTranslations> translations;
 
     Set<AttributeFlag> flags;
 
@@ -36,10 +49,15 @@ public class UserAttribute implements CompositeAttribute {
     SimpleAttribute username;
 
     @Builder
-    UserAttribute(@NonNull AttributeName name, String description, @Singular Set<AttributeFlag> flags,
+    UserAttribute(@NonNull AttributeName name, ManipulatableTranslatable<AttributeTranslations> translations, @Singular Set<AttributeFlag> flags,
             @NonNull ColumnName idColumn, @NonNull ColumnName namespaceColumn, @NonNull ColumnName usernameColumn) {
         this.name = name;
-        this.description = description;
+        this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
+            if(t.getName() == null) {
+                t = t.withName(name.getValue());
+            }
+            return t;
+        });
         if (flags.stream().anyMatch(flag -> flag instanceof ReadOnlyFlag || flag instanceof IgnoredFlag)) {
             this.flags = flags;
         } else {
@@ -64,5 +82,21 @@ public class UserAttribute implements CompositeAttribute {
     @Override
     public List<Attribute> getAttributes() {
         return Stream.of(id, namespace, username).collect(Collectors.toUnmodifiableList());
+    }
+
+    public static UserAttributeBuilder builder() {
+        return new UserAttributeBuilder()
+                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+    }
+
+    public static class UserAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, UserAttributeBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
+        public UserAttributeBuilder description(String description) {
+            return translationsBy(Locale.ROOT, t -> t.withDescription(description));
+        }
+
     }
 }

@@ -3,18 +3,25 @@ package com.contentgrid.appserver.application.model.attributes;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
+import lombok.experimental.Delegate;
 
 @Value
 public class CompositeAttributeImpl implements CompositeAttribute {
@@ -22,7 +29,11 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     @NonNull
     AttributeName name;
 
-    String description;
+    @EqualsAndHashCode.Exclude
+    @NonNull
+    @Delegate
+    @Getter(value = AccessLevel.NONE)
+    Translatable<AttributeTranslations> translations;
 
     Set<AttributeFlag> flags;
 
@@ -30,9 +41,14 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     Map<AttributeName, Attribute> attributes = new LinkedHashMap<>();
 
     @Builder
-    CompositeAttributeImpl(@NonNull AttributeName name, String description, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
+    CompositeAttributeImpl(@NonNull AttributeName name, ManipulatableTranslatable<AttributeTranslations> translations, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
         this.name = name;
-        this.description = description;
+        this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
+            if(t.getName() == null) {
+                t = t.withName(name.getValue());
+            }
+            return t;
+        });
         this.flags = flags;
         for (var attribute : attributes) {
             if(attribute instanceof ContentAttribute) {
@@ -66,5 +82,22 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     @Override
     public Optional<Attribute> getAttributeByName(AttributeName attributeName) {
         return Optional.ofNullable(attributes.get(attributeName));
+    }
+
+    public static CompositeAttributeImplBuilder builder() {
+        return new CompositeAttributeImplBuilder()
+                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+    }
+
+    public static class CompositeAttributeImplBuilder extends TranslationBuilderSupport<AttributeTranslations, CompositeAttributeImplBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
+        @Deprecated(forRemoval = true)
+        public CompositeAttributeImplBuilder description(String description) {
+            return translationsBy(Locale.ROOT, t -> t.withDescription(description));
+        }
+
     }
 }

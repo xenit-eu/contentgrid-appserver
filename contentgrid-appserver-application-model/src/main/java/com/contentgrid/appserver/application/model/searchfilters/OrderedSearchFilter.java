@@ -3,6 +3,9 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -30,9 +33,10 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
     OrderedSearchFilter(
             @NonNull Operation operation,
             @NonNull FilterName name,
+            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
-        super(name, attributePath, flags);
+        super(name, translations, attributePath, flags);
         this.operation = operation;
     }
 
@@ -46,6 +50,11 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
         GREATER_THAN_OR_EQUAL,
         LESS_THAN,
         LESS_THAN_OR_EQUAL,
+    }
+
+    public static OrderedSearchFilterBuilder builder() {
+        return new OrderedSearchFilterBuilder()
+                .translations(new TranslatableImpl<>(SearchFilterTranslations::new));
     }
 
     public static OrderedSearchFilterBuilder greaterThan() {
@@ -64,7 +73,11 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
         return builder().operation(Operation.LESS_THAN_OR_EQUAL);
     }
 
-    public static class OrderedSearchFilterBuilder {
+    public static class OrderedSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, OrderedSearchFilterBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
         public OrderedSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
             this.attributePath = PropertyPath.of(attribute.getName());
             return this;

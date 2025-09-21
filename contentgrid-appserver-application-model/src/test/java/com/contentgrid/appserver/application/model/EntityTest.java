@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
@@ -28,6 +29,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -466,5 +468,25 @@ class EntityTest {
                 .sortableField(SORTABLE1)
                 .sortableField(sortableComposite);
         assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_translations() {
+        var entity = Entity.builder()
+                .name(EntityName.of("color"))
+                .pathSegment(PathSegmentName.of("colors"))
+                .linkName(LinkName.of("color"))
+                .table(TableName.of("color"))
+                .translationsBy(Locale.ENGLISH, t -> t.withSingularName("Color").withPluralName("Colors"))
+                .translationsBy(Locale.UK, t -> t.withSingularName("Colour").withPluralName("Colours"))
+                .translationsBy(Locale.FRENCH, t -> t.withSingularName("Couleur"))
+                .build();
+
+        assertEquals("Colour", entity.getTranslations(Locale.UK).getSingularName());
+        assertEquals("Colours", entity.getTranslations(Locale.UK).getPluralName());
+        assertEquals("Color", entity.getTranslations(UserLocales.defaults()).getSingularName());
+        assertEquals("Colors", entity.getTranslations(UserLocales.defaults()).getPluralName());
+        assertEquals("Couleur", entity.getTranslations(Locale.FRENCH).getSingularName());
+        assertNull(entity.getTranslations(Locale.FRENCH).getPluralName());
     }
 }

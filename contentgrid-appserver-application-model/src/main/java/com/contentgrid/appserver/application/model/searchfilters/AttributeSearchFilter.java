@@ -2,12 +2,17 @@ package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
+import java.util.Locale;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.experimental.Delegate;
 
 /**
  * Base class for search filters that operate on entity attributes.
@@ -32,13 +37,16 @@ public abstract class AttributeSearchFilter implements SearchFilter {
     @NonNull
     private final PropertyPath attributePath;
 
+    @NonNull
+    @Delegate
+    @Getter(value = AccessLevel.NONE)
+    private final Translatable<SearchFilterTranslations> translations;
+
     /**
      * Flags on the search filter
      */
     @NonNull
     private final Set<SearchFilterFlag> flags;
-
-
 
     /**
      * Constructs an AttributeSearchFilter with the specified parameters.
@@ -50,10 +58,17 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      */
     protected AttributeSearchFilter(
             @NonNull FilterName name,
+            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull Set<SearchFilterFlag> flags
     ) {
         this.name = name;
+        this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
+            if(t.getName() == null) {
+                t = t.withName(name.getValue());
+            }
+            return t;
+        });
         this.attributePath = attributePath;
         this.flags = Set.copyOf(flags);
 
