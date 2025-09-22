@@ -4,14 +4,23 @@
   "version": "1.0.0",
   "entities": [
     {
-      "name": "Department",
+      "name": "department",
+      "title":  "Department",
+      "collectionTitle": "Departments",
       "description": "A department within the organization",
       "table": "departments",
       "pathSegment": "departments",
       "linkName": "departments",
       "primaryKey": {
         "name": "id",
-        "description": "The unique identifier for the department",
+        "title": {
+          "en": "Unique id",
+          "nl": "Unieke ID"
+        },
+        "description": {
+          "en": "The unique identifier for the department",
+          "nl": "De unieke identiticatiecode voor het departement"
+        },
         "type": "simple",
         "columnName": "dept_id",
         "dataType": "uuid",
@@ -30,6 +39,7 @@
       "attributes": [
         {
           "name": "name",
+          "title": "Name",
           "description": "The name of the department",
           "type": "simple",
           "columnName": "dept_name",
@@ -74,18 +84,28 @@
       "searchFilters": [
         {
           "name": "nameFilter",
+          "title": "Name",
           "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
         },
         {
           "name": "projects.description",
+          "title": "Project description",
           "attributePath": [{"name": "projects", "type": "rel"}, {"name": "description", "type": "attr"}],
           "type": "exact"
         }
       ]
     },
     {
-      "name": "Employee",
+      "name": "employee",
+      "title": {
+        "en": "Employee",
+        "nl": "Werknemer"
+      },
+      "collectionTitle": {
+        "en": "Employees",
+        "nl": "Werknemers"
+      },
       "description": "An employee of the organization",
       "table": "employees",
       "pathSegment": "employees",
@@ -141,6 +161,7 @@
         },
         {
           "name": "salary",
+          "title": "Current salary",
           "description": "Employee's salary",
           "type": "simple",
           "columnName": "salary",
@@ -148,6 +169,7 @@
         },
         {
           "name": "isManager",
+          "title": "Manager",
           "description": "Whether the employee is a manager",
           "type": "simple",
           "columnName": "is_manager",
@@ -155,11 +177,13 @@
         },
         {
           "name": "contactInfo",
+          "title": "Contact info",
           "description": "Employee's contact information",
           "type": "composite",
           "attributes": [
             {
               "name": "phone",
+              "title": "Phone",
               "description": "Employee's phone number",
               "type": "simple",
               "columnName": "phone",
@@ -205,16 +229,19 @@
         },
         {
           "name": "emailFilter",
+          "title": "Email",
           "attributePath": [{"name": "email", "type": "attr"}],
           "type": "exact"
         },
         {
           "name": "phoneFilter",
+          "title": "Telephone",
           "attributePath": [{"name": "contactInfo", "type": "attr"}, {"name": "phone", "type": "attr"}],
           "type": "exact"
         },
         {
           "name": "manager.lastNameFilter",
+          "title": "Manager last name",
           "attributePath": [{"name": "manager", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
         },
@@ -331,21 +358,31 @@
       "searchFilters": [
         {
           "name": "nameFilter",
+          "title": "Name",
           "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
         },
         {
           "name": "statusFilter",
+          "title": "Status",
           "attributePath": [{"name": "status", "type": "attr"}],
           "type": "exact"
         },
         {
           "name": "budget~gt",
+          "title": {
+            "en": "Budget greater than",
+            "nl": "Budget meer dan"
+          },
           "attributePath": [{"name": "budget", "type": "attr"}],
           "type": "greater"
         },
         {
           "name": "budget~gte",
+          "title": {
+            "en": "Budget greater than or equal",
+            "nl": "Budget meer dan of gelijk aan"
+          },
           "attributePath": [{"name": "budget", "type": "attr"}],
           "type": "greater-or-equal"
         },
@@ -372,7 +409,7 @@
       ]
     },
     {
-      "name": "Document",
+      "name": "document",
       "description": "A document associated with a project",
       "table": "documents",
       "pathSegment": "documents",
@@ -576,14 +613,15 @@
     {
       "type": "one-to-many",
       "sourceEndpoint": {
-        "entityName": "Department",
+        "entityName": "department",
         "flags": ["hidden"]
       },
       "targetEndpoint": {
         "name": "employees",
+        "title": "Employees",
         "pathSegment": "employees",
         "linkName": "employees",
-        "entityName": "Employee"
+        "entityName": "employee"
       },
       "sourceReference": "dept_id"
     },
@@ -593,13 +631,13 @@
         "name": "manager",
         "pathSegment": "manager",
         "linkName": "manager",
-        "entityName": "Employee"
+        "entityName": "employee"
       },
       "targetEndpoint": {
         "name": "subordinates",
         "pathSegment": "subordinates",
         "linkName": "subordinates",
-        "entityName": "Employee"
+        "entityName": "employee"
       },
       "sourceReference": "manager_id"
     },
@@ -609,7 +647,7 @@
         "name": "projects",
         "pathSegment": "projects",
         "linkName": "projects",
-        "entityName": "Department"
+        "entityName": "department"
       },
       "targetEndpoint": {
         "entityName": "Project",
@@ -620,7 +658,7 @@
     {
       "type": "one-to-many",
       "sourceEndpoint": {
-        "entityName": "Employee",
+        "entityName": "employee",
         "flags": ["hidden"]
       },
       "targetEndpoint": {
@@ -642,7 +680,7 @@
         "name": "project",
         "pathSegment": "project",
         "linkName": "project",
-        "entityName": "Document",
+        "entityName": "document",
         "flags": ["required"]
       },
       "sourceReference": "proj_id"
@@ -653,7 +691,7 @@
         "name": "projects",
         "pathSegment": "projects",
         "linkName": "projects",
-        "entityName": "Employee"
+        "entityName": "employee"
       },
       "targetEndpoint": {
         "name": "employees",
@@ -671,7 +709,7 @@
         "name": "skills",
         "pathSegment": "skills",
         "linkName": "skills",
-        "entityName": "Employee"
+        "entityName": "employee"
       },
       "targetEndpoint": {
         "name": "employees",
@@ -689,7 +727,7 @@
         "name": "secretInformation",
         "pathSegment": "secret-information",
         "linkName": "secret-information",
-        "entityName": "Employee",
+        "entityName": "employee",
         "flags": ["required"]
       },
       "targetEndpoint": {

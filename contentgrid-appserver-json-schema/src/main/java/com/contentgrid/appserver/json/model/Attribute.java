@@ -27,7 +27,10 @@ import java.util.List;
 public abstract sealed class Attribute permits SimpleAttribute, CompositeAttribute, ContentAttribute, UserAttribute {
     @NonNull
     protected String name;
-    protected String description;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations title;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations description;
 
     @JsonInclude(Include.NON_EMPTY)
     protected List<String> flags;

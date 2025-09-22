@@ -22,8 +22,16 @@
             "type": "string",
             "description": "The name of the entity."
           },
+          "title": {
+            "$ref": "#/$defs/translations",
+            "description": "A human-readable name for the entity"
+          },
+          "collectionTitle": {
+            "$ref": "#/$defs/translations",
+            "description": "A human-readable name for the entity collection"
+          },
           "description": {
-            "type": "string",
+            "$ref": "#/$defs/translations",
             "description": "A description of the entity."
           },
           "table": {
@@ -58,6 +66,14 @@
                 "name": {
                   "type": "string",
                   "description": "The name of the filter."
+                },
+                "title": {
+                  "$ref": "#/$defs/translations",
+                  "description": "A human-readable name for the filter"
+                },
+                "description": {
+                  "$ref": "#/$defs/translations",
+                  "description": "A description of the filter"
                 },
                 "attributePath": {
                   "$ref": "#/$defs/attributePath"
@@ -252,8 +268,12 @@
           "type": "string",
           "description": "The name of the entity."
         },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the relationEndPoint"
+        },
         "description": {
-          "type": "string",
+          "$ref": "#/$defs/translations",
           "description": "A description of the relationEndPoint"
         },
         "flags": {
@@ -283,9 +303,13 @@
           "type": "string",
           "description": "The name of the attribute."
         },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the attribute"
+        },
         "description": {
-          "type": "string",
-          "description": "A description of the attribute."
+          "$ref": "#/$defs/translations",
+          "description": "A description of the attribute"
         },
         "type": {
           "type": "string",
@@ -422,9 +446,13 @@
           "type": "string",
           "description": "The name of the composite attribute"
         },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the attribute"
+        },
         "description": {
-          "type": "string",
-          "description": "A description of the composite attribute"
+          "$ref": "#/$defs/translations",
+          "description": "A description of the attribute"
         },
         "type": {
           "type": "string",
@@ -460,9 +488,13 @@
           "type": "string",
           "description": "The name of the content attribute"
         },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the attribute"
+        },
         "description": {
-          "type": "string",
-          "description": "A description of the content attribute"
+          "$ref": "#/$defs/translations",
+          "description": "A description of the attribute"
         },
         "type": {
           "type": "string",
@@ -521,9 +553,13 @@
           "type": "string",
           "description": "The name of the user attribute"
         },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the attribute"
+        },
         "description": {
-          "type": "string",
-          "description": "A description of the user attribute"
+          "$ref": "#/$defs/translations",
+          "description": "A description of the attribute"
         },
         "type": {
           "type": "string",
@@ -580,6 +616,34 @@
           }
         }
       }
+    },
+    "translations": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Default value to use"
+        },
+        {
+          "$ref": "#/$defs/translationsObject"
+        }
+      ]
+    },
+    "translationsObject": {
+      "type": "object",
+      "description": "",
+      "properties": {
+        "": {
+          "type": "string",
+          "description": "Fallback value that is used when no provided translation matches the requested languages"
+        }
+      },
+      "patternProperties": {
+        "^[a-z]{2}$": {
+          "type": "string",
+          "description": "Translation to use for the language as specified by the key"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

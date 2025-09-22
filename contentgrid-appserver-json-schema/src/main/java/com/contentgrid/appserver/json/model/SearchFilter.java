@@ -18,6 +18,11 @@ public class SearchFilter {
     @NonNull
     private List<PropertyPathElement> attributePath;
 
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations title;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations description;
+
     @NonNull
     private String type; // exact, prefix, ...
 

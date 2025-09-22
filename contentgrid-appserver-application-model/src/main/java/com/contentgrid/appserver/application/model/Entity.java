@@ -67,7 +67,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
 
     @Value
     @With
-    @NoArgsConstructor(force = true)
+    @NoArgsConstructor(access = AccessLevel.PRIVATE, force = true)
     @AllArgsConstructor
     public static class ConfigurableEntityTranslations implements EntityTranslations {
         String singularName;
