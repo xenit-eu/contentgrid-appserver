@@ -1,0 +1,109 @@
+package com.contentgrid.appserver.autoconfigure.content;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.contentgrid.appserver.content.api.ContentStore;
+import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
+import com.contentgrid.appserver.content.impl.s3.S3ContentStore;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.boot.logging.LogLevel;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+
+class S3ContentStoreAutoConfigurationTest {
+
+    private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
+            // Use initializer to have default conversion service
+            .withInitializer(applicationContext -> applicationContext.getBeanFactory().setConversionService(new ApplicationConversionService()))
+            .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
+            .withConfiguration(AutoConfigurations.of(FileSystemContentStoreAutoConfiguration.class, S3ContentStoreAutoConfiguration.class, EncryptedContentStoreAutoConfiguration.class));
+
+    @Test
+    void checkDefaults() {
+        contextRunner
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(FilesystemContentStore.class);
+                });
+    }
+
+    @Test
+    void checkUnknown() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.content.type=unknown")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                });
+    }
+
+    @Test
+    void checkFileSystem() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.content.type=fs")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(FilesystemContentStore.class);
+                });
+    }
+
+    @Test
+    void checkS3_minimalValues() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost",
+                        "contentgrid.appserver.content.s3.bucket=fake"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                });
+    }
+
+    @Test
+    void checkS3_allValues() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost",
+                        "contentgrid.appserver.content.s3.accessKey=accessKey",
+                        "contentgrid.appserver.content.s3.secretKey=secretKey",
+                        "contentgrid.appserver.content.s3.bucket=fake",
+                        "contentgrid.appserver.content.s3.region=none"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                });
+    }
+
+    @Test
+    void checkS3_missingUrl() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.type=s3",
+                        "contentgrid.appserver.content.s3.bucket=fake"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                });
+    }
+
+    @Test
+    void checkS3_missingBucket() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                });
+    }
+
+}

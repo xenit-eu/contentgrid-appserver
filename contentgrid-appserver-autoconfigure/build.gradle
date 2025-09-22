@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
-//    implementation project(':contentgrid-appserver-platform')
+    implementation platform(project(':contentgrid-appserver-platform'))
 
     compileOnly project(':contentgrid-appserver-application-model')
     compileOnly project(':contentgrid-appserver-content-api')
@@ -23,4 +23,25 @@ dependencies {
     compileOnly 'org.flywaydb:flyway-core'
     compileOnly 'org.flywaydb:flyway-database-postgresql'
     compileOnly 'org.springframework.hateoas:spring-hateoas'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation project(':contentgrid-appserver-application-model')
+    testImplementation project(':contentgrid-appserver-content-api')
+    testImplementation project(':contentgrid-appserver-content-impl-encryption')
+    testImplementation project(':contentgrid-appserver-content-impl-fs')
+    testImplementation project(':contentgrid-appserver-content-impl-s3')
+    testImplementation project(':contentgrid-appserver-domain')
+    testImplementation project(':contentgrid-appserver-json-schema')
+    testImplementation project(':contentgrid-appserver-query-engine-api')
+    testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
+    testImplementation project(':contentgrid-appserver-rest')
+
+    testImplementation 'io.minio:minio'
+    testImplementation 'org.springframework.hateoas:spring-hateoas'
+}
+
+test {
+    useJUnitPlatform()
 }
