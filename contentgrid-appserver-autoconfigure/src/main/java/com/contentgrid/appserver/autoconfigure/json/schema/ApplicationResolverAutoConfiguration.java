@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.json.schema;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.json.ApplicationSchemaConverter;
 import com.contentgrid.appserver.json.DefaultApplicationSchemaConverter;
 import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -14,23 +13,18 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 @AutoConfiguration
 @ConditionalOnClass({Application.class, SingleApplicationResolver.class, DefaultApplicationNameExtractor.class})
-@ConditionalOnProperty("contentgrid.appserver.json.source")
+@ConditionalOnProperty("contentgrid.appserver.application-model")
 public class ApplicationResolverAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    ApplicationResolver applicationResolver(ApplicationSchemaConverter applicationSchemaConverter, @Value("${contentgrid.appserver.json.source}") String path) throws IOException, InvalidJsonException {
-        var resource = new ClassPathResource(path);
+    ApplicationResolver applicationResolver(@Value("${contentgrid.appserver.application-model}") Resource resource) throws IOException, InvalidJsonException {
+        var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
         var application = applicationSchemaConverter.convert(resource.getInputStream());
         return new SingleApplicationResolver(application);
-    }
-
-    @Bean
-    ApplicationSchemaConverter applicationSchemaConverter() {
-        return new DefaultApplicationSchemaConverter();
     }
 }

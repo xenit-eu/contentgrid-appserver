@@ -35,7 +35,7 @@ class ApplicationResolverAutoConfigurationTest {
     @Test
     void checkWithProperty() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.json.source=test.json")
+                .withPropertyValues("contentgrid.appserver.application-model=test.json")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SingleApplicationResolver.class);
@@ -47,7 +47,7 @@ class ApplicationResolverAutoConfigurationTest {
     @Test
     void checkWithProperty_unknownValue() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.json.source=unknown.json")
+                .withPropertyValues("contentgrid.appserver.application-model=unknown.json")
                 .run(context -> {
                     assertThat(context).hasFailed();
                 });
@@ -56,7 +56,7 @@ class ApplicationResolverAutoConfigurationTest {
     @Test
     void checkWithPropertyAndApplicationResolver() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.json.source=test.json")
+                .withPropertyValues("contentgrid.appserver.application-model=test.json")
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
