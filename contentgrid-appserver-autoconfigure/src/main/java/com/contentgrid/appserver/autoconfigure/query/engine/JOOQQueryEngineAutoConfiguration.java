@@ -2,7 +2,6 @@ package com.contentgrid.appserver.autoconfigure.query.engine;
 
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration.TableBootstrapConfiguration;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
@@ -24,14 +23,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProp
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @AutoConfiguration(after = {JooqAutoConfiguration.class, ApplicationResolverAutoConfiguration.class})
 @ConditionalOnClass(JOOQQueryEngine.class)
 @ConditionalOnBean({DSLContext.class, PlatformTransactionManager.class})
-@Import(TableBootstrapConfiguration.class)
 public class JOOQQueryEngineAutoConfiguration {
 
     @Bean
@@ -54,19 +50,30 @@ public class JOOQQueryEngineAutoConfiguration {
         return new JOOQTableCreator(dslContextResolver);
     }
 
-    @Configuration
+    @Bean
     @ConditionalOnBean(ApplicationResolver.class)
     @ConditionalOnBooleanProperty("contentgrid.appserver.query-engine.bootstrap-tables")
-    static class TableBootstrapConfiguration {
+    TableInitializer tableInitializer(TableCreator tableCreator, ApplicationResolver applicationResolver) {
+        return new TableInitializer(tableCreator, applicationResolver);
+    }
 
-        @Bean
-        InitializingBean bootstrapTables(TableCreator tableCreator, ApplicationResolver applicationResolver) {
-            return () -> tableCreator.createTables(applicationResolver.resolve(ApplicationName.of("default")));
+    @lombok.Value
+    private static class TableInitializer implements InitializingBean, DisposableBean {
+
+        private static final ApplicationName APPLICATION_NAME = ApplicationName.of("default");
+
+        TableCreator tableCreator;
+        ApplicationResolver applicationResolver;
+
+        @Override
+        public void afterPropertiesSet() throws Exception {
+            tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
         }
 
-        @Bean
-        DisposableBean destroyTables(TableCreator tableCreator, ApplicationResolver applicationResolver) {
-            return () -> tableCreator.dropTables(applicationResolver.resolve(ApplicationName.of("default")));
+        @Override
+        public void destroy() throws Exception {
+            tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
         }
+
     }
 }

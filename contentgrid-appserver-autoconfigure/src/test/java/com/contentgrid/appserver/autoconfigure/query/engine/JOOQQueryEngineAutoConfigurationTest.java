@@ -42,8 +42,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("bootstrapTables");
-                    assertThat(context).doesNotHaveBean("destroyTables");
+                    assertThat(context).doesNotHaveBean("tableInitializer");
                 });
     }
 
@@ -56,8 +55,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).hasBean("bootstrapTables");
-                    assertThat(context).hasBean("destroyTables");
+                    assertThat(context).hasBean("tableInitializer");
                 });
     }
 
@@ -69,8 +67,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("bootstrapTables");
-                    assertThat(context).doesNotHaveBean("destroyTables");
+                    assertThat(context).doesNotHaveBean("tableInitializer");
                 });
     }
 
