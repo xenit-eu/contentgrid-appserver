@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -43,6 +44,7 @@ class HalFormsTemplateGeneratorTest {
     private static HalFormsTemplateGenerator createGenerator(Application application) {
         return new HalFormsTemplateGenerator(application, new LinkFactoryProvider(
                 application,
+                UserLocales.defaults(),
                 new WebMvcLinkBuilderFactory()
         ));
     }

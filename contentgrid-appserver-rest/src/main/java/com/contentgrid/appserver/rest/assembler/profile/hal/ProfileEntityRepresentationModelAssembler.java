@@ -5,6 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
@@ -26,7 +27,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
     private final ProfileAttributeRepresentationModelAssembler attributeAssembler = new ProfileAttributeRepresentationModelAssembler();
     private final ProfileRelationRepresentationModelAssembler relationAssembler = new ProfileRelationRepresentationModelAssembler();
 
-    public record Context(Application application, LinkFactoryProvider linkFactoryProvider) {
+    public record Context(Application application, UserLocales userLocales, LinkFactoryProvider linkFactoryProvider) {
         public HalFormsTemplateGenerator templateGenerator() {
             return new HalFormsTemplateGenerator(application(), linkFactoryProvider());
         }
@@ -34,10 +35,11 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     @Override
     public ProfileEntityRepresentationModel toModel(Entity entity, Context context) {
+        var translation = entity.getTranslations(context.userLocales());
         var result = ProfileEntityRepresentationModel.builder()
                 .name(entity.getName().getValue())
-                .title(readTitle(context, entity))
-                .description(entity.getDescription())
+                .title(translation.getSingularName())
+                .description(translation.getDescription())
                 .attributes(entity.getAllAttributes().stream()
                         .map(attribute -> attributeAssembler.toModel(context, entity, attribute))
                         .flatMap(Optional::stream)
@@ -72,10 +74,8 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
         return linkTo(methodOn(EntityRestController.class)
                 .getEntity(context.application(), entity.getPathSegment(), null, null, null))
                 .withRel(IanaLinkRelations.DESCRIBES)
-                .withName(IanaLinkRelations.ITEM_VALUE);
+                .withName(IanaLinkRelations.ITEM_VALUE)
+                .withTitle(entity.getTranslations(context.userLocales()).getSingularName());
     }
 
-    private String readTitle(Context context, Entity entity) {
-        return null; // TODO: resolve titles (ACC-2230)
-    }
 }

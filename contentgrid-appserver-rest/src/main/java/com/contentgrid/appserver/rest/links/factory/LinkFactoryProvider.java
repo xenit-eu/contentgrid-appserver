@@ -5,6 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
@@ -39,6 +40,9 @@ import org.springframework.util.MultiValueMap;
 public class LinkFactoryProvider {
     @NonNull
     private final Application application;
+
+    @NonNull
+    private final UserLocales userLocales;
 
     @NonNull
     private final MethodLinkBuilderFactory<?> linkBuilderFactory;
@@ -107,6 +111,7 @@ public class LinkFactoryProvider {
                         this
                 ))
                 .withName(entity.getLinkName().getValue())
+                .withTitle(entity.getTranslations(userLocales).getPluralName())
                 .withProfile(toProfile(entityName).toUri().toString());
     }
 
@@ -125,6 +130,7 @@ public class LinkFactoryProvider {
                         null,
                         this
                 ))
+                .withTitle(entity.getTranslations(userLocales).getSingularName())
                 .withProfile(toProfile(identity.getEntityName()).toUri().toString());
     }
 
@@ -163,6 +169,7 @@ public class LinkFactoryProvider {
                         null,
                         this
                 ))
+                .withTitle(relation.getSourceEndPoint().getTranslations(userLocales).getName())
                 .withName(relation.getSourceEndPoint().getLinkName().getValue());
     }
 
@@ -190,7 +197,8 @@ public class LinkFactoryProvider {
                         null,
                         null
                 ))
-                .withName(attributeName.getValue());
+                .withName(attributeName.getValue())
+                .withTitle(attribute.getTranslations(userLocales).getName());
     }
 
     /**
@@ -213,9 +221,11 @@ public class LinkFactoryProvider {
                 .getHalFormsEntityProfile(
                         application,
                         entity.getPathSegment(),
+                        userLocales,
                         this
                 ))
-                .withName(entity.getLinkName().getValue());
+                .withName(entity.getLinkName().getValue())
+                .withTitle(entity.getTranslations(userLocales).getSingularName());
     }
 
 }
