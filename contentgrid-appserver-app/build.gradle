@@ -6,18 +6,18 @@ plugins {
 
 dependencies {
 
-    api project(':contentgrid-appserver-autoconfigure')
-    api project(':contentgrid-appserver-application-model')
-    api project(':contentgrid-appserver-query-engine-api')
-    api project(':contentgrid-appserver-contentstore-api')
-    api project(':contentgrid-appserver-query-engine-impl-jooq')
-    api project(':contentgrid-appserver-rest')
+    runtimeOnly project(':contentgrid-appserver-autoconfigure')
+    runtimeOnly project(':contentgrid-appserver-query-engine-api')
+    runtimeOnly project(':contentgrid-appserver-contentstore-api')
+    runtimeOnly project(':contentgrid-appserver-query-engine-impl-jooq')
+    runtimeOnly project(':contentgrid-appserver-rest')
+    runtimeOnly project(':contentgrid-appserver-contentstore-impl-fs')
 
+    implementation project(':contentgrid-appserver-application-model')
+    implementation project(':contentgrid-appserver-domain')
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     implementation 'org.springframework.security:spring-security-config'
     implementation 'org.springframework.security:spring-security-web'
-    implementation project(':contentgrid-appserver-contentstore-impl-fs')
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
