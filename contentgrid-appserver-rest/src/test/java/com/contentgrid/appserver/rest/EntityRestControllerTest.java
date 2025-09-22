@@ -500,6 +500,43 @@ class EntityRestControllerTest {
         }
 
         @Test
+        void getEntity_translations() throws Exception {
+            var person = createPerson();
+
+            mockMvc.perform(get(person.getRedirectedUrl())
+                    .accept(MediaTypes.HAL_FORMS_JSON)
+                    .header(HttpHeaders.ACCEPT_LANGUAGE, "nl, fr, en")
+            ).andExpect(status().isOk())
+                    .andExpect(content().json("""
+                            {
+                                _links: {
+                                    self: {
+                                        title: "Persoon"
+                                    },
+                                    "cg:relation": [
+                                        {
+                                            name: "invoices",
+                                            title: "invoices"
+                                        },
+                                        {
+                                            name: "friends",
+                                            title: "friends"
+                                        },
+                                        {
+                                            name: "children",
+                                            title: "children"
+                                        },
+                                        {
+                                            name: "parent",
+                                            title: "Parent(e)"
+                                        }
+                                    ]
+                                }
+                            }
+                            """));
+        }
+
+        @Test
         void testGetNonExistentEntityInstance() throws Exception {
             String nonExistentId = UUID.randomUUID().toString();
 

@@ -40,6 +40,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.Locale;
 
 public class ModelTestFixtures {
 
@@ -53,6 +54,9 @@ public class ModelTestFixtures {
     public static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
             .column(ColumnName.of("name"))
+            .translationsBy(Locale.ENGLISH, t -> t.withName("Full name").withDescription("Full legal name of the person"))
+            .translationsBy(Locale.FRENCH, t -> t.withName("Nom complet").withDescription("Nom légal complet de la personne"))
+            .translationsBy(Locale.of("nl"), t -> t.withName("Naam"))
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .build();
@@ -60,6 +64,9 @@ public class ModelTestFixtures {
     public static final SimpleAttribute PERSON_VAT = SimpleAttribute.builder()
             .name(AttributeName.of("vat"))
             .column(ColumnName.of("vat"))
+            .translationsBy(Locale.ENGLISH, t -> t.withName("VAT number"))
+            .translationsBy(Locale.FRENCH, t -> t.withName("Numéro de TVA"))
+            .translationsBy(Locale.of("nl"), t -> t.withName("BTW nummer"))
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .constraint(Constraint.unique())
@@ -68,6 +75,7 @@ public class ModelTestFixtures {
     public static final SimpleAttribute PERSON_AGE = SimpleAttribute.builder()
             .name(AttributeName.of("age"))
             .column(ColumnName.of("age"))
+            .translationsBy(Locale.FRENCH, t -> t.withName("Âge"))
             .type(Type.LONG)
             .build();
 
@@ -84,6 +92,9 @@ public class ModelTestFixtures {
             .pathSegment(PathSegmentName.of("persons"))
             .linkName(LinkName.of("persons"))
             .primaryKey(PERSON_ID)
+            .translationsBy(Locale.ENGLISH, t -> t.withSingularName("Person").withPluralName("People").withDescription("Humans known by the system"))
+            .translationsBy(Locale.FRENCH, t -> t.withSingularName("Personne").withPluralName("Personnes").withDescription("Les humains enregistrés dans le système"))
+            .translationsBy(Locale.of("nl"), t -> t.withSingularName("Persoon").withPluralName("Personen"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
@@ -92,15 +103,21 @@ public class ModelTestFixtures {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
+                    .translationsBy(Locale.ENGLISH, t -> t.withName("Name starts with"))
+                    .translationsBy(Locale.FRENCH, t -> t.withName("Nom commence par"))
+                    .translationsBy(Locale.of("nl"), t -> t.withName("Naam begint met"))
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))
+                    .translationsBy(Locale.FRENCH, t -> t.withName("TVA"))
+                    .translationsBy(Locale.of("nl"), t -> t.withName("BTW"))
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .name(FilterName.of("friends.name~prefix"))
+                    .translationsBy(Locale.ENGLISH, t -> t.withName("Has a friend with name"))
                     .attributePath(PropertyPath.of(RelationName.of("friends"), AttributeName.of("name")))
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
@@ -600,6 +617,8 @@ public class ModelTestFixtures {
                     .name(RelationName.of("parent"))
                     .pathSegment(PathSegmentName.of("parent"))
                     .linkName(LinkName.of("parent"))
+                    .translationsBy(Locale.ENGLISH, t -> t.withName("Parent"))
+                    .translationsBy(Locale.FRENCH, t -> t.withName("Parent(e)"))
                     .build())
             .sourceReference(ColumnName.of("parent"))
             .build();
