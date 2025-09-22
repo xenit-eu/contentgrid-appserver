@@ -5,6 +5,18 @@ pluginManagement {
     }
 }
 
+plugins {
+    id 'org.ajoberstar.reckon.settings' version '0.19.2'
+    id 'eu.xenit.enterprise-conventions.oss' version '0.6.2'
+}
+
+reckon {
+    defaultInferredScope = 'patch'
+    snapshots()
+    scopeCalc = calcScopeFromCommitMessages()
+    stageCalc = { inventory, targetNormal -> java.util.Optional.empty() }
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
@@ -22,8 +34,8 @@ include 'contentgrid-appserver-rest'
 include 'contentgrid-appserver-domain'
 include 'contentgrid-appserver-domain-values'
 include 'contentgrid-appserver-platform'
-include 'contentgrid-appserver-content-api'
-include 'contentgrid-appserver-content-impl-utils'
-include 'contentgrid-appserver-content-impl-fs'
-include 'contentgrid-appserver-content-impl-s3'
-include 'contentgrid-appserver-content-impl-encryption'
+include 'contentgrid-appserver-contentstore-api'
+include 'contentgrid-appserver-contentstore-impl-utils'
+include 'contentgrid-appserver-contentstore-impl-fs'
+include 'contentgrid-appserver-contentstore-impl-s3'
+include 'contentgrid-appserver-contentstore-impl-encryption'

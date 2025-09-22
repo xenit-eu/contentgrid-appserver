@@ -27,6 +27,8 @@ allprojects {
             toolchain {
                 languageVersion = JavaLanguageVersion.of(21)
             }
+            withSourcesJar()
+            withJavadocJar()
         }
 
         dependencies {
@@ -48,5 +50,9 @@ allprojects {
                 html.required = true
             }
         }
+    }
+
+    pluginManager.withPlugin('maven-publish') {
+        apply from: "${rootDir}/gradle/publish.gradle"
     }
 }

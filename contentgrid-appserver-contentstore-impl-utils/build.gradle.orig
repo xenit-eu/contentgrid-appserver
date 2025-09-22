@@ -1,0 +1,19 @@
+plugins {
+    id 'java-library'
+<<<<<<< HEAD
+    id 'java-test-fixtures'
+=======
+    id 'maven-publish'
+>>>>>>> 1dca3033 (ACC-2258 apply maven-publish plugin)
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-content-api')
+
+    testImplementation 'commons-io:commons-io:2.20.0'
+
+    testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
+    testFixturesImplementation project(':contentgrid-appserver-content-impl-fs')
+}
+

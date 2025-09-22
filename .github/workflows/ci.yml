@@ -29,3 +29,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
         run: ./gradlew sonar -i
+      - name: Publish
+        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
+        env:
+          SIGNING_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.MAVEN_CENTRAL_GPG_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralPublishUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPublishPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: ./gradlew publish

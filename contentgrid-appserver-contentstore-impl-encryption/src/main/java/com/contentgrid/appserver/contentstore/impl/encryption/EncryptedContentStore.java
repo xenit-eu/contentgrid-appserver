@@ -1,0 +1,202 @@
+package com.contentgrid.appserver.contentstore.impl.encryption;
+
+import com.contentgrid.appserver.contentstore.api.ContentAccessor;
+import com.contentgrid.appserver.contentstore.api.ContentReader;
+import com.contentgrid.appserver.contentstore.api.ContentReference;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
+import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;
+import com.contentgrid.appserver.contentstore.impl.utils.CountingInputStream;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class EncryptedContentStore implements ContentStore {
+    private final ContentStore delegate;
+    private final DataEncryptionKeyAccessor dataEncryptionKeyAccessor;
+    private final List<DataEncryptionKeyWrapper> dataEncryptionKeyWrappers;
+    private final List<ContentEncryptionEngine> encryptionEngines;
+
+    private Stream<DataEncryptionKeyWrapper> wrappersFor(Predicate<DataEncryptionKeyWrapper> predicate) {
+        return dataEncryptionKeyWrappers.stream()
+                .filter(predicate);
+    }
+
+    private Optional<ContentEncryptionEngine> engineFor(DataEncryptionAlgorithm algorithm) {
+        return encryptionEngines.stream()
+                .filter(ee -> ee.supports(algorithm))
+                .findFirst();
+    }
+
+    @Override
+    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+            throws UnreadableContentException {
+        var encryptedDEKs = dataEncryptionKeyAccessor.findAllKeys(contentReference);
+        if(encryptedDEKs.isEmpty()) {
+            // If we don't have encryption keys at all, the content must not be encrypted at all.
+            // Forward to delegate reader for plain-text access
+            return delegate.getReader(contentReference, contentRange);
+        }
+
+        DecryptionConfig decryptionConfig;
+        try {
+            decryptionConfig = decryptEncryptionParameters(encryptedDEKs);
+        } catch (KeyUnwrappingFailedException e) {
+            throw createUndecryptableContentException(contentReference, encryptedDEKs, e);
+        } finally {
+            encryptedDEKs.forEach(StoredDataEncryptionKey::destroy);
+        }
+
+        if(decryptionConfig == null) {
+            throw createUndecryptableContentException(contentReference, encryptedDEKs, null);
+        }
+
+        return decryptionConfig.encryptionEngine()
+                .decrypt(
+                        range -> delegate.getReader(contentReference, range),
+                        decryptionConfig.encryptionParameters(),
+                        contentRange
+                );
+    }
+
+    private UndecryptableContentException createUndecryptableContentException(
+            ContentReference contentReference,
+            List<StoredDataEncryptionKey> encryptedDEKs,
+            KeyUnwrappingFailedException cause
+    ) {
+        var availableKeyIds = encryptedDEKs.stream()
+                .map(StoredDataEncryptionKey::getWrappingKeyId)
+                .collect(Collectors.toSet());
+        var supportedKeyIds = wrappersFor(DataEncryptionKeyWrapper::canDecrypt)
+                .flatMap(wrapper -> wrapper.getSupportedKeyIds().stream())
+                .collect(Collectors.toSet());
+
+        if(cause != null) {
+            supportedKeyIds.removeAll(cause.getAllFailedWrappingKeyIds());
+        }
+
+        if(cause != null || Collections.disjoint(availableKeyIds, supportedKeyIds)) {
+            var ex = new NoDecryptableDataEncryptionKeysException(
+                    contentReference,
+                    availableKeyIds,
+                    supportedKeyIds
+            );
+            ex.initCause(cause);
+            return ex;
+        } else {
+            return new UnsupportedDecryptionAlgorithmException(
+                    contentReference,
+                    // All DEKs should have the same data encryption algorithm.
+                    // Logically, the same stored content can only have been encrypted with one algorithm
+                    encryptedDEKs.getFirst().getDataEncryptionAlgorithm()
+            );
+        }
+    }
+
+    @Override
+    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+        ContentEncryptionEngine encryptionEngine;
+        try {
+            encryptionEngine = encryptionEngines.getFirst();
+        } catch (NoSuchElementException ex) {
+            var e = new UnencryptableContentException(ContentReference.of("<unknown>"), "No encryption engine available");
+            e.initCause(ex);
+            throw e;
+        }
+        var encryptionParameters = encryptionEngine.createNewParameters();
+
+        // Encrypt the encryption parameters with all wrappers that are enabled for encryption
+        var encryptedDeks = wrappersFor(DataEncryptionKeyWrapper::canEncrypt)
+                .map(wrapper -> wrapper.wrapEncryptionKey(encryptionParameters))
+                .collect(Collectors.toSet());
+
+        if(encryptedDeks.isEmpty()) {
+            // Do not allow writing encrypted content without being able to store our keys
+            // The write would be successful, but we would not ever be able to decrypt the data again
+            throw new NoEncryptableDataEncryptionKeysException(ContentReference.of("<unknown>"));
+        }
+
+        var countingInputStream = new CountingInputStream(inputStream);
+
+        var contentAccessor = delegate.writeContent(
+                encryptionEngine.encrypt(countingInputStream, encryptionParameters));
+        try {
+            dataEncryptionKeyAccessor.addKeys(contentAccessor.getReference(), encryptedDeks);
+        } finally {
+            encryptedDeks.forEach(StoredDataEncryptionKey::destroy);
+        }
+        return new EncryptedContentAccessor(contentAccessor, countingInputStream.getSize());
+    }
+
+    @Override
+    public void remove(ContentReference contentReference) throws UnwritableContentException {
+        dataEncryptionKeyAccessor.clearKeys(contentReference);
+        delegate.remove(contentReference);
+    }
+
+    record DecryptionConfig(
+            EncryptionParameters encryptionParameters,
+            ContentEncryptionEngine encryptionEngine
+    ) {
+
+
+    }
+
+    private DecryptionConfig decryptEncryptionParameters(Collection<StoredDataEncryptionKey> encryptedDeks)
+            throws KeyUnwrappingFailedException {
+        KeyUnwrappingFailedException firstException = null;
+
+        for (var encryptedDek : encryptedDeks) {
+            var supportedWrappers = wrappersFor(wrapper -> wrapper.canDecrypt() && wrapper.getSupportedKeyIds().contains(encryptedDek.getWrappingKeyId())).toList();
+            if(supportedWrappers.isEmpty()) {
+                // No wrapper can decrypt this encrypted DEK
+                continue;
+            }
+
+            var maybeEngine = engineFor(encryptedDek.getDataEncryptionAlgorithm());
+            if(maybeEngine.isEmpty()) {
+                continue;
+            }
+            for (var wrapper : supportedWrappers) {
+                try {
+                    var encryptionParameters = Objects.requireNonNull(wrapper.unwrapEncryptionKey(encryptedDek), "Wrapper %s unwrap of %s returned null".formatted(wrapper, encryptedDek.getWrappingKeyId()));
+                    return new DecryptionConfig(
+                            encryptionParameters,
+                            maybeEngine.get()
+                    );
+                } catch(Exception ex) {
+                    // Failure to unwrap: prepare exception that will be thrown when all decryptions fail
+                    var keyUnwrappingException = new KeyUnwrappingFailedException(encryptedDek.getWrappingKeyId(), ex);
+                    if(firstException == null) {
+                        firstException = keyUnwrappingException;
+                    } else {
+                        firstException.addSuppressed(keyUnwrappingException);
+                    }
+                }
+            }
+        }
+
+        if(firstException != null) {
+            throw firstException;
+        }
+
+        return null;
+    }
+
+}

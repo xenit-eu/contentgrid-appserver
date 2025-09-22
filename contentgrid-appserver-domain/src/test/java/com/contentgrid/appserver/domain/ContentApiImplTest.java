@@ -6,11 +6,11 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.content.api.ContentReader;
-import com.contentgrid.appserver.content.api.ContentReference;
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.api.UnreadableContentException;
-import com.contentgrid.appserver.content.api.range.ResolvedContentRange;
+import com.contentgrid.appserver.contentstore.api.ContentReader;
+import com.contentgrid.appserver.contentstore.api.ContentReference;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
+import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;

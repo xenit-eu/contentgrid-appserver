@@ -1,0 +1,13 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-contentstore-api')
+    implementation project(':contentgrid-appserver-contentstore-impl-utils')
+
+    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
+}
+
