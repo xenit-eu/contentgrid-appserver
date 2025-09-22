@@ -19,8 +19,7 @@ dependencies {
     implementation 'org.springframework.security:spring-security-oauth2-jose'
     implementation 'org.springframework.security:spring-security-oauth2-resource-server'
 
-    testImplementation project(':contentgrid-appserver-autoconfigure')
-    testImplementation project(':contentgrid-appserver-contentstore-api')
+    testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation project(':contentgrid-appserver-app')
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
