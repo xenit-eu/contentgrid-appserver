@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RelationTarget;
@@ -43,7 +43,7 @@ public interface DatamodelApi {
      */
     ResultSlice findAll(@NonNull Application application, @NonNull Entity entity, @NonNull Map<String, List<String>> params,
             @NonNull EncodedCursorPagination pagination,
-            @NonNull PermissionPredicate permissionPredicate)
+            @NonNull AuthorizationContext authorizationContext)
             throws InvalidThunkExpressionException, CursorDecodeException;
 
     /**
@@ -53,7 +53,7 @@ public interface DatamodelApi {
      * @param entityRequest the identity of the entity to query
      * @return an Optional containing the entity data if found, empty otherwise
      */
-    Optional<? extends EntityInstance> findById(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate);
+    Optional<? extends EntityInstance> findById(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull AuthorizationContext authorizationContext);
 
     /**
      * Creates an entity with the given data and relations.
@@ -66,7 +66,7 @@ public interface DatamodelApi {
      * @throws InvalidPropertyDataException when any part of the {@code data} is not valid
      */
     EntityInstance create(@NonNull Application application, @NonNull EntityName entityName, @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -81,12 +81,12 @@ public interface DatamodelApi {
      */
     default EntityInstance update(@NonNull Application application, @NonNull EntityRequest entityRequest,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
-        var original = findById(application, entityRequest, permissionPredicate)
+        var original = findById(application, entityRequest, authorizationContext)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return update(application, original, data, permissionPredicate);
+        return update(application, original, data, authorizationContext);
     }
 
     /**
@@ -100,7 +100,7 @@ public interface DatamodelApi {
      */
     EntityInstance update(@NonNull Application application, @NonNull EntityInstance original,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -116,12 +116,12 @@ public interface DatamodelApi {
      */
     default EntityInstance updatePartial(@NonNull Application application, @NonNull EntityRequest entityRequest,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
-        var original = findById(application, entityRequest, permissionPredicate)
+        var original = findById(application, entityRequest, authorizationContext)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
-        return updatePartial(application, original, data, permissionPredicate);
+        return updatePartial(application, original, data, authorizationContext);
     }
 
     /**
@@ -136,7 +136,7 @@ public interface DatamodelApi {
      */
     EntityInstance updatePartial(@NonNull Application application, @NonNull EntityInstance original,
             @NonNull RequestInputData data,
-            @NonNull PermissionPredicate permissionPredicate
+            @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException;
 
@@ -148,7 +148,7 @@ public interface DatamodelApi {
      * @return the entity data that was deleted
      * @throws EntityIdNotFoundException if there's no id with this entity
      */
-    EntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull PermissionPredicate permissionPredicate) throws EntityIdNotFoundException;
+    EntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull AuthorizationContext authorizationContext) throws EntityIdNotFoundException;
 
     /**
      * Determines whether the given source and target entities are linked by the specified relation.
@@ -160,15 +160,15 @@ public interface DatamodelApi {
      * @return true if the entities are linked, false otherwise
      * @throws QueryEngineException if an error occurs during the check operation
      */
-    default boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+    default boolean hasRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
         return hasRelationTarget(application, RelationRequest.forRelation(
                 relation.getSourceEndPoint().getEntity(),
                 sourceId,
                 relation.getSourceEndPoint().getName()
-        ), targetId, permissionPredicate);
+        ), targetId, authorizationContext);
     }
 
-    boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Returns the target entity id that is linked with the entity having the given id.
@@ -180,18 +180,18 @@ public interface DatamodelApi {
      * @return optional with the linked target entity, empty otherwise
      * @throws QueryEngineException if an error occurs during the query operation
      */
-    default Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
+    default Optional<EntityId> findRelationTarget(@NonNull Application application, @NonNull Relation relation, @NonNull EntityId id, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
         return findRelationTarget(
                 application,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),
                         id,
                         relation.getSourceEndPoint().getName()
-                ), permissionPredicate
+                ), authorizationContext
         ).map(rt -> rt.getTargetEntityIdentity().getEntityId());
     }
 
-    Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relation, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Link the target entity id with the given source id.
@@ -202,7 +202,7 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity to link
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void setRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -211,7 +211,7 @@ public interface DatamodelApi {
      * @param relation the relation for which to remove links
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void deleteRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void deleteRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Adds the target entity links to the entity with the given id.
@@ -222,7 +222,7 @@ public interface DatamodelApi {
      * @param targetIds the primary keys of the target entities to link
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Removes the target entity links from the entity with the given id.
@@ -233,7 +233,7 @@ public interface DatamodelApi {
      * @param targetIds the primary keys of the target entities to unlink
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException;
+    void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Unlink the given target id from the given source id of the given relation.
@@ -244,8 +244,8 @@ public interface DatamodelApi {
      * @param targetId the primary key of the target entity
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    default void removeRelationItem(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull PermissionPredicate permissionPredicate) throws QueryEngineException {
-        removeRelationItems(application, relation, Set.of(targetId), permissionPredicate);
+    default void removeRelationItem(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
+        removeRelationItems(application, relation, Set.of(targetId), authorizationContext);
     }
 
 }

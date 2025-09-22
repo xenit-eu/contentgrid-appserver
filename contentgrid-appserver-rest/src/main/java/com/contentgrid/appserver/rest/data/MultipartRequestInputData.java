@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
@@ -26,15 +27,16 @@ public class MultipartRequestInputData implements RequestInputData {
     private final ParameterAccess<String> requestParams;
     private final ParameterAccess<MultipartFile> files;
 
-    public static MultipartRequestInputData fromRequest(@NonNull HttpServletRequest servletRequest) {
-        if(servletRequest instanceof MultipartHttpServletRequest multipartServletRequest) {
+    public static MultipartRequestInputData fromRequest(@NonNull NativeWebRequest webRequest) {
+        var multipartRequest = webRequest.getNativeRequest(MultipartHttpServletRequest.class);
+        if (multipartRequest != null) {
             return new MultipartRequestInputData(
-                    new ServletRequestParameterAccess(servletRequest.getParameterMap()),
-                    ParameterAccess.forMap(multipartServletRequest.getMultiFileMap())
+                    new ServletRequestParameterAccess(webRequest.getParameterMap()),
+                    ParameterAccess.forMap(multipartRequest.getMultiFileMap())
             );
         }
         return new MultipartRequestInputData(
-                new ServletRequestParameterAccess(servletRequest.getParameterMap()),
+                new ServletRequestParameterAccess(webRequest.getParameterMap()),
                 ParameterAccess.forMap(Map.of())
         );
     }

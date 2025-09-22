@@ -7,7 +7,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -86,7 +86,7 @@ public class ContentRestController {
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -95,7 +95,7 @@ public class ContentRestController {
                 entityAndContent.entityName(),
                 instanceId,
                 entityAndContent.attributeName(),
-                permissionPredicate
+                authorizationContext
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         var eTag = calculateETag(content);
@@ -198,9 +198,10 @@ public class ContentRestController {
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
-        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest, permissionPredicate);
+        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest,
+                authorizationContext);
 
         return ResponseEntity.status(response.getStatusCode())
                 .headers(response.getHeaders())
@@ -216,7 +217,7 @@ public class ContentRestController {
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
             @RequestBody InputStreamResource requestBody,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -234,7 +235,7 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    permissionPredicate
+                    authorizationContext
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -252,7 +253,7 @@ public class ContentRestController {
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             @RequestParam MultipartFile file,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
@@ -271,7 +272,7 @@ public class ContentRestController {
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
-                    permissionPredicate
+                    authorizationContext
             );
             return ResponseEntity.noContent()
                     .eTag(calculateETag(newContent))
@@ -288,9 +289,10 @@ public class ContentRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
+
         try {
             contentApi.delete(
                     application,
@@ -298,7 +300,7 @@ public class ContentRestController {
                     instanceId,
                     entityAndContent.attributeName(),
                     versionConstraint,
-                    permissionPredicate
+                    authorizationContext
             );
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);

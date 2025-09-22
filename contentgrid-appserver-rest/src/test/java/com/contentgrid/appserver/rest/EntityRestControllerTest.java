@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -20,10 +22,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +62,7 @@ import org.springframework.util.LinkedMultiValueMap;
 
 @SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
 @AutoConfigureMockMvc
+@WithMockJwt
 class EntityRestControllerTest {
 
     @Autowired
@@ -71,6 +78,12 @@ class EntityRestControllerTest {
         @Primary
         public SingleApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(APPLICATION);
+        }
+
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(Instant.ofEpochSecond(1234567890), ZoneOffset.UTC);
         }
     }
 
@@ -990,6 +1003,30 @@ class EntityRestControllerTest {
                     .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.name").value("test"));
         }
+
+        @Test
+        void testUpdateAuditMetadata() throws Exception {
+            var createResponse = createInvoice();
+
+            mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    { "number": "456", "amount": "123" }
+                                    """)
+                            .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")))
+                    )
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                    ).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
+                    .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("2009-02-13")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("alice@example.com")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("2009-02-13")))
+            ;
+        }
+
     }
 
     @Nested

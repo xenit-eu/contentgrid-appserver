@@ -43,7 +43,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
+@SpringBootTest(properties = {
+        "contentgrid.thunx.abac.source=none",
+        "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.security.csrf.disabled=true",
+})
 @AutoConfigureMockMvc
 class DynamicDispatchApplicationHandlerMappingTest {
 

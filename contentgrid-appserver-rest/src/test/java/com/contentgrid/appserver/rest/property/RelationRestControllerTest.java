@@ -25,7 +25,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
@@ -63,7 +63,7 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
+@SpringBootTest(properties = {"contentgrid.thunx.abac.source=none", "contentgrid.security.unauthenticated.allow=true"})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
 
@@ -162,13 +162,13 @@ class RelationRestControllerTest {
         }
 
         private static final ETagHandler EMPTY_RELATION = (api,rel, target) -> {
-            api.deleteRelation(APPLICATION, rel, PermissionPredicate.allowAll());
+            api.deleteRelation(APPLICATION, rel, AuthorizationContext.allowAll());
             return Map.entry("If-None-Match", "*");
         };
 
         private static final ETagHandler SET_RELATION = (api, rel, target) -> {
-            api.setRelation(APPLICATION, rel, target.getEntityId(), PermissionPredicate.allowAll());
-            var result = api.findRelationTarget(APPLICATION, rel, PermissionPredicate.allowAll()).orElseThrow();
+            api.setRelation(APPLICATION, rel, target.getEntityId(), AuthorizationContext.allowAll());
+            var result = api.findRelationTarget(APPLICATION, rel, AuthorizationContext.allowAll()).orElseThrow();
 
             var version = (ExactlyVersion)result.getRelationIdentity().getVersion();
 
@@ -234,7 +234,7 @@ class RelationRestControllerTest {
                     relation.getSourceEndPoint().getEntity(),
                     sourceEntityIdentity.getEntityId(),
                     relation.getSourceEndPoint().getName()
-            ), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll());
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
 
             // Then check if the redirect is correct
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
@@ -271,7 +271,7 @@ class RelationRestControllerTest {
                     relation.getSourceEndPoint().getName()
             );
 
-            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity.getEntityId()), PermissionPredicate.allowAll());
+            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity.getEntityId()), AuthorizationContext.allowAll());
 
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}/{targetId}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity.getEntityId()))
                     .andExpect(status().isFound())
@@ -293,7 +293,7 @@ class RelationRestControllerTest {
                             .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
                     .andExpect(status().isNoContent());
 
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll())).isTrue();
         }
 
         @ParameterizedTest
@@ -335,14 +335,14 @@ class RelationRestControllerTest {
                     .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId()))
             ).andExpect(status().is2xxSuccessful());
 
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll())).isTrue();
 
 
             // Then delete it again
             mockMvc.perform(delete("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
                     .andExpect(status().isNoContent());
 
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), PermissionPredicate.allowAll())).isFalse();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll())).isFalse();
         }
 
         @ParameterizedTest
@@ -383,8 +383,8 @@ class RelationRestControllerTest {
                     )
                     .andExpect(status().isNoContent());
 
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), PermissionPredicate.allowAll())).isTrue();
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), PermissionPredicate.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), AuthorizationContext.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), AuthorizationContext.allowAll())).isTrue();
         }
 
         @ParameterizedTest
@@ -402,14 +402,14 @@ class RelationRestControllerTest {
                     relation.getSourceEndPoint().getName()
             );
 
-            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()), PermissionPredicate.allowAll());
+            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()), AuthorizationContext.allowAll());
 
 
             mockMvc.perform(delete("/{entity}/{sourceId}/{relation}/{id}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment(), targetEntityIdentity2.getEntityId()))
                     .andExpect(status().isNoContent());
 
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), PermissionPredicate.allowAll())).isTrue();
-            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), PermissionPredicate.allowAll())).isFalse();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), AuthorizationContext.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), AuthorizationContext.allowAll())).isFalse();
         }
     }
 
@@ -732,7 +732,7 @@ class RelationRestControllerTest {
             var person = createEntity(PERSON);
             var invoice = createEntity(INVOICE);
 
-            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(INVOICE.getName(), invoice.getEntityId(), INVOICE_CUSTOMER.getSourceEndPoint().getName()), person.getEntityId(), PermissionPredicate.allowAll());
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(INVOICE.getName(), invoice.getEntityId(), INVOICE_CUSTOMER.getSourceEndPoint().getName()), person.getEntityId(), AuthorizationContext.allowAll());
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(status().isBadRequest())

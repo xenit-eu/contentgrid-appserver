@@ -17,12 +17,16 @@ dependencies {
         exclude group: 'org.springframework.data'
     }
 
+    implementation 'org.springframework.security:spring-security-oauth2-jose'
+    implementation 'org.springframework.security:spring-security-oauth2-resource-server'
+
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-app')
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
+    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 // Required for resolution of variable-name-based controller method parameters

@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.EnumSet;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +74,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class ContentgridAppConfiguration {
 
     @Bean
-    public DatamodelApiImpl api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec) {
-        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec);
+    public DatamodelApiImpl api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec, clock);
     }
 
     @Bean
@@ -123,6 +124,11 @@ public class ContentgridAppConfiguration {
     @Bean
     CursorCodec cursorCodec() {
         return new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
+    }
+
+    @Bean
+    Clock clock() {
+        return Clock.systemUTC();
     }
 
     @Bean

@@ -14,6 +14,8 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+    implementation 'org.springframework.security:spring-security-config'
+    implementation 'org.springframework.security:spring-security-web'
     implementation project(':contentgrid-appserver-contentstore-impl-fs')
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -21,5 +23,5 @@ dependencies {
 }
 
 bootRun {
-    systemProperty 'contentgrid.thunx.abac.source', 'none'
+    systemProperty('spring.profiles.active', 'bootRun')
 }

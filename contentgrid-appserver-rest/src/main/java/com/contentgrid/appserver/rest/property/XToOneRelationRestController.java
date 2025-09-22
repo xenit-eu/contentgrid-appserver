@@ -9,7 +9,7 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
-import com.contentgrid.appserver.domain.authorization.PermissionPredicate;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationRequest;
@@ -79,7 +79,7 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
         var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
@@ -89,7 +89,7 @@ public class XToOneRelationRestController {
                 relation.getSourceEndPoint().getName()
         );
         try {
-            var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, permissionPredicate)
+            var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relation.getSourceEndPoint().getName())));
             var redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, relationTarget.getTargetEntityIdentity()
                     .getEntityId(), null)).toUri();
@@ -111,7 +111,7 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName propertyName,
             @RequestBody URIList body,
             VersionConstraint versionConstraint,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
@@ -132,7 +132,7 @@ public class XToOneRelationRestController {
                     instanceId,
                     relation.getSourceEndPoint().getName()
             ).withVersionConstraint(versionConstraint);
-            datamodelApi.setRelation(application, relationRequest, maybeId.get(), permissionPredicate);
+            datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
@@ -152,7 +152,7 @@ public class XToOneRelationRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
-            PermissionPredicate permissionPredicate
+            AuthorizationContext authorizationContext
     ) {
         try {
             var relation = getRequiredRelation(application, entityName, propertyName);
@@ -161,7 +161,7 @@ public class XToOneRelationRestController {
                     instanceId,
                     relation.getSourceEndPoint().getName()
             ).withVersionConstraint(versionConstraint);
-            datamodelApi.deleteRelation(application, relationRequest, permissionPredicate);
+            datamodelApi.deleteRelation(application, relationRequest, authorizationContext);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         } catch (ConstraintViolationException e) {

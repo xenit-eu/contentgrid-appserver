@@ -24,7 +24,7 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = "contentgrid.thunx.abac.source=none")
+@SpringBootTest(properties = {"contentgrid.thunx.abac.source=none", "contentgrid.security.unauthenticated.allow=true"})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class ProfileRestControllerTest {
 
