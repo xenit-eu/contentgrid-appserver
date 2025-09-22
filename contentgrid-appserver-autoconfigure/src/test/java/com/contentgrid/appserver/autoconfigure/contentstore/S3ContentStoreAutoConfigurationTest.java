@@ -1,10 +1,10 @@
-package com.contentgrid.appserver.autoconfigure.content;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
-import com.contentgrid.appserver.content.impl.s3.S3ContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
+import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;

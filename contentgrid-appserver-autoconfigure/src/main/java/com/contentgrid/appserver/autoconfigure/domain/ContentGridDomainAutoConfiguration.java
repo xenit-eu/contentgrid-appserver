@@ -1,10 +1,10 @@
 package com.contentgrid.appserver.autoconfigure.domain;
 
-import com.contentgrid.appserver.autoconfigure.content.EncryptedContentStoreAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.content.FileSystemContentStoreAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.content.S3ContentStoreAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.contentstore.FileSystemContentStoreAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
-import com.contentgrid.appserver.content.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;

@@ -1,13 +1,13 @@
-package com.contentgrid.appserver.autoconfigure.content;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.impl.encryption.EncryptedContentStore;
-import com.contentgrid.appserver.content.impl.encryption.engine.AesCtrEncryptionEngine;
-import com.contentgrid.appserver.content.impl.encryption.engine.ContentEncryptionEngine;
-import com.contentgrid.appserver.content.impl.encryption.keys.DataEncryptionKeyAccessor;
-import com.contentgrid.appserver.content.impl.encryption.keys.DataEncryptionKeyWrapper;
-import com.contentgrid.appserver.content.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
-import com.contentgrid.appserver.content.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
 import java.util.List;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Value;

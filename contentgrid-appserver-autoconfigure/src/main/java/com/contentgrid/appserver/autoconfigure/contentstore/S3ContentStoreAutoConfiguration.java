@@ -1,8 +1,8 @@
-package com.contentgrid.appserver.autoconfigure.content;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
-import com.contentgrid.appserver.autoconfigure.content.S3ContentStoreAutoConfiguration.S3Properties;
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.impl.s3.S3ContentStore;
+import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration.S3Properties;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import io.minio.MinioAsyncClient;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

@@ -1,8 +1,8 @@
-package com.contentgrid.appserver.autoconfigure.content;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.content.impl.encryption.EncryptedContentStore;
+import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

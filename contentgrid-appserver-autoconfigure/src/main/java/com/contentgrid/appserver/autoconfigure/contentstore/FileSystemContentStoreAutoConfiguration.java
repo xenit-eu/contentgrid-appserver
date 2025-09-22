@@ -1,7 +1,7 @@
-package com.contentgrid.appserver.autoconfigure.content;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
-import com.contentgrid.appserver.content.api.ContentStore;
-import com.contentgrid.appserver.content.impl.fs.FilesystemContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
