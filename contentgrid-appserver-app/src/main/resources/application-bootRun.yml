@@ -1,0 +1,7 @@
+contentgrid:
+  thunx:
+    abac:
+      source: none
+  security:
+    csrf.disabled: true
+    unauthenticated.allow: true

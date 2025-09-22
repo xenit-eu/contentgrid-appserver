@@ -23,5 +23,5 @@ dependencies {
 }
 
 bootRun {
-    systemProperty 'contentgrid.thunx.abac.source', 'none'
+    systemProperty('spring.profiles.active', 'bootRun')
 }

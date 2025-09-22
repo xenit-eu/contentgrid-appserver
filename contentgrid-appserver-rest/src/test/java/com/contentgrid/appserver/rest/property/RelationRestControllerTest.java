@@ -36,7 +36,6 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
-import com.contentgrid.appserver.spring.test.WithMockJwt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;

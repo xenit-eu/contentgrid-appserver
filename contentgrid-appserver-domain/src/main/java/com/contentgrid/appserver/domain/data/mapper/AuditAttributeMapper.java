@@ -93,7 +93,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
             }
             var res = builder.build();
             if (res.size() > 0) {
-                return Optional.of(builder.build());
+                return Optional.of(res);
             }
             return inputData;
         }
