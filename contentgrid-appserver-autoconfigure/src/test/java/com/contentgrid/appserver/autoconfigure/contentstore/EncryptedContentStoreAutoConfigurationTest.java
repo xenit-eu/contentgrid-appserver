@@ -98,8 +98,7 @@ class EncryptedContentStoreAutoConfigurationTest {
     void checkWithValidEncryptionEngineKeySizeBits(int keySizeBits) {
         contextRunner
                 .withPropertyValues(
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].type=AES-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].keySizeBits=" + keySizeBits
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES" + keySizeBits + "-CTR"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -112,8 +111,7 @@ class EncryptedContentStoreAutoConfigurationTest {
     void checkWithInvalidEncryptionEngineKeySizeBits(int keySizeBits) {
         contextRunner
                 .withPropertyValues(
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].type=AES-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].keySizeBits=" + keySizeBits
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES" + keySizeBits + "-CTR"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
@@ -124,12 +122,9 @@ class EncryptedContentStoreAutoConfigurationTest {
     void checkWithMultipleEncryptionKeyAlgorithms() {
         contextRunner
                 .withPropertyValues(
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].type=AES-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[0].keySizeBits=128",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[1].type=AES-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[1].keySizeBits=192",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[2].type=AES-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[2].keySizeBits=256"
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128-CTR",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[1]=AES192-CTR",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[2]=AES256-CTR"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -140,16 +135,7 @@ class EncryptedContentStoreAutoConfigurationTest {
     @Test
     void checkWithUnknownEncryptionEngineKeyAlgorithm() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.content.encryption.engine.algorithms[0].type=unknown")
-                .run(context -> {
-                    assertThat(context).hasFailed();
-                });
-    }
-
-    @Test
-    void checkWithMissingEncryptionEngineKeyAlgorithm() {
-        contextRunner
-                .withPropertyValues("contentgrid.appserver.content.encryption.engine.algorithms[0].keySizeBits=128")
+                .withPropertyValues("contentgrid.appserver.content.encryption.engine.algorithms[0]=unknown")
                 .run(context -> {
                     assertThat(context).hasFailed();
                 });

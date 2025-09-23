@@ -58,44 +58,39 @@ public class EncryptedContentStoreAutoConfiguration {
         return new EncryptedContentStore(contentStore, encryptionKeyAccessor, encryptionKeyWrappers, encryptionEngines);
     }
 
-    private DataEncryptionKeyWrapper dataEncryptionKeyWrapperForAlgorithm(String algorithm) {
-        return switch (algorithm.toLowerCase()) {
-            case "none" -> new UnencryptedSymmetricDataEncryptionKeyWrapper(true);
-            default -> throw new UnsupportedOperationException("Data encryption key wrapper algorithm %s not supported".formatted(algorithm));
+    private DataEncryptionKeyWrapper dataEncryptionKeyWrapperForAlgorithm(EncryptionKeyWrapperAlgorithm algorithm) {
+        return switch (algorithm) {
+            case NONE -> new UnencryptedSymmetricDataEncryptionKeyWrapper(true);
         };
     }
 
-    private ContentEncryptionEngine contentEncryptionEngineForAlgorithm(EncryptionEngineAlgorithmProperties properties) {
-        return switch (properties.type().toLowerCase()) {
-            case "aes-ctr" -> new AesCtrEncryptionEngine(properties.keySizeBits());
-            default -> throw new UnsupportedOperationException("Content encryption algorithm %s not supported".formatted(properties.type()));
+    private ContentEncryptionEngine contentEncryptionEngineForAlgorithm(EncryptionEngineAlgorithm algorithm) {
+        return switch (algorithm) {
+            case AES128_CTR -> new AesCtrEncryptionEngine(128);
+            case AES192_CTR -> new AesCtrEncryptionEngine(192);
+            case AES256_CTR -> new AesCtrEncryptionEngine(256);
         };
     }
 
     @ConfigurationProperties("contentgrid.appserver.content.encryption.wrapper")
     record EncryptionKeyWrapperProperties(
-            @DefaultValue("none")
-            Set<String> algorithms
+            @DefaultValue("NONE")
+            Set<EncryptionKeyWrapperAlgorithm> algorithms
     ) {}
 
     @ConfigurationProperties("contentgrid.appserver.content.encryption.engine")
     record EncryptionEngineProperties(
-            Set<EncryptionEngineAlgorithmProperties> algorithms
-    ) {
-        public Set<EncryptionEngineAlgorithmProperties> algorithms() {
-            if (algorithms == null || algorithms.isEmpty()) {
-                // return default value
-                return Set.of(new EncryptionEngineAlgorithmProperties("AES-CTR", 128));
-            } else {
-                return algorithms;
-            }
-        }
+            @DefaultValue("AES128_CTR")
+            Set<EncryptionEngineAlgorithm> algorithms
+    ) {}
+
+    enum EncryptionKeyWrapperAlgorithm {
+        NONE
     }
 
-    record EncryptionEngineAlgorithmProperties(
-            @NonNull
-            String type,
-            @DefaultValue("128")
-            int keySizeBits
-    ) {}
+    enum EncryptionEngineAlgorithm {
+        AES128_CTR,
+        AES192_CTR,
+        AES256_CTR
+    }
 }
