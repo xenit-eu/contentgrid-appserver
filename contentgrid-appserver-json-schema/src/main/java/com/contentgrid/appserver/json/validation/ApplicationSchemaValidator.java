@@ -10,7 +10,8 @@ import java.util.stream.Collectors;
 
 public class ApplicationSchemaValidator {
 
-    private final JsonSchema schema = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder.schemaMappers(
+    /* package-private for testing */
+    static final JsonSchema schema = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder.schemaMappers(
                     schemaMappers -> schemaMappers.mapPrefix("https://contentgrid.com/schemas/", "classpath:/schemas/")))
             .getSchema(SchemaLocation.of("https://contentgrid.com/schemas/application-schema.json"));
 
