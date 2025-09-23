@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
 @ConditionalOnClass({ContentStore.class, S3ContentStore.class, MinioAsyncClient.class})
-@ConditionalOnProperty(value = "contentgrid.appserver.content.type", havingValue = "s3")
+@ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "s3")
 @EnableConfigurationProperties(S3Properties.class)
 public class S3ContentStoreAutoConfiguration {
 

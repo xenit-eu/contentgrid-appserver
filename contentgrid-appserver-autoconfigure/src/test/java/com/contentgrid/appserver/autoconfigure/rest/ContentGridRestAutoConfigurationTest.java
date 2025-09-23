@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.autoconfigure.contentstore.FileSystemContentStoreAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -39,7 +39,7 @@ class ContentGridRestAutoConfigurationTest {
                     JooqAutoConfiguration.class,
                     JOOQQueryEngineAutoConfiguration.class,
                     // autoconfiguration for content store
-                    FileSystemContentStoreAutoConfiguration.class,
+                    FilesystemContentStoreAutoConfiguration.class,
                     // autoconfiguration for domain
                     ContentGridDomainAutoConfiguration.class,
                     // autoconfigurations for rest

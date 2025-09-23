@@ -37,7 +37,7 @@ class EncryptedContentStoreAutoConfigurationTest {
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
             .withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class,
                     TransactionAutoConfiguration.class, JooqAutoConfiguration.class,
-                    FileSystemContentStoreAutoConfiguration.class, EncryptedContentStoreAutoConfiguration.class))
+                    FilesystemContentStoreAutoConfiguration.class, EncryptedContentStoreAutoConfiguration.class))
             .withPropertyValues(
                     "spring.datasource.url=jdbc:tc:postgresql:15:///",
                     "contentgrid.appserver.content.encryption.enabled=true"

@@ -26,7 +26,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-@AutoConfiguration(after = {FileSystemContentStoreAutoConfiguration.class, S3ContentStoreAutoConfiguration.class, JooqAutoConfiguration.class})
+@AutoConfiguration(after = {FilesystemContentStoreAutoConfiguration.class, S3ContentStoreAutoConfiguration.class, JooqAutoConfiguration.class})
 @ConditionalOnClass(EncryptedContentStore.class)
 @ConditionalOnBean(ContentStore.class)
 @ConditionalOnBooleanProperty("contentgrid.appserver.content.encryption.enabled")

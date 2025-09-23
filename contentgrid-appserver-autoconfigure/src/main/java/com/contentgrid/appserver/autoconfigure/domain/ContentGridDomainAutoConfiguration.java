@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.contentstore.FileSystemContentStoreAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration(after = {
         JOOQQueryEngineAutoConfiguration.class,
         EncryptedContentStoreAutoConfiguration.class,
-        FileSystemContentStoreAutoConfiguration.class,
+        FilesystemContentStoreAutoConfiguration.class,
         S3ContentStoreAutoConfiguration.class,
 })
 @ConditionalOnClass({DatamodelApiImpl.class})
