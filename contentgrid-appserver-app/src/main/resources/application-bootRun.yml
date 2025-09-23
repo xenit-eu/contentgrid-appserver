@@ -9,3 +9,12 @@ contentgrid:
     query-engine.bootstrap-tables: true
   system:
     policyPackage: xfb0e9318f3894300a64edba3532e6ac0
+
+# When unauthenticated, you get HTTP 403 instead of 401 if you don't have the following
+
+#spring:
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: 'https://auth.contentgrid.com/realms/contentgrid-dev'

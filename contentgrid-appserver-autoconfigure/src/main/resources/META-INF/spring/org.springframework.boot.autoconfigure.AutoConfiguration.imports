@@ -6,3 +6,5 @@ com.contentgrid.appserver.autoconfigure.flyway.FlywayPostgresAutoConfiguration
 com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration
 com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration
 com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration
+com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration
+com.contentgrid.appserver.autoconfigure.security.DefaultSecurityConfiguration

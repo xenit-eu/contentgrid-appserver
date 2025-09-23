@@ -9,6 +9,10 @@ dependencies {
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
 
+    implementation 'org.springframework.security:spring-security-web'
+    implementation 'org.springframework.security:spring-security-config'
+    implementation 'jakarta.servlet:jakarta.servlet-api'
+
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'

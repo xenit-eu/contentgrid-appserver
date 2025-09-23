@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
 @Inherited
 @Documented
 @WithSecurityContext(factory = WithMockJwt.WithMockJwtSecurityContextFactory.class)
-@Import(SkipCsrfConfiguration.class)
+@Import({SkipCsrfConfiguration.class})
 public @interface WithMockJwt {
     @AliasFor("subject")
     String value() default "user";
