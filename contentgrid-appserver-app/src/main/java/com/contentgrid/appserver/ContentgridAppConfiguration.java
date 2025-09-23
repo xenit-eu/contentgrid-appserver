@@ -29,17 +29,11 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 public class ContentgridAppConfiguration {
-
-    @Bean
-    Clock clock() {
-        return Clock.systemUTC();
-    }
 
     @Bean
     ApplicationResolver applicationResolver() {

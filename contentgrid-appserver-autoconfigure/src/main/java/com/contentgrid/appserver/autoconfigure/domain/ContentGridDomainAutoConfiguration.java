@@ -12,9 +12,11 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration(after = {
@@ -28,8 +30,14 @@ import org.springframework.context.annotation.Bean;
 public class ContentGridDomainAutoConfiguration {
 
     @Bean
-    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec) {
-        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec);
+    @ConditionalOnMissingBean
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec, clock);
     }
 
     @Bean
