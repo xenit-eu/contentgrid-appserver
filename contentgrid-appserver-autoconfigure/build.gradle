@@ -40,6 +40,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
+    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
 
     testImplementation 'com.contentgrid.thunx:thunx-spring-api'
 
