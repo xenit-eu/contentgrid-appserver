@@ -12,8 +12,8 @@ public class ApplicationSchemaValidator {
 
     /* package-private for testing */
     static final JsonSchema schema = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder.schemaMappers(
-                    schemaMappers -> schemaMappers.mapPrefix("https://contentgrid.com/schemas/", "classpath:/schemas/")))
-            .getSchema(SchemaLocation.of("https://contentgrid.com/schemas/application-schema.json"));
+                    schemaMappers -> schemaMappers.mapPrefix("https://contentgrid.cloud/schemas/", "classpath:/schemas/")))
+            .getSchema(SchemaLocation.of("https://contentgrid.cloud/schemas/application-schema.json"));
 
 
     public void validate(String json) throws SchemaValidationException {

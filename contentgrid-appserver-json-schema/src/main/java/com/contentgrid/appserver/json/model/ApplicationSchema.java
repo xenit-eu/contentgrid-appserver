@@ -20,6 +20,6 @@ public class ApplicationSchema {
     private List<Relation> relations;
 
     @JsonProperty("$schema")
-    private final String schema = "https://contentgrid.com/schemas/application-schema.json";
+    private final String schema = "https://contentgrid.cloud/schemas/application-schema.json";
 
 }
