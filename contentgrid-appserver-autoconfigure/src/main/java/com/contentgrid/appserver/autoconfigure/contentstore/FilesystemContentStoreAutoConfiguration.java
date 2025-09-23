@@ -33,7 +33,7 @@ public class FilesystemContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "fs")
-    public ContentStore filesystemContentStore(@Value("${contentgrid.appserver.content.fs.path}") @NonNull Path path) throws IOException {
+    public ContentStore filesystemContentStore(@Value("${contentgrid.appserver.content.fs.path}") Path path) {
         if (Files.isDirectory(path)) {
             return new FilesystemContentStore(path);
         } else {

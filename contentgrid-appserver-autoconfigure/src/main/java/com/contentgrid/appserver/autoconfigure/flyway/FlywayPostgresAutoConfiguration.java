@@ -21,8 +21,7 @@ public class FlywayPostgresAutoConfiguration {
      */
     @Bean
     FlywayConfigurationCustomizer postgresqlFlywayConfigurationCustomizerDisableTransactionalLock() {
-        return configuration -> {
+        return configuration ->
             configuration.getPluginRegister().getPlugin(PostgreSQLConfigurationExtension.class).setTransactionalLock(false);
-        };
     }
 }
