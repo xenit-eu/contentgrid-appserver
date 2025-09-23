@@ -7,3 +7,5 @@ contentgrid:
     unauthenticated.allow: true
   appserver:
     query-engine.bootstrap-tables: true
+  system:
+    policyPackage: xfb0e9318f3894300a64edba3532e6ac0

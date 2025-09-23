@@ -9,6 +9,7 @@ dependencies {
     implementation 'com.contentgrid.thunx:thunx-autoconfigure'
 
     compileOnly project(':contentgrid-appserver-application-model')
+    compileOnly project(':contentgrid-appserver-actuators')
     compileOnly project(':contentgrid-appserver-contentstore-api')
     compileOnly project(':contentgrid-appserver-contentstore-impl-encryption')
     compileOnly project(':contentgrid-appserver-contentstore-impl-fs')

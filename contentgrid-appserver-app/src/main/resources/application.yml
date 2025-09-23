@@ -4,3 +4,10 @@ spring:
 server:
   port: ${PORT:8080}
   max-http-request-header-size: 10MB  # needed for abac-context
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  server:
+    port: '8081'
