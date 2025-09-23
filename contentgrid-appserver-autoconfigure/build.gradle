@@ -27,8 +27,14 @@ dependencies {
     compileOnly 'org.flywaydb:flyway-database-postgresql'
     compileOnly 'org.springframework.hateoas:spring-hateoas'
 
+    // dependencies for AnonymousHttpConfigurer
+    compileOnly 'org.springframework.security:spring-security-config'
+    compileOnly 'org.springframework.security:spring-security-web'
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
     testImplementation project(':contentgrid-appserver-application-model')
     testImplementation project(':contentgrid-appserver-contentstore-api')

@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.security;
+package com.contentgrid.appserver.autoconfigure.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
