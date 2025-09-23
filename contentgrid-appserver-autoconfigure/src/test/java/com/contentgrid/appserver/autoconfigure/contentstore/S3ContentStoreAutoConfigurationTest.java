@@ -2,14 +2,16 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
+import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 class S3ContentStoreAutoConfigurationTest {
 
@@ -68,8 +70,7 @@ class S3ContentStoreAutoConfigurationTest {
                         "contentgrid.appserver.content.s3.bucket=fake"
                 )
                 .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                    assertThat(context).hasFailed();
                 });
     }
 
@@ -81,9 +82,35 @@ class S3ContentStoreAutoConfigurationTest {
                         "contentgrid.appserver.content.s3.url=http://localhost"
                 )
                 .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                    assertThat(context).hasFailed();
                 });
+    }
+
+    @Test
+    void checkS3_existingMinioClient() {
+        contextRunner
+                .withUserConfiguration(MinioClientConfiguration.class)
+                .withPropertyValues(
+                        "contentgrid.appserver.content-store.type=s3",
+                        "contentgrid.appserver.content.s3.bucket=fake"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    assertThat(context).doesNotHaveBean("s3MinioAsyncClient");
+                });
+    }
+
+    @Configuration
+    static class MinioClientConfiguration {
+
+        @Bean
+        MinioAsyncClient testMinioAsyncClient() {
+            return MinioAsyncClient.builder()
+                    .endpoint("http://localhost")
+                    .credentials("foo", "bar")
+                    .build();
+        }
     }
 
 }

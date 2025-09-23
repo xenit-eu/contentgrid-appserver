@@ -4,6 +4,7 @@ import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoCo
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import io.minio.MinioAsyncClient;
+import lombok.NonNull;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -24,13 +25,13 @@ public class S3ContentStoreAutoConfiguration {
         String url,
         String accessKey,
         String secretKey,
-        String bucket,
+        @NonNull String bucket,
         String region
     ) {}
 
     @Bean
-    @ConditionalOnProperty("contentgrid.appserver.content.s3.url")
-    MinioAsyncClient minioAsyncClient(S3Properties properties) {
+    @ConditionalOnMissingBean
+    MinioAsyncClient s3MinioAsyncClient(S3Properties properties) {
         var builder = MinioAsyncClient.builder()
                 .endpoint(properties.url());
 
@@ -47,7 +48,6 @@ public class S3ContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(MinioAsyncClient.class)
-    @ConditionalOnProperty("contentgrid.appserver.content.s3.bucket")
     ContentStore s3ContentStore(MinioAsyncClient minioClient, S3Properties properties) {
         return new S3ContentStore(minioClient, properties.bucket());
     }
