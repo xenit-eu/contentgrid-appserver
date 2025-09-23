@@ -8,6 +8,7 @@ import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityReprese
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchemaAssembler;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
@@ -27,17 +28,19 @@ public class ProfileRestController {
     private final JsonSchemaAssembler jsonSchemaAssembler = new JsonSchemaAssembler();
 
     @GetMapping
-    public EmptyRepresentationModel getProfile(Application application) {
-        return profileRootAssembler.toModel(application);
+    public EmptyRepresentationModel getProfile(Application application, LinkFactoryProvider linkFactoryProvider) {
+        return profileRootAssembler.withContext(linkFactoryProvider).toModel(application);
     }
 
     @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
     public ProfileEntityRepresentationModel getHalFormsEntityProfile(
-            Application application, @PathVariable PathSegmentName entityName
+            Application application, @PathVariable PathSegmentName entityName,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var entity = application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return profileEntityAssembler.withContext(application).toModel(entity);
+        return profileEntityAssembler.withContext(new ProfileEntityRepresentationModelAssembler.Context(application,
+                linkFactoryProvider)).toModel(entity);
     }
 
     @GetMapping(value = "/{entityName}", produces = "application/schema+json")

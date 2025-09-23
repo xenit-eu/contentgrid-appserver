@@ -34,11 +34,6 @@ public class HalFormsMediaTypeConfiguration implements HypermediaMappingInformat
         return mapper;
     }
 
-    @Bean
-    public HalFormsTemplateGenerator halFormsTemplateGenerator() {
-        return new HalFormsTemplateGenerator();
-    }
-
     /**
      * Bean that customizes the {@link ObjectMapper} to only expose properties with the {@link DefaultView}.
      * Properties with a different view will be ignored.

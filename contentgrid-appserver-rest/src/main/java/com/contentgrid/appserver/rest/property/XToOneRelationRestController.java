@@ -1,8 +1,5 @@
 package com.contentgrid.appserver.rest.property;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
@@ -17,14 +14,12 @@ import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
-import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.ConversionService;
@@ -58,15 +53,6 @@ public class XToOneRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
-        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
-        return UriTemplateMatcher.<EntityId>builder()
-                .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, targetPathSegment, null, null),
-                        params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
-                .build();
-    }
-
     private String calculateETag(RelationTarget result) {
         return Optional.ofNullable(conversionService.convert(result.getRelationIdentity().getVersion(), ETag.class))
                 .map(ETag::formattedTag)
@@ -79,10 +65,10 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            AuthorizationContext authorizationContext
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
         var relationRequest = RelationRequest.forRelation(
                 relation.getSourceEndPoint().getEntity(),
                 instanceId,
@@ -91,8 +77,7 @@ public class XToOneRelationRestController {
         try {
             var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relation.getSourceEndPoint().getName())));
-            var redirectUrl = linkTo(methodOn(EntityRestController.class).getEntity(application, targetPathSegment, relationTarget.getTargetEntityIdentity()
-                    .getEntityId(), null)).toUri();
+            var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(redirectUrl)
@@ -111,7 +96,8 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName propertyName,
             @RequestBody URIList body,
             VersionConstraint versionConstraint,
-            AuthorizationContext authorizationContext
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
@@ -122,7 +108,7 @@ public class XToOneRelationRestController {
         }
         var relation = getRequiredRelation(application, entityName, propertyName);
         var element = uris.getFirst();
-        var maybeId = getMatcherForTargetEntity(application, relation).tryMatch(element.toString());
+        var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
         }

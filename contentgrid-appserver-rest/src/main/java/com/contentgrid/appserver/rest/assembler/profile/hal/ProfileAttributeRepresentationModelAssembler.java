@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.assembler.profile.hal;
 
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
@@ -16,6 +15,7 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSea
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -23,33 +23,33 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProfileAttributeRepresentationModelAssembler {
 
-    public Optional<ProfileAttributeRepresentationModel> toModel(Application application, Entity entity, Attribute attribute) {
-        return toModel(application, entity, new SimpleAttributePath(attribute.getName()), attribute);
+    public Optional<ProfileAttributeRepresentationModel> toModel(Context context, Entity entity, Attribute attribute) {
+        return toModel(context, entity, new SimpleAttributePath(attribute.getName()), attribute);
     }
 
-    private Optional<ProfileAttributeRepresentationModel> toModel(Application application, Entity entity, AttributePath path, Attribute attribute) {
+    private Optional<ProfileAttributeRepresentationModel> toModel(Context context, Entity entity, AttributePath path, Attribute attribute) {
         if (attribute.isIgnored()) {
             return Optional.empty();
         }
 
         var model = switch (attribute) {
-            case SimpleAttribute simpleAttribute -> simpleAttributeToModel(application, entity, path, simpleAttribute);
-            case UserAttribute userAttribute -> userAttributeToModel(application, entity, path, userAttribute);
-            case ContentAttribute contentAttribute -> compositeAttributeToModel(application, entity, path, contentAttribute);
-            case CompositeAttribute compositeAttribute -> compositeAttributeToModel(application, entity, path, compositeAttribute);
+            case SimpleAttribute simpleAttribute -> simpleAttributeToModel(context, entity, path, simpleAttribute);
+            case UserAttribute userAttribute -> userAttributeToModel(context, entity, path, userAttribute);
+            case ContentAttribute contentAttribute -> compositeAttributeToModel(context, entity, path, contentAttribute);
+            case CompositeAttribute compositeAttribute -> compositeAttributeToModel(context, entity, path, compositeAttribute);
         };
         return Optional.of(model);
     }
 
-    private ProfileAttributeRepresentationModel compositeAttributeToModel(Application application, Entity entity, AttributePath path, CompositeAttribute compositeAttribute) {
+    private ProfileAttributeRepresentationModel compositeAttributeToModel(Context context, Entity entity, AttributePath path, CompositeAttribute compositeAttribute) {
         var attributes = compositeAttribute.getAttributes().stream()
-                .map(attribute -> toModel(application, entity, path.withSuffix(attribute.getName()), attribute))
+                .map(attribute -> toModel(context, entity, path.withSuffix(attribute.getName()), attribute))
                 .flatMap(Optional::stream)
                 .toList();
 
         return ProfileAttributeRepresentationModel.builder()
                 .name(compositeAttribute.getName().getValue())
-                .title(readTitle(application, entity, path))
+                .title(readTitle(context, entity, path))
                 .type(ProfileAttributeType.OBJECT)
                 .description(compositeAttribute.getDescription())
                 .readOnly(compositeAttribute.isReadOnly())
@@ -57,17 +57,17 @@ public class ProfileAttributeRepresentationModelAssembler {
                 .build();
     }
 
-    private ProfileAttributeRepresentationModel userAttributeToModel(Application application, Entity entity, AttributePath path, UserAttribute userAttribute) {
+    private ProfileAttributeRepresentationModel userAttributeToModel(Context context, Entity entity, AttributePath path, UserAttribute userAttribute) {
         return ProfileAttributeRepresentationModel.builder()
                 .name(userAttribute.getName().getValue())
-                .title(readTitle(application, entity, path))
+                .title(readTitle(context, entity, path))
                 .type(ProfileAttributeType.STRING)
                 .description(userAttribute.getDescription())
                 .readOnly(true)
                 .build();
     }
 
-    private ProfileAttributeRepresentationModel simpleAttributeToModel(Application application, Entity entity, AttributePath path, SimpleAttribute attribute) {
+    private ProfileAttributeRepresentationModel simpleAttributeToModel(Context context, Entity entity, AttributePath path, SimpleAttribute attribute) {
         var constraints = attribute.getConstraints().stream()
                 .map(this::attributeConstraintToModel)
                 .toList();
@@ -76,13 +76,13 @@ public class ProfileAttributeRepresentationModelAssembler {
                 .filter(AttributeSearchFilter.class::isInstance)
                 .map(AttributeSearchFilter.class::cast)
                 .filter(filter -> filter.getAttributePath().equals(path))
-                .map(filter -> attributeSearchFilterToModel(application, entity, filter))
+                .map(filter -> attributeSearchFilterToModel(context, entity, filter))
                 .flatMap(Optional::stream)
                 .toList();
 
         return ProfileAttributeRepresentationModel.builder()
                 .name(attribute.getName().getValue())
-                .title(readTitle(application, entity, path))
+                .title(readTitle(context, entity, path))
                 .description(attribute.getDescription())
                 .type(ProfileAttributeType.from(attribute.getType()))
                 .required(attribute.hasConstraint(RequiredConstraint.class))
@@ -101,23 +101,23 @@ public class ProfileAttributeRepresentationModelAssembler {
         };
     }
 
-    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Application application,
+    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Context context,
             Entity entity, AttributeSearchFilter filter) {
         if (filter.hasFlag(HiddenSearchFilterFlag.class)) {
             return Optional.empty();
         }
         return Optional.of(ProfileSearchParamRepresentationModel.builder()
                 .name(filter.getName().getValue())
-                .title(readPrompt(application, entity, filter))
+                .title(readPrompt(context, entity, filter))
                 .type(ProfileSearchParamType.from(filter))
                 .build());
     }
 
-    private String readTitle(Application application, Entity entity, PropertyPath path) {
+    private String readTitle(Context context, Entity entity, PropertyPath path) {
         return null; // TODO: resolve title messages (ACC-2230)
     }
 
-    private String readPrompt(Application application, Entity entity, AttributeSearchFilter filter) {
+    private String readPrompt(Context context, Entity entity, AttributeSearchFilter filter) {
         return null; // TODO: resolve prompt messages (ACC-2230)
     }
 

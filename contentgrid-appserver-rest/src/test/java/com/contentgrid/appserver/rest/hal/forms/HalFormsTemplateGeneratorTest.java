@@ -20,13 +20,16 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.Inline;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.Remote;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilderFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
@@ -34,11 +37,18 @@ class HalFormsTemplateGeneratorTest {
 
     private static final EntityId ENTITY_ID = EntityId.of(UUID.randomUUID());
 
-    HalFormsTemplateGenerator generator = new HalFormsTemplateGenerator();
+    HalFormsTemplateGenerator generator = createGenerator(ModelTestFixtures.APPLICATION);
+
+    private static HalFormsTemplateGenerator createGenerator(Application application) {
+        return new HalFormsTemplateGenerator(application, new LinkFactoryProvider(
+                application,
+                new WebMvcLinkBuilderFactory()
+        ));
+    }
 
     @Test
     void generateCreateTemplate() {
-        var template = generator.generateCreateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
+        var template = generator.generateCreateTemplate(ModelTestFixtures.INVOICE.getName());
 
         assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
@@ -144,7 +154,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateCreateTemplate_noContent() {
-        var template = generator.generateCreateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON);
+        var template = generator.generateCreateTemplate(ModelTestFixtures.PERSON.getName());
 
         assertThat(template.getProperties()).satisfiesExactly(
                 name -> {
@@ -232,7 +242,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateUpdateTemplate() {
-        var template = generator.generateUpdateTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
+        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName());
 
         assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
@@ -299,7 +309,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateSearchTemplate() {
-        var template = generator.generateSearchTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE);
+        var template = generator.generateSearchTemplate(ModelTestFixtures.INVOICE.getName());
 
         assertThat(template.getProperties()).allSatisfy(property -> {
             assertThat(property.isRequired()).isFalse();
@@ -446,7 +456,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateSearchTemplate_toManyRelations() {
-        var template = generator.generateSearchTemplate(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON);
+        var template = generator.generateSearchTemplate(ModelTestFixtures.PERSON.getName());
 
         assertThat(template.getProperties()).allSatisfy(property -> {
             assertThat(property.isRequired()).isFalse();
@@ -583,7 +593,8 @@ class HalFormsTemplateGeneratorTest {
                 .name(ApplicationName.of("test-application"))
                 .entity(entity)
                 .build();
-        var template = generator.generateSearchTemplate(application, entity);
+        var generator = createGenerator(application);
+        var template = generator.generateSearchTemplate(entity.getName());
 
         // _sort is not present
         assertThat(template.getProperties()).singleElement().satisfies(filter -> {
@@ -618,7 +629,8 @@ class HalFormsTemplateGeneratorTest {
                 .name(ApplicationName.of("test-application"))
                 .entity(entity)
                 .build();
-        var template = generator.generateSearchTemplate(application, entity);
+        var generator = createGenerator(application);
+        var template = generator.generateSearchTemplate(entity.getName());
 
         // only _sort is present
         assertThat(template.getProperties()).singleElement().satisfies(sort -> {
@@ -629,8 +641,12 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateRelationTemplate_oneToOne() {
-        var relationLink = "/invoices/%s/invoice-previous".formatted(ENTITY_ID);
-        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_PREVIOUS, relationLink);
+        var relationLink = "/invoices/%s/previous-invoice".formatted(ENTITY_ID);
+        var templates = generator.generateRelationTemplates(RelationIdentity.forRelation(
+                ModelTestFixtures.INVOICE.getName(),
+                ENTITY_ID,
+                ModelTestFixtures.INVOICE_PREVIOUS.getSourceEndPoint().getName()
+        ));
 
         assertThat(templates).satisfiesExactlyInAnyOrder(
                 setPrevious -> {
@@ -660,7 +676,11 @@ class HalFormsTemplateGeneratorTest {
     @Test
     void generateRelationTemplate_manyToOne() {
         var relationLink = "/invoices/%s/customer".formatted(ENTITY_ID);
-        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_CUSTOMER, relationLink);
+        var templates = generator.generateRelationTemplates(RelationIdentity.forRelation(
+                ModelTestFixtures.INVOICE.getName(),
+                ENTITY_ID,
+                ModelTestFixtures.INVOICE_CUSTOMER.getSourceEndPoint().getName()
+        ));
 
         assertThat(templates).singleElement().satisfies(
                 setCustomer -> {
@@ -685,7 +705,11 @@ class HalFormsTemplateGeneratorTest {
     @Test
     void generateRelationTemplate_oneToMany() {
         var relationLink = "/persons/%s/invoices".formatted(ENTITY_ID);
-        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.PERSON_INVOICES, relationLink);
+        var templates = generator.generateRelationTemplates(RelationIdentity.forRelation(
+                ModelTestFixtures.PERSON.getName(),
+                ENTITY_ID,
+                ModelTestFixtures.PERSON_INVOICES.getSourceEndPoint().getName()
+        ));
 
         assertThat(templates).singleElement().satisfies(
                 addInvoices -> {
@@ -709,7 +733,11 @@ class HalFormsTemplateGeneratorTest {
     @Test
     void generateRelationTemplate_manyToMany() {
         var relationLink = "/invoices/%s/products".formatted(ENTITY_ID);
-        var templates = generator.generateRelationTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE_PRODUCTS, relationLink);
+        var templates = generator.generateRelationTemplates(RelationIdentity.forRelation(
+                ModelTestFixtures.INVOICE.getName(),
+                ENTITY_ID,
+                ModelTestFixtures.INVOICE_PRODUCTS.getSourceEndPoint().getName()
+        ));
 
         assertThat(templates).satisfiesExactlyInAnyOrder(
                 addProducts -> {
@@ -738,8 +766,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateContentTemplates() {
-        var contentLink = "/invoices/%s/content";
-        var templates = generator.generateContentTemplates(ModelTestFixtures.APPLICATION, ModelTestFixtures.INVOICE, ModelTestFixtures.INVOICE_CONTENT, contentLink);
+        var templates = generator.generateContentTemplates(ModelTestFixtures.INVOICE, ModelTestFixtures.INVOICE_CONTENT);
 
         assertThat(templates).isEmpty();
     }

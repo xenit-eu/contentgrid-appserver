@@ -1,8 +1,5 @@
 package com.contentgrid.appserver.rest.property;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -14,24 +11,22 @@ import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
-import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
-import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,22 +51,14 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    private UriTemplateMatcher<EntityId> getMatcherForTargetEntity(Application application, Relation relation) {
-        var targetPathSegment = application.getRelationTargetEntity(relation).getPathSegment();
-        return UriTemplateMatcher.<EntityId>builder()
-                .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, targetPathSegment, null, null),
-                        params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
-                .build();
-    }
-
     @GetMapping
     public ResponseEntity<Object> getRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
-            AuthorizationContext authorizationContext
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
         datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), instanceId),
@@ -99,10 +86,9 @@ public class XToManyRelationRestController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
-        var redirectUrl = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, targetEntity.getPathSegment(), null,
-                        MultiValueMap.fromSingleValue(Map.of(targetFilter.getName().getValue(), instanceId.toString())), null))
-                .toUri();
+        var redirectUrl = linkFactoryProvider.toCollection(targetEntity.getName(), CollectionParameters.defaults()
+                .withSearchParam(targetFilter.getName().getValue(), instanceId.getValue().toString())
+        ).toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }
 
@@ -113,7 +99,8 @@ public class XToManyRelationRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             @RequestBody URIList body,
-            AuthorizationContext authorizationContext
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
@@ -125,7 +112,7 @@ public class XToManyRelationRestController {
                 instanceId,
                 relation.getSourceEndPoint().getName()
         );
-        var matcher = getMatcherForTargetEntity(application, relation);
+        var matcher = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity());
         var targetIds = new java.util.HashSet<EntityId>();
 
         for (var element : uris) {
@@ -180,11 +167,12 @@ public class XToManyRelationRestController {
             @PathVariable EntityId instanceId,
             @PathVariable PathSegmentName propertyName,
             @PathVariable EntityId itemId,
-            AuthorizationContext authorizationContext
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
         if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId, authorizationContext)) {
-            var uri = linkTo(methodOn(EntityRestController.class).getEntity(application, application.getRelationTargetEntity(relation).getPathSegment(), itemId, null)).toUri();
+            var uri = linkFactoryProvider.toItem(EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), itemId)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
