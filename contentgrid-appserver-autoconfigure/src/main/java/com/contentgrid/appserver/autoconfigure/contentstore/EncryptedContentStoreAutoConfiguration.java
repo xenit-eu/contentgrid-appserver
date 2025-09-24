@@ -12,7 +12,6 @@ import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageD
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
 import java.util.List;
 import java.util.Set;
-import lombok.NonNull;
 import org.jooq.DSLContext;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

@@ -27,9 +27,8 @@ class AnonymousHttpConfigurerTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SecurityFilterChain.class);
-                    assertThat(context.getBean(SecurityFilterChain.class).getFilters()).noneMatch(filter ->
-                            filter instanceof AnonymousUsernamePasswordAuthenticationFilter
-                    );
+                    assertThat(context.getBean(SecurityFilterChain.class).getFilters())
+                            .noneMatch(AnonymousUsernamePasswordAuthenticationFilter.class::isInstance);
                 });
     }
 
@@ -43,9 +42,8 @@ class AnonymousHttpConfigurerTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SecurityFilterChain.class);
-                    assertThat(context.getBean(SecurityFilterChain.class).getFilters()).anyMatch(filter ->
-                            filter instanceof AnonymousUsernamePasswordAuthenticationFilter
-                    );
+                    assertThat(context.getBean(SecurityFilterChain.class).getFilters())
+                            .anyMatch(AnonymousUsernamePasswordAuthenticationFilter.class::isInstance);
                 });
     }
 
@@ -60,9 +58,8 @@ class AnonymousHttpConfigurerTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(SecurityFilterChain.class);
-                    assertThat(context.getBean(SecurityFilterChain.class).getFilters()).anyMatch(filter ->
-                            filter instanceof AnonymousUsernamePasswordAuthenticationFilter
-                    );
+                    assertThat(context.getBean(SecurityFilterChain.class).getFilters())
+                            .anyMatch(AnonymousUsernamePasswordAuthenticationFilter.class::isInstance);
                 });
     }
 
