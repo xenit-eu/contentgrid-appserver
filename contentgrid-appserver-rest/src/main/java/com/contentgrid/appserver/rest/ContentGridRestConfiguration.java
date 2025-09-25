@@ -4,14 +4,24 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
+import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.converter.RequestInputDataJacksonModule;
+import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
+import com.contentgrid.appserver.rest.filter.SingleRangeRequestServletFilter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.links.ContentGridLinksConfiguration;
+import com.contentgrid.appserver.rest.mapping.ContentGridHandlerMappingConfiguration;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
+import com.contentgrid.appserver.rest.property.ContentRestController;
+import com.contentgrid.appserver.rest.property.XToManyRelationRestController;
+import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
@@ -34,7 +44,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration(proxyBeanMethods = false)
 @EnableHypermediaSupport(type = { HypermediaType.HAL })
-@Import({ContentgridProblemDetailConfiguration.class, ContentGridLinksConfiguration.class, BlueprintLinkRelationsConfiguration.class, HalFormsMediaTypeConfiguration.class})
+@Import({
+        ContentgridProblemDetailConfiguration.class,
+        ContentGridLinksConfiguration.class,
+        BlueprintLinkRelationsConfiguration.class,
+        HalFormsMediaTypeConfiguration.class,
+        ContentGridHandlerMappingConfiguration.class,
+        ContentRestController.class,
+        DefaultApplicationNameExtractor.class,
+        EntityDataRepresentationModelAssembler.class,
+        EntityRestController.class,
+        ProfileEntityRepresentationModelAssembler.class,
+        ProfileRestController.class,
+        RequestInputDataJacksonModule.class,
+        RootRestController.class,
+        SingleRangeRequestServletFilter.class,
+        UriListHttpMessageConverter.class,
+        XToManyRelationRestController.class,
+        XToOneRelationRestController.class,
+})
 public class ContentGridRestConfiguration {
     @Bean
     WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor,

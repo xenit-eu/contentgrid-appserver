@@ -9,7 +9,6 @@ dependencies {
     api project(':contentgrid-appserver-domain')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring'
     implementation('com.contentgrid.thunx:thunx-api-spring-boot-starter') {
         exclude group: 'com.contentgrid.thunx', module: 'spring-data-querydsl-predicate-injector'
@@ -20,7 +19,8 @@ dependencies {
     implementation 'org.springframework.security:spring-security-oauth2-jose'
     implementation 'org.springframework.security:spring-security-oauth2-resource-server'
 
-    testImplementation project(':contentgrid-appserver-query-engine-api')
+    testImplementation project(':contentgrid-appserver-autoconfigure')
+    testImplementation project(':contentgrid-appserver-contentstore-api')
     testImplementation project(':contentgrid-appserver-app')
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

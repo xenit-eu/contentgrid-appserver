@@ -5,3 +5,5 @@ contentgrid:
   security:
     csrf.disabled: true
     unauthenticated.allow: true
+  appserver:
+    query-engine.bootstrap-tables: true

@@ -27,109 +27,13 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
-import com.contentgrid.appserver.domain.ContentApi;
-import com.contentgrid.appserver.domain.ContentApiImpl;
-import com.contentgrid.appserver.domain.DatamodelApiImpl;
-import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
-import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
-import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
-import com.contentgrid.appserver.query.engine.api.QueryEngine;
-import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
-import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
-import com.contentgrid.appserver.query.engine.jooq.TransactionalQueryEngine;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.ContentGridRestConfiguration;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.time.Clock;
-import java.time.Duration;
-import java.util.EnumSet;
-import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Condition;
-import org.springframework.context.annotation.ConditionContext;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.type.AnnotatedTypeMetadata;
-import org.springframework.transaction.PlatformTransactionManager;
 
-@Slf4j
 @Configuration(proxyBeanMethods = false)
-@Import(ContentGridRestConfiguration.class)
 public class ContentgridAppConfiguration {
-
-    @Bean
-    public DatamodelApiImpl api(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec, clock);
-    }
-
-    @Bean
-    public ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStore contentStore) {
-        return new ContentApiImpl(datamodelApi, contentStore);
-    }
-
-    @Bean
-    public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
-        return new AutowiredDSLContextResolver(dslContext);
-    }
-
-    @Bean
-    public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
-        return new JOOQTableCreator(dslContextResolver);
-    }
-
-    @Bean
-    @Conditional(NotTest.class)
-    InitializingBean bootstrapTables(TableCreator tableCreator, ApplicationResolver applicationResolver) {
-        return () -> tableCreator.createTables(applicationResolver.resolve(ApplicationName.of("default")));
-    }
-
-    @Bean
-    public JOOQCountStrategy jooqTimedCountStrategy(@Value("${contentgrid.appserver.query.engine.count.timeout:500ms}") Duration timeout) {
-        return new JOOQTimedCountStrategy(timeout);
-    }
-
-    @Bean
-    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy, PlatformTransactionManager transactionManager) {
-        return new TransactionalQueryEngine(
-                new JOOQQueryEngine(dslContextResolver, countStrategy),
-                transactionManager
-        ) ;
-    }
-
-    @Bean
-    public ContentStore filesystemContentStore() throws IOException {
-        var permissions = EnumSet.of(
-                PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE
-        );
-        return new FilesystemContentStore(Files.createTempDirectory("contentgrid", PosixFilePermissions.asFileAttribute(permissions)));
-    }
-
-
-    @Bean
-    CursorCodec cursorCodec() {
-        return new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
-    }
-
-    @Bean
-    Clock clock() {
-        return Clock.systemUTC();
-    }
 
     @Bean
     ApplicationResolver applicationResolver() {
@@ -359,16 +263,5 @@ public class ContentgridAppConfiguration {
                         .relation(personFriends)
                         .build()
         );
-    }
-
-    private static class NotTest implements Condition {
-
-        @Override
-        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            if(context.getEnvironment() instanceof ConfigurableEnvironment configurableEnvironment) {
-                return !configurableEnvironment.getPropertySources().contains("test");
-            }
-            return true;
-        }
     }
 }
