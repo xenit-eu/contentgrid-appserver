@@ -6,7 +6,6 @@ plugins {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
-    implementation platform(project(':contentgrid-appserver-platform'))
     implementation 'com.contentgrid.thunx:thunx-autoconfigure'
 
     compileOnly project(':contentgrid-appserver-application-model')
