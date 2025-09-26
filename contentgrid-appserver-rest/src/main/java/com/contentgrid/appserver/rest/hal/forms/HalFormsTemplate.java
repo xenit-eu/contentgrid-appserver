@@ -37,7 +37,6 @@ public class HalFormsTemplate {
     String target;
 
     @Singular
-    @JsonInclude(Include.NON_EMPTY)
     List<HalFormsProperty> properties;
 
     @JsonProperty
