@@ -7,4 +7,4 @@ com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfi
 com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration
 com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration
 com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration
-com.contentgrid.appserver.autoconfigure.security.DefaultSecurityConfiguration
+com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration

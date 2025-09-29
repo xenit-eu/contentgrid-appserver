@@ -11,9 +11,4 @@ public enum RegoProducible implements Producible<RegoProducible> {
             return MimeType.valueOf("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego");
         }
     };
-
-    @Override
-    public boolean isDefault() {
-        return Producible.super.isDefault();
-    }
 }

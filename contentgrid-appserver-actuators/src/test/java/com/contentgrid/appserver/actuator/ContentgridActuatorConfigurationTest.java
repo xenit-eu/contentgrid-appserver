@@ -44,7 +44,6 @@ public class ContentgridActuatorConfigurationTest {
 
     @Test
     void policyEndpointIsPublic() {
-        System.out.println(managementPort);
         ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/policy", String.class);
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(resp.getHeaders().getContentType().toString())

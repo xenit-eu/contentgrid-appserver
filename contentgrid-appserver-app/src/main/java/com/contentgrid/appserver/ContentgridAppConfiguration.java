@@ -1,6 +1,5 @@
 package com.contentgrid.appserver;
 
-import com.contentgrid.appserver.actuator.ActuatorConfiguration;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;

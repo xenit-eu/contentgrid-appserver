@@ -12,7 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @AutoConfiguration(before = ContentgridActuatorAutoConfiguration.class)
 @ConditionalOnClass(SecurityFilterChain.class)
-public class DefaultSecurityConfiguration {
+public class DefaultSecurityAutoConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoder) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());

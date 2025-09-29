@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.actuator.policy;
 
-import com.contentgrid.appserver.actuator.Utils;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
@@ -23,11 +24,17 @@ public class PolicyActuator {
     @ReadOperation(producesFrom = RegoProducible.class)
     public String readPolicy() throws IOException {
         if (policyResource.exists()) {
-            String contents = Utils.readContents(policyResource);
+            String contents = readContents(policyResource);
 
             return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, policyVariables);
         } else {
             throw new FileNotFoundException("rego file at " + policyResource.getDescription() + " is not present");
+        }
+    }
+
+    public String readContents(Resource resource) throws IOException {
+        try(InputStream resourceStream = resource.getInputStream()) {
+            return new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }

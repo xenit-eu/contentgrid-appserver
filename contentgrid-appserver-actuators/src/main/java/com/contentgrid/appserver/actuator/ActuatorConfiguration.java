@@ -5,7 +5,7 @@ import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest.EndpointRequestMatcher;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
@@ -24,25 +24,21 @@ import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
+@RequiredArgsConstructor
 public class ActuatorConfiguration {
 
-    @Autowired
-    ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
 
-    @Configuration
-    class PolicyActuatorConfiguration {
-        @Bean
-        PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
-            return PolicyVariables.builder()
-                    .policyPackageName(applicationProperties.getSystem().getPolicyPackage())
-                    .build();
-        }
+    @Bean
+    PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
+        return PolicyVariables.builder()
+                .policyPackageName(applicationProperties.getSystem().getPolicyPackage())
+                .build();
+    }
 
-        @Bean
-        PolicyActuator policyActuator(PolicyVariables policyVariables) {
-            return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
-        }
-
+    @Bean
+    PolicyActuator policyActuator(PolicyVariables policyVariables) {
+        return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
     }
 
     @Bean
@@ -64,9 +60,10 @@ public class ActuatorConfiguration {
         /**
          * List of management metrics endpoints, allowed when the management port and server port are different.
          */
-        private static final EndpointRequestMatcher METRICS_ENDPOINTS = EndpointRequest.to(
+        private static final EndpointRequestMatcher ALLOWED_ACTUATOR_ENDPOINTS = EndpointRequest.to(
                 MetricsEndpoint.class,
-                PrometheusScrapeEndpoint.class
+                PrometheusScrapeEndpoint.class,
+                PolicyActuator.class
         );
 
         @Bean
@@ -77,16 +74,12 @@ public class ActuatorConfiguration {
                     .authorizeHttpRequests((requests) -> requests.requestMatchers(
                             PUBLIC_ENDPOINTS,
                             new AndRequestMatcher(
-                                    METRICS_ENDPOINTS,
+                                    ALLOWED_ACTUATOR_ENDPOINTS,
                                     request -> ManagementPortType.get(environment) == ManagementPortType.DIFFERENT
                             ),
                             new AndRequestMatcher(
                                     EndpointRequest.toAnyEndpoint(),
                                     new LoopbackInetAddressMatcher()
-                            ),
-                            new AndRequestMatcher(
-                                    EndpointRequest.to(PolicyActuator.class),
-                                    request -> ManagementPortType.get(environment) == ManagementPortType.DIFFERENT
                             )).permitAll());
 
             // all the other /actuator endpoints fall through

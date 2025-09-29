@@ -22,7 +22,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.security.DefaultSecurityConfiguration;
+import com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -52,7 +52,7 @@ import org.springframework.web.multipart.MultipartFile;
         "contentgrid.security.csrf.disabled=true",
 })
 @AutoConfigureMockMvc
-@EnableAutoConfiguration(exclude = {ContentGridRestAutoConfiguration.class, DefaultSecurityConfiguration.class})
+@EnableAutoConfiguration(exclude = {ContentGridRestAutoConfiguration.class, DefaultSecurityAutoConfiguration.class})
 class DynamicDispatchApplicationHandlerMappingTest {
 
     private static final Entity TEST_ENTITY = Entity.builder()
