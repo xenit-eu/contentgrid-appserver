@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-application-model')
+    api project(':contentgrid-appserver-domain')
+
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+
+    implementation 'org.springframework.security:spring-security-web'
+    implementation 'org.springframework.security:spring-security-config'
+    implementation 'jakarta.servlet:jakarta.servlet-api'
+
+    testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.hamcrest:hamcrest'
+}
