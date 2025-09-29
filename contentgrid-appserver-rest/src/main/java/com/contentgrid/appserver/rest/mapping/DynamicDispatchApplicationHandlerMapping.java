@@ -44,7 +44,7 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
     /* This has to be concurrency-safe, because it is written to (and read from) from multiple concurrent HTTP threads.
         TODO: When multiple applications are served by one application, have a way to clean up mappings for applications that have been removed
      */
-    private final ConcurrentMap<ApplicationName, RequestMappingHandlerMapping> delegateHandlerMappings = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ApplicationName, StaticApplicationRequestMappingHandlerMapping> delegateHandlerMappings = new ConcurrentHashMap<>();
 
     /* This does not have to be a concurrency-safe list, because configurers are only added before the request mapping is initialized.
         Afterwards, the configurers are only read concurrently from multiple threads, they are no longer written to at all
@@ -63,7 +63,7 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
         }
     }
 
-    private RequestMappingHandlerMapping resolveHandlerMapping(HttpServletRequest request) {
+    private StaticApplicationRequestMappingHandlerMapping resolveHandlerMapping(HttpServletRequest request) {
         var applicationName = applicationNameExtractor.extract(request);
 
         return delegateHandlerMappings.computeIfAbsent(applicationName, name -> {
@@ -160,10 +160,9 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
 
     @Override
     protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
-        var resolvedHandlerChain = resolveHandlerMapping(request).getHandler(request);
-        if (resolvedHandlerChain != null) {
-            // Get rid of the chain; that is re-added by this RequestMappingHandlerMapping anyway
-            return (HandlerMethod) resolvedHandlerChain.getHandler();
+        var handler = resolveHandlerMapping(request).getHandlerInternal(request);
+        if (handler != null) {
+            return handler;
         }
         return super.getHandlerInternal(request);
     }
