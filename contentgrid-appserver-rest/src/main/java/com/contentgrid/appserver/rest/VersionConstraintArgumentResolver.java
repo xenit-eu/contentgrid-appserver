@@ -16,6 +16,7 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -26,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Resolves ETags from If-Match/If-None-Match headers to {@link VersionConstraint} objects
  */
+@Component
 public class VersionConstraintArgumentResolver implements HandlerMethodArgumentResolver, Converter<Version, ETag> {
 
     @Override
