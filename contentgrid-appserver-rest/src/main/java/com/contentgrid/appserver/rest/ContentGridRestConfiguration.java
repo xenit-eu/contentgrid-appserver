@@ -2,8 +2,6 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.registry.ApplicationNameExtractor;
-import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
@@ -24,7 +22,6 @@ import com.contentgrid.appserver.rest.property.XToManyRelationRestController;
 import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
-import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import java.text.ParseException;
 import java.util.List;
@@ -62,19 +59,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         UriListHttpMessageConverter.class,
         XToManyRelationRestController.class,
         XToOneRelationRestController.class,
+        ApplicationArgumentResolver.class,
+        AuthorizationContextArgumentResolver.class,
+        EncodedCursorPaginationHandlerMethodArgumentResolver.class,
+        VersionConstraintArgumentResolver.class
 })
 public class ContentGridRestConfiguration {
     @Bean
-    WebMvcConfigurer contentgridRestWebmvcConfigurer(ApplicationResolver applicationResolver, ApplicationNameExtractor applicationNameExtractor,
-            AbacContextSupplier abacContextSupplier, EncodedCursorPaginationHandlerMethodArgumentResolver paginationHandlerMethodArgumentResolver) {
+    WebMvcConfigurer contentgridRestWebmvcConfigurer(List<HandlerMethodArgumentResolver> customResolvers) {
         return new WebMvcConfigurer() {
 
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-                resolvers.add(new ApplicationArgumentResolver(applicationResolver, applicationNameExtractor));
-                resolvers.add(new VersionConstraintArgumentResolver());
-                resolvers.add(new AuthorizationContextArgumentResolver(abacContextSupplier));
-                resolvers.add(paginationHandlerMethodArgumentResolver);
+                resolvers.addAll(customResolvers);
             }
 
             @Override
@@ -113,11 +110,6 @@ public class ContentGridRestConfiguration {
     @Bean
     SlicedResourcesAssembler<EntityInstance> slicedResourcesAssembler(PaginationHandlerMethodArgumentResolver resolver) {
         return new SlicedResourcesAssembler<>(resolver);
-    }
-
-    @Bean
-    EncodedCursorPaginationHandlerMethodArgumentResolver encodedCursorPaginationHandlerMethodArgumentResolver() {
-        return new EncodedCursorPaginationHandlerMethodArgumentResolver();
     }
 
 }

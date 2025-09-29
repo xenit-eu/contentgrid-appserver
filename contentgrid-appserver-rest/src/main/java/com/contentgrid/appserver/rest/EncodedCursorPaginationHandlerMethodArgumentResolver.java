@@ -18,12 +18,14 @@ import java.util.stream.Collectors;
 import org.springframework.core.MethodParameter;
 import org.springframework.hateoas.server.mvc.UriComponentsContributor;
 import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.util.UriComponentsBuilder;
 
+@Component
 public class EncodedCursorPaginationHandlerMethodArgumentResolver extends PaginationHandlerMethodArgumentResolver
         implements PaginationSystem, UriComponentsContributor {
 
