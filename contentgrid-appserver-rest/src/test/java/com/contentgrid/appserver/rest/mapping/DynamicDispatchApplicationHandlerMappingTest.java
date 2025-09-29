@@ -51,6 +51,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootTest(properties = {
         "contentgrid.thunx.abac.source=none",
@@ -128,6 +130,16 @@ class DynamicDispatchApplicationHandlerMappingTest {
         @Bean
         TestController testController() {
             return new TestController();
+        }
+
+        @Bean
+        WebMvcConfigurer corsConfigurer() {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addCorsMappings(CorsRegistry registry) {
+                    registry.addMapping("/**").allowedOrigins("http://localhost:1234").allowedMethods("*");
+                }
+            };
         }
 
     }
@@ -260,7 +272,8 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.POST.name())))
-                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())));
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:1234/"));
 
         mockMvc.perform(options("/test-entities/to-one-other")
                         .header(HttpHeaders.ORIGIN, "http://localhost:1234/")
@@ -268,7 +281,8 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
                 .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(HttpMethod.POST.name()))))
-                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())));
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:1234/"));
 
         mockMvc.perform(options("/test-entities/to-many-other")
                         .header(HttpHeaders.ORIGIN, "http://localhost:1234/")
@@ -276,7 +290,8 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
                 .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.POST.name())))
-                .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(HttpMethod.PUT.name()))));
+                .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(HttpMethod.PUT.name()))))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:1234/"));
 
     }
 
