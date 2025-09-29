@@ -37,7 +37,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
+    testImplementation 'org.springframework.security:spring-security-test'
 
+    testImplementation project(':contentgrid-appserver-actuators')
     testImplementation project(':contentgrid-appserver-application-model')
     testImplementation project(':contentgrid-appserver-contentstore-api')
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
@@ -51,6 +54,7 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
 
     testImplementation 'com.contentgrid.thunx:thunx-spring-api'
+    testRuntimeOnly 'org.springframework:spring-webflux'
 
     testImplementation 'io.minio:minio'
     testImplementation 'org.springframework.hateoas:spring-hateoas'

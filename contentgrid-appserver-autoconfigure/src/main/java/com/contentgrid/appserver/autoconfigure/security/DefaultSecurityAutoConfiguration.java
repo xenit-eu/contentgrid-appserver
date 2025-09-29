@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.autoconfigure.security;
 
-import com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -10,7 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-@AutoConfiguration(before = ContentgridActuatorAutoConfiguration.class)
+@AutoConfiguration
 @ConditionalOnClass(SecurityFilterChain.class)
 public class DefaultSecurityAutoConfiguration {
     @Bean

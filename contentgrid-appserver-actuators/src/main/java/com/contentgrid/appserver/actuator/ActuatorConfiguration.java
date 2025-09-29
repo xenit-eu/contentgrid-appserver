@@ -48,7 +48,7 @@ public class ActuatorConfiguration {
     }
 
     @Configuration
-    class ActuatorEndpointsWebSecurityConfiguration {
+    public static class ActuatorEndpointsWebSecurityConfiguration {
         /**
          * List of publicly accessible management endpoints
          */
