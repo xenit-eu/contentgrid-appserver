@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.mapping;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.rest.mapping.ReplacementPathVariablesGenerator.ReplacementPathVariableValues;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -107,4 +109,8 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
         });
     }
 
+    @Override
+    protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
+        return super.getHandlerInternal(request);
+    }
 }
