@@ -1,10 +1,14 @@
 package com.contentgrid.appserver.rest.mapping;
 
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -33,6 +37,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
@@ -244,6 +250,34 @@ class DynamicDispatchApplicationHandlerMappingTest {
 
         mockMvc.perform(get("/non-existing/item"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void resolvePreflightRequests() throws Exception {
+        mockMvc.perform(options("/test-entities/content")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:1234/")
+                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, HttpMethod.GET.name()))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.POST.name())))
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())));
+
+        mockMvc.perform(options("/test-entities/to-one-other")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:1234/")
+                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, HttpMethod.GET.name()))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
+                .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(HttpMethod.POST.name()))))
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.PUT.name())));
+
+        mockMvc.perform(options("/test-entities/to-many-other")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:1234/")
+                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, HttpMethod.GET.name()))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.GET.name())))
+                .andExpect(header().string(HttpHeaders.ALLOW, containsString(HttpMethod.POST.name())))
+                .andExpect(header().string(HttpHeaders.ALLOW, not(containsString(HttpMethod.PUT.name()))));
+
     }
 
     @Test
