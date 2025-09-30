@@ -1,9 +1,5 @@
 package com.contentgrid.appserver.rest.exception;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
@@ -11,11 +7,10 @@ import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ProblemFactory;
 import com.contentgrid.appserver.rest.problem.ProblemType;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
-import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Map;
@@ -110,34 +105,15 @@ public class ContentGridExceptionHandler {
     }
 
     @ExceptionHandler(BlindRelationOverwriteException.class)
-    ResponseEntity<Problem> handleBlindRelationOverwrite(Application application, BlindRelationOverwriteException exception) {
+    ResponseEntity<Problem> handleBlindRelationOverwrite(BlindRelationOverwriteException exception, LinkFactoryProvider linkFactoryProvider) {
         return createResponse(
                 problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_OVERWRITE)
                         .withStatus(HttpStatus.CONFLICT)
                         .withProperties(properties -> {
-                            var relationEntity = application.getRequiredEntityByName(exception.getAffectedRelation().getEntityName());
-                            var relation = application.getRequiredRelationForEntity(relationEntity, exception.getAffectedRelation().getRelationName());
-                            var affectedRelationLink = linkTo(methodOn(XToOneRelationRestController.class)
-                                            .getRelation(
-                                                    application,
-                                                    relationEntity.getPathSegment(),
-                                                    exception.getAffectedRelation().getEntityId(),
-                                                    relation.getSourceEndPoint().getPathSegment(),
-                                                    null
-                                            )).withSelfRel();
-
-                            var originalEntity = application.getRequiredEntityByName(exception.getOriginalValue().getEntityName());
-                            var originalEntityLink = linkTo(methodOn(EntityRestController.class)
-                                    .getEntity(
-                                            application,
-                                            originalEntity.getPathSegment(),
-                                            exception.getOriginalValue().getEntityId(),
-                                            null
-                                    )
-                            ).withSelfRel();
-
-                            properties.put("affected-relation", affectedRelationLink.getHref());
-                            properties.put("existing-item", originalEntityLink.getHref());
+                            var affectedRelationLink = linkFactoryProvider.toRelation(exception.getAffectedRelation()).toUri();
+                            var originalEntityLink = linkFactoryProvider.toItem(exception.getOriginalValue()).toUri();
+                            properties.put("affected-relation", affectedRelationLink.toString());
+                            properties.put("existing-item", originalEntityLink.toString());
                         })
         );
     }

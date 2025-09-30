@@ -1,8 +1,5 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
@@ -21,27 +18,33 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
-import com.contentgrid.appserver.rest.EntityRestController;
-import java.net.URI;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.util.MultiValueMap;
 
+@RequiredArgsConstructor
 public class HalFormsTemplateGenerator {
+    private final Application application;
+    private final LinkFactoryProvider linkFactoryProvider;
 
-    public HalFormsTemplate generateCreateTemplate(Application application, Entity entity) {
+
+    public HalFormsTemplate generateCreateTemplate(EntityName entityName) {
+        var entity = application.getRequiredEntityByName(entityName);
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var attribute : entity.getAttributes()) {
             properties.addAll(attributeToCreateProperties("", attribute));
@@ -49,7 +52,7 @@ public class HalFormsTemplateGenerator {
         for (var relation : application.getRelationsForSourceEntity(entity)) {
             // TODO: enable *-to-many relations in create form with ACC-2311
             if (relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
-                relationToProperty(application, relation).ifPresent(properties::add);
+                relationToProperty(relation).ifPresent(properties::add);
             }
         }
 
@@ -60,11 +63,12 @@ public class HalFormsTemplateGenerator {
                 .httpMethod(HttpMethod.POST)
                 .contentType(hasFiles? MediaType.MULTIPART_FORM_DATA_VALUE:MediaType.APPLICATION_JSON_VALUE)
                 .properties(properties)
-                .target(getCollectionSelfLink(application, entity).toString())
+                .target(linkFactoryProvider.toCollection(entityName, CollectionParameters.defaults()).toUri().toString())
                 .build();
     }
 
-    public HalFormsTemplate generateUpdateTemplate(Application application, Entity entity) {
+    public HalFormsTemplate generateUpdateTemplate(EntityName entityName) {
+        var entity = application.getRequiredEntityByName(entityName);
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var attribute : entity.getAttributes()) {
             properties.addAll(attributeToUpdateProperty("", attribute));
@@ -78,7 +82,8 @@ public class HalFormsTemplateGenerator {
                 .build();
     }
 
-    public HalFormsTemplate generateSearchTemplate(Application application, Entity entity) {
+    public HalFormsTemplate generateSearchTemplate(EntityName entityName) {
+        var entity = application.getRequiredEntityByName(entityName);
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var searchFilter : entity.getSearchFilters()) {
             if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
@@ -99,15 +104,20 @@ public class HalFormsTemplateGenerator {
                 .key(IanaLinkRelations.SEARCH_VALUE)
                 .httpMethod(HttpMethod.GET)
                 .properties(properties)
-                .target(getCollectionSelfLink(application, entity).toString())
+                .target(linkFactoryProvider.toCollection(entityName, CollectionParameters.defaults()).toUri().toString())
                 .build();
     }
 
-    public List<HalFormsTemplate> generateRelationTemplates(Application application, Relation relation, String relationLink) {
-        var maybeProperty = relationToProperty(application, relation);
+    public List<HalFormsTemplate> generateRelationTemplates(RelationIdentity relationIdentity) {
+
+        var relation = application.getRequiredRelationForEntity(relationIdentity.getEntityName(), relationIdentity.getRelationName());
+
+        var maybeProperty = relationToProperty(relation);
         if (maybeProperty.isEmpty()) {
             return List.of();
         }
+
+        var relationLink = linkFactoryProvider.toRelation(relationIdentity).toUri().toString();
 
         var result = new ArrayList<HalFormsTemplate>();
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
@@ -138,14 +148,8 @@ public class HalFormsTemplateGenerator {
         return result;
     }
 
-    public List<HalFormsTemplate> generateContentTemplates(Application application, Entity entity, ContentAttribute content, String contentLink) {
+    public List<HalFormsTemplate> generateContentTemplates(Entity entity, ContentAttribute content) {
         return List.of(); // no templates yet
-    }
-
-    private URI getCollectionSelfLink(Application application, Entity entity) {
-        return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, MultiValueMap.fromSingleValue(Map.of()), null))
-                .toUri();
     }
 
 
@@ -214,15 +218,12 @@ public class HalFormsTemplateGenerator {
                 .orElse(property);
     }
 
-    private Optional<HalFormsProperty> relationToProperty(Application application, Relation relation) {
+    private Optional<HalFormsProperty> relationToProperty(Relation relation) {
         if (relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
             return Optional.empty();
         }
         var required = relation.getSourceEndPoint().isRequired();
-        var url = linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, application.getRelationTargetEntity(relation).getPathSegment(),
-                        null, MultiValueMap.fromSingleValue(Map.of()), null))
-                .toUri().toString();
+        var url = linkFactoryProvider.toCollection(relation.getTargetEndPoint().getEntity(), CollectionParameters.defaults()).toUri().toString();
         var options = HalFormsOptions.remote(url)
                 .withMinItems(required ? 1L : 0L)
                 .withMaxItems(relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation ? null : 1L)

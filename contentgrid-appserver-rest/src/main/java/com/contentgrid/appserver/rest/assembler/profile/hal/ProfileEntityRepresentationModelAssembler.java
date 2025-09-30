@@ -6,48 +6,55 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.rest.EntityRestController;
-import com.contentgrid.appserver.rest.ProfileRestController;
+import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
-import org.springframework.util.MultiValueMap;
 
 @Component
 @RequiredArgsConstructor
-public class ProfileEntityRepresentationModelAssembler implements RepresentationModelContextAssembler<Entity, ProfileEntityRepresentationModel, Application> {
+public class ProfileEntityRepresentationModelAssembler implements RepresentationModelContextAssembler<Entity, ProfileEntityRepresentationModel, Context> {
 
-    private final HalFormsTemplateGenerator templateGenerator;
     private final ProfileAttributeRepresentationModelAssembler attributeAssembler = new ProfileAttributeRepresentationModelAssembler();
     private final ProfileRelationRepresentationModelAssembler relationAssembler = new ProfileRelationRepresentationModelAssembler();
 
+    public record Context(Application application, LinkFactoryProvider linkFactoryProvider) {
+        public HalFormsTemplateGenerator templateGenerator() {
+            return new HalFormsTemplateGenerator(application(), linkFactoryProvider());
+        }
+    }
+
     @Override
-    public ProfileEntityRepresentationModel toModel(Entity entity, Application application) {
+    public ProfileEntityRepresentationModel toModel(Entity entity, Context context) {
         var result = ProfileEntityRepresentationModel.builder()
                 .name(entity.getName().getValue())
-                .title(readTitle(application, entity))
+                .title(readTitle(context, entity))
                 .description(entity.getDescription())
                 .attributes(entity.getAllAttributes().stream()
-                        .map(attribute -> attributeAssembler.toModel(application, entity, attribute))
+                        .map(attribute -> attributeAssembler.toModel(context, entity, attribute))
                         .flatMap(Optional::stream)
                         .toList())
-                .relations(application.getRelationsForSourceEntity(entity).stream()
-                        .map(relation -> relationAssembler.toModel(application, relation))
+                .relations(context.application().getRelationsForSourceEntity(entity).stream()
+                        .map(relation -> relationAssembler.toModel(context, relation))
                         .flatMap(Optional::stream)
                         .toList())
                 .build();
-        var collectionLink = getEntityCollectionLink(application, entity);
+        var collectionLink = context.linkFactoryProvider().toCollection(entity.getName(), CollectionParameters.defaults())
+                .withRel(IanaLinkRelations.DESCRIBES)
+                .withName(IanaLinkRelations.COLLECTION_VALUE);
 
         // Add links
-        result.add(getSelfLink(application, entity))
+        result.add(context.linkFactoryProvider().toProfile(entity.getName()).withSelfRel())
                 .add(collectionLink)
-                .add(getEntityItemLink(application, entity));
+                .add(getEntityItemLink(entity, context));
 
         // Add default template
         result.addTemplate(HalFormsTemplate.builder()
@@ -56,31 +63,19 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
                 .build());
 
         // Add search and create templates
-        result.addTemplate(templateGenerator.generateSearchTemplate(application, entity))
-                .addTemplate(templateGenerator.generateCreateTemplate(application, entity));
+        result.addTemplate(context.templateGenerator().generateSearchTemplate(entity.getName()))
+                .addTemplate(context.templateGenerator().generateCreateTemplate(entity.getName()));
         return result;
     }
 
-    private Link getSelfLink(Application application, Entity entity) {
-        return linkTo(methodOn(ProfileRestController.class).getHalFormsEntityProfile(application, entity.getPathSegment()))
-                .withSelfRel();
-    }
-
-    private Link getEntityCollectionLink(Application application, Entity entity) {
+    private Link getEntityItemLink(Entity entity, Context context) {
         return linkTo(methodOn(EntityRestController.class)
-                .listEntity(application, entity.getPathSegment(), null, MultiValueMap.fromSingleValue(Map.of()), null))
-                .withRel(IanaLinkRelations.DESCRIBES).expand()
-                .withName(IanaLinkRelations.COLLECTION_VALUE);
-    }
-
-    private Link getEntityItemLink(Application application, Entity entity) {
-        return linkTo(methodOn(EntityRestController.class)
-                .getEntity(application, entity.getPathSegment(), null, null))
+                .getEntity(context.application(), entity.getPathSegment(), null, null, null))
                 .withRel(IanaLinkRelations.DESCRIBES)
                 .withName(IanaLinkRelations.ITEM_VALUE);
     }
 
-    private String readTitle(Application application, Entity entity) {
+    private String readTitle(Context context, Entity entity) {
         return null; // TODO: resolve titles (ACC-2230)
     }
 }

@@ -62,7 +62,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         ApplicationArgumentResolver.class,
         AuthorizationContextArgumentResolver.class,
         EncodedCursorPaginationHandlerMethodArgumentResolver.class,
-        VersionConstraintArgumentResolver.class
+        VersionConstraintArgumentResolver.class,
+        LinkProviderArgumentResolver.class,
 })
 public class ContentGridRestConfiguration {
     @Bean
