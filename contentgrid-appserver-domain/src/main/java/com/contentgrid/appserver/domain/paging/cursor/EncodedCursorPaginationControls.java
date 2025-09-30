@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.paging.cursor;
 
+import com.contentgrid.appserver.domain.paging.OriginalPaginationAccessor;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import java.util.Optional;
@@ -8,7 +9,7 @@ import lombok.NonNull;
 import lombok.Value;
 
 @Value
-public class EncodedCursorPaginationControls implements PaginationControls {
+public class EncodedCursorPaginationControls implements PaginationControls, OriginalPaginationAccessor {
 
     @NonNull
     PaginationControls delegate;
@@ -19,6 +20,11 @@ public class EncodedCursorPaginationControls implements PaginationControls {
     @Override
     public Pagination current() {
         return encoder.apply(delegate.current());
+    }
+
+    @Override
+    public Pagination originalPagination() {
+        return delegate.current();
     }
 
     @Override

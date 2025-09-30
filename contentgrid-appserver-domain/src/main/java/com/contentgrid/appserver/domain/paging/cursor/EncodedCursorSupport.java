@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain.paging.cursor;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.PageBasedPaginationControls;
-import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
@@ -11,7 +10,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class EncodedCursorSupport {
-    public static PaginationControls makeControls(
+    public static EncodedCursorPaginationControls makeControls(
             @NonNull CursorCodec codec,
             @NonNull EncodedCursorPagination pagination,
             @NonNull EntityName entity,

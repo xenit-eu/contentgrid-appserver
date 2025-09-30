@@ -10,7 +10,7 @@ import lombok.NonNull;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 
 @EqualsAndHashCode(callSuper = true)
-@JsonIgnoreProperties({"number", "totalElements", "totalPages"})
+@JsonIgnoreProperties({"totalElements", "totalPages"})
 public class ItemCountPageMetadata extends PageMetadata {
 
     @NonNull
@@ -42,10 +42,6 @@ public class ItemCountPageMetadata extends PageMetadata {
         }
 
         return null;
-    }
-
-    public String getCursor() {
-        return cursorPageMetadata.getCursor();
     }
 
     @JsonProperty("prev_cursor")

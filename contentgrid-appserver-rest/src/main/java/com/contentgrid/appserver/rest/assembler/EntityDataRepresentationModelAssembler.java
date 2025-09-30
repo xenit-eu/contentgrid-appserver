@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
@@ -110,15 +111,13 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private ItemCountPageMetadata getPageMetadata(ResultSlice slice) {
-        int limit = slice.getLimit() != null ? slice.getLimit() : slice.getSize();
-        // Fake numbers because we lost page context in domain-layer
-        var pageMetadata = new PageMetadata(limit, 0, slice.getTotalItemCount().count());
+        var page = (PageBasedPagination) slice.originalPagination();
+        var pageMetadata = new PageMetadata(page.getSize(), page.getPage(), slice.getTotalItemCount().count());
         var cursorMetadata = getCursorPageMetadata(slice);
         return new ItemCountPageMetadata(pageMetadata, slice.getTotalItemCount(), cursorMetadata);
     }
 
     private CursorPageMetadata getCursorPageMetadata(ResultSlice slice) {
-        var cursor = ((EncodedCursorPagination) slice.current()).getCursor();
         var nextCursor = slice.next()
                 .filter(EncodedCursorPagination.class::isInstance)
                 .map(EncodedCursorPagination.class::cast)
@@ -129,7 +128,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .map(EncodedCursorPagination.class::cast)
                 .map(EncodedCursorPagination::getCursor)
                 .orElse(null);
-        return new CursorPageMetadata(cursor, prevCursor, nextCursor);
+        return new CursorPageMetadata(prevCursor, nextCursor);
     }
 
     public record EntityContext(

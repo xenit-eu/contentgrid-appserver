@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -42,7 +41,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -54,7 +52,6 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.time.Clock;
@@ -153,8 +150,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var result = queryEngine.findAll(application, entity, fullFilter, sort, page);
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
-        PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
-                params, hasNext);
+        var controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(), params, hasNext);
 
         // Get a total count of how many items match these params
         var count = calculateCount(() -> queryEngine.count(application, entity, fullFilter),
