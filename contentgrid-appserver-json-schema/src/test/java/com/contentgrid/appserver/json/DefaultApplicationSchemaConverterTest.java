@@ -81,7 +81,7 @@ class DefaultApplicationSchemaConverterTest {
     void testUnknownFlag() {
         var jsonWithUnknownFlag = """
                 {
-                    "$schema": "https://contentgrid.com/schemas/application-schema.json",
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
                     "applicationName": "HR application",
                     "version": "1.0.0",
                     "entities": [
@@ -143,7 +143,7 @@ class DefaultApplicationSchemaConverterTest {
 
         assertThat(json, sameJSONAs("""
                 {
-                    "$schema": "https://contentgrid.com/schemas/application-schema.json",
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
                     "applicationName": "Test Application",
                     "version": "1.0.0",
                     "entities": [
@@ -255,7 +255,7 @@ class DefaultApplicationSchemaConverterTest {
 
         assertThat(json, sameJSONAs("""
                 {
-                    "$schema": "https://contentgrid.com/schemas/application-schema.json",
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
                     "applicationName": "Test Application",
                     "version": "1.0.0",
                     "entities": [

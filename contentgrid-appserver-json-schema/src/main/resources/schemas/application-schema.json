@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema",
-  "$id": "https://contentgrid.com/schemas/application-schema.json",
+  "$id": "https://contentgrid.cloud/schemas/application-schema.json",
   "title": "ContentGrid Application Configuration",
   "type": "object",
   "properties": {
