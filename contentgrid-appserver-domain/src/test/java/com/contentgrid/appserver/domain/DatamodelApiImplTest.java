@@ -34,7 +34,6 @@ import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolat
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
-import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
@@ -59,7 +58,6 @@ import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
@@ -1534,17 +1532,10 @@ class DatamodelApiImplTest {
                 stubNeeded = false;
             }
 
-            // Setup mock for encoding/decoding fake cursors
+            // Setup mock for decoding fake cursors
             Mockito.doReturn(new PageBasedPagination(size, page))
                     .when(codec)
                     .decodeCursor(any(), any(), any());
-            ArgumentCaptor<Pagination> paginationArg = ArgumentCaptor.forClass(Pagination.class);
-
-            Mockito.doAnswer(invocation -> {
-                var pagination = (PageBasedPagination) paginationArg.getValue();
-                var cursor = fakeCursor(pagination.getPage());
-                return new CursorContext(cursor, size, SortData.unsorted());
-            }).when(codec).encodeCursor(paginationArg.capture(), any(), any(), any());
 
             // mock queryEngine
             ArgumentCaptor<QueryPageData> pageArg = ArgumentCaptor.forClass(QueryPageData.class);
