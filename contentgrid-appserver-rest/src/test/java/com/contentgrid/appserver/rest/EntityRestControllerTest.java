@@ -699,7 +699,6 @@ class EntityRestControllerTest {
 
                     // Check pagination metadata
                     .andExpect(jsonPath("$.page.size", is(20)))
-                    .andExpect(jsonPath("$.page.cursor").exists())
                     .andExpect(jsonPath("$.page.prev_cursor").doesNotExist())
                     .andExpect(jsonPath("$.page.next_cursor").exists())
                     .andExpect(jsonPath("$.page.total_items_estimate", is(100)))
@@ -759,7 +758,6 @@ class EntityRestControllerTest {
 
                     // Check pagination metadata
                     .andExpect(jsonPath("$.page.size", is(10)))
-                    .andExpect(jsonPath("$.page.cursor").exists())
                     .andExpect(jsonPath("$.page.prev_cursor").exists())
                     .andExpect(jsonPath("$.page.next_cursor").exists())
                     .andExpect(jsonPath("$.page.total_items_estimate", is(100)))

@@ -118,7 +118,6 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     }
 
     private CursorPageMetadata getCursorPageMetadata(ResultSlice slice) {
-        var cursor = ((EncodedCursorPagination) slice.current()).getCursor();
         var nextCursor = slice.next()
                 .filter(EncodedCursorPagination.class::isInstance)
                 .map(EncodedCursorPagination.class::cast)
@@ -129,7 +128,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .map(EncodedCursorPagination.class::cast)
                 .map(EncodedCursorPagination::getCursor)
                 .orElse(null);
-        return new CursorPageMetadata(cursor, prevCursor, nextCursor);
+        return new CursorPageMetadata(prevCursor, nextCursor);
     }
 
     public record EntityContext(
