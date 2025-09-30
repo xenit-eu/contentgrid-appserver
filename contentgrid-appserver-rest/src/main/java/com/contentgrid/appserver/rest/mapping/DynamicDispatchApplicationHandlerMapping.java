@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.rest.mapping;
 
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.EntityRestController;
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -165,6 +167,43 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
             return handler;
         }
         return super.getHandlerInternal(request);
+    }
+
+    @Override
+    protected HandlerMethod lookupHandlerMethod(String lookupPath, HttpServletRequest request) throws Exception {
+        HandlerMethod handlerMethod = super.lookupHandlerMethod(lookupPath, request);
+
+        if (handlerMethod == null) {
+            return null;
+        }
+
+        // If the handler belongs to our EntityRestController, check whether the first path segment matches a known
+        // entity for the resolved application. Otherwise let it fall back (return null) to other handler mappings,
+        // so things like /openapi.yml can work.
+        if (handlerMethod.getBeanType().equals(EntityRestController.class)) {
+            var firstSegment = extractFirstPathSegment(lookupPath);
+
+            if (firstSegment != null) {
+                var applicationName = applicationNameExtractor.extract(request);
+                var application = applicationResolver.resolve(applicationName);
+                var maybeEntity = application.getEntityByPathSegment(PathSegmentName.of(firstSegment));
+                if (maybeEntity.isEmpty()) {
+                    return null;
+                }
+            }
+        }
+
+        return handlerMethod;
+    }
+
+    private String extractFirstPathSegment(String lookupPath) {
+        if (lookupPath == null || lookupPath.isEmpty() || lookupPath.equals("/")) {
+            return null;
+        }
+
+        String path = lookupPath.startsWith("/") ? lookupPath.substring(1) : lookupPath;
+        int index = path.indexOf('/');
+        return index == -1 ? path : path.substring(0, index);
     }
 
     @Override
