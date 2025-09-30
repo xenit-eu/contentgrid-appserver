@@ -424,7 +424,7 @@ class ProfileRestControllerTest {
                                             minItems: 1,
                                             maxItems: 1
                                         }
-                                    }, {
+                        /*            }, { // TODO: enable with ACC-2311
                                         name: "products",
                                         type: "url",
                                         options: {
@@ -432,7 +432,7 @@ class ProfileRestControllerTest {
                                                 href: "http://localhost/products"
                                             },
                                             minItems: 0
-                                        }
+                                        }*/
                                     }, {
                                         name: "previous_invoice",
                                         type: "url",

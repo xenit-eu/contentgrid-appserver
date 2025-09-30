@@ -13,7 +13,9 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
@@ -45,7 +47,10 @@ public class HalFormsTemplateGenerator {
             properties.addAll(attributeToCreateProperties("", attribute));
         }
         for (var relation : application.getRelationsForSourceEntity(entity)) {
-            relationToProperty(application, relation).ifPresent(properties::add);
+            // TODO: enable *-to-many relations in create form with ACC-2311
+            if (relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
+                relationToProperty(application, relation).ifPresent(properties::add);
+            }
         }
 
         var hasFiles = properties.stream().anyMatch(prop -> Objects.equals(HtmlInputType.FILE_VALUE, prop.getType()));
