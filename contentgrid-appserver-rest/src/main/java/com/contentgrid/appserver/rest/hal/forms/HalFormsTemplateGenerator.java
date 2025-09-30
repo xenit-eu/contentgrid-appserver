@@ -47,7 +47,7 @@ public class HalFormsTemplateGenerator {
             properties.addAll(attributeToCreateProperties("", attribute));
         }
         for (var relation : application.getRelationsForSourceEntity(entity)) {
-            // TODO: enable *-to-many relations in create form after ACC-2306
+            // TODO: enable *-to-many relations in create form with ACC-2311
             if (relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
                 relationToProperty(application, relation).ifPresent(properties::add);
             }

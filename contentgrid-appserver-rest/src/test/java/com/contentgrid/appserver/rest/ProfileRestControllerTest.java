@@ -424,7 +424,7 @@ class ProfileRestControllerTest {
                                             minItems: 1,
                                             maxItems: 1
                                         }
-                        /*            }, { // TODO: enable after ACC-2306
+                        /*            }, { // TODO: enable with ACC-2311
                                         name: "products",
                                         type: "url",
                                         options: {

@@ -124,7 +124,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isOne();
                     });
-                    // TODO: enable after ACC-2306
+                    // TODO: enable with ACC-2311
 //                },
 //                products -> {
 //                    assertThat(products.getName()).isEqualTo("products");
@@ -179,7 +179,7 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isOne();
                     });
                 },
-                // TODO: enable after ACC-2306
+                // TODO: enable with ACC-2311
 //                invoices -> {
 //                    assertThat(invoices.getName()).isEqualTo("invoices");
 //                    assertThat(invoices.isReadOnly()).isFalse();
