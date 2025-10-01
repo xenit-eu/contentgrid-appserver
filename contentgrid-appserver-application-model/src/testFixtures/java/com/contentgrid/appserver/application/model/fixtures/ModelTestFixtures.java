@@ -44,6 +44,13 @@ import java.util.List;
 
 public class ModelTestFixtures {
 
+    public static final SimpleAttribute PERSON_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("person_id"))
+            .column(ColumnName.of("person_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
     public static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
             .column(ColumnName.of("name"))
@@ -77,6 +84,7 @@ public class ModelTestFixtures {
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
             .linkName(LinkName.of("persons"))
+            .primaryKey(PERSON_ID)
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
@@ -99,12 +107,12 @@ public class ModelTestFixtures {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("_internal_person__friends"))
-                    .attributePath(PropertyPath.of(RelationName.of("__inverse_friends"), AttributeName.of("id")))
+                    .attributePath(PropertyPath.of(RelationName.of("__inverse_friends"), AttributeName.of("person_id")))
                     .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("parent"))
-                    .attributePath(PropertyPath.of(RelationName.of("parent"), AttributeName.of("id")))
+                    .attributePath(PropertyPath.of(RelationName.of("parent"), AttributeName.of("person_id")))
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("invoices.number"))
@@ -158,6 +166,13 @@ public class ModelTestFixtures {
                     .name(SortableName.of("name"))
                     .propertyPath(PropertyPath.of(AttributeName.of("name")))
                     .build())
+            .build();
+
+    public static final SimpleAttribute INVOICE_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("invoice_id"))
+            .column(ColumnName.of("invoice_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
             .build();
 
     public static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
@@ -254,6 +269,7 @@ public class ModelTestFixtures {
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
             .linkName(LinkName.of("invoices"))
+            .primaryKey(INVOICE_ID)
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_VERSION)
@@ -309,7 +325,7 @@ public class ModelTestFixtures {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("customer"))
-                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
+                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("person_id")))
                     .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(PrefixSearchFilter.builder()
@@ -338,7 +354,7 @@ public class ModelTestFixtures {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("products"))
-                    .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("id")))
+                    .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("product_id")))
                     .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(ExactSearchFilter.builder()
@@ -357,6 +373,13 @@ public class ModelTestFixtures {
                     .name(SortableName.of("confidentiality"))
                     .propertyPath(PropertyPath.of(AttributeName.of("confidentiality")))
                     .build())
+            .build();
+
+    public static final SimpleAttribute PRODUCT_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("product_id"))
+            .column(ColumnName.of("product_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
             .build();
 
     public static final SimpleAttribute PRODUCT_NAME = SimpleAttribute.builder()
@@ -409,6 +432,7 @@ public class ModelTestFixtures {
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
             .linkName(LinkName.of("products"))
+            .primaryKey(PRODUCT_ID)
             .attribute(PRODUCT_NAME)
             .attribute(PRODUCT_DESCRIPTION)
             .attribute(PRODUCT_PRICE)
@@ -421,7 +445,7 @@ public class ModelTestFixtures {
                     .build())
             .searchFilter(ExactSearchFilter.builder()
                     .name(FilterName.of("_internal_invoices__id"))
-                    .attributePath(PropertyPath.of(RelationName.of("invoices"), AttributeName.of("id")))
+                    .attributePath(PropertyPath.of(RelationName.of("invoices"), AttributeName.of("invoice_id")))
                     .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build()
             )
