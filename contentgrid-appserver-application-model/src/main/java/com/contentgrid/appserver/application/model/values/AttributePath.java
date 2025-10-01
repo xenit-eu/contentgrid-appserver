@@ -6,7 +6,10 @@ public sealed interface AttributePath extends PropertyPath permits SimpleAttribu
     @NonNull AttributeName getFirst();
     AttributePath getRest();
 
+    @Override
     AttributePath withSuffix(AttributeName attributeName);
+
+    @Override
     default AttributePath withPrefix(AttributeName attributeName) {
         return new CompositeAttributePath(attributeName, this);
     }

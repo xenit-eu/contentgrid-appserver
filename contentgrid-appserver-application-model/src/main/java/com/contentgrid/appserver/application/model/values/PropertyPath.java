@@ -35,6 +35,21 @@ public sealed interface PropertyPath permits AttributePath, RelationPath {
         return path;
     }
 
+    PropertyPath withSuffix(AttributeName attributeName);
+
+    default PropertyPath withPrefix(PropertyName propertyName) {
+        return switch (propertyName) {
+            case AttributeName attributeName -> withPrefix(attributeName);
+            case RelationName relationName -> withPrefix(relationName);
+        };
+    }
+
+    AttributePath withPrefix(AttributeName attributeName);
+
+    default RelationPath withPrefix(RelationName relationName) {
+        return new RelationPath(relationName, this);
+    }
+
 
     default List<String> toList() {
         PropertyPath path = this;

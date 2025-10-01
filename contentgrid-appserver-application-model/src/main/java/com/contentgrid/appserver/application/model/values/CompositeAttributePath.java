@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.application.model.values;
 
-import java.util.ArrayList;
 import lombok.NonNull;
 import lombok.Value;
 
