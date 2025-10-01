@@ -19,6 +19,7 @@ import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
 import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,7 @@ public class EntityRestController {
         binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
     }
 
+    @SpecializedOnEntity
     @GetMapping("/{entityName}")
     public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
@@ -122,6 +124,7 @@ public class EntityRestController {
                 .orElse(null);
     }
 
+    @SpecializedOnEntity
     @PostMapping("/{entityName}")
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
@@ -149,6 +152,7 @@ public class EntityRestController {
                 .body(model);
     }
 
+    @SpecializedOnEntity
     @PostMapping(value = "/{entityName}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
