@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.mapping;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.rest.mapping.ReplacementPathVariablesGenerator.ReplacementPathVariableValues;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +30,7 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
 
     private final Application application;
 
-    private static final Map<Method, Optional<SpecializedOnPropertyType>> propTypeAnnotationsCache = new ConcurrentHashMap<>();
+    private static final Map<Method, Optional<SpecializedOnPropertyType>> propertyTypeAnnotationsCache = new ConcurrentHashMap<>();
     private static final Map<Method, Optional<SpecializedOnEntity>> entityTemplateAnnotationsCache = new ConcurrentHashMap<>();
 
     @Override
@@ -86,8 +87,8 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
 
     private void registerSpecializedOnEntityHandler(Object handler, Method method, RequestMappingInfo mapping,
             SpecializedOnEntity entity) {
-        // No need for a ReplacementPathVariablesGenerator, we just need the entityName, nothing further
-        List<PathSegmentName> pathSegments = application.getEntities().stream().map(e -> e.getPathSegment()).toList();
+        // No need for a ReplacementPathVariablesGenerator, we just need the entity pathSegment, nothing further
+        List<PathSegmentName> pathSegments = application.getEntities().stream().map(Entity::getPathSegment).toList();
 
         if (pathSegments.isEmpty()) {
             // Don't register a mapping without patterns (that would match everything)
@@ -96,7 +97,7 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
 
         // Restrict to matching the pattern (probably "/{entityName}")
         String[] specializedPathPatterns = mapping.getPatternValues().stream()
-                .map(pattern -> restrictPatternVariable(pattern, entity.entityPathVariable(), pathSegments))
+                .map(pattern -> restrictPatternVariable(pattern, entity.value(), pathSegments))
                 .toArray(String[]::new);
 
         var specializedMapping = mapping.mutate()
@@ -116,7 +117,7 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
     }
 
     static Optional<SpecializedOnPropertyType> lookupPropertyType(Method method) {
-        return propTypeAnnotationsCache.computeIfAbsent(method, m -> {
+        return propertyTypeAnnotationsCache.computeIfAbsent(method, m -> {
             var propertyType = AnnotatedElementUtils.findMergedAnnotation(m, SpecializedOnPropertyType.class);
             if (propertyType == null) {
                 propertyType = AnnotatedElementUtils.findMergedAnnotation(m.getDeclaringClass(),
@@ -141,7 +142,7 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
         checkMappingContainsVariable(mapping, propertyType.propertyPathVariable());
     }
     static void validateSpecializedMapping(RequestMappingInfo mapping, SpecializedOnEntity entity) {
-        checkMappingContainsVariable(mapping, entity.entityPathVariable());
+        checkMappingContainsVariable(mapping, entity.value());
     }
 
     private static void checkMappingContainsVariable(RequestMappingInfo mapping, String variable) {

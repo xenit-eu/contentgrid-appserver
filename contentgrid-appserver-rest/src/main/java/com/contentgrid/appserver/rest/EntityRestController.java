@@ -67,7 +67,7 @@ public class EntityRestController {
         binder.registerCustomEditor(String[].class, new StringArrayPropertyEditor(null));
     }
 
-    @SpecializedOnEntity
+    @SpecializedOnEntity("entityName")
     @GetMapping("/{entityName}")
     public CollectionModel<EntityDataRepresentationModel> listEntity(
             Application application,
@@ -124,7 +124,7 @@ public class EntityRestController {
                 .orElse(null);
     }
 
-    @SpecializedOnEntity
+    @SpecializedOnEntity("entityName")
     @PostMapping("/{entityName}")
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,
@@ -152,7 +152,7 @@ public class EntityRestController {
                 .body(model);
     }
 
-    @SpecializedOnEntity
+    @SpecializedOnEntity("entityName")
     @PostMapping(value = "/{entityName}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public ResponseEntity<EntityDataRepresentationModel> createEntity(
             Application application,

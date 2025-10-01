@@ -9,6 +9,7 @@ import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityReprese
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchemaAssembler;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
