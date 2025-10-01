@@ -66,6 +66,7 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
         var targetEntity = application.getRelationTargetEntity(relation);
+        var sourceEntity = application.getRelationSourceEntity(relation);
 
         if(relation.getTargetEndPoint().getName() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
@@ -73,7 +74,7 @@ public class XToManyRelationRestController {
 
         var relationPath = new RelationPath(
                 relation.getTargetEndPoint().getName(),
-                new SimpleAttributePath(targetEntity.getPrimaryKey().getName())
+                new SimpleAttributePath(sourceEntity.getPrimaryKey().getName())
         );
 
         var targetFilter = targetEntity.getSearchFilters().stream()
