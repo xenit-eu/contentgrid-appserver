@@ -19,6 +19,7 @@ dependencies {
     compileOnly project(':contentgrid-appserver-query-engine-api')
     compileOnly project(':contentgrid-appserver-query-engine-impl-jooq')
     compileOnly project(':contentgrid-appserver-rest')
+    compileOnly project(':contentgrid-appserver-swagger-ui')
 
     compileOnly 'com.contentgrid.thunx:thunx-spring-api'
 

@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.rest.mapping;
 
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.EntityRestController;
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -154,8 +156,10 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
                 .ifPresentOrElse(
                         propertyType -> StaticApplicationRequestMappingHandlerMapping.validateSpecializedMapping(
                                 mapping, propertyType),
-                        () -> super.registerHandlerMethod(handler, method, mapping)
-                );
+                        () -> StaticApplicationRequestMappingHandlerMapping.lookUpEntityTemplate(method)
+                                .ifPresentOrElse(entity -> StaticApplicationRequestMappingHandlerMapping.validateSpecializedMapping(mapping, entity),
+                                        () -> super.registerHandlerMethod(handler, method, mapping)
+                                ));
     }
 
     @Override
