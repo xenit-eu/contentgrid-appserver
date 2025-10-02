@@ -114,7 +114,6 @@ public class ContentAttribute implements CompositeAttribute {
             getTranslations = () -> translations;
         }
 
-        @Deprecated(forRemoval = true)
         public ContentAttributeBuilder description(String description) {
             return translationsBy(Locale.ROOT, t -> t.withDescription(description));
         }

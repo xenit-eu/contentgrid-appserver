@@ -94,7 +94,6 @@ public class CompositeAttributeImpl implements CompositeAttribute {
             getTranslations = () -> translations;
         }
 
-        @Deprecated(forRemoval = true)
         public CompositeAttributeImplBuilder description(String description) {
             return translationsBy(Locale.ROOT, t -> t.withDescription(description));
         }

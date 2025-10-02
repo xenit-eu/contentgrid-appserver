@@ -147,6 +147,9 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             }
         }
 
+        /**
+         * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+         */
         @Deprecated(forRemoval = true)
         public String getDescription() {
             return translations.getTranslations(Locale.ROOT).getDescription();

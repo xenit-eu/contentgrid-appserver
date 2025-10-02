@@ -34,6 +34,9 @@ public sealed interface Attribute extends Translatable<AttributeTranslations> pe
 
     AttributeName getName();
 
+    /**
+     * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+     */
     @Deprecated(forRemoval = true)
     default String getDescription() {
         return getTranslations(Locale.ROOT).getDescription();

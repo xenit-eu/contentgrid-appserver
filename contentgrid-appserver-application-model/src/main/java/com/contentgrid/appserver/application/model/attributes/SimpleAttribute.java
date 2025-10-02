@@ -132,7 +132,6 @@ public class SimpleAttribute implements Attribute {
             getTranslations = () -> translations;
         }
 
-        @Deprecated(forRemoval = true)
         public SimpleAttributeBuilder description(String description) {
             return translationsBy(Locale.ROOT, t  -> t.withDescription(description));
         }

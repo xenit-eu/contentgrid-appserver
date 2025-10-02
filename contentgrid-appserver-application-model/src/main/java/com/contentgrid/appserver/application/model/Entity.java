@@ -248,6 +248,9 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     @Getter(AccessLevel.NONE)
     Map<PathSegmentName, ContentAttribute> contentAttributes = new LinkedHashMap<>();
 
+    /**
+     * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+     */
     @Deprecated(forRemoval = true)
     public String getDescription() {
         return translations.getTranslations(Locale.ROOT).getDescription();
@@ -376,7 +379,6 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
             getTranslations = () -> translations;
         }
 
-        @Deprecated(forRemoval = true)
         public EntityBuilder description(String description) {
             return translationsBy(Locale.ROOT, t  -> t.withDescription(description));
         }
