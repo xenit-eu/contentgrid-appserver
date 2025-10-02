@@ -33,6 +33,7 @@ public class ProfileRestController {
         return profileRootAssembler.withContext(linkFactoryProvider).toModel(application);
     }
 
+    @SpecializedOnEntity("entityName")
     @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
     public ProfileEntityRepresentationModel getHalFormsEntityProfile(
             Application application, @PathVariable PathSegmentName entityName,
@@ -44,6 +45,7 @@ public class ProfileRestController {
                 linkFactoryProvider)).toModel(entity);
     }
 
+    @SpecializedOnEntity("entityName")
     @GetMapping(value = "/{entityName}", produces = "application/schema+json")
     public JsonSchema getJsonSchemaEntityProfile(
             Application application, @PathVariable PathSegmentName entityName
