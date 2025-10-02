@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -61,7 +61,7 @@ public class ContentAttribute implements CompositeAttribute {
     @Builder
     ContentAttribute(
             @NonNull AttributeName name,
-            @NonNull ManipulatableTranslatable<AttributeTranslations> translations,
+            @NonNull ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations,
             @Singular Set<AttributeFlag> flags,
             @NonNull PathSegmentName pathSegment,
             @NonNull LinkName linkName,
@@ -105,11 +105,11 @@ public class ContentAttribute implements CompositeAttribute {
 
     public static ContentAttributeBuilder builder() {
         return new ContentAttributeBuilder()
-                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
 
     }
 
-    public static class ContentAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ContentAttributeBuilder> {
+    public static class ContentAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, ContentAttributeBuilder> {
         {
             getTranslations = () -> translations;
         }

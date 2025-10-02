@@ -2,7 +2,7 @@ package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -58,7 +58,7 @@ public abstract class AttributeSearchFilter implements SearchFilter {
      */
     protected AttributeSearchFilter(
             @NonNull FilterName name,
-            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
+            @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull Set<SearchFilterFlag> flags
     ) {

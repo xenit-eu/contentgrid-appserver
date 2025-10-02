@@ -1,9 +1,8 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -36,7 +35,7 @@ public class ExactSearchFilter extends AttributeSearchFilter {
     @Builder
     ExactSearchFilter(
             @NonNull FilterName name,
-            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
+            @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags
     ) throws InvalidSearchFilterException {
@@ -50,10 +49,10 @@ public class ExactSearchFilter extends AttributeSearchFilter {
 
     public static ExactSearchFilterBuilder builder() {
         return new ExactSearchFilterBuilder()
-                .translations(new TranslatableImpl<>(SearchFilterTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
-    public static class ExactSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ExactSearchFilterBuilder> {
+    public static class ExactSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, ExactSearchFilterBuilder> {
         {
             getTranslations = () -> translations;
         }

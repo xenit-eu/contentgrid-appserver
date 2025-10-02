@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -75,11 +75,16 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
     @Value
     public static class RelationEndPoint implements Translatable<RelationEndPointTranslations> {
 
+        public interface RelationEndPointTranslations {
+            String getName();
+            String getDescription();
+        }
+
         @Value
         @With
         @NoArgsConstructor(access = AccessLevel.PRIVATE, force = true)
         @AllArgsConstructor
-        public static class RelationEndPointTranslations {
+        public static class ConfigurableRelationEndPointTranslations implements RelationEndPointTranslations {
             String name;
             String description;
         }
@@ -118,7 +123,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                 RelationName name,
                 PathSegmentName pathSegment,
                 LinkName linkName,
-                @NonNull ManipulatableTranslatable<RelationEndPointTranslations> translations,
+                @NonNull ConfigurableTranslatable<RelationEndPointTranslations, ConfigurableRelationEndPointTranslations> translations,
                 @Singular @NonNull Set<RelationEndpointFlag> flags
         ) {
             this.entity = entity;
@@ -192,10 +197,10 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
 
         public static RelationEndPointBuilder builder() {
             return new RelationEndPointBuilder()
-                    .translations(new TranslatableImpl<>(RelationEndPointTranslations::new));
+                    .translations(new TranslatableImpl<>(ConfigurableRelationEndPointTranslations::new));
         }
 
-        public static class RelationEndPointBuilder extends TranslationBuilderSupport<RelationEndPointTranslations, RelationEndPointBuilder> {
+        public static class RelationEndPointBuilder extends TranslationBuilderSupport<RelationEndPointTranslations, ConfigurableRelationEndPointTranslations, RelationEndPointBuilder> {
             {
                 getTranslations = () -> translations;
             }

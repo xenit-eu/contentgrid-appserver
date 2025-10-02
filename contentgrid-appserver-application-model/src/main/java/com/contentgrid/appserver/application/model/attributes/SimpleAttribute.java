@@ -2,7 +2,7 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -74,7 +74,7 @@ public class SimpleAttribute implements Attribute {
     }
 
     @Builder
-    SimpleAttribute(@NonNull AttributeName name, ManipulatableTranslatable<AttributeTranslations> translations, @NonNull ColumnName column,
+    SimpleAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @NonNull ColumnName column,
             @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
@@ -124,10 +124,10 @@ public class SimpleAttribute implements Attribute {
 
     public static SimpleAttributeBuilder builder() {
         return new SimpleAttributeBuilder()
-                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
     }
 
-    public static class SimpleAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, SimpleAttributeBuilder> {
+    public static class SimpleAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, SimpleAttributeBuilder> {
         {
             getTranslations = () -> translations;
         }

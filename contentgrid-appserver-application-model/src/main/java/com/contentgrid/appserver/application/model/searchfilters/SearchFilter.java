@@ -18,11 +18,16 @@ import lombok.With;
  */
 public interface SearchFilter extends Translatable<SearchFilterTranslations> {
 
+    interface SearchFilterTranslations {
+        String getName();
+        String getDescription();
+    }
+
     @Value
     @AllArgsConstructor
     @NoArgsConstructor(access = AccessLevel.PACKAGE, force = true)
     @With
-    class SearchFilterTranslations {
+    class ConfigurableSearchFilterTranslations implements SearchFilterTranslations {
         String name;
         String description;
     }

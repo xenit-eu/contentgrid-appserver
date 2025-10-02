@@ -3,7 +3,7 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -33,7 +33,7 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
     OrderedSearchFilter(
             @NonNull Operation operation,
             @NonNull FilterName name,
-            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
+            @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
         super(name, translations, attributePath, flags);
@@ -54,7 +54,7 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
 
     public static OrderedSearchFilterBuilder builder() {
         return new OrderedSearchFilterBuilder()
-                .translations(new TranslatableImpl<>(SearchFilterTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
     public static OrderedSearchFilterBuilder greaterThan() {
@@ -73,7 +73,7 @@ public class OrderedSearchFilter extends AttributeSearchFilter {
         return builder().operation(Operation.LESS_THAN_OR_EQUAL);
     }
 
-    public static class OrderedSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, OrderedSearchFilterBuilder> {
+    public static class OrderedSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, OrderedSearchFilterBuilder> {
         {
             getTranslations = () -> translations;
         }

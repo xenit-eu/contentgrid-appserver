@@ -12,7 +12,7 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -59,11 +59,17 @@ import lombok.experimental.Delegate;
 @Value
 public class Entity implements HasAttributes, Translatable<EntityTranslations> {
 
+    public interface EntityTranslations {
+        String getSingularName();
+        String getPluralName();
+        String getDescription();
+    }
+
     @Value
     @With
     @NoArgsConstructor(force = true)
     @AllArgsConstructor
-    public static class EntityTranslations {
+    public static class ConfigurableEntityTranslations implements EntityTranslations {
         String singularName;
         String pluralName;
         String description;
@@ -89,7 +95,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     Entity(
             @NonNull EntityName name,
             @NonNull PathSegmentName pathSegment,
-            @NonNull ManipulatableTranslatable<EntityTranslations> translations,
+            @NonNull ConfigurableTranslatable<EntityTranslations, ConfigurableEntityTranslations> translations,
             @NonNull TableName table,
             @NonNull LinkName linkName,
             @Singular List<Attribute> attributes,
@@ -362,10 +368,10 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
 
     public static EntityBuilder builder() {
         return new EntityBuilder()
-                .translations(new TranslatableImpl<>(EntityTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableEntityTranslations::new));
     }
 
-    public static class EntityBuilder extends TranslationBuilderSupport<EntityTranslations, EntityBuilder> {
+    public static class EntityBuilder extends TranslationBuilderSupport<EntityTranslations, ConfigurableEntityTranslations, EntityBuilder> {
         {
             getTranslations = () -> translations;
         }

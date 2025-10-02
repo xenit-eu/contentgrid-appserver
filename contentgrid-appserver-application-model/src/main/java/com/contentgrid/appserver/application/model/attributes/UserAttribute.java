@@ -5,7 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -49,7 +49,7 @@ public class UserAttribute implements CompositeAttribute {
     SimpleAttribute username;
 
     @Builder
-    UserAttribute(@NonNull AttributeName name, ManipulatableTranslatable<AttributeTranslations> translations, @Singular Set<AttributeFlag> flags,
+    UserAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @Singular Set<AttributeFlag> flags,
             @NonNull ColumnName idColumn, @NonNull ColumnName namespaceColumn, @NonNull ColumnName usernameColumn) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
@@ -86,10 +86,10 @@ public class UserAttribute implements CompositeAttribute {
 
     public static UserAttributeBuilder builder() {
         return new UserAttributeBuilder()
-                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
     }
 
-    public static class UserAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, UserAttributeBuilder> {
+    public static class UserAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, UserAttributeBuilder> {
         {
             getTranslations = () -> translations;
         }

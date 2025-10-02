@@ -15,18 +15,24 @@ class TranslatableImplTest {
 
     public static final Locale DUTCH = Locale.of("nl");
 
+    interface TestTranslations {
+        String getTitle();
+        String getDescription();
+    }
+
     @Value
     @With
     @NoArgsConstructor(access = AccessLevel.PRIVATE, force = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    private static class TestTranslations {
+    private static class ConfigurableTestTranslations implements TestTranslations {
         String title;
         String description;
     }
 
-    private static final ManipulatableTranslatable<TestTranslations> EMPTY = new TranslatableImpl<>(TestTranslations::new);
+    private static final ConfigurableTranslatable<TestTranslations, ConfigurableTestTranslations> EMPTY = new TranslatableImpl<>(
+            ConfigurableTestTranslations::new);
 
-    private static final ManipulatableTranslatable<TestTranslations> STANDARD = EMPTY
+    private static final ConfigurableTranslatable<TestTranslations, ConfigurableTestTranslations> STANDARD = EMPTY
                 .withTranslationsBy(Locale.ENGLISH, t  -> t.withTitle("My title").withDescription("My description"))
                 .withTranslationsBy(Locale.FRENCH, t -> t.withTitle("Mon titre").withDescription("Mon description"))
             ;
@@ -51,7 +57,7 @@ class TranslatableImplTest {
     @Test
     void set_translation() {
         var withTranslations = STANDARD
-                .withTranslations(Locale.ENGLISH, new TestTranslations("New title", null));
+                .withTranslations(Locale.ENGLISH, new ConfigurableTestTranslations("New title", null));
 
         assertThat(withTranslations.getTranslations())
                 .containsOnlyKeys(Locale.ENGLISH, Locale.FRENCH);

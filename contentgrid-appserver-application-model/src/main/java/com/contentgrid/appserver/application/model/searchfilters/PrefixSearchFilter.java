@@ -3,7 +3,7 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -36,7 +36,7 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
     @Builder
     PrefixSearchFilter(
             @NonNull FilterName name,
-            @NonNull ManipulatableTranslatable<SearchFilterTranslations> translations,
+            @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags
     ) throws InvalidSearchFilterException {
@@ -50,10 +50,10 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
 
     public static PrefixSearchFilterBuilder builder() {
         return new PrefixSearchFilterBuilder()
-                .translations(new TranslatableImpl<>(SearchFilterTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
-    public static class PrefixSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, PrefixSearchFilterBuilder> {
+    public static class PrefixSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, PrefixSearchFilterBuilder> {
         {
             getTranslations = () -> translations;
         }

@@ -14,22 +14,22 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TranslatableImpl<T> implements ManipulatableTranslatable<T> {
+public class TranslatableImpl<T, M extends T> implements ConfigurableTranslatable<T, M> {
     @NonNull
-    private final Function<Locale, T> newConstructor;
+    private final Function<Locale, M> newConstructor;
 
     @NonNull
-    private final Map<Locale, T> translations;
+    private final Map<Locale, M> translations;
 
-    public TranslatableImpl(@NonNull Supplier<T> newConstructor, @NonNull Map<Locale, T> translations) {
+    public TranslatableImpl(@NonNull Supplier<M> newConstructor, @NonNull Map<Locale, M> translations) {
         this(locale -> newConstructor.get(), translations);
     }
 
-    public TranslatableImpl(@NonNull Supplier<T> newConstructor) {
+    public TranslatableImpl(@NonNull Supplier<M> newConstructor) {
         this(newConstructor, Map.of());
     }
 
-    public TranslatableImpl(@NonNull Function<Locale, T> newConstructor) {
+    public TranslatableImpl(@NonNull Function<Locale, M> newConstructor) {
         this(newConstructor, Map.of());
     }
 
@@ -48,14 +48,10 @@ public class TranslatableImpl<T> implements ManipulatableTranslatable<T> {
     }
 
     public T getTranslations(@NonNull Locale locale) {
-        var translation = translations.get(locale);
-        if(translation != null) {
-            return translation;
-        }
-        return getOrNewTranslation(Locale.ROOT);
+        return getOrNewTranslation(locale);
     }
 
-    private T getOrNewTranslation(@NonNull Locale locale) {
+    private M getOrNewTranslation(@NonNull Locale locale) {
         var translation = translations.get(locale);
         if (translation != null) {
             return translation;
@@ -64,7 +60,7 @@ public class TranslatableImpl<T> implements ManipulatableTranslatable<T> {
     }
 
     @Override
-    public ManipulatableTranslatable<T> withTranslations(@NonNull Locale locale, @NonNull T data) {
+    public ConfigurableTranslatable<T, M> withTranslations(@NonNull Locale locale, @NonNull M data) {
         var copy = new HashMap<>(translations);
         copy.put(locale, data);
         return new TranslatableImpl<>(
@@ -74,13 +70,13 @@ public class TranslatableImpl<T> implements ManipulatableTranslatable<T> {
     }
 
     @Override
-    public ManipulatableTranslatable<T> withTranslationsBy(@NonNull Locale locale, @NonNull UnaryOperator<T> modifier) {
+    public ConfigurableTranslatable<T, M> withTranslationsBy(@NonNull Locale locale, @NonNull UnaryOperator<M> modifier) {
         var existing = getOrNewTranslation(locale);
         return withTranslations(locale, modifier.apply(existing));
     }
 
     @Override
-    public ManipulatableTranslatable<T> withTranslationsBy(BiFunction<Locale, T, T> modifier) {
+    public ConfigurableTranslatable<T, M> withTranslationsBy(BiFunction<Locale, M, M> modifier) {
          var newTranslations = translations.entrySet().stream()
                  .collect(Collectors.toUnmodifiableMap(
                          Entry::getKey,

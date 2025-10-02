@@ -3,7 +3,7 @@ package com.contentgrid.appserver.application.model.attributes;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
-import com.contentgrid.appserver.application.model.i18n.ManipulatableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -41,7 +41,7 @@ public class CompositeAttributeImpl implements CompositeAttribute {
     Map<AttributeName, Attribute> attributes = new LinkedHashMap<>();
 
     @Builder
-    CompositeAttributeImpl(@NonNull AttributeName name, ManipulatableTranslatable<AttributeTranslations> translations, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
+    CompositeAttributeImpl(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @Singular Set<Attribute> attributes, @Singular Set<AttributeFlag> flags) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
             if(t.getName() == null) {
@@ -86,10 +86,10 @@ public class CompositeAttributeImpl implements CompositeAttribute {
 
     public static CompositeAttributeImplBuilder builder() {
         return new CompositeAttributeImplBuilder()
-                .translations(new TranslatableImpl<>(AttributeTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
     }
 
-    public static class CompositeAttributeImplBuilder extends TranslationBuilderSupport<AttributeTranslations, CompositeAttributeImplBuilder> {
+    public static class CompositeAttributeImplBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, CompositeAttributeImplBuilder> {
         {
             getTranslations = () -> translations;
         }
