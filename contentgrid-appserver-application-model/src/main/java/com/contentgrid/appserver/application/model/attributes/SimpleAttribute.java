@@ -2,15 +2,24 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
+import lombok.experimental.Delegate;
 
 /**
  * Represents an attribute (field) of an entity.
@@ -27,7 +36,11 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     AttributeName name;
 
-    String description;
+    @NonNull
+    @EqualsAndHashCode.Exclude
+    @Delegate
+    @Getter(value = AccessLevel.NONE)
+    Translatable<AttributeTranslations> translations;
 
     /**
      * The name of the database column this attribute maps to.
@@ -61,10 +74,15 @@ public class SimpleAttribute implements Attribute {
     }
 
     @Builder
-    SimpleAttribute(@NonNull AttributeName name, String description, @NonNull ColumnName column,
+    SimpleAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @NonNull ColumnName column,
             @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
-        this.description = description;
+        this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
+            if(t.getName() == null) {
+                t = t.withName(name.getValue());
+            }
+            return t;
+        });
         this.column = column;
         this.type = type;
         this.flags = flags;
@@ -102,6 +120,22 @@ public class SimpleAttribute implements Attribute {
                 .filter(constraintClass::isInstance)
                 .map(constraintClass::cast)
                 .findAny();
+    }
+
+    public static SimpleAttributeBuilder builder() {
+        return new SimpleAttributeBuilder()
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
+    }
+
+    public static class SimpleAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, SimpleAttributeBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
+        public SimpleAttributeBuilder description(String description) {
+            return translationsBy(Locale.ROOT, t  -> t.withDescription(description));
+        }
+
     }
 
 }

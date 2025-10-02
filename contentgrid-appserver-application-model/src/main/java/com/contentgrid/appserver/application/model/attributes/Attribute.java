@@ -1,18 +1,46 @@
 package com.contentgrid.appserver.application.model.attributes;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Value;
+import lombok.With;
 
-public sealed interface Attribute permits CompositeAttribute, SimpleAttribute {
+public sealed interface Attribute extends Translatable<AttributeTranslations> permits CompositeAttribute, SimpleAttribute {
+
+    interface AttributeTranslations {
+        String getName();
+        String getDescription();
+    }
+    @Value
+    @NoArgsConstructor(access = AccessLevel.PACKAGE, force = true)
+    @AllArgsConstructor
+    @With
+    class ConfigurableAttributeTranslations implements AttributeTranslations {
+        String name;
+
+        String description;
+    }
 
     AttributeName getName();
 
-    String getDescription();
+    /**
+     * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+     */
+    @Deprecated(forRemoval = true)
+    default String getDescription() {
+        return getTranslations(Locale.ROOT).getDescription();
+    }
 
     List<ColumnName> getColumns();
 

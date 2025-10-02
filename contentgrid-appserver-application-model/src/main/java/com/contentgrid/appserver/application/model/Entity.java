@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
@@ -11,6 +12,10 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -27,15 +32,21 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
+import lombok.With;
+import lombok.experimental.Delegate;
 
 /**
  * Represents an entity within an application.
@@ -46,14 +57,30 @@ import lombok.Value;
  * @see Entity.EntityBuilder
  */
 @Value
-public class Entity implements HasAttributes {
+public class Entity implements HasAttributes, Translatable<EntityTranslations> {
+
+    public interface EntityTranslations {
+        String getSingularName();
+        String getPluralName();
+        String getDescription();
+    }
+
+    @Value
+    @With
+    @NoArgsConstructor(force = true)
+    @AllArgsConstructor
+    public static class ConfigurableEntityTranslations implements EntityTranslations {
+        String singularName;
+        String pluralName;
+        String description;
+    }
 
     /**
      * Constructs an Entity with the specified parameters.
      *
      * @param name the entity name
      * @param pathSegment the url path segment
-     * @param description the description for this entity
+     * @param translations the translations description for this entity
      * @param table the database table name
      * @param linkName the link name used in link relation 'cg:entity'
      * @param attributes list of attributes for this entity (excluding primary key attribute)
@@ -68,7 +95,7 @@ public class Entity implements HasAttributes {
     Entity(
             @NonNull EntityName name,
             @NonNull PathSegmentName pathSegment,
-            String description,
+            @NonNull ConfigurableTranslatable<EntityTranslations, ConfigurableEntityTranslations> translations,
             @NonNull TableName table,
             @NonNull LinkName linkName,
             @Singular List<Attribute> attributes,
@@ -78,7 +105,16 @@ public class Entity implements HasAttributes {
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
-        this.description = description;
+        this.translations = translations
+                .withTranslationsBy(
+                        Locale.ROOT,
+                        t -> {
+                            if(t.getSingularName() == null) {
+                                t = t.withSingularName(name.getValue());
+                            }
+                            return t;
+                        }
+                );
         this.table = table;
         this.linkName = linkName;
         if (primaryKey == null) {
@@ -167,7 +203,11 @@ public class Entity implements HasAttributes {
     @NonNull
     PathSegmentName pathSegment;
 
-    String description;
+    @NonNull
+    @EqualsAndHashCode.Exclude
+    @Delegate
+    @Getter(value = AccessLevel.NONE)
+    Translatable<EntityTranslations> translations;
 
     /**
      * The name of the database table that this entity maps to.
@@ -207,6 +247,14 @@ public class Entity implements HasAttributes {
      */
     @Getter(AccessLevel.NONE)
     Map<PathSegmentName, ContentAttribute> contentAttributes = new LinkedHashMap<>();
+
+    /**
+     * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+     */
+    @Deprecated(forRemoval = true)
+    public String getDescription() {
+        return translations.getTranslations(Locale.ROOT).getDescription();
+    }
 
     /**
      * Returns an unmodifiable list of attributes (primary key excluded).
@@ -319,5 +367,20 @@ public class Entity implements HasAttributes {
                 throw new AttributeNotFoundException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
             }
         };
+    }
+
+    public static EntityBuilder builder() {
+        return new EntityBuilder()
+                .translations(new TranslatableImpl<>(ConfigurableEntityTranslations::new));
+    }
+
+    public static class EntityBuilder extends TranslationBuilderSupport<EntityTranslations, ConfigurableEntityTranslations, EntityBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
+        public EntityBuilder description(String description) {
+            return translationsBy(Locale.ROOT, t  -> t.withDescription(description));
+        }
     }
 }

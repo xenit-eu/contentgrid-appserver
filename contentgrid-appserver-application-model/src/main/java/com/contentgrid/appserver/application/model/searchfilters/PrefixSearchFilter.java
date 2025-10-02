@@ -3,6 +3,9 @@ package com.contentgrid.appserver.application.model.searchfilters;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -33,10 +36,11 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
     @Builder
     PrefixSearchFilter(
             @NonNull FilterName name,
+            @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags
     ) throws InvalidSearchFilterException {
-        super(name, attributePath, flags);
+        super(name, translations, attributePath, flags);
     }
 
     @Override
@@ -44,7 +48,16 @@ public class PrefixSearchFilter extends AttributeSearchFilter {
         return attribute.getType().equals(Type.TEXT);
     }
 
-    public static class PrefixSearchFilterBuilder {
+    public static PrefixSearchFilterBuilder builder() {
+        return new PrefixSearchFilterBuilder()
+                .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
+    }
+
+    public static class PrefixSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, PrefixSearchFilterBuilder> {
+        {
+            getTranslations = () -> translations;
+        }
+
         public PrefixSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
             this.attributePath = PropertyPath.of(attribute.getName());
             return this;

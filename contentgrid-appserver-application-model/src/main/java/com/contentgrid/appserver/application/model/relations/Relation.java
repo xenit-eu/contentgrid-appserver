@@ -1,6 +1,11 @@
 package com.contentgrid.appserver.application.model.relations;
 
 import com.contentgrid.appserver.application.model.exceptions.InvalidRelationException;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.RelationEndPointTranslations;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
@@ -11,14 +16,20 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
+import lombok.With;
+import lombok.experimental.Delegate;
 
 /**
  * Represents a relationship between two entities in the application model.
@@ -62,7 +73,21 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
      * Represents an endpoint of a relation, defining an entity and an optional relation name.
      */
     @Value
-    public static class RelationEndPoint {
+    public static class RelationEndPoint implements Translatable<RelationEndPointTranslations> {
+
+        public interface RelationEndPointTranslations {
+            String getName();
+            String getDescription();
+        }
+
+        @Value
+        @With
+        @NoArgsConstructor(access = AccessLevel.PRIVATE, force = true)
+        @AllArgsConstructor
+        public static class ConfigurableRelationEndPointTranslations implements RelationEndPointTranslations {
+            String name;
+            String description;
+        }
 
         /**
          * The name of this relation endpoint from the perspective of the entity.
@@ -77,7 +102,11 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          */
         LinkName linkName;
 
-        String description;
+        @NonNull
+        @EqualsAndHashCode.Exclude
+        @Delegate
+        @Getter(value = AccessLevel.NONE)
+        Translatable<RelationEndPointTranslations> translations;
 
         /**
          * The entity at this endpoint of the relation.
@@ -94,14 +123,19 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                 RelationName name,
                 PathSegmentName pathSegment,
                 LinkName linkName,
-                String description,
+                @NonNull ConfigurableTranslatable<RelationEndPointTranslations, ConfigurableRelationEndPointTranslations> translations,
                 @Singular @NonNull Set<RelationEndpointFlag> flags
         ) {
             this.entity = entity;
             this.name = name;
             this.pathSegment = pathSegment;
             this.linkName = linkName;
-            this.description = description;
+            this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
+                if(t.getName() == null && name != null) {
+                    t = t.withName(name.getValue());
+                }
+                return t;
+            });
             this.flags = new HashSet<>(flags);
             if(name == null) {
                 this.flags.add(HiddenEndpointFlag.INSTANCE);
@@ -111,6 +145,14 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
             if(!hasFlag(HiddenEndpointFlag.class)) {
                 this.flags.add(VisibleEndpointFlag.INSTANCE);
             }
+        }
+
+        /**
+         * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+         */
+        @Deprecated(forRemoval = true)
+        public String getDescription() {
+            return translations.getTranslations(Locale.ROOT).getDescription();
         }
 
         /**
@@ -154,6 +196,21 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
          */
         public boolean hasFlag(Class<? extends RelationEndpointFlag> flagClass) {
             return getFlags().stream().anyMatch(flagClass::isInstance);
+        }
+
+        public static RelationEndPointBuilder builder() {
+            return new RelationEndPointBuilder()
+                    .translations(new TranslatableImpl<>(ConfigurableRelationEndPointTranslations::new));
+        }
+
+        public static class RelationEndPointBuilder extends TranslationBuilderSupport<RelationEndPointTranslations, ConfigurableRelationEndPointTranslations, RelationEndPointBuilder> {
+            {
+                getTranslations = () -> translations;
+            }
+
+            public RelationEndPointBuilder description(String description) {
+                return translationsBy(Locale.ROOT, t -> t.withDescription(description));
+            }
         }
 
     }
