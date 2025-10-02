@@ -29,7 +29,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     public record Context(Application application, UserLocales userLocales, LinkFactoryProvider linkFactoryProvider) {
         public HalFormsTemplateGenerator templateGenerator() {
-            return new HalFormsTemplateGenerator(application(), linkFactoryProvider());
+            return new HalFormsTemplateGenerator(application(), userLocales(), linkFactoryProvider());
         }
     }
 
@@ -72,7 +72,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     private Link getEntityItemLink(Entity entity, Context context) {
         return linkTo(methodOn(EntityRestController.class)
-                .getEntity(context.application(), entity.getPathSegment(), null, null, null))
+                .getEntity(context.application(), entity.getPathSegment(), null, null, null, null))
                 .withRel(IanaLinkRelations.DESCRIBES)
                 .withName(IanaLinkRelations.ITEM_VALUE)
                 .withTitle(entity.getTranslations(context.userLocales()).getSingularName());

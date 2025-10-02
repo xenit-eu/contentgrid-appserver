@@ -528,6 +528,43 @@ class EntityRestControllerTest {
                                             title: "Parent(e)"
                                         }
                                     ]
+                                },
+                                _templates: {
+                                    "set-parent": {
+                                        properties: [
+                                            {
+                                                name: "parent",
+                                                prompt: "Parent(e)",
+                                                options: {
+                                                    link: {
+                                                        href: "http://localhost/persons",
+                                                        title: "Personen"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    default: {
+                                        method: "PUT",
+                                        properties: [
+                                            {
+                                                name: "name",
+                                                prompt: "Naam"
+                                            },
+                                            {
+                                                name: "vat",
+                                                prompt: "BTW nummer"
+                                            },
+                                            {
+                                                name: "age",
+                                                prompt: "Âge"
+                                            },
+                                            {
+                                                name: "gender",
+                                                prompt: "gender"
+                                            }
+                                        ]
+                                    }
                                 }
                             }
                             """));
