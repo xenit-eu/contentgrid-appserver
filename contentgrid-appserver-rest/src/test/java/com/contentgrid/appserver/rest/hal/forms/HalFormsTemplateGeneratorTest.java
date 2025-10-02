@@ -7,7 +7,8 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
-import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -584,7 +585,8 @@ class HalFormsTemplateGeneratorTest {
                         .column(ColumnName.of("two"))
                         .type(Type.TEXT)
                         .build())
-                .searchFilter(PrefixSearchFilter.builder()
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.PREFIX)
                         .name(FilterName.of("one~prefix"))
                         .attributePath(PropertyPath.of(AttributeName.of("one")))
                         .build())

@@ -8,7 +8,8 @@ import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -69,7 +70,8 @@ class JOOQCountStrategyTest {
             .linkName(LinkName.of("products"))
             .attribute(PRODUCT_CODE)
             .attribute(PRODUCT_DESCRIPTION)
-            .searchFilter(ExactSearchFilter.builder()
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
                     .name(FilterName.of("code"))
                     .attribute(PRODUCT_CODE)
                     .build())
