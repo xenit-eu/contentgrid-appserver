@@ -4,7 +4,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
@@ -66,6 +67,7 @@ public class XToManyRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
         var targetEntity = application.getRelationTargetEntity(relation);
+        var sourceEntity = application.getRelationSourceEntity(relation);
 
         if(relation.getTargetEndPoint().getName() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
@@ -73,13 +75,14 @@ public class XToManyRelationRestController {
 
         var relationPath = new RelationPath(
                 relation.getTargetEndPoint().getName(),
-                new SimpleAttributePath(targetEntity.getPrimaryKey().getName())
+                new SimpleAttributePath(sourceEntity.getPrimaryKey().getName())
         );
 
         var targetFilter = targetEntity.getSearchFilters().stream()
                 .filter(searchFilter -> {
-                    if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
-                        return Objects.equals(exactSearchFilter.getAttributePath(), relationPath);
+                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                        return Operation.EXACT.equals(attributeSearchFilter.getOperation()) &&
+                                Objects.equals(attributeSearchFilter.getAttributePath(), relationPath);
                     }
                     return false;
                 })

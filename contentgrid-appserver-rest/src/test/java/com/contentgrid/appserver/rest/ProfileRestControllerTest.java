@@ -88,7 +88,7 @@ class ProfileRestControllerTest {
                             description: null,
                             _embedded: {
                                 "blueprint:attribute": [{
-                                    name: "id",
+                                    name: "invoice_id",
                                     type: "string",
                                     readOnly: true
                                 }, {
@@ -481,7 +481,7 @@ class ProfileRestControllerTest {
                         {
                             title: "invoice",
                             properties: {
-                                id: {
+                                invoice_id: {
                                     type: "string",
                                     format: "uuid",
                                     readOnly: true

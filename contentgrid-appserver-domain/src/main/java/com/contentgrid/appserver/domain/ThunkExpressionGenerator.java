@@ -6,9 +6,6 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -119,16 +116,13 @@ public class ThunkExpressionGenerator {
     private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
-        return switch (filter) {
-            case ExactSearchFilter ignored -> Comparison.areEqual(attr, value);
-            case PrefixSearchFilter ignored -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
-                case GREATER_THAN -> Comparison.greater(attr, value);
-                case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
-                case LESS_THAN -> Comparison.less(attr, value);
-                case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
-            };
-            default -> throw new IllegalArgumentException("filter %s is not supported".formatted(filter));
+        return switch (filter.getOperation()) {
+            case EXACT -> Comparison.areEqual(attr, value);
+            case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
+            case GREATER_THAN -> Comparison.greater(attr, value);
+            case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
+            case LESS_THAN -> Comparison.less(attr, value);
+            case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
         };
     }
 

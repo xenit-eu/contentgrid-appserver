@@ -25,8 +25,8 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -94,11 +94,13 @@ class JOOQTableCreatorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
-            .searchFilter(ExactSearchFilter.builder()
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))
                     .build())
-            .searchFilter(PrefixSearchFilter.builder()
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
@@ -189,7 +191,8 @@ class JOOQTableCreatorTest {
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
-            .searchFilter(ExactSearchFilter.builder()
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
                     .build())
