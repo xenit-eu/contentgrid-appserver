@@ -49,7 +49,7 @@ public class AttributeSearchFilter implements SearchFilter {
      * @param flags the flags of the search filter
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    @Builder
+    @Builder(toBuilder = true)
     AttributeSearchFilter(
             @NonNull Operation operation,
             @NonNull FilterName name,

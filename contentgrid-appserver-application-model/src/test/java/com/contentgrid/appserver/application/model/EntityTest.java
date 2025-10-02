@@ -15,7 +15,6 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -56,12 +55,12 @@ class EntityTest {
             .name(AttributeName.of("composite"))
             .attribute(NESTED_ATTRIBUTE)
             .build();
-    private static final SearchFilter FILTER1 = AttributeSearchFilter.builder()
+    private static final AttributeSearchFilter FILTER1 = AttributeSearchFilter.builder()
             .operation(Operation.PREFIX)
             .name(FilterName.of("filter1"))
             .attribute(ATTRIBUTE1)
             .build();
-    private static final SearchFilter FILTER2 = AttributeSearchFilter.builder()
+    private static final AttributeSearchFilter FILTER2 = AttributeSearchFilter.builder()
             .operation(Operation.EXACT)
             .name(FilterName.of("filter2"))
             .attribute(ATTRIBUTE2)
@@ -125,10 +124,8 @@ class EntityTest {
         );
 
         var filters = entity.getSearchFilters();
-        var filter3 = AttributeSearchFilter.builder()
-                .operation(Operation.EXACT)
+        var filter3 = FILTER2.toBuilder()
                 .name(FilterName.of("filter3"))
-                .attribute(ATTRIBUTE1)
                 .build();
 
         // validate that the list of search filters is immutable
