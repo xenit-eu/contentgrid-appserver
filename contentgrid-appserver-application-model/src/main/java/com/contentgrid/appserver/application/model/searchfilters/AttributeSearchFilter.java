@@ -1,22 +1,25 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import java.util.Set;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Singular;
 
 /**
- * Base class for search filters that operate on entity attributes.
- * 
- * AttributeSearchFilter is an abstract class that provides common functionality
- * for search filters that filter entities based on attribute values.
+ * AttributeSearchFilter is a class representing search filters that operate on entity attributes.
  */
 @Getter
-public abstract class AttributeSearchFilter implements SearchFilter {
+public class AttributeSearchFilter implements SearchFilter {
+
+    @NonNull
+    private final Operation operation;
 
     /**
      * The name of the search filter.
@@ -38,21 +41,21 @@ public abstract class AttributeSearchFilter implements SearchFilter {
     @NonNull
     private final Set<SearchFilterFlag> flags;
 
-
-
     /**
      * Constructs an AttributeSearchFilter with the specified parameters.
      *
      * @param name the name of the search filter
      * @param attributePath the path to the attribute to apply the filter on
-     * @param flags
+     * @param flags the flags of the search filter
      * @throws InvalidSearchFilterException if the attribute type is not supported
      */
-    protected AttributeSearchFilter(
+    @Builder
+    AttributeSearchFilter(
+            @NonNull Operation operation,
             @NonNull FilterName name,
             @NonNull PropertyPath attributePath,
-            @NonNull Set<SearchFilterFlag> flags
-    ) {
+            @NonNull @Singular Set<SearchFilterFlag> flags) {
+        this.operation = operation;
         this.name = name;
         this.attributePath = attributePath;
         this.flags = Set.copyOf(flags);
@@ -62,10 +65,38 @@ public abstract class AttributeSearchFilter implements SearchFilter {
 
     /**
      * Determines if this search filter supports the given attribute.
-     * 
+     * <p>
      * @param attribute the attribute to check support for
      * @return true if the attribute is supported, false otherwise
      */
-    public abstract boolean supports(SimpleAttribute attribute);
+    public boolean supports(SimpleAttribute attribute) {
+        return operation.supports(attribute);
+    }
 
+    public enum Operation {
+        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATETIME)),
+        PREFIX(Set.of(Type.TEXT)),
+        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        ;
+
+        private final Set<Type> supportedTypes;
+
+        Operation(Set<Type> supportedTypes) {
+            this.supportedTypes = supportedTypes;
+        }
+
+        public boolean supports(SimpleAttribute attribute) {
+            return supportedTypes.contains(attribute.getType());
+        }
+    }
+
+    public static class AttributeSearchFilterBuilder {
+        public AttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = PropertyPath.of(attribute.getName());
+            return this;
+        }
+    }
 }

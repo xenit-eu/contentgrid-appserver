@@ -4,7 +4,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
@@ -79,8 +80,9 @@ public class XToManyRelationRestController {
 
         var targetFilter = targetEntity.getSearchFilters().stream()
                 .filter(searchFilter -> {
-                    if (searchFilter instanceof ExactSearchFilter exactSearchFilter) {
-                        return Objects.equals(exactSearchFilter.getAttributePath(), relationPath);
+                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+                        return Operation.EXACT.equals(attributeSearchFilter.getOperation()) &&
+                                Objects.equals(attributeSearchFilter.getAttributePath(), relationPath);
                     }
                     return false;
                 })

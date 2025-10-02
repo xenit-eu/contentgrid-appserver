@@ -20,9 +20,7 @@ import com.contentgrid.appserver.application.model.relations.flags.RelationEndpo
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.ExactSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.OrderedSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.PrefixSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -68,7 +66,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -279,39 +276,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
 
-        return switch (type) {
-            case "prefix" -> PrefixSearchFilter.builder()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
-            case "exact" -> ExactSearchFilter.builder()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
-            case "greater" -> OrderedSearchFilter.greaterThan()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
-            case "greater-or-equal" -> OrderedSearchFilter.greaterThanOrEqual()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
-            case "less" -> OrderedSearchFilter.lessThan()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
-            case "less-or-equal" -> OrderedSearchFilter.lessThanOrEqual()
-                    .name(filterName)
-                    .attributePath(propertyPath)
-                    .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
-                    .build();
+        var operation = switch (type) {
+            case "prefix" -> Operation.PREFIX;
+            case "exact" -> Operation.EXACT;
+            case "greater" -> Operation.GREATER_THAN;
+            case "greater-or-equal" -> Operation.GREATER_THAN_OR_EQUAL;
+            case "less" -> Operation.LESS_THAN;
+            case "less-or-equal" -> Operation.LESS_THAN_OR_EQUAL;
             default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
         };
+        return AttributeSearchFilter.builder()
+                .operation(operation)
+                .name(filterName)
+                .attributePath(propertyPath)
+                .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                .build();
     }
 
     private Set<SearchFilterFlag> fromJsonSearchFilterFlags(
@@ -537,16 +516,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
         if (filter instanceof AttributeSearchFilter attributeFilter) {
             jsonFilter.setAttributePath(toJsonPropertyPath(attributeFilter.getAttributePath()));
-            var type = switch (attributeFilter) {
-                case PrefixSearchFilter ignored -> "prefix";
-                case ExactSearchFilter ignored -> "exact";
-                case OrderedSearchFilter orderedFilter -> switch (orderedFilter.getOperation()) {
-                    case GREATER_THAN -> "greater";
-                    case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
-                    case LESS_THAN -> "less";
-                    case LESS_THAN_OR_EQUAL -> "less-or-equal";
-                };
-                default -> throw new IllegalStateException("Unexpected value: " + filter);
+            var type = switch (attributeFilter.getOperation()) {
+                case EXACT -> "exact";
+                case PREFIX -> "prefix";
+                case GREATER_THAN -> "greater";
+                case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
+                case LESS_THAN -> "less";
+                case LESS_THAN_OR_EQUAL -> "less-or-equal";
             };
             jsonFilter.setType(type);
         } else {
