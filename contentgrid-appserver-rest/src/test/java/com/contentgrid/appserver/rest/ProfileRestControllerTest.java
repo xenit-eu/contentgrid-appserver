@@ -578,6 +578,95 @@ class ProfileRestControllerTest {
                                     templated: true,
                                     name: "item"
                                 }]
+                            },
+                            _templates: {
+                                search: {
+                                    method: "GET",
+                                    properties: [
+                                        {
+                                            name: "name~prefix",
+                                            prompt: "Naam begint met"
+                                        },
+                                        {
+                                            name: "vat",
+                                            prompt: "BTW"
+                                        },
+                                        {
+                                            name: "friends.name~prefix",
+                                            prompt: "Has a friend with name"
+                                        },
+                                        {
+                                            name: "friends.vat",
+                                            prompt: "friends.vat"
+                                        },
+                                        {
+                                            name: "parent",
+                                            prompt: "parent"
+                                        },
+                                        {
+                                            name: "invoices.number",
+                                            prompt: "invoices.number"
+                                        },
+                                        {
+                                            name: "invoices.confidentiality"
+                                        },
+                                        {
+                                            name: "invoices.amount"
+                                        },
+                                        {
+                                            name: "invoices.amount~gt"
+                                        },
+                                        {
+                                            name: "invoices.amount~gte"
+                                        },
+                                        {
+                                            name: "invoices.amount~lt"
+                                        },
+                                        {
+                                            name: "invoices.amount~lte"
+                                        },
+                                        {
+                                            name: "invoices.received~after"
+                                        },
+                                        {
+                                            name: "invoices.received~before"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~after"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~before"
+                                        },
+                                        {
+                                            name: "_sort"
+                                        }
+                                    ]
+                                },
+                                "create-form": {
+                                    method: "POST",
+                                    properties: [
+                                        {
+                                            name: "name",
+                                            prompt: "Naam"
+                                        },
+                                        {
+                                            name: "vat",
+                                            prompt: "BTW nummer"
+                                        },
+                                        {
+                                            name: "age",
+                                            prompt: "Âge"
+                                        },
+                                        {
+                                            name: "gender",
+                                            prompt: "gender"
+                                        },
+                                        {
+                                            name: "parent",
+                                            prompt: "Parent(e)"
+                                        }
+                                    ]
+                                }
                             }
                         }
                         """));

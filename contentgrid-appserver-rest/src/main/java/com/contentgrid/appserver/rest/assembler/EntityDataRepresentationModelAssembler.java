@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.assembler;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
@@ -90,12 +91,12 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         return result;
     }
 
-    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, EntityName entityName, LinkFactoryProvider linkFactoryProvider) {
-        return withContext(application, entityName, linkFactoryProvider, MultiValueMap.fromSingleValue(Map.of()), null);
+    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, EntityName entityName, UserLocales userLocales, LinkFactoryProvider linkFactoryProvider) {
+        return withContext(application, entityName, userLocales, linkFactoryProvider, MultiValueMap.fromSingleValue(Map.of()), null);
     }
 
-    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, EntityName entityName, LinkFactoryProvider linkFactoryProvider, MultiValueMap<String, String> params, EncodedCursorPagination pagination) {
-        return withContext(new EntityContext(application, entityName, linkFactoryProvider, params, pagination));
+    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(Application application, EntityName entityName, UserLocales userLocales, LinkFactoryProvider linkFactoryProvider, MultiValueMap<String, String> params, EncodedCursorPagination pagination) {
+        return withContext(new EntityContext(application, entityName, userLocales, linkFactoryProvider, params, pagination));
     }
 
     private Link getCollectionSelfLink(EntityContext context) {
@@ -142,12 +143,13 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     public record EntityContext(
             Application application,
             EntityName entityName,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider,
             MultiValueMap<String, String> params,
             @With EncodedCursorPagination pagination
     ) {
         HalFormsTemplateGenerator templateGenerator() {
-            return new HalFormsTemplateGenerator(application, linkFactoryProvider);
+            return new HalFormsTemplateGenerator(application, userLocales, linkFactoryProvider);
         }
     }
 }

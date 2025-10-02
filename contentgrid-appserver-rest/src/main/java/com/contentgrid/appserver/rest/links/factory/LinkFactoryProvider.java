@@ -108,6 +108,7 @@ public class LinkFactoryProvider {
                         null,
                         parameters.searchParams,
                         parameters.cursor,
+                        userLocales,
                         this
                 ))
                 .withName(entity.getLinkName().getValue())
@@ -128,6 +129,7 @@ public class LinkFactoryProvider {
                         entity.getPathSegment(),
                         identity.getEntityId(),
                         null,
+                        userLocales,
                         this
                 ))
                 .withTitle(entity.getTranslations(userLocales).getSingularName())
@@ -144,7 +146,7 @@ public class LinkFactoryProvider {
 
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, entity.getPathSegment(), null, null, null),
+                                .getEntity(application, entity.getPathSegment(), null, null, userLocales, this),
                         params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
                 .build();
     }
