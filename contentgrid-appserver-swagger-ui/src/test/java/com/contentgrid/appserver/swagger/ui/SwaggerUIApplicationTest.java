@@ -37,6 +37,13 @@ public class SwaggerUIApplicationTest {
     }
 
     @Test
+    void webjarsSwaggerUIcorrectVersionReturnsHttpOk() throws Exception {
+        // I reckon this test is going to break whenever renovatebot wants to update the dependency. Oh well?
+        this.mockMvc.perform(get("/webjars/swagger-ui/5.25.3/index.html"))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
     void customSwaggerInitializer() throws Exception {
         this.mockMvc.perform(get("/webjars/swagger-ui/swagger-initializer.js"))
                 .andExpect(MockMvcResultMatchers.status().isOk())

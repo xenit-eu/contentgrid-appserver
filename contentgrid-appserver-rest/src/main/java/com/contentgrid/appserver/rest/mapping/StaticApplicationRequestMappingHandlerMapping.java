@@ -87,7 +87,6 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
 
     private void registerSpecializedOnEntityHandler(Object handler, Method method, RequestMappingInfo mapping,
             SpecializedOnEntity entity) {
-        // No need for a ReplacementPathVariablesGenerator, we just need the entity pathSegment, nothing further
         List<PathSegmentName> pathSegments = application.getEntities().stream().map(Entity::getPathSegment).toList();
 
         if (pathSegments.isEmpty()) {
@@ -95,9 +94,9 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
             return;
         }
 
-        // Restrict to matching the pattern (probably "/{entityName}")
+        // Restrict to matching the pattern
         String[] specializedPathPatterns = mapping.getPatternValues().stream()
-                .map(pattern -> restrictPatternVariable(pattern, entity.value(), pathSegments))
+                .map(pattern -> restrictPatternVariable(pattern, entity.entityPathVariable(), pathSegments))
                 .toArray(String[]::new);
 
         var specializedMapping = mapping.mutate()
@@ -142,7 +141,7 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
         checkMappingContainsVariable(mapping, propertyType.propertyPathVariable());
     }
     static void validateSpecializedMapping(RequestMappingInfo mapping, SpecializedOnEntity entity) {
-        checkMappingContainsVariable(mapping, entity.value());
+        checkMappingContainsVariable(mapping, entity.entityPathVariable());
     }
 
     private static void checkMappingContainsVariable(RequestMappingInfo mapping, String variable) {

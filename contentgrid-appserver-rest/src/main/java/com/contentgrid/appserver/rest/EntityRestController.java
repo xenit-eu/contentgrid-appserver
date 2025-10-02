@@ -48,7 +48,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@SpecializedOnEntity("entityName")
+@SpecializedOnEntity(entityPathVariable = "entityName")
 @RequiredArgsConstructor
 public class EntityRestController {
 
