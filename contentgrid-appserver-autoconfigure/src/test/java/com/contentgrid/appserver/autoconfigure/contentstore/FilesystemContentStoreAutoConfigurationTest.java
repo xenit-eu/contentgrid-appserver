@@ -63,14 +63,16 @@ class FilesystemContentStoreAutoConfigurationTest {
     }
 
     @Test
-    void checkFileSystem_nonExistentDirectory() {
+    void checkFileSystem_nonExistingDirectory(@TempDir Path path) {
+        var nonExistingDirectory = Path.of(path.toString(), "nested", "non-existing");
         contextRunner
                 .withPropertyValues(
                         "contentgrid.appserver.content-store.type=fs",
-                        "contentgrid.appserver.content.fs.path=classpath:non-existent"
+                        "contentgrid.appserver.content.fs.path=" + nonExistingDirectory
                 )
                 .run(context -> {
-                    assertThat(context).hasFailed();
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasBean("filesystemContentStore");
                 });
     }
 
