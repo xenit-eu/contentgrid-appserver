@@ -1,10 +1,11 @@
-package com.contentgrid.appserver.swagger.ui;
+package com.contentgrid.appserver.webjars;
 
+import com.contentgrid.appserver.webjars.swagger.ui.SwaggerUIInitializerController;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import(SwaggerUIInitializerController.class)
-public class SwaggerUIRestConfiguration {
+public class WebjarsRestConfiguration {
 
 }

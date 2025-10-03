@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.swagger.ui;
+package com.contentgrid.appserver.webjars.swagger.ui;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -23,7 +23,8 @@ import org.webjars.WebJarAssetLocator;
 @RestController
 public class SwaggerUIInitializerController {
 
-    private static final Resource initializerResource = new ClassPathResource("com/contentgrid/appserver/swagger/ui/swagger-initializer.js");
+    private static final Resource initializerResource = new ClassPathResource(
+            "com/contentgrid/appserver/webjars/swagger/ui/swagger-initializer.js");
 
     @GetMapping(value = "/webjars/swagger-ui/swagger-initializer.js", produces = "text/javascript")
     ResponseEntity<Resource> getInitializer() {
