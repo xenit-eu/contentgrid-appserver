@@ -13,7 +13,6 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
@@ -34,7 +33,7 @@ public class ProfileAttributeRepresentationModelAssembler {
 
         var model = switch (attribute) {
             case SimpleAttribute simpleAttribute -> simpleAttributeToModel(context, entity, path, simpleAttribute);
-            case UserAttribute userAttribute -> userAttributeToModel(context, entity, path, userAttribute);
+            case UserAttribute userAttribute -> userAttributeToModel(context, userAttribute);
             case ContentAttribute contentAttribute -> compositeAttributeToModel(context, entity, path, contentAttribute);
             case CompositeAttribute compositeAttribute -> compositeAttributeToModel(context, entity, path, compositeAttribute);
         };
@@ -47,22 +46,24 @@ public class ProfileAttributeRepresentationModelAssembler {
                 .flatMap(Optional::stream)
                 .toList();
 
+        var translations = compositeAttribute.getTranslations(context.userLocales());
         return ProfileAttributeRepresentationModel.builder()
                 .name(compositeAttribute.getName().getValue())
-                .title(readTitle(context, entity, path))
+                .title(translations.getName())
                 .type(ProfileAttributeType.OBJECT)
-                .description(compositeAttribute.getDescription())
+                .description(translations.getDescription())
                 .readOnly(compositeAttribute.isReadOnly())
                 .attributes(attributes)
                 .build();
     }
 
-    private ProfileAttributeRepresentationModel userAttributeToModel(Context context, Entity entity, AttributePath path, UserAttribute userAttribute) {
+    private ProfileAttributeRepresentationModel userAttributeToModel(Context context, UserAttribute userAttribute) {
+        var translations = userAttribute.getTranslations(context.userLocales());
         return ProfileAttributeRepresentationModel.builder()
                 .name(userAttribute.getName().getValue())
-                .title(readTitle(context, entity, path))
+                .title(translations.getName())
                 .type(ProfileAttributeType.STRING)
-                .description(userAttribute.getDescription())
+                .description(translations.getDescription())
                 .readOnly(true)
                 .build();
     }
@@ -76,14 +77,16 @@ public class ProfileAttributeRepresentationModelAssembler {
                 .filter(AttributeSearchFilter.class::isInstance)
                 .map(AttributeSearchFilter.class::cast)
                 .filter(filter -> filter.getAttributePath().equals(path))
-                .map(filter -> attributeSearchFilterToModel(context, entity, filter))
+                .map(filter -> attributeSearchFilterToModel(context, filter))
                 .flatMap(Optional::stream)
                 .toList();
 
+        var translations = attribute.getTranslations(context.userLocales());
+
         return ProfileAttributeRepresentationModel.builder()
                 .name(attribute.getName().getValue())
-                .title(readTitle(context, entity, path))
-                .description(attribute.getDescription())
+                .title(translations.getName())
+                .description(translations.getDescription())
                 .type(ProfileAttributeType.from(attribute.getType()))
                 .required(attribute.hasConstraint(RequiredConstraint.class))
                 .readOnly(attribute.isReadOnly())
@@ -101,24 +104,17 @@ public class ProfileAttributeRepresentationModelAssembler {
         };
     }
 
-    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Context context,
-            Entity entity, AttributeSearchFilter filter) {
+    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Context context, AttributeSearchFilter filter) {
         if (filter.hasFlag(HiddenSearchFilterFlag.class)) {
             return Optional.empty();
         }
+
+        var translations = filter.getTranslations(context.userLocales());
         return Optional.of(ProfileSearchParamRepresentationModel.builder()
                 .name(filter.getName().getValue())
-                .title(readPrompt(context, entity, filter))
+                .title(translations.getName())
                 .type(ProfileSearchParamType.from(filter))
                 .build());
-    }
-
-    private String readTitle(Context context, Entity entity, PropertyPath path) {
-        return null; // TODO: resolve title messages (ACC-2230)
-    }
-
-    private String readPrompt(Context context, Entity entity, AttributeSearchFilter filter) {
-        return null; // TODO: resolve prompt messages (ACC-2230)
     }
 
 }

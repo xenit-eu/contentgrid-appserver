@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.json.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
@@ -13,7 +14,13 @@ public class Entity {
 
     @NonNull
     private String name;
-    private String description;
+
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations title;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations collectionTitle;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations description;
 
     @NonNull
     private String table;

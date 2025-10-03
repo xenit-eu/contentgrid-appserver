@@ -16,7 +16,10 @@ public class RelationEndPoint {
 
     @NonNull
     private String entityName;
-    private String description;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations title;
+    @JsonInclude(value = Include.CUSTOM, valueFilter = Translations.EmptyTranslation.class)
+    private Translations description;
     private String linkName;
 
     @JsonInclude(Include.NON_EMPTY)

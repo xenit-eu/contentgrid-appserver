@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModelAssembler;
@@ -37,21 +38,21 @@ public class ProfileRestController {
     @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
     public ProfileEntityRepresentationModel getHalFormsEntityProfile(
             Application application, @PathVariable PathSegmentName entityName,
-            LinkFactoryProvider linkFactoryProvider
+            UserLocales userLocales, LinkFactoryProvider linkFactoryProvider
     ) {
         var entity = application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return profileEntityAssembler.withContext(new ProfileEntityRepresentationModelAssembler.Context(application,
-                linkFactoryProvider)).toModel(entity);
+        return profileEntityAssembler.withContext(new ProfileEntityRepresentationModelAssembler.Context(application, userLocales, linkFactoryProvider)).toModel(entity);
     }
 
     @SpecializedOnEntity(entityPathVariable = "entityName")
     @GetMapping(value = "/{entityName}", produces = "application/schema+json")
     public JsonSchema getJsonSchemaEntityProfile(
-            Application application, @PathVariable PathSegmentName entityName
+            Application application, @PathVariable PathSegmentName entityName,
+            UserLocales userLocales
     ) {
         var entity = application.getEntityByPathSegment(entityName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return jsonSchemaAssembler.toModel(application, entity);
+        return jsonSchemaAssembler.toModel(entity, new JsonSchemaAssembler.Context(application, userLocales));
     }
 }

@@ -23,10 +23,11 @@ public class ProfileRelationRepresentationModelAssembler {
         var isManySourcePerTarget = relation instanceof ManyToOneRelation || relation instanceof ManyToManyRelation;
         var isManyTargetPerSource = relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation;
 
+        var translations = relation.getSourceEndPoint().getTranslations(context.userLocales());
         var relationModel = ProfileRelationRepresentationModel.builder()
                 .name(sourceEndPoint.getName().getValue())
-                .title(readTitle(context, relation))
-                .description(sourceEndPoint.getDescription())
+                .title(translations.getName())
+                .description(translations.getDescription())
                 .manySourcePerTarget(isManySourcePerTarget)
                 .manyTargetPerSource(isManyTargetPerSource)
                 .required(sourceEndPoint.isRequired())
@@ -39,10 +40,6 @@ public class ProfileRelationRepresentationModelAssembler {
         );
 
         return Optional.of(relationModel);
-    }
-
-    private String readTitle(Context context, Relation relation) {
-        return null; // TODO: resolve title (ACC-2230)
     }
 
 }
