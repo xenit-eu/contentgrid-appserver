@@ -14,6 +14,7 @@
       "primaryKey": {
         "name": "id",
         "title": {
+          "": "uniq id",
           "en": "Unique id",
           "nl": "Unieke ID"
         },

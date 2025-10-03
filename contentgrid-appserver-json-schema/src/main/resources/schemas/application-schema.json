@@ -630,7 +630,7 @@
     },
     "translationsObject": {
       "type": "object",
-      "description": "",
+      "description": "Translations object, keyed by IETF BCP 47 language tag",
       "properties": {
         "": {
           "type": "string",
@@ -638,7 +638,7 @@
         }
       },
       "patternProperties": {
-        "^[a-z]{2}$": {
+        "^[a-zA-Z0-9-]+$": {
           "type": "string",
           "description": "Translation to use for the language as specified by the key"
         }
