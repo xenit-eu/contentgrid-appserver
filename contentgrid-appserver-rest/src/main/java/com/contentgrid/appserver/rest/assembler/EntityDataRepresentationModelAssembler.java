@@ -22,6 +22,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.With;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.PagedModel.PageMetadata;
@@ -70,6 +71,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         }
         Link selfLink = getCollectionSelfLink(context);
         var slicedModel = slicedResourcesAssembler.toModel(slice, this.withContext(context), Optional.of(selfLink));
+        slicedModel.add(getEntityProfileLink(context));
         var pageMetadata = getPageMetadata(slice);
 
         // Add pageMetadata to slicedModel by wrapping it in a PagedModel
@@ -83,7 +85,8 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             return toSlicedModel(slice, context);
         }
         var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context);
-        result.add(getCollectionSelfLink(context));
+        result.add(getCollectionSelfLink(context))
+                .add(getEntityProfileLink(context));
         return result;
     }
 
@@ -100,6 +103,11 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 .withSearchParams(context.params())
                 .withCursor(context.pagination())
         ).withSelfRel();
+    }
+
+    private Link getEntityProfileLink(EntityContext context) {
+        return context.linkFactoryProvider().toProfile(context.entityName())
+                .withRel(IanaLinkRelations.PROFILE);
     }
 
     private HalFormsTemplate getDeleteTemplate() {
