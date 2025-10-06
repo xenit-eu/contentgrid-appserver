@@ -42,7 +42,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {"contentgrid.security.unauthenticated.allow=true"})
+@SpringBootTest(properties = {
+        "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.appserver.content-store.type=ephemeral",
+})
 @AutoConfigureMockMvc
 class PermissionsPropagationTest {
     @Autowired

@@ -27,7 +27,7 @@ public class FilesystemContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "ephemeral", matchIfMissing = true)
+    @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "ephemeral")
     public ContentStore ephemeralContentStore() throws IOException {
         return new FilesystemContentStore(Files.createTempDirectory("contentgrid", PERMISSIONS));
     }

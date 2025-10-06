@@ -63,7 +63,11 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(properties = {"contentgrid.thunx.abac.source=none", "contentgrid.security.unauthenticated.allow=true"})
+@SpringBootTest(properties = {
+        "contentgrid.thunx.abac.source=none",
+        "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.appserver.content-store.type=ephemeral",
+})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
 

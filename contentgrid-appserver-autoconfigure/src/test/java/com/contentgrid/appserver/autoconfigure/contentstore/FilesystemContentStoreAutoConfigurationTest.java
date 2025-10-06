@@ -25,7 +25,7 @@ class FilesystemContentStoreAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasBean("ephemeralContentStore");
+                    assertThat(context).doesNotHaveBean(ContentStore.class);
                 });
     }
 

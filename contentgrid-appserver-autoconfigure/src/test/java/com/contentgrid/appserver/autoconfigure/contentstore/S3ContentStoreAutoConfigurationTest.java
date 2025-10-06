@@ -2,6 +2,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,7 @@ class S3ContentStoreAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(S3ContentStore.class);
-                    assertThat(context).hasBean("ephemeralContentStore");
+                    assertThat(context).doesNotHaveBean(ContentStore.class);
                 });
     }
 
