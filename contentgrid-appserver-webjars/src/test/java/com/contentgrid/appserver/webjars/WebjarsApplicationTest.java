@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.swagger.ui;
+package com.contentgrid.appserver.webjars;
 
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,12 +15,25 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 
 @WebMvcTest
-@ContextConfiguration(classes = SwaggerUIInitializerController.class)
+@ContextConfiguration(classes = WebjarsRestConfiguration.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
-public class SwaggerUIApplicationTest {
+class WebjarsApplicationTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Test
+    void webjarsHalExplorerWithoutVersionReturnsHttpOk() throws Exception {
+        this.mockMvc.perform(get("/webjars/hal-explorer/index.html"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.TEXT_HTML));
+    }
+
+    @Test
+    void webjarsHalExplorerWithInvalidVersionReturnsHttpNotFound() throws Exception {
+        this.mockMvc.perform(get("/webjars/hal-explorer/1.0.4/index.html"))
+                .andExpect(MockMvcResultMatchers.status().isNotFound());
+    }
 
     @Test
     void webjarsSwaggerUIwithoutVersionReturnsHttpOk() throws Exception {
@@ -34,13 +47,6 @@ public class SwaggerUIApplicationTest {
     void webjarsSwaggerUIwithInvalidVersionReturnsHttpNotFound() throws Exception {
         this.mockMvc.perform(get("/webjars/swagger-ui/1.2.3.4/index.html"))
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
-    }
-
-    @Test
-    void webjarsSwaggerUIcorrectVersionReturnsHttpOk() throws Exception {
-        // I reckon this test is going to break whenever renovatebot wants to update the dependency. Oh well?
-        this.mockMvc.perform(get("/webjars/swagger-ui/5.25.3/index.html"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
