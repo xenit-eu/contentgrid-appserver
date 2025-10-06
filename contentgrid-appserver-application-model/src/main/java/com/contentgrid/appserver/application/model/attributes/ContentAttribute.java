@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.AttributeFla
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.ResourceBundleTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -80,15 +81,24 @@ public class ContentAttribute implements CompositeAttribute {
         this.flags = flags;
         this.pathSegment = pathSegment;
         this.linkName = linkName;
+        var resourceBundleTranslations = ResourceBundleTranslatable.<AttributeTranslations, ConfigurableAttributeTranslations>builder()
+                .newConstructor(ConfigurableAttributeTranslations::new)
+                .bundleName(getClass().getName())
+                .mapping("name", ConfigurableAttributeTranslations::withName)
+                .mapping("description", ConfigurableAttributeTranslations::withDescription)
+                .build();
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
                 .type(Type.TEXT)
                 .flag(IgnoredFlag.INSTANCE)
                 .build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
+                .translations(resourceBundleTranslations.withPrefix("filename.").asConfigurable())
                 .type(Type.TEXT).build();
         this.mimetype = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
+                .translations(resourceBundleTranslations.withPrefix("mimetype.").asConfigurable())
                 .type(Type.TEXT).build();
         this.length = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
+                .translations(resourceBundleTranslations.withPrefix("length.").asConfigurable())
                 .type(Type.LONG)
                 .flag(ReadOnlyFlag.INSTANCE)
                 .build();
