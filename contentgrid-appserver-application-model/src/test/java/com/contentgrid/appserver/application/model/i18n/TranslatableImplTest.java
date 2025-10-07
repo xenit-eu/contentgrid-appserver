@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -102,6 +103,11 @@ class TranslatableImplTest {
                     return Locale.ENGLISH;
                 }
                 return null;
+            }
+
+            @Override
+            public Stream<Locale> preferredLocales() {
+                return Stream.of(DUTCH, Locale.ENGLISH);
             }
         };
         var translations = STANDARD.getTranslations(fakeUserLocale);

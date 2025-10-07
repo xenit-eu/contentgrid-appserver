@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Locale.LanguageRange;
+import java.util.stream.Stream;
 
 class DefaultUserLocales implements UserLocales {
     private static final List<LanguageRange> defaultLocales = LanguageRange.parse("en");
@@ -19,5 +20,10 @@ class DefaultUserLocales implements UserLocales {
             return filtered.getFirst();
         }
         return null;
+    }
+
+    @Override
+    public Stream<Locale> preferredLocales() {
+        return Stream.of(Locale.ENGLISH);
     }
 }
