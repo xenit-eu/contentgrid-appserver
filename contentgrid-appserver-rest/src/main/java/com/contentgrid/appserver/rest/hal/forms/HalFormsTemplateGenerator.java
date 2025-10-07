@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.i18n.ResourceBundleTranslatable;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -25,13 +26,20 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.With;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
@@ -43,6 +51,18 @@ public class HalFormsTemplateGenerator {
     private final Application application;
     private final UserLocales userLocales;
     private final LinkFactoryProvider linkFactoryProvider;
+    private static final ResourceBundleTranslatable<FieldTranslations, FieldTranslations> fieldTranslations = ResourceBundleTranslatable.builder(() -> new FieldTranslations())
+            .bundleName(HalFormsTemplateGenerator.class.getName())
+            .mapping("sort", FieldTranslations::withSortField)
+            .build()
+            .withPrefix("field.");
+    private static final ResourceBundleTranslatable<SortDirectionTranslations, SortDirectionTranslations> sortDirectionTranslations = ResourceBundleTranslatable.builder(
+                    SortDirectionTranslations::new)
+            .bundleName(HalFormsTemplateGenerator.class.getName())
+            .mapping("asc", SortDirectionTranslations::withSortAsc)
+            .mapping("desc", SortDirectionTranslations::withSortDesc)
+            .build()
+            .withPrefix("sort.");
 
     private record PrefixSettings(
             String name,
@@ -275,7 +295,9 @@ public class HalFormsTemplateGenerator {
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {
         var sortOptions = new ArrayList<SortOption>();
         for (var sortableField : entity.getSortableFields()) {
-            sortableFieldToSortOptions(sortableField).forEachOrdered(sortOptions::add);
+            var attribute = application.resolvePropertyPath(entity, sortableField.getPropertyPath());
+            sortableFieldToSortOptions(attribute, sortableField)
+                    .forEachOrdered(sortOptions::add);
         }
         if (sortOptions.isEmpty()) {
             return Optional.empty();
@@ -285,18 +307,53 @@ public class HalFormsTemplateGenerator {
                 .withPromptField("prompt")
                 .withValueField("value");
         return Optional.of(HalFormsProperty.named(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME)
+                .withPrompt(fieldTranslations.getTranslations(userLocales).getSortField())
                 .withType(HtmlInputType.TEXT_VALUE)
                 .withOptions(options));
     }
 
-    private Stream<SortOption> sortableFieldToSortOptions(SortableField sortableField) {
+    private Stream<SortOption> sortableFieldToSortOptions(SimpleAttribute attribute, SortableField sortableField) {
+        var translations = sortDirectionTranslations
+                .withSuffixes(List.of("."+attribute.getType().name().toLowerCase(Locale.ROOT), ""))
+                .getTranslations(userLocales);
         return Stream.of(Direction.ASC, Direction.DESC)
-                .map(direction -> direction.name().toLowerCase())
                 .map(direction -> {
-                    var value = sortableField.getName().getValue() + "," + direction;
-                    // TODO: fill in the prompt here, composed of sortableField + a translation for the sort direction
-                    return new SortOption(sortableField.getPropertyPath().toString(), direction, null, value);
+                    var directionName = direction.name().toLowerCase(Locale.ROOT);
+                    return new SortOption(
+                            sortableField.getPropertyPath().toString(),
+                            directionName,
+                            translations.getPrompt(direction, attribute.getTranslations(userLocales).getName()),
+                            sortableField.getName().getValue() + "," + directionName
+                    );
                 });
+    }
+
+    @With
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    private static class SortDirectionTranslations {
+        public SortDirectionTranslations(@NonNull Locale locale) {
+            this(locale, null, null);
+        }
+
+        @With(value = AccessLevel.NONE)
+        @NonNull
+        private final Locale locale;
+
+        private final String sortAsc;
+        private final String sortDesc;
+
+
+        public String getPrompt(@NonNull Direction direction, @NonNull String attributeName) {
+            var translatedSortDirection = switch (direction) {
+                case ASC -> sortAsc;
+                case DESC -> sortDesc;
+            };
+
+            var fmt = new MessageFormat(translatedSortDirection, locale);
+
+            return fmt.format(new Object[] {attributeName});
+        }
+
     }
 
     @Value
@@ -305,5 +362,13 @@ public class HalFormsTemplateGenerator {
         String direction;
         String prompt;
         String value;
+    }
+
+    @With
+    @Value
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @NoArgsConstructor(force = true)
+    private static class FieldTranslations {
+        String sortField;
     }
 }

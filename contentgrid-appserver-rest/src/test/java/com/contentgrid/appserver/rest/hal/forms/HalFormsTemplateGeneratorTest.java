@@ -432,26 +432,33 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getInline()).satisfiesExactly(
                                 numberAsc -> assertThat(numberAsc.toString())
                                         .contains("value=number,asc")
+                                        // number is a text field, so it's alphabetical ordering
+                                        .contains("prompt=number A→Z")
                                         .contains("property=number")
                                         .contains("direction=asc"),
                                 numberDesc -> assertThat(numberDesc.toString())
                                         .contains("value=number,desc")
+                                        .contains("prompt=number Z→A")
                                         .contains("property=number")
                                         .contains("direction=desc"),
                                 amountAsc -> assertThat(amountAsc.toString())
                                         .contains("value=amount,asc")
+                                        .contains("prompt=amount 0→9")
                                         .contains("property=amount")
                                         .contains("direction=asc"),
                                 amountDesc -> assertThat(amountDesc.toString())
                                         .contains("value=amount,desc")
+                                        .contains("prompt=amount 9→0")
                                         .contains("property=amount")
                                         .contains("direction=desc"),
                                 confidentialityAsc -> assertThat(confidentialityAsc.toString())
                                         .contains("value=confidentiality,asc")
+                                        .contains("prompt=confidentiality A→Z")
                                         .contains("property=confidentiality")
                                         .contains("direction=asc"),
                                 confidentialityDesc -> assertThat(confidentialityDesc.toString())
                                         .contains("value=confidentiality,desc")
+                                        .contains("prompt=confidentiality Z→A")
                                         .contains("property=confidentiality")
                                         .contains("direction=desc")
                         );

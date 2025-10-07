@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.Builder;
 import lombok.NonNull;
@@ -17,7 +18,7 @@ import lombok.With;
 @Builder
 public class ResourceBundleTranslatable<T, M extends T> implements Translatable<T> {
     @NonNull
-    private final Supplier<M> newConstructor;
+    private final Function<Locale, M> newConstructor;
 
     @NonNull
     @Singular
@@ -31,6 +32,20 @@ public class ResourceBundleTranslatable<T, M extends T> implements Translatable<
     @With
     @Builder.Default
     private final String prefix = "";
+
+    @With
+    @Builder.Default
+    private final List<String> suffixes = List.of("");
+
+    public static <T, M extends T> ResourceBundleTranslatableBuilder<T, M> builder(Function<Locale, M> newConstructor) {
+        return new ResourceBundleTranslatableBuilder<T, M>()
+                .newConstructor(newConstructor);
+    }
+
+    public static <T, M extends T> ResourceBundleTranslatableBuilder<T, M> builder(Supplier<M> newConstructor) {
+        return new ResourceBundleTranslatableBuilder<T, M>()
+                .newConstructor(locale -> newConstructor.get());
+    }
 
     public ConfigurableTranslatable<T, M> asConfigurable() {
         return new UnconfigurableTranslatable<>(this);
@@ -59,12 +74,15 @@ public class ResourceBundleTranslatable<T, M extends T> implements Translatable<
     @Override
     public T getTranslations(Locale locale) {
         var bundle = loadBundle(locale);
-        return translationCache.computeIfAbsent(bundle.getLocale(), unused -> {
-            var object = newConstructor.get();
+        return translationCache.computeIfAbsent(bundle.getLocale(), bundleLocale -> {
+            var object = newConstructor.apply(bundleLocale);
             for (var entry : mappings.entrySet()) {
-                var translation = bundle.getString(prefix + entry.getKey());
-                if(!translation.isEmpty()) {
-                    object = entry.getValue().apply(object, translation);
+                for(var suffix: suffixes) {
+                    var translation = bundle.getString(prefix + entry.getKey() + suffix);
+                    if (!translation.isEmpty()) {
+                        object = entry.getValue().apply(object, translation);
+                        break; // First matching non-empty suffix is used
+                    }
                 }
             }
             return object;
@@ -84,11 +102,15 @@ public class ResourceBundleTranslatable<T, M extends T> implements Translatable<
 
         @Override
         public Locale getFallbackLocale(String baseName, Locale locale) {
-            if(locale == Locale.ROOT) {
-                return null;
-            }
-
-            return Locale.ROOT;
+            return null;
         }
     }
+
+    public static class ResourceBundleTranslatableBuilder<T, M extends T> {
+        private ResourceBundleTranslatableBuilder<T, M> newConstructor(Function<Locale, M> newConstructor) {
+            this.newConstructor = newConstructor;
+            return this;
+        }
+    }
+
 }

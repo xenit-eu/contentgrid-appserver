@@ -638,7 +638,36 @@ class ProfileRestControllerTest {
                                             name: "invoices.pay_before~before"
                                         },
                                         {
-                                            name: "_sort"
+                                            name: "_sort",
+                                            prompt: "Sort",
+                                            options: {
+                                                inline: [
+                                                    {
+                                                        property: "vat",
+                                                        direction: "asc",
+                                                        prompt: "BTW nummer A→Z",
+                                                        value: "vat,asc"
+                                                    },
+                                                    {
+                                                        property: "vat",
+                                                        direction: "desc",
+                                                        prompt: "BTW nummer Z→A",
+                                                        value: "vat,desc"
+                                                    },
+                                                    {
+                                                        property: "name",
+                                                        direction: "asc",
+                                                        prompt: "Naam A→Z",
+                                                        value: "name,asc"
+                                                    },
+                                                    {
+                                                        property: "name",
+                                                        direction: "desc",
+                                                        prompt: "Naam Z→A",
+                                                        value: "name,desc"
+                                                    }
+                                                ]
+                                            }
                                         }
                                     ]
                                 },
