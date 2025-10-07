@@ -9,6 +9,8 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.i18n.ResourceBundleTranslatable;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -24,13 +26,20 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.With;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
@@ -40,14 +49,50 @@ import org.springframework.http.MediaType;
 @RequiredArgsConstructor
 public class HalFormsTemplateGenerator {
     private final Application application;
+    private final UserLocales userLocales;
     private final LinkFactoryProvider linkFactoryProvider;
+    private static final ResourceBundleTranslatable<FieldTranslations, FieldTranslations> fieldTranslations = ResourceBundleTranslatable.builder(() -> new FieldTranslations())
+            .bundleName(HalFormsTemplateGenerator.class.getName())
+            .mapping("sort", FieldTranslations::withSortField)
+            .build()
+            .withPrefix("field.");
+    private static final ResourceBundleTranslatable<SortDirectionTranslations, SortDirectionTranslations> sortDirectionTranslations = ResourceBundleTranslatable.builder(
+                    SortDirectionTranslations::new)
+            .bundleName(HalFormsTemplateGenerator.class.getName())
+            .mapping("asc", SortDirectionTranslations::withSortAsc)
+            .mapping("desc", SortDirectionTranslations::withSortDesc)
+            .build()
+            .withPrefix("sort.");
+
+    private record PrefixSettings(
+            String name,
+            String prompt
+    ) {
+        PrefixSettings append(PrefixSettings settings) {
+            return new PrefixSettings(
+                    doAppend(name, ".", settings.name()),
+                    doAppend(prompt, ": ", settings.prompt())
+            );
+        }
+
+        private static String doAppend(String stringA, String separator, String stringB) {
+            if(!stringA.isEmpty() && !stringB.isEmpty()) {
+                return stringA + separator + stringB;
+            }
+            return stringA + stringB;
+        }
+
+        static PrefixSettings empty() {
+            return new PrefixSettings("", "");
+        }
+    }
 
 
     public HalFormsTemplate generateCreateTemplate(EntityName entityName) {
         var entity = application.getRequiredEntityByName(entityName);
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var attribute : entity.getAttributes()) {
-            properties.addAll(attributeToCreateProperties("", attribute));
+            properties.addAll(attributeToCreateProperties(PrefixSettings.empty(), attribute));
         }
         for (var relation : application.getRelationsForSourceEntity(entity)) {
             // TODO: enable *-to-many relations in create form with ACC-2311
@@ -71,7 +116,7 @@ public class HalFormsTemplateGenerator {
         var entity = application.getRequiredEntityByName(entityName);
         List<HalFormsProperty> properties = new ArrayList<>();
         for (var attribute : entity.getAttributes()) {
-            properties.addAll(attributeToUpdateProperty("", attribute));
+            properties.addAll(attributeToUpdateProperty(PrefixSettings.empty(), attribute));
         }
 
         return HalFormsTemplate.builder()
@@ -92,6 +137,7 @@ public class HalFormsTemplateGenerator {
             if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                 var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
+                        .withPrompt(attributeSearchFilter.getTranslations(userLocales).getName())
                         .withAttributeType(attribute.getType());
                 properties.add(addAllowedValues(property, attribute, true));
             } else {
@@ -153,7 +199,7 @@ public class HalFormsTemplateGenerator {
     }
 
 
-    private List<HalFormsProperty> attributeToCreateProperties(String prefix, Attribute attribute) {
+    private List<HalFormsProperty> attributeToCreateProperties(PrefixSettings prefix, Attribute attribute) {
         if (attribute.isIgnored() || attribute.isReadOnly()) {
             return List.of();
         }
@@ -169,7 +215,7 @@ public class HalFormsTemplateGenerator {
                 result.add(contentToCreateProperty(prefix, contentAttribute));
             }
             case CompositeAttribute compositeAttribute -> {
-                var newPrefix = prefix + compositeAttribute.getName() + ".";
+                var newPrefix = prefix.append(new PrefixSettings(compositeAttribute.getName().getValue(), compositeAttribute.getTranslations(userLocales).getName()));
                 for (var attr : compositeAttribute.getAttributes()) {
                     result.addAll(attributeToCreateProperties(newPrefix, attr));
                 }
@@ -178,7 +224,7 @@ public class HalFormsTemplateGenerator {
         return result;
     }
 
-    private List<HalFormsProperty> attributeToUpdateProperty(String prefix, Attribute attribute) {
+    private List<HalFormsProperty> attributeToUpdateProperty(PrefixSettings prefix, Attribute attribute) {
         if (attribute.isIgnored() || attribute.isReadOnly()) {
             return List.of();
         }
@@ -192,7 +238,7 @@ public class HalFormsTemplateGenerator {
             }
             // handle ContentAttributes like CompositeAttributes
             case CompositeAttribute compositeAttribute -> {
-                var newPrefix = prefix + compositeAttribute.getName() + ".";
+                var newPrefix = prefix.append(new PrefixSettings(compositeAttribute.getName().getValue(), compositeAttribute.getTranslations(userLocales).getName()));
                 for (var attr : compositeAttribute.getAttributes()) {
                     result.addAll(attributeToUpdateProperty(newPrefix, attr));
                 }
@@ -201,8 +247,11 @@ public class HalFormsTemplateGenerator {
         return result;
     }
 
-    private HalFormsProperty simpleAttributeToProperty(String prefix, SimpleAttribute attribute) {
-        var property = HalFormsProperty.named(prefix + attribute.getName().getValue())
+    private HalFormsProperty simpleAttributeToProperty(PrefixSettings prefix, SimpleAttribute attribute) {
+        var prefixed = prefix.append(new PrefixSettings(attribute.getName().getValue(), attribute.getTranslations(userLocales).getName()));
+
+        var property = HalFormsProperty.named(prefixed.name())
+                .withPrompt(prefixed.prompt())
                 .withAttributeType(attribute.getType())
                 .withRequired(attribute.hasConstraint(RequiredConstraint.class));
         return addAllowedValues(property, attribute, false);
@@ -223,26 +272,32 @@ public class HalFormsTemplateGenerator {
             return Optional.empty();
         }
         var required = relation.getSourceEndPoint().isRequired();
-        var url = linkFactoryProvider.toCollection(relation.getTargetEndPoint().getEntity(), CollectionParameters.defaults()).toUri().toString();
+        var url = linkFactoryProvider.toCollection(relation.getTargetEndPoint().getEntity(), CollectionParameters.defaults())
+                .withSelfRel();
         var options = HalFormsOptions.remote(url)
                 .withMinItems(required ? 1L : 0L)
                 .withMaxItems(relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation ? null : 1L)
                 .withValueField("/_links/self/href");
         return Optional.of(HalFormsProperty.named(relation.getSourceEndPoint().getName().getValue())
                 .withType(HtmlInputType.URL_VALUE)
+                .withPrompt(relation.getSourceEndPoint().getTranslations(userLocales).getName())
                 .withRequired(required)
                 .withOptions(options));
     }
 
-    private HalFormsProperty contentToCreateProperty(String prefix, ContentAttribute attribute) {
-        return HalFormsProperty.named(prefix + attribute.getName().getValue())
+    private HalFormsProperty contentToCreateProperty(PrefixSettings prefix, ContentAttribute attribute) {
+        var prefixed = prefix.append(new PrefixSettings(attribute.getName().getValue(), attribute.getTranslations(userLocales).getName()));
+        return HalFormsProperty.named(prefixed.name())
+                .withPrompt(prefixed.prompt())
                 .withType(HtmlInputType.FILE_VALUE);
     }
 
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {
         var sortOptions = new ArrayList<SortOption>();
         for (var sortableField : entity.getSortableFields()) {
-            sortableFieldToSortOptions(sortableField).forEachOrdered(sortOptions::add);
+            var attribute = application.resolvePropertyPath(entity, sortableField.getPropertyPath());
+            sortableFieldToSortOptions(attribute, sortableField)
+                    .forEachOrdered(sortOptions::add);
         }
         if (sortOptions.isEmpty()) {
             return Optional.empty();
@@ -252,17 +307,53 @@ public class HalFormsTemplateGenerator {
                 .withPromptField("prompt")
                 .withValueField("value");
         return Optional.of(HalFormsProperty.named(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME)
+                .withPrompt(fieldTranslations.getTranslations(userLocales).getSortField())
                 .withType(HtmlInputType.TEXT_VALUE)
                 .withOptions(options));
     }
 
-    private Stream<SortOption> sortableFieldToSortOptions(SortableField sortableField) {
+    private Stream<SortOption> sortableFieldToSortOptions(SimpleAttribute attribute, SortableField sortableField) {
+        var translations = sortDirectionTranslations
+                .withSuffixes(List.of("."+attribute.getType().name().toLowerCase(Locale.ROOT), ""))
+                .getTranslations(userLocales);
         return Stream.of(Direction.ASC, Direction.DESC)
-                .map(direction -> direction.name().toLowerCase())
                 .map(direction -> {
-                    var value = sortableField.getName().getValue() + "," + direction;
-                    return new SortOption(sortableField.getPropertyPath().toString(), direction, null, value);
+                    var directionName = direction.name().toLowerCase(Locale.ROOT);
+                    return new SortOption(
+                            sortableField.getPropertyPath().toString(),
+                            directionName,
+                            translations.getPrompt(direction, attribute.getTranslations(userLocales).getName()),
+                            sortableField.getName().getValue() + "," + directionName
+                    );
                 });
+    }
+
+    @With
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    private static class SortDirectionTranslations {
+        public SortDirectionTranslations(@NonNull Locale locale) {
+            this(locale, null, null);
+        }
+
+        @With(value = AccessLevel.NONE)
+        @NonNull
+        private final Locale locale;
+
+        private final String sortAsc;
+        private final String sortDesc;
+
+
+        public String getPrompt(@NonNull Direction direction, @NonNull String attributeName) {
+            var translatedSortDirection = switch (direction) {
+                case ASC -> sortAsc;
+                case DESC -> sortDesc;
+            };
+
+            var fmt = new MessageFormat(translatedSortDirection, locale);
+
+            return fmt.format(new Object[] {attributeName});
+        }
+
     }
 
     @Value
@@ -271,5 +362,13 @@ public class HalFormsTemplateGenerator {
         String direction;
         String prompt;
         String value;
+    }
+
+    @With
+    @Value
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @NoArgsConstructor(force = true)
+    private static class FieldTranslations {
+        String sortField;
     }
 }

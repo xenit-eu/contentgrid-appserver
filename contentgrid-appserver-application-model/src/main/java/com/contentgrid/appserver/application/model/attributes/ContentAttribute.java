@@ -81,8 +81,7 @@ public class ContentAttribute implements CompositeAttribute {
         this.flags = flags;
         this.pathSegment = pathSegment;
         this.linkName = linkName;
-        var resourceBundleTranslations = ResourceBundleTranslatable.<AttributeTranslations, ConfigurableAttributeTranslations>builder()
-                .newConstructor(ConfigurableAttributeTranslations::new)
+        var resourceBundleTranslations = ResourceBundleTranslatable.<AttributeTranslations, ConfigurableAttributeTranslations>builder(ConfigurableAttributeTranslations::new)
                 .bundleName(getClass().getName())
                 .mapping("name", ConfigurableAttributeTranslations::withName)
                 .mapping("description", ConfigurableAttributeTranslations::withDescription)

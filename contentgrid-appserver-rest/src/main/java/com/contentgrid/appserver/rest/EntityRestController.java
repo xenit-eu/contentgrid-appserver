@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -75,6 +76,7 @@ public class EntityRestController {
             AuthorizationContext authorizationContext,
             @RequestParam MultiValueMap<String, String> params,
             EncodedCursorPagination pagination,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) {
         // Remove pagination query parameters
@@ -87,7 +89,7 @@ public class EntityRestController {
         var results = datamodelApi.findAll(application, entity, paramsWithoutPaging, pagination,
                 authorizationContext);
 
-        return assembler.withContext(application, entity.getName(), linkFactoryProvider, paramsWithoutPaging, pagination)
+        return assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider, paramsWithoutPaging, pagination)
                 .toCollectionModel(results);
     }
 
@@ -97,6 +99,7 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId instanceId,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) {
         var entity = getEntityOrThrow(application, entityName);
@@ -115,7 +118,7 @@ public class EntityRestController {
 
         return ResponseEntity.ok()
                 .eTag(calculateETag(result))
-                .body(assembler.withContext(application, entity.getName(), linkFactoryProvider).toModel(result));
+                .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
     }
 
     private String calculateETag(EntityInstance result) {
@@ -130,6 +133,7 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @RequestBody RequestInputData data,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
@@ -144,7 +148,7 @@ public class EntityRestController {
                 authorizationContext
         );
 
-        var model = assembler.withContext(application, entity.getName(), linkFactoryProvider).toModel(result);
+        var model = assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
                 .eTag(calculateETag(result))
@@ -157,13 +161,14 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             NativeWebRequest request,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) throws InvalidPropertyDataException {
         var inputData = new ConversionServiceRequestInputData(
                 MultipartRequestInputData.fromRequest(request),
                 conversionService
         );
-        return createEntity(application, entityName, inputData, authorizationContext, linkFactoryProvider);
+        return createEntity(application, entityName, inputData, authorizationContext, userLocales, linkFactoryProvider);
     }
 
     @PutMapping("/{entityName}/{id}")
@@ -174,6 +179,7 @@ public class EntityRestController {
             VersionConstraint requestedVersion,
             @RequestBody RequestInputData data,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
@@ -188,7 +194,7 @@ public class EntityRestController {
             );
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity.getName(), linkFactoryProvider).toModel(updateResult));
+                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(updateResult));
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
@@ -202,6 +208,7 @@ public class EntityRestController {
             VersionConstraint requestedVersion,
             @RequestBody RequestInputData data,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
@@ -217,7 +224,7 @@ public class EntityRestController {
 
             return ResponseEntity.ok()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity.getName(), linkFactoryProvider).toModel(updateResult));
+                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(updateResult));
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
@@ -230,6 +237,7 @@ public class EntityRestController {
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
             AuthorizationContext authorizationContext,
+            UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
     ) {
         var entity = getEntityOrThrow(application, entityName);
@@ -238,7 +246,7 @@ public class EntityRestController {
             var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
             var deleted = datamodelApi.deleteEntity(application, request, authorizationContext);
             return ResponseEntity.ok()
-                    .body(assembler.withContext(application, entity.getName(), linkFactoryProvider).toModel(deleted));
+                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(deleted));
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }

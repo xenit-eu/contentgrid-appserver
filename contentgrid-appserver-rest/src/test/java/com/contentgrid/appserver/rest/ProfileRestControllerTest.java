@@ -23,6 +23,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -476,6 +477,232 @@ class ProfileRestControllerTest {
     }
 
     @Test
+    void getProfileEntity_translations() throws Exception {
+        mockMvc.perform(get("/profile/persons")
+                        .accept(MediaTypes.HAL_FORMS_JSON)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "nl, fr, en")
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            name: "person",
+                            title: "Persoon",
+                            description: null,
+                            "_embedded": {
+                                "blueprint:attribute": [
+                                    {
+                                        name: "person_id",
+                                        title: "person_id",
+                                        description: null
+                                    },
+                                    {
+                                        name: "name",
+                                        title: "Naam",
+                                        description: null,
+                                        "_embedded": {
+                                            "blueprint:search-param": [
+                                                {
+                                                    name: "name~prefix",
+                                                    title: "Naam begint met"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: "vat",
+                                        title: "BTW nummer",
+                                        description: null,
+                                        "_embedded": {
+                                            "blueprint:search-param": [
+                                                {
+                                                    name: "vat",
+                                                    title: "BTW"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: "age",
+                                        title: "Âge",
+                                        description: null
+                                    },
+                                    {
+                                        name: "gender",
+                                        title: "gender"
+                                    }
+                                ],
+                                "blueprint:relation": [
+                                    {
+                                        name: "invoices",
+                                        title: "invoices",
+                                        description: null,
+                                        _links: {
+                                            "blueprint:target-entity": {
+                                                href: "http://localhost/profile/invoices",
+                                                title: "invoice"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        name: "friends",
+                                        title: "friends",
+                                        _links: {
+                                            "blueprint:target-entity": {
+                                                href: "http://localhost/profile/persons",
+                                                title: "Persoon"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        name: "children",
+                                        title: "children"
+                                    },
+                                    {
+                                        name: "parent",
+                                        title: "Parent(e)"
+                                    }
+                                ]
+                            },
+                            _links: {
+                                self: {
+                                    href: "http://localhost/profile/persons",
+                                    title: "Persoon"
+                                },
+                                describes: [{
+                                    href: "http://localhost/persons",
+                                    title: "Personen",
+                                    name: "collection"
+                                }, {
+                                    href: "http://localhost/persons/{instanceId}",
+                                    title: "Persoon",
+                                    templated: true,
+                                    name: "item"
+                                }]
+                            },
+                            _templates: {
+                                search: {
+                                    method: "GET",
+                                    properties: [
+                                        {
+                                            name: "name~prefix",
+                                            prompt: "Naam begint met"
+                                        },
+                                        {
+                                            name: "vat",
+                                            prompt: "BTW"
+                                        },
+                                        {
+                                            name: "friends.name~prefix",
+                                            prompt: "Has a friend with name"
+                                        },
+                                        {
+                                            name: "friends.vat",
+                                            prompt: "friends.vat"
+                                        },
+                                        {
+                                            name: "parent",
+                                            prompt: "parent"
+                                        },
+                                        {
+                                            name: "invoices.number",
+                                            prompt: "invoices.number"
+                                        },
+                                        {
+                                            name: "invoices.confidentiality"
+                                        },
+                                        {
+                                            name: "invoices.amount"
+                                        },
+                                        {
+                                            name: "invoices.amount~gt"
+                                        },
+                                        {
+                                            name: "invoices.amount~gte"
+                                        },
+                                        {
+                                            name: "invoices.amount~lt"
+                                        },
+                                        {
+                                            name: "invoices.amount~lte"
+                                        },
+                                        {
+                                            name: "invoices.received~after"
+                                        },
+                                        {
+                                            name: "invoices.received~before"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~after"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~before"
+                                        },
+                                        {
+                                            name: "_sort",
+                                            prompt: "Sort",
+                                            options: {
+                                                inline: [
+                                                    {
+                                                        property: "vat",
+                                                        direction: "asc",
+                                                        prompt: "BTW nummer A→Z",
+                                                        value: "vat,asc"
+                                                    },
+                                                    {
+                                                        property: "vat",
+                                                        direction: "desc",
+                                                        prompt: "BTW nummer Z→A",
+                                                        value: "vat,desc"
+                                                    },
+                                                    {
+                                                        property: "name",
+                                                        direction: "asc",
+                                                        prompt: "Naam A→Z",
+                                                        value: "name,asc"
+                                                    },
+                                                    {
+                                                        property: "name",
+                                                        direction: "desc",
+                                                        prompt: "Naam Z→A",
+                                                        value: "name,desc"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "create-form": {
+                                    method: "POST",
+                                    properties: [
+                                        {
+                                            name: "name",
+                                            prompt: "Naam"
+                                        },
+                                        {
+                                            name: "vat",
+                                            prompt: "BTW nummer"
+                                        },
+                                        {
+                                            name: "age",
+                                            prompt: "Âge"
+                                        },
+                                        {
+                                            name: "gender",
+                                            prompt: "gender"
+                                        },
+                                        {
+                                            name: "parent",
+                                            prompt: "Parent(e)"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                        """));
+
+    }
+
+    @Test
     void getProfileEntity_withoutContent() throws Exception {
         mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
@@ -590,6 +817,79 @@ class ProfileRestControllerTest {
                         }
                         """))
                 .andExpect(jsonPath("$.properties._version").doesNotExist());
+    }
+
+    @Test
+    void getProfileEntity_jsonSchema_translations() throws Exception {
+        mockMvc.perform(get("/profile/persons").accept("application/schema+json")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "nl, fr, en"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            $schema: "https://json-schema.org/draft/2020-12/schema",
+                            title: "Persoon",
+                            properties: {
+                                person_id: {
+                                    title: "person_id"
+                                },
+                                name: {
+                                    title: "Naam"
+                                },
+                                vat: {
+                                    title: "BTW nummer"
+                                },
+                                age: {
+                                    title: "Âge"
+                                },
+                                gender: {
+                                    title: "gender"
+                                },
+                                invoices: {
+                                    title: "invoices"
+                                },
+                                friends: {
+                                    title: "friends"
+                                },
+                                children: {
+                                    title: "children"
+                                },
+                                parent: {
+                                    title: "Parent(e)"
+                                }
+                            }
+                        }
+                        """));
+
+        mockMvc.perform(get("/profile/invoices").accept("application/schema+json")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "nl, fr, en"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            $defs: {
+                                content: {
+                                    type: "object",
+                                    properties: {
+                                        filename: {
+                                            title: "Filename",
+                                            type: "string"
+                                        },
+                                        mimetype: {
+                                            title: "Mimetype",
+                                            description: "Technical indicator of the type of the file",
+                                            type: "string"
+                                        },
+                                        length: {
+                                            title: "Size",
+                                            description: "File size in bytes",
+                                            type: "integer",
+                                            readOnly: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        """
+                ));
     }
 
 }

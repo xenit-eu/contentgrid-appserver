@@ -24,7 +24,7 @@ public class StringDataEntryToRelationDataEntryConverter implements Converter<St
         var value = source.getValue();
         var matcher = UriTemplateMatcher.<RelationDataEntry>builder()
                 .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(null, null, null, null, null),
+                                .getEntity(null, null, null, null, null, null),
                         params -> {
                             var entityPathSegment = params.get("entityName");
                             var entityId = params.get("instanceId");

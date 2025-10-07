@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -41,8 +42,9 @@ class HalFormsTemplateGeneratorTest {
     HalFormsTemplateGenerator generator = createGenerator(ModelTestFixtures.APPLICATION);
 
     private static HalFormsTemplateGenerator createGenerator(Application application) {
-        return new HalFormsTemplateGenerator(application, new LinkFactoryProvider(
+        return new HalFormsTemplateGenerator(application, UserLocales.defaults(), new LinkFactoryProvider(
                 application,
+                UserLocales.defaults(),
                 new WebMvcLinkBuilderFactory()
         ));
     }
@@ -160,24 +162,28 @@ class HalFormsTemplateGeneratorTest {
         assertThat(template.getProperties()).satisfiesExactly(
                 name -> {
                     assertThat(name.getName()).isEqualTo("name");
+                    assertThat(name.getPrompt()).isEqualTo("Full name");
                     assertThat(name.isReadOnly()).isFalse();
                     assertThat(name.isRequired()).isTrue();
                     assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 vat -> {
                     assertThat(vat.getName()).isEqualTo("vat");
+                    assertThat(vat.getPrompt()).isEqualTo("VAT number");
                     assertThat(vat.isReadOnly()).isFalse();
                     assertThat(vat.isRequired()).isTrue();
                     assertThat(vat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 age -> {
                     assertThat(age.getName()).isEqualTo("age");
+                    assertThat(age.getPrompt()).isEqualTo("age");
                     assertThat(age.isReadOnly()).isFalse();
                     assertThat(age.isRequired()).isFalse();
                     assertThat(age.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
                 },
                 gender -> {
                     assertThat(gender.getName()).isEqualTo("gender");
+                    assertThat(gender.getPrompt()).isEqualTo("gender");
                     assertThat(gender.isReadOnly()).isFalse();
                     assertThat(gender.isRequired()).isFalse();
                     assertThat(gender.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -226,6 +232,7 @@ class HalFormsTemplateGeneratorTest {
 //                },
                 parent -> {
                     assertThat(parent.getName()).isEqualTo("parent");
+                    assertThat(parent.getPrompt()).isEqualTo("Parent");
                     assertThat(parent.isReadOnly()).isFalse();
                     assertThat(parent.isRequired()).isFalse();
                     assertThat(parent.getType()).isEqualTo(HtmlInputType.URL_VALUE);
@@ -293,12 +300,14 @@ class HalFormsTemplateGeneratorTest {
                 },
                 contentFilename -> {
                     assertThat(contentFilename.getName()).isEqualTo("content.filename");
+                    assertThat(contentFilename.getPrompt()).isEqualTo("content: Filename");
                     assertThat(contentFilename.isReadOnly()).isFalse();
                     assertThat(contentFilename.isRequired()).isFalse();
                     assertThat(contentFilename.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 contentMimetype -> {
                     assertThat(contentMimetype.getName()).isEqualTo("content.mimetype");
+                    assertThat(contentMimetype.getPrompt()).isEqualTo("content: Mimetype");
                     assertThat(contentMimetype.isReadOnly()).isFalse();
                     assertThat(contentMimetype.isRequired()).isFalse();
                     assertThat(contentMimetype.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
@@ -423,26 +432,33 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getInline()).satisfiesExactly(
                                 numberAsc -> assertThat(numberAsc.toString())
                                         .contains("value=number,asc")
+                                        // number is a text field, so it's alphabetical ordering
+                                        .contains("prompt=number A→Z")
                                         .contains("property=number")
                                         .contains("direction=asc"),
                                 numberDesc -> assertThat(numberDesc.toString())
                                         .contains("value=number,desc")
+                                        .contains("prompt=number Z→A")
                                         .contains("property=number")
                                         .contains("direction=desc"),
                                 amountAsc -> assertThat(amountAsc.toString())
                                         .contains("value=amount,asc")
+                                        .contains("prompt=amount 0→9")
                                         .contains("property=amount")
                                         .contains("direction=asc"),
                                 amountDesc -> assertThat(amountDesc.toString())
                                         .contains("value=amount,desc")
+                                        .contains("prompt=amount 9→0")
                                         .contains("property=amount")
                                         .contains("direction=desc"),
                                 confidentialityAsc -> assertThat(confidentialityAsc.toString())
                                         .contains("value=confidentiality,asc")
+                                        .contains("prompt=confidentiality A→Z")
                                         .contains("property=confidentiality")
                                         .contains("direction=asc"),
                                 confidentialityDesc -> assertThat(confidentialityDesc.toString())
                                         .contains("value=confidentiality,desc")
+                                        .contains("prompt=confidentiality Z→A")
                                         .contains("property=confidentiality")
                                         .contains("direction=desc")
                         );
@@ -466,14 +482,17 @@ class HalFormsTemplateGeneratorTest {
         assertThat(template.getProperties()).satisfiesExactly(
                 name -> {
                     assertThat(name.getName()).isEqualTo("name~prefix");
+                    assertThat(name.getPrompt()).isEqualTo("Name starts with");
                     assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 vat -> {
                     assertThat(vat.getName()).isEqualTo("vat");
+                    assertThat(vat.getPrompt()).isEqualTo("vat");
                     assertThat(vat.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 friendsName -> {
                     assertThat(friendsName.getName()).isEqualTo("friends.name~prefix");
+                    assertThat(friendsName.getPrompt()).isEqualTo("Has a friend with name");
                     assertThat(friendsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 friendsVat -> {

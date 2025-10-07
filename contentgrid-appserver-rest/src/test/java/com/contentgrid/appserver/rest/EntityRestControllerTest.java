@@ -500,6 +500,80 @@ class EntityRestControllerTest {
         }
 
         @Test
+        void getEntity_translations() throws Exception {
+            var person = createPerson();
+
+            mockMvc.perform(get(person.getRedirectedUrl())
+                    .accept(MediaTypes.HAL_FORMS_JSON)
+                    .header(HttpHeaders.ACCEPT_LANGUAGE, "nl, fr, en")
+            ).andExpect(status().isOk())
+                    .andExpect(content().json("""
+                            {
+                                _links: {
+                                    self: {
+                                        title: "Persoon"
+                                    },
+                                    "cg:relation": [
+                                        {
+                                            name: "invoices",
+                                            title: "invoices"
+                                        },
+                                        {
+                                            name: "friends",
+                                            title: "friends"
+                                        },
+                                        {
+                                            name: "children",
+                                            title: "children"
+                                        },
+                                        {
+                                            name: "parent",
+                                            title: "Parent(e)"
+                                        }
+                                    ]
+                                },
+                                _templates: {
+                                    "set-parent": {
+                                        properties: [
+                                            {
+                                                name: "parent",
+                                                prompt: "Parent(e)",
+                                                options: {
+                                                    link: {
+                                                        href: "http://localhost/persons",
+                                                        title: "Personen"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    default: {
+                                        method: "PUT",
+                                        properties: [
+                                            {
+                                                name: "name",
+                                                prompt: "Naam"
+                                            },
+                                            {
+                                                name: "vat",
+                                                prompt: "BTW nummer"
+                                            },
+                                            {
+                                                name: "age",
+                                                prompt: "Âge"
+                                            },
+                                            {
+                                                name: "gender",
+                                                prompt: "gender"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                            """));
+        }
+
+        @Test
         void testGetNonExistentEntityInstance() throws Exception {
             String nonExistentId = UUID.randomUUID().toString();
 
