@@ -553,6 +553,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             var type = switch (attributeFilter.getOperation()) {
                 case EXACT -> "exact";
                 case PREFIX -> "prefix";
+                case FTS -> "fts";
                 case GREATER_THAN -> "greater";
                 case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
                 case LESS_THAN -> "less";

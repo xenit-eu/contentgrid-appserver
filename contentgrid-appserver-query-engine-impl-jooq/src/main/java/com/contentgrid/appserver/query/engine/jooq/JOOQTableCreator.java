@@ -6,20 +6,38 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.jooq.CreateTableElementListStep;
-import org.jooq.DSLContext;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.jooq.*;
 import org.jooq.impl.DSL;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.InputStream;
+
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class JOOQTableCreator implements TableCreator {
+
+    private static final @NonNull String ftsIndexPreparedStatement;
+
+    static {
+        try (InputStream inputStream = new ClassPathResource("com/contentgrid/appserver/query/engine/jooq/statements/create_fts_index.sql").getInputStream()) {
+            ftsIndexPreparedStatement = new String(inputStream.readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private final DSLContextResolver resolver;
 
@@ -27,7 +45,7 @@ public class JOOQTableCreator implements TableCreator {
     public void createTables(Application application) {
         var dslContext = resolver.resolve(application);
         for (var entity : application.getEntities()) {
-            createTableForEntity(dslContext, entity);
+            createTableForEntity(dslContext, application, entity);
         }
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
@@ -36,7 +54,7 @@ public class JOOQTableCreator implements TableCreator {
         }
     }
 
-    private void createTableForEntity(DSLContext dslContext, Entity entity) {
+    private void createTableForEntity(DSLContext dslContext, Application application, Entity entity) {
         var step = dslContext.createTable(entity.getTable().getValue())
                 .column(JOOQUtils.resolvePrimaryKey(entity))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
@@ -48,6 +66,14 @@ public class JOOQTableCreator implements TableCreator {
         } catch (BadSqlGrammarException e) {
             throw new InvalidSqlException(e.getMessage(), e);
         }
+
+        // Create FTS indexes.
+        entity.getSearchFilters()
+                .stream()
+                .filter(searchFilter -> searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
+                        attributeSearchFilter.getOperation().equals(AttributeSearchFilter.Operation.FTS))
+                .map(searchFilter -> application.resolvePropertyPath(entity, ((AttributeSearchFilter) searchFilter).getAttributePath()))
+                .forEach(simpleAttribute -> createFTSIndex(dslContext, entity, simpleAttribute));
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {
@@ -66,6 +92,17 @@ public class JOOQTableCreator implements TableCreator {
                 return step;
             }
         }
+    }
+
+    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull SimpleAttribute attribute) throws RuntimeException {
+        String tableName = entity.getTable().getValue();
+        String idColumnName = entity.getPrimaryKey().getColumn().getValue();
+        String ftsColumnName = attribute.getColumn().getValue();
+        String indexName = "%s_%s_fts_idx".formatted(tableName, ftsColumnName);
+
+        log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
+        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
+        dslContext.execute(ftsIndexPreparedStatement.formatted(indexName, tableName, idColumnName, ftsColumnName, idColumnName, ftsColumnName));
     }
 
     @Override

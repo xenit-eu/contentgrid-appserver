@@ -12,3 +12,5 @@ RUN git clone https://github.com/cybertec-postgresql/pgfaceting.git
 WORKDIR /pgfaceting
 RUN git checkout v0.2.0
 RUN make install
+
+EXPOSE 5432

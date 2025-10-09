@@ -401,6 +401,28 @@ class JOOQThunkExpressionVisitorTest {
     }
 
     @Test
+    void findAliceWithFullTextSearch() {
+        // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                Scalar.of("ic")
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        assertEquals(ALICE_ID, result.get("id"));
+        assertEquals("alice", result.get("name"));
+        assertEquals("vat_1", result.get("vat"));
+    }
+
+    @Test
     void findInvoiceOfAlice() {
         // entity.customer.name = alice
         ThunkExpression<?> expression = Comparison.areEqual(

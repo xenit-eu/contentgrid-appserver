@@ -36,6 +36,7 @@ public class ProfileSearchParamRepresentationModel {
     public enum ProfileSearchParamType {
         EXACT("exact-match"),
         PREFIX("prefix-match"),
+        FTS("fulltext-match"),
         LESS_THAN("less-than"),
         LESS_THAN_OR_EQUAL("less-than-or-equal"),
         GREATER_THAN("greater-than"),
@@ -56,6 +57,7 @@ public class ProfileSearchParamRepresentationModel {
             return switch (filter.getOperation()) {
                 case EXACT -> EXACT;
                 case PREFIX -> PREFIX;
+                case FTS -> FTS;
                 case GREATER_THAN -> GREATER_THAN;
                 case GREATER_THAN_OR_EQUAL -> GREATER_THAN_OR_EQUAL;
                 case LESS_THAN -> LESS_THAN;
