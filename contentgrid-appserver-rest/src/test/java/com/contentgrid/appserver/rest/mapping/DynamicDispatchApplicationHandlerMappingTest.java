@@ -25,14 +25,11 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -60,7 +57,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         "contentgrid.security.csrf.disabled=true",
 })
 @AutoConfigureMockMvc
-@EnableAutoConfiguration(exclude = {ContentGridRestAutoConfiguration.class, DefaultSecurityAutoConfiguration.class})
 class DynamicDispatchApplicationHandlerMappingTest {
 
     private static final Entity TEST_ENTITY = Entity.builder()
