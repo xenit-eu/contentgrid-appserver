@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
 import com.contentgrid.thunx.encoding.json.JsonThunkExpressionCoder;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -42,8 +44,9 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
+@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
         "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
 })
 @AutoConfigureMockMvc

@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +28,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
+@SpringBootTest(classes = ContentgridApp.class, properties = {
         "contentgrid.thunx.abac.source=none",
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.appserver.content-store.type=ephemeral",

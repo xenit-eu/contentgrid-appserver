@@ -1,4 +1,4 @@
-package com.contentgrid.appserver;
+package com.contentgrid.appserver.example;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -30,9 +30,11 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.property.RelationRestControllerTest.TestConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
@@ -63,9 +65,10 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(properties = {
+@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
         "contentgrid.thunx.abac.source=none",
         "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)

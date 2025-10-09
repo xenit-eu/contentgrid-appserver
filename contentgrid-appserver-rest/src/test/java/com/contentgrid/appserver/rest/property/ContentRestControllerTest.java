@@ -14,8 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.property.ContentRestControllerTest.TestConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -43,10 +45,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = {
+@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
         "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
         "contentgrid.thunx.abac.source=none",
         "contentgrid.security.unauthenticated.allow=true",
+        "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
 })
 @AutoConfigureMockMvc

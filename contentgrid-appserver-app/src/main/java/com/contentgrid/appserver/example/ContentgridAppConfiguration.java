@@ -1,4 +1,4 @@
-package com.contentgrid.appserver;
+package com.contentgrid.appserver.example;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
