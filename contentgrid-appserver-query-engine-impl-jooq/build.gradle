@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'io.freefair.lombok'
+    id 'eu.xenit.docker' version '5.5.1'
 }
 
 dependencies {
@@ -15,4 +16,24 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
+}
+
+// TODO: what a horrible Dockerfile... that I wrote myself. Update it.
+dockerBuild {
+    repositories = ['contentgrid/contentgrid-paradedb']
+    tags = ['local']
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('buildDockerImage')
+}
+
+// TODO: this must be a bug.
+tasks.named('buildDockerImage') {
+    dependsOn tasks.named("processResources")
+    dependsOn tasks.named("processTestResources")
+    dependsOn tasks.named('compileJava')
+    dependsOn tasks.named('compileTestJava')
+    dependsOn tasks.named('generateEffectiveLombokConfig')
+    dependsOn tasks.named('generateTestEffectiveLombokConfig')
 }

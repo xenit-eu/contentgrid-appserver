@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -179,6 +180,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     var leftField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", left), String.class);
                     var rightField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", right), String.class);
                     yield leftField.startsWith(rightField);
+                } else if (functionExpression instanceof StringComparison.ContentGridFullTextSearch contentGridFullTextSearch) {
+                    var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
+                    var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+                    yield DSL.condition("? &&& ?", left, DSL.inline(right));
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(

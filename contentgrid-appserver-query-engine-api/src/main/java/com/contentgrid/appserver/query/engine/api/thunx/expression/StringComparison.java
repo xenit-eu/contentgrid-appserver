@@ -33,10 +33,22 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new ContentGridPrefixSearch(leftTerm, rightTerm);
     }
 
+    public static Comparison contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        return new ContentGridFullTextSearch(leftTerm, rightTerm);
+    }
+
     public static final class ContentGridPrefixSearch extends StringComparison {
 
         private ContentGridPrefixSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
             super("cg_prefix_search", leftTerm, rightTerm);
         }
     }
+
+    public static final class ContentGridFullTextSearch extends StringComparison {
+
+        private ContentGridFullTextSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+            super("cg_fulltext_search", leftTerm, rightTerm);
+        }
+    }
+
 }
