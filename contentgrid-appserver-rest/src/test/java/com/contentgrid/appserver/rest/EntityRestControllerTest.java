@@ -363,6 +363,23 @@ class EntityRestControllerTest {
             mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
                     .andExpect(status().isNotFound());
         }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void testFailToCreateWithContentFileNameAndMimetype(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            Map<String, Object> product = new HashMap<>();
+            product.put("name", "Test Product");
+            product.put("price", 29.99);
+            product.put("release_date", "2023-01-15T10:00:00Z");
+            product.put("in_stock", true);
+            product.put("picture", Map.of("filename", "picture.jpg", "mimetype", "application/jpeg"));
+
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
+                            .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
+                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
+        }
     }
 
     @Nested
@@ -1103,6 +1120,133 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("alice@example.com")))
                     .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("2009-02-13")))
             ;
+        }
+
+        @Test
+        void testUpdateContentFilenameAndMimetype_http200() throws Exception {
+            // create product with content
+            var productResponse = mockMvc.perform(multipart("/products")
+                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
+                                    InputStream.nullInputStream()))
+                            .param("name", "My product")
+                            .param("price", "120"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
+                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
+                    .andExpect(jsonPath("$.picture.length", is(0)))
+                    .andReturn()
+                    .getResponse();
+
+            // Update product
+            mockMvc.perform(put(productResponse.getRedirectedUrl())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "filename": "IMG_789.png",
+                                "mimetype": "application/png"
+                              }
+                            }
+                            """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.picture.filename", is("IMG_789.png")))
+                    .andExpect(jsonPath("$.picture.mimetype", is("application/png")));
+        }
+
+        @Test
+        void testUpdateMissingContentFilename_http200() throws Exception {
+            // create product with content
+            var productResponse = mockMvc.perform(multipart("/products")
+                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
+                                    InputStream.nullInputStream()))
+                            .param("name", "My product")
+                            .param("price", "120"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
+                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
+                    .andExpect(jsonPath("$.picture.length", is(0)))
+                    .andReturn()
+                    .getResponse();
+
+            // Update product
+            mockMvc.perform(put(productResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "mimetype": "application/png"
+                              }
+                            }
+                            """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.picture.filename", nullValue()))
+                    .andExpect(jsonPath("$.picture.mimetype", is("application/png")));
+        }
+
+        @Test
+        void testUpdateMissingContentMimetype_http400() throws Exception {
+            // create product with content
+            var productResponse = mockMvc.perform(multipart("/products")
+                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
+                                    InputStream.nullInputStream()))
+                            .param("name", "My product")
+                            .param("price", "120"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
+                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
+                    .andExpect(jsonPath("$.picture.length", is(0)))
+                    .andReturn()
+                    .getResponse();
+
+            // Update product
+            mockMvc.perform(put(productResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "filename": "IMG_789.png"
+                              }
+                            }
+                            """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
+                    .andExpect(jsonPath("$.detail", containsString("Field is required")))
+                    .andExpect(jsonPath("$.property-path", is(List.of("picture", "mimetype"))));
+        }
+
+        @Test
+        void testUpdateContentFilenameAndMimetype_missingContent_http400() throws Exception {
+            // Create valid product without picture
+            var productResponse = mockMvc.perform(multipart("/products")
+                            .param("name", "My product")
+                            .param("price", "120"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.picture.length").doesNotExist())
+                    .andReturn()
+                    .getResponse();
+
+            // Update product
+            mockMvc.perform(put(productResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "filename": "IMG_789.png",
+                                "mimetype": "application/png"
+                              }
+                            }
+                            """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
+                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
         }
 
     }
