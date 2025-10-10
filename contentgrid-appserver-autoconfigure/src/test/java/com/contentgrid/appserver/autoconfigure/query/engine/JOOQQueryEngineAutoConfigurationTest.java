@@ -31,9 +31,7 @@ class JOOQQueryEngineAutoConfigurationTest {
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
             .withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class, TransactionAutoConfiguration.class,
                     DataSourceTransactionManagerAutoConfiguration.class, JooqAutoConfiguration.class,
-                    JOOQQueryEngineAutoConfiguration.class))
-            .withPropertyValues("spring.datasource.url=jdbc:tc:postgresql:15:///");
-
+                    JOOQQueryEngineAutoConfiguration.class));
     @Test
     void checkDefaults() {
         contextRunner

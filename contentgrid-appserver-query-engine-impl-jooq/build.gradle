@@ -20,6 +20,8 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 }
 
 // Enable jOOQ's PlainSQLChecker annotation processor to error on plain SQL usage
@@ -42,7 +44,6 @@ tasks.withType(JavaCompile) {
             "--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"
     ]
 }
-
 
 // TODO: what a horrible Dockerfile... that I wrote myself. Update it.
 dockerBuild {

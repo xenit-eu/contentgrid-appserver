@@ -43,11 +43,10 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextR
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
@@ -64,9 +63,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///"
-})
+@SpringBootTest
 @ContextConfiguration(classes = TestApplication.class)
 @Slf4j
 @Transactional
@@ -149,6 +146,12 @@ class JOOQTableCreatorTest {
             .lengthColumn(ColumnName.of("content__length"))
             .build();
 
+    private static final SimpleAttribute INVOICE_COMMENT = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT)
+            .build();
+
     private static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttributeImpl.builder()
             .name(AttributeName.of("audit_metadata"))
             .attribute(SimpleAttribute.builder()
@@ -191,10 +194,16 @@ class JOOQTableCreatorTest {
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
+            .attribute(INVOICE_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.FTS)
+                    .name(FilterName.of("comment~fts"))
+                    .attribute(INVOICE_COMMENT)
                     .build())
             .build();
 
@@ -307,6 +316,26 @@ class JOOQTableCreatorTest {
         });
     }
 
+    private HashSet<String> getIndices(@NonNull String dbSchema, @NonNull String tableName, @NonNull String columnName) {
+        return jdbcTemplate.execute((Connection con) -> {
+            HashSet<String> indexData = new HashSet<>();
+            DatabaseMetaData metaData = con.getMetaData();
+
+            log.debug("Querying metadata for indices in table: %s.%s, column: %s%n", dbSchema, tableName, columnName);
+
+            try (ResultSet columns = metaData.getIndexInfo(null, dbSchema, tableName, false, false)) {
+                while (columns.next()) {
+                    String idxColumn = columns.getString("COLUMN_NAME");
+                    if (idxColumn != null && idxColumn.equals(columnName)) {
+                        String indexName = columns.getString("INDEX_NAME");
+                        indexData.add(indexName);
+                    }
+                }
+            }
+            return indexData;
+        });
+    }
+
     private Map<String, String> getForeignKeys(String dbSchema, String tableName) {
         // Get all foreign key columns from the given table
         return jdbcTemplate.execute((Connection con) -> {
@@ -360,7 +389,7 @@ class JOOQTableCreatorTest {
 
         var columnInfo = getColumnInfo("public", "invoice");
 
-        assertEquals(18, columnInfo.size());
+        assertEquals(19, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
         assertEquals("text", columnInfo.get("number"));
         assertDecimal(columnInfo.get("amount"));
@@ -379,6 +408,8 @@ class JOOQTableCreatorTest {
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_id"));
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_ns"));
         assertEquals("text", columnInfo.get("audit_metadata__last_modified_by_name"));
+        assertEquals("text", columnInfo.get("comment"));
+        assertEquals(Set.of("invoice_comment_fts_idx"), getIndices("public", "invoice", "comment"));
 
         // drop tables
         tableCreator.dropTables(application);

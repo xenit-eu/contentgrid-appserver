@@ -39,7 +39,6 @@ class EncryptedContentStoreAutoConfigurationTest {
                     TransactionAutoConfiguration.class, JooqAutoConfiguration.class,
                     FilesystemContentStoreAutoConfiguration.class, EncryptedContentStoreAutoConfiguration.class))
             .withPropertyValues(
-                    "spring.datasource.url=jdbc:tc:postgresql:15:///",
                     "contentgrid.appserver.content-store.type=ephemeral",
                     "contentgrid.appserver.content.encryption.enabled=true"
             );
