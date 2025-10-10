@@ -51,6 +51,11 @@ public class UsageTrackingRequestInputData implements RequestInputData {
     }
 
     @Override
+    public boolean supports(Class<? extends DataEntry> typeHint) {
+        return delegate.supports(typeHint);
+    }
+
+    @Override
     public DataEntry get(String key, Class<? extends DataEntry> typeHint) throws InvalidDataException {
         markKeyAsUsed.accept(key);
         return delegate.get(key, typeHint);

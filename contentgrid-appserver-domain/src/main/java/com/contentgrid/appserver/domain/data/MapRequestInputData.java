@@ -72,6 +72,11 @@ public class MapRequestInputData implements RequestInputData {
     }
 
     @Override
+    public boolean supports(Class<? extends DataEntry> typeHint) {
+        return true;
+    }
+
+    @Override
     public DataEntry get(String key, Class<? extends DataEntry> typeHint) throws InvalidDataException {
         var value = data.get(key);
         if(value == null) {

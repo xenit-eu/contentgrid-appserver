@@ -29,6 +29,11 @@ public class ConversionServiceRequestInputData implements RequestInputData {
     }
 
     @Override
+    public boolean supports(Class<? extends DataEntry> typeHint) {
+        return delegate.supports(typeHint) || conversionService.canConvert(DataEntry.class, typeHint);
+    }
+
+    @Override
     public DataEntry get(String key, Class<? extends DataEntry> typeHint) throws InvalidDataException {
         var result = delegate.get(key, typeHint);
         try {

@@ -57,16 +57,15 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
 
     private Optional<DataEntry> mapContentAttribute(ContentAttribute contentAttribute, RequestInputData inputData) throws InvalidPropertyDataException{
         var attributeName = contentAttribute.getName();
-        try {
-            var dataEntry = inputData.get(attributeName.getValue(), FileDataEntry.class);
-            if(dataEntry instanceof FileDataEntry fileDataEntry) {
-                return Optional.of(fileDataEntry);
+        if (inputData.supports(FileDataEntry.class)) {
+            try {
+                var dataEntry = inputData.get(attributeName.getValue(), FileDataEntry.class);
+                if (dataEntry instanceof FileDataEntry fileDataEntry) {
+                    return Optional.of(fileDataEntry);
+                }
+            } catch (InvalidDataException e) {
+                throw e.withinProperty(attributeName);
             }
-        } catch (InvalidDataTypeException e) {
-            // The input data is not a File type, map to composite attribute
-            // Fallthrough to mapping a composite attribute
-        } catch (InvalidDataException e) {
-            throw e.withinProperty(attributeName);
         }
         return mapCompositeAttribute(contentAttribute, inputData);
     }

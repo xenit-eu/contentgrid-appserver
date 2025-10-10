@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.data;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
@@ -75,6 +76,11 @@ public class JsonRequestInputData implements RequestInputData {
                 Spliterators.spliteratorUnknownSize(rootNode.fieldNames(), Spliterator.DISTINCT),
                 false
         );
+    }
+
+    @Override
+    public boolean supports(Class<? extends DataEntry> typeHint) {
+        return !FileDataEntry.class.isAssignableFrom(typeHint);
     }
 
     @Override

@@ -26,6 +26,13 @@ public interface RequestInputData {
     Stream<String> keys();
 
     /**
+     * Whether the request input data supports the requested type hint.
+     * @param typeHint A hint about which type of {@link DataEntry} is requested
+     * @return Whether the type hint is supported
+     */
+    boolean supports(Class<? extends DataEntry> typeHint);
+
+    /**
      * Retrieves the value associated with a key
      * <p>
      * The implementation is not required to honor the type hint, it may also return the native type of the value.

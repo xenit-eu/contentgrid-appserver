@@ -50,6 +50,12 @@ public class MultipartRequestInputData implements RequestInputData {
     }
 
     @Override
+    public boolean supports(Class<? extends DataEntry> typeHint) {
+        return Stream.of(StringDataEntry.class, FileDataEntry.class)
+                .anyMatch(type -> type.isAssignableFrom(typeHint));
+    }
+
+    @Override
     public DataEntry get(String key, Class<? extends DataEntry> typeHint) throws InvalidDataException {
         if(!requestParams.containsKey(key) && !files.containsKey(key)) {
             return MissingDataEntry.INSTANCE;
