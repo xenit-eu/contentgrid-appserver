@@ -125,6 +125,13 @@ class JOOQQueryEngineTest {
             .constraint(Constraint.required())
             .build();
 
+    private static final SimpleAttribute ORDER_ORDER = SimpleAttribute.builder()
+            .name(AttributeName.of("order"))
+            .column(ColumnName.of("order"))
+            .type(Type.TEXT)
+            .constraint(Constraint.required())
+            .build();
+
     private static final SimpleAttribute PERSON_VAT = SimpleAttribute.builder()
             .name(AttributeName.of("vat"))
             .column(ColumnName.of("vat"))
@@ -150,6 +157,14 @@ class JOOQQueryEngineTest {
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
+            .build();
+
+    private static final Entity ORDER = Entity.builder()
+            .name(EntityName.of("order"))
+            .table(TableName.of("order"))
+            .pathSegment(PathSegmentName.of("orders"))
+            .linkName(LinkName.of("orders"))
+            .attribute(ORDER_ORDER)
             .build();
 
     private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
@@ -384,6 +399,7 @@ class JOOQQueryEngineTest {
             .entity(PERSON)
             .entity(PRODUCT)
             .entity(ADDRESS)
+            .entity(ORDER)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
@@ -2582,6 +2598,21 @@ class JOOQQueryEngineTest {
         // Validate page info beyond end is empty
         var emptyPage = queryEngine.findAll(APPLICATION, PRODUCT, Scalar.of(true), null, new OffsetData(20, 10_010));
         assertEquals(0, emptyPage.getEntities().size());
+    }
+
+    @Test
+    void testReservedSQLKeywords() {
+        var createOrder = EntityCreateData.builder()
+                .entityName(ORDER.getName())
+                .attribute(new SimpleAttributeData<>(ORDER_ORDER.getName(), "TEST"))
+                .build();
+
+        queryEngine.create(APPLICATION, createOrder, TRUE_EXPRESSION);
+
+        var orders = queryEngine.findAll(APPLICATION, ORDER, Comparison.areEqual(SymbolicReference.parse("entity.order"), Scalar.of("TEST")), null, new OffsetData(40, 0));
+        assertEquals(1, orders.getEntities().size());
+        orders = queryEngine.findAll(APPLICATION, ORDER, Comparison.notEqual(SymbolicReference.parse("entity.order"), Scalar.of("TEST")), null, new OffsetData(40, 0));
+        assertEquals(0, orders.getEntities().size());
     }
 
     static Stream<Arguments> countExpressions() {
