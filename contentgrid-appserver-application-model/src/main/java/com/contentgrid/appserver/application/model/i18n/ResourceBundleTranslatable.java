@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.i18n;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -78,10 +79,15 @@ public class ResourceBundleTranslatable<T, M extends T> implements Translatable<
             var object = newConstructor.apply(bundleLocale);
             for (var entry : mappings.entrySet()) {
                 for(var suffix: suffixes) {
-                    var translation = bundle.getString(prefix + entry.getKey() + suffix);
-                    if (!translation.isEmpty()) {
-                        object = entry.getValue().apply(object, translation);
-                        break; // First matching non-empty suffix is used
+                    try {
+                        var translation = bundle.getString(prefix + entry.getKey() + suffix);
+                        if (!translation.isEmpty()) {
+                            object = entry.getValue().apply(object, translation);
+                            break; // First matching non-empty suffix is used
+                        }
+                    } catch (MissingResourceException | NullPointerException | ClassCastException e) {
+                        // mapping key did not exist, or mapping value was null or not a string
+                        // Try mapping with next suffix
                     }
                 }
             }
