@@ -255,6 +255,9 @@ class JOOQTableCreatorTest {
             .targetReference(ColumnName.of("next_invoice"))
             .build();
 
+    @NonNull
+    private static final List<@NonNull String> WELL_KNOWN_TABLES = List.of("spatial_ref_sys_pkey", "spatial_ref_sys", "geometry_dump", "valid_detail", "geography_columns", "geometry_columns");
+
     @Autowired
     private DSLContext dslContext;
 
@@ -374,7 +377,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     @Test
@@ -413,8 +416,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        List<String> wellKnownTables = List.of("spatial_ref_sys_pkey", "spatial_ref_sys", "geometry_dump", "valid_detail", "geography_columns", "geometry_columns");
-        assertEquals(wellKnownTables, getTables("public"));
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     // Decimal and numeric are synonyms in PostgreSQL
@@ -458,7 +460,7 @@ class JOOQTableCreatorTest {
         var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
         assertEquals(3, personInfo.size()); // unchanged
-        assertEquals(19, invoiceInfo.size());
+        assertEquals(20, invoiceInfo.size());
         assertEquals("uuid", invoiceInfo.get("customer"));
 
         assertEquals(1, invoiceForeignKeys.size());
@@ -466,7 +468,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     @Test
@@ -495,7 +497,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     static Stream<Relation> oneToOneRelations() {
@@ -517,7 +519,7 @@ class JOOQTableCreatorTest {
         var columnInfo = getColumnInfo("public", "invoice");
         var foreignKeys = getForeignKeys("public", "invoice");
 
-        assertEquals(19, columnInfo.size());
+        assertEquals(20, columnInfo.size());
         assertEquals("uuid", columnInfo.get("next_invoice"));
         assertNull(columnInfo.get("previous_invoice"));
 
@@ -526,7 +528,7 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     @Test
@@ -555,11 +557,11 @@ class JOOQTableCreatorTest {
         assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
 
         // Drop tables should fail too
         assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
-        assertTrue(getTables("public").isEmpty());
+        assertEquals(WELL_KNOWN_TABLES, getTables("public"));
     }
 
     @SpringBootApplication
