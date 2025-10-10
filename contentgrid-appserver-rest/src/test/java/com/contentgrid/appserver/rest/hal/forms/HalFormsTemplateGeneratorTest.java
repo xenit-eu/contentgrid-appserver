@@ -453,12 +453,12 @@ class HalFormsTemplateGeneratorTest {
                                         .contains("direction=desc"),
                                 paidAsc -> assertThat(paidAsc.toString())
                                         .contains("value=is_paid,asc")
-                                        .contains("prompt=paid asc")
+                                        .contains("prompt=paid ascending")
                                         .contains("property=is_paid")
                                         .contains("direction=asc"),
                                 paidDesc -> assertThat(paidDesc.toString())
                                         .contains("value=is_paid,desc")
-                                        .contains("prompt=paid desc")
+                                        .contains("prompt=paid descending")
                                         .contains("property=is_paid")
                                         .contains("direction=desc"),
                                 confidentialityAsc -> assertThat(confidentialityAsc.toString())
