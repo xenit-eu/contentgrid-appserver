@@ -386,6 +386,16 @@ class ProfileRestControllerTest {
                                                 property: "amount",
                                                 direction: "desc"
                                             }, {
+                                                value: "is_paid,asc",
+                                                prompt: "paid ascending",
+                                                property: "is_paid",
+                                                direction: "asc"
+                                            }, {
+                                                value: "is_paid,desc",
+                                                prompt: "paid descending",
+                                                property: "is_paid",
+                                                direction: "desc"
+                                            }, {
                                                 value: "confidentiality,asc",
                                                 property: "confidentiality",
                                                 direction: "asc"

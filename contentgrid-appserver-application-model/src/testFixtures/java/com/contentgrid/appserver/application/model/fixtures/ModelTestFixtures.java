@@ -239,6 +239,7 @@ public class ModelTestFixtures {
             .name(AttributeName.of("is_paid"))
             .column(ColumnName.of("is_paid"))
             .type(Type.BOOLEAN)
+            .translationsBy(Locale.ROOT, translations -> translations.withName("paid"))
             .build();
 
     public static final SimpleAttribute INVOICE_CONFIDENTIALITY = SimpleAttribute.builder()
@@ -421,6 +422,10 @@ public class ModelTestFixtures {
             .sortableField(SortableField.builder()
                     .name(SortableName.of("amount"))
                     .propertyPath(PropertyPath.of(AttributeName.of("amount")))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("is_paid"))
+                    .propertyPath(PropertyPath.of(AttributeName.of("is_paid")))
                     .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("confidentiality"))
