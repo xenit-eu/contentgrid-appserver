@@ -1,8 +1,4 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: myuser
-    password: mypassword
   mvc.problemdetails.enabled: true
 server:
   port: ${PORT:8080}

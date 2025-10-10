@@ -9,7 +9,8 @@ dependencies {
     implementation project(':contentgrid-appserver-application-model')
     implementation project(':contentgrid-appserver-query-engine-api')
     runtimeOnly 'org.postgresql:postgresql'
-    implementation 'org.testcontainers:postgresql'
+    implementation 'org.testcontainers:testcontainers'
+    implementation 'org.springframework.boot:spring-boot-testcontainers'
     api 'org.springframework.boot:spring-boot-starter-jooq'
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
