@@ -363,6 +363,23 @@ class EntityRestControllerTest {
             mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
                     .andExpect(status().isNotFound());
         }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void testFailToCreateWithContentFileNameAndMimetype(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            Map<String, Object> product = new HashMap<>();
+            product.put("name", "Test Product");
+            product.put("price", 29.99);
+            product.put("release_date", "2023-01-15T10:00:00Z");
+            product.put("in_stock", true);
+            product.put("picture", Map.of("filename", "picture.jpg", "mimetype", "application/jpeg"));
+
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
+                            .accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
+                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
+        }
     }
 
     @Nested
