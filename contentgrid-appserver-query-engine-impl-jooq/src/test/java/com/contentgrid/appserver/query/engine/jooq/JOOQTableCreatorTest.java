@@ -413,7 +413,8 @@ class JOOQTableCreatorTest {
 
         // drop tables
         tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
+        List<String> wellKnownTables = List.of("spatial_ref_sys_pkey", "spatial_ref_sys", "geometry_dump", "valid_detail", "geography_columns", "geometry_columns");
+        assertEquals(wellKnownTables, getTables("public"));
     }
 
     // Decimal and numeric are synonyms in PostgreSQL
