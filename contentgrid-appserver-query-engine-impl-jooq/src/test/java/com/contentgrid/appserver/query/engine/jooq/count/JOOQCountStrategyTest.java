@@ -26,6 +26,8 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
@@ -39,8 +41,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.testcontainers.containers.GenericContainer;
+
+import com.contentgrid.appserver.query.engine.jooq.ContentGridDatabaseContainer;
 
 @SpringBootTest(properties = {
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
@@ -176,6 +182,7 @@ class JOOQCountStrategyTest {
     }
 
     @SpringBootApplication
+    @Import(ContentGridDatabaseContainer.class)
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
