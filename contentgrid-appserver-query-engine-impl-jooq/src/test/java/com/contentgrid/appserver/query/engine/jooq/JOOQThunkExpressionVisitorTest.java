@@ -51,6 +51,8 @@ import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -67,7 +69,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
@@ -151,6 +152,12 @@ class JOOQThunkExpressionVisitorTest {
             .lengthColumn(ColumnName.of("content__length"))
             .build();
 
+    private static final SimpleAttribute INVOICE_COMMENT = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT)
+            .build();
+
     private static final CompositeAttribute INVOICE_AUDIT_METADATA = CompositeAttributeImpl.builder()
             .name(AttributeName.of("audit_metadata"))
             .attribute(SimpleAttribute.builder()
@@ -193,10 +200,16 @@ class JOOQThunkExpressionVisitorTest {
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
+            .attribute(INVOICE_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.FTS)
+                    .name(FilterName.of("comment~fts"))
+                    .attribute(INVOICE_COMMENT)
                     .build())
             .build();
 
@@ -334,6 +347,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
                 .set(DSL.field("customer", UUID.class), ALICE_ID)
+                .set(DSL.field("comment", String.class), "This is the first invoice.")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE2_ID)
@@ -349,6 +363,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
                 .set(DSL.field("customer", UUID.class), BOB_ID)
                 .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID)
+                .set(DSL.field("comment", String.class), "This is the second invoice.")
                 .execute();
         dslContext.insertInto(DSL.table("person__friends"))
                 .set(DSL.field("person_src_id", UUID.class), BOB_ID)
@@ -401,13 +416,17 @@ class JOOQThunkExpressionVisitorTest {
     }
 
     @Test
-    void findAliceWithFullTextSearch() {
-        // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
+    void findInvoicesWithFullTextSearch() {
+        findInvoiceWithFullTextSearch(INVOICE1_ID, "first");
+        findInvoiceWithFullTextSearch(INVOICE2_ID, "second");
+    }
+
+    void findInvoiceWithFullTextSearch(@NonNull UUID uuid, @NonNull String searchTerm) {
         ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
-                Scalar.of("ic")
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                Scalar.of(searchTerm)
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
         var results = dslContext.selectFrom(table)
@@ -417,9 +436,7 @@ class JOOQThunkExpressionVisitorTest {
 
         assertEquals(1, results.size());
         var result = results.getFirst();
-        assertEquals(ALICE_ID, result.get("id"));
-        assertEquals("alice", result.get("name"));
-        assertEquals("vat_1", result.get("vat"));
+        assertEquals(uuid, result.get("id"));
     }
 
     @Test

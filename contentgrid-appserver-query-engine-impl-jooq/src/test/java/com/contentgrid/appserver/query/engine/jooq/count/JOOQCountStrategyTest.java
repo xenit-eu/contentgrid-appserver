@@ -43,7 +43,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 class JOOQCountStrategyTest {

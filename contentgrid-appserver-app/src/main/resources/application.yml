@@ -10,6 +10,3 @@ management:
         include: '*'
   server:
     port: '8081'
-logging:
-  level:
-    com.contentgrid: debug

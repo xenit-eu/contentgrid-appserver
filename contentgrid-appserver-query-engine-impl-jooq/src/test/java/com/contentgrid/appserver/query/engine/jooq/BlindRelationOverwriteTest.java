@@ -50,7 +50,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})

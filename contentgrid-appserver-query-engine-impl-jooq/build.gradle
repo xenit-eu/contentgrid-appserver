@@ -17,24 +17,6 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
-}
-
-// TODO: what a horrible Dockerfile... that I wrote myself. Update it.
-dockerBuild {
-    repositories = ['contentgrid/contentgrid-paradedb']
-    tags = ['local']
-}
-
-tasks.named('test') {
-    dependsOn tasks.named('buildDockerImage')
-}
-
-// TODO: this must be a bug.
-tasks.named('buildDockerImage') {
-    dependsOn tasks.named("processResources")
-    dependsOn tasks.named("processTestResources")
-    dependsOn tasks.named('compileJava')
-    dependsOn tasks.named('compileTestJava')
-    dependsOn tasks.named('generateEffectiveLombokConfig')
-    dependsOn tasks.named('generateTestEffectiveLombokConfig')
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 }
