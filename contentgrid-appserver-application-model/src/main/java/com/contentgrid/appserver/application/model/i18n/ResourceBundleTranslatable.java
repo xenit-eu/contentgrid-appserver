@@ -85,9 +85,8 @@ public class ResourceBundleTranslatable<T, M extends T> implements Translatable<
                             object = entry.getValue().apply(object, translation);
                             break; // First matching non-empty suffix is used
                         }
-                    } catch (MissingResourceException | NullPointerException | ClassCastException e) {
-                        // mapping key did not exist, or mapping value was null or not a string
-                        // Try mapping with next suffix
+                    } catch (MissingResourceException e) {
+                        // mapping key did not exist, try mapping with next suffix
                     }
                 }
             }
