@@ -126,7 +126,7 @@ class JoinCollectionTest {
                 // source one-to-one relation
                 Arguments.of(INVOICE, List.of(INVOICE_PREVIOUS), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("invoice").as("i1"))
+                                .from(DSL.table(DSL.name("invoice")).as("i1"))
                                 .where(DSL.and(
                                         DSL.field(DSL.name("i1", "id"), UUID.class)
                                                 .eq(DSL.field(DSL.name("i0", "previous_invoice"), UUID.class)),
@@ -135,7 +135,7 @@ class JoinCollectionTest {
                 // target one-to-one relation
                 Arguments.of(INVOICE, List.of(INVOICE_NEXT), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("invoice").as("i1"))
+                                .from(DSL.table(DSL.name("invoice")).as("i1"))
                                 .where(DSL.and(
                                         DSL.field(DSL.name("i1", "previous_invoice"), UUID.class)
                                                 .eq(DSL.field(DSL.name("i0", "id"), UUID.class)),
@@ -144,7 +144,7 @@ class JoinCollectionTest {
                 // many-to-one relation
                 Arguments.of(INVOICE, List.of(INVOICE_CUSTOMER), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("person").as("p1"))
+                                .from(DSL.table(DSL.name("person")).as("p1"))
                                 .where(DSL.and(
                                         DSL.field(DSL.name("p1", "id"), UUID.class)
                                                 .eq(DSL.field(DSL.name("i0", "customer"), UUID.class)),
@@ -153,7 +153,7 @@ class JoinCollectionTest {
                 // one-to-many relation
                 Arguments.of(PERSON, List.of(PERSON_INVOICES), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("invoice").as("i1"))
+                                .from(DSL.table(DSL.name("invoice")).as("i1"))
                                 .where(DSL.and(
                                         DSL.field(DSL.name("i1", "customer"), UUID.class)
                                                 .eq(DSL.field(DSL.name("p0", "id"), UUID.class)),
@@ -162,8 +162,8 @@ class JoinCollectionTest {
                 // many-to-many relation
                 Arguments.of(INVOICE, List.of(INVOICE_PRODUCTS), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("invoice__products").as("i1"))
-                                .join(DSL.table("product").as("p2"))
+                                .from(DSL.table(DSL.name("invoice__products")).as("i1"))
+                                .join(DSL.table(DSL.name("product")).as("p2"))
                                 .on(DSL.field(DSL.name("p2", "id"), UUID.class)
                                         .eq(DSL.field(DSL.name("i1", "product_id"), UUID.class)))
                                 .where(DSL.and(
@@ -174,11 +174,11 @@ class JoinCollectionTest {
                 // many-to-many relation + many-to-one relation (3 entities)
                 Arguments.of(PRODUCT, List.of(PRODUCT_INVOICES, INVOICE_CUSTOMER), (UnaryOperator<Condition>) condition ->
                         DSL.exists(DSL.selectOne()
-                                .from(DSL.table("invoice__products").as("i1"))
-                                .join(DSL.table("invoice").as("i2"))
+                                .from(DSL.table(DSL.name("invoice__products")).as("i1"))
+                                .join(DSL.table(DSL.name("invoice")).as("i2"))
                                 .on(DSL.field(DSL.name("i2", "id"), UUID.class)
                                         .eq(DSL.field(DSL.name("i1", "invoice_id"), UUID.class)))
-                                .join(DSL.table("person").as("p3"))
+                                .join(DSL.table(DSL.name("person")).as("p3"))
                                 .on(DSL.field(DSL.name("p3", "id"), UUID.class)
                                         .eq(DSL.field(DSL.name("i2", "customer"), UUID.class)))
                                 .where(DSL.and(
@@ -268,11 +268,11 @@ class JoinCollectionTest {
         joins.addRelation(APPLICATION, INVOICE_PRODUCTS); // right term
 
         var expected = DSL.exists(DSL.selectOne()
-                .from(DSL.table("person").as("p1"))
-                .join(DSL.table("invoice__products").as("i2"))
+                .from(DSL.table(DSL.name("person")).as("p1"))
+                .join(DSL.table(DSL.name("invoice__products")).as("i2"))
                 .on(DSL.field(DSL.name("i2", "invoice_id"), UUID.class)
                         .eq(DSL.field(DSL.name("i0", "id"), UUID.class)))
-                .join(DSL.table("product").as("p3"))
+                .join(DSL.table(DSL.name("product")).as("p3"))
                 .on(DSL.field(DSL.name("p3", "id"), UUID.class)
                         .eq(DSL.field(DSL.name("i2", "product_id"), UUID.class)))
                 .where(DSL.and(
@@ -296,8 +296,8 @@ class JoinCollectionTest {
         joins.addRelation(APPLICATION, INVOICE_NEXT); // right term
 
         var expected = DSL.exists(DSL.selectOne()
-                .from(DSL.table("invoice").as("i1"))
-                .join(DSL.table("invoice").as("i2"))
+                .from(DSL.table(DSL.name("invoice")).as("i1"))
+                .join(DSL.table(DSL.name("invoice")).as("i2"))
                 .on(DSL.field(DSL.name("i2", "previous_invoice"), UUID.class)
                         .eq(DSL.field(DSL.name("i0", "id"), UUID.class)))
                 .where(DSL.and(

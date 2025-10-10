@@ -26,7 +26,7 @@ public class JOOQUtils {
     }
 
     public static Table<?> resolveTable(TableName tableName) {
-        return DSL.table(tableName.getValue());
+        return DSL.table(DSL.name(tableName.getValue()));
     }
 
     public static Table<?> resolveTable(Entity entity, TableName alias) {
@@ -34,7 +34,7 @@ public class JOOQUtils {
     }
 
     public static Table<?> resolveTable(TableName tableName, TableName alias) {
-        return DSL.table(tableName.getValue()).as(alias.getValue());
+        return DSL.table(DSL.name(tableName.getValue())).as(alias.getValue());
     }
 
     public static Field<?> resolveField(TableName alias, SimpleAttribute attribute) {
@@ -46,7 +46,7 @@ public class JOOQUtils {
     }
 
     public static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {
-        return DSL.field(column.getValue(), resolveType(type, required));
+        return DSL.field(DSL.name(column.getValue()), resolveType(type, required));
     }
 
     public static Field<?> resolveField(TableName alias, ColumnName column, SimpleAttribute.Type type, boolean required) {
