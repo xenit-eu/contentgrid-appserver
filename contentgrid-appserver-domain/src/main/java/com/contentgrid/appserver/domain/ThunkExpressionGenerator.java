@@ -5,7 +5,8 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -46,40 +47,12 @@ public class ThunkExpressionGenerator {
             SearchFilter searchFilter = maybeSearchFilter.get();
 
             // currently only handle attribute search filters
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                List<PathElement> pathElements;
-
-                try {
-                    pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
-                } catch (IllegalArgumentException e) {
-                    throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                            attribute.getType(), entry.getValue().toString(), e);
-                }
-
-                List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
-
-                for (String value : entry.getValue()) {
-                    try {
-                        Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
-                        subexpressions.add(createExpression(
-                                attributeSearchFilter,
-                                pathElements,
-                                parsedValue
-                        ));
-                    } catch (Exception e) {
-                        throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                                attribute.getType(), value, e);
-                    }
-                }
-
-                if (subexpressions.size() == 1) {
-                    // If there's only one subexpression, add it directly
-                    expressions.add(subexpressions.getFirst());
-                } else if (!subexpressions.isEmpty()) {
-                    // Otherwise, create a disjunction (OR) of all subexpressions if not empty
-                    expressions.add(LogicalOperation.disjunction(subexpressions));
-                }
+            if (searchFilter instanceof SimpleAttributeSearchFilter simpleAttributeSearchFilter) {
+                ThunkExpression<Boolean> expression = from(application, entity, entry, simpleAttributeSearchFilter);
+                expressions.add(expression);
+            } else if (searchFilter instanceof CompositeAttributeSearchFilter compositeAttributeSearchFilter) {
+                ThunkExpression<Boolean> expression = from(application, entity, entry, compositeAttributeSearchFilter);
+                expressions.add(expression);
             }
         }
 
@@ -95,6 +68,57 @@ public class ThunkExpressionGenerator {
 
         // Otherwise, create a conjunction (AND) of all expressions
         return LogicalOperation.conjunction(expressions.stream());
+    }
+
+    static ThunkExpression<Boolean> from(Application application, Entity entity, Map.Entry<String, List<String>> entry, SimpleAttributeSearchFilter filter) {
+        var attribute = application.resolvePropertyPath(entity, filter.getAttributePath());
+        List<PathElement> pathElements;
+
+        try {
+            pathElements = convertPath(application, entity, filter.getAttributePath());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                    attribute.getType(), entry.getValue().toString(), e);
+        }
+
+        List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
+
+        for (String value : entry.getValue()) {
+            try {
+                Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
+                subexpressions.add(createExpression(
+                        filter,
+                        pathElements,
+                        parsedValue
+                ));
+            } catch (Exception e) {
+                throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                        attribute.getType(), value, e);
+            }
+        }
+
+        if (subexpressions.size() == 1) {
+            // If there's only one subexpression, add it directly
+            return subexpressions.getFirst();
+        } else if (!subexpressions.isEmpty()) {
+            // Otherwise, create a disjunction (OR) of all subexpressions if not empty
+            return LogicalOperation.disjunction(subexpressions);
+        } else return Scalar.of(true);
+    }
+
+    static ThunkExpression<Boolean> from(Application application, Entity entity, Map.Entry<String, List<String>> entry, CompositeAttributeSearchFilter filter) {
+        // TODO: simplify this.
+
+        ThunkExpression<Boolean> expression = null;
+        for (SimpleAttributeSearchFilter simpleAttributeSearchFilter : filter.toSimpleAttributeSearchFilters().toList()) {
+            ThunkExpression<Boolean> subExpression = from(application, entity, entry, simpleAttributeSearchFilter);
+            if (expression == null) {
+                expression = subExpression;
+            } else {
+                expression = LogicalOperation.disjunction(expression, subExpression);
+            }
+        }
+        return expression == null ? Scalar.of(true) : expression;
     }
 
 
@@ -113,7 +137,7 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
+    private static ThunkExpression<Boolean> createExpression(SimpleAttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
         return switch (filter.getOperation()) {

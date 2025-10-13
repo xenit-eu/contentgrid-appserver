@@ -6,7 +6,10 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -20,9 +23,15 @@ import org.jooq.impl.DSL;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -38,6 +47,9 @@ public class JOOQTableCreator implements TableCreator {
             throw new RuntimeException(e);
         }
     }
+    private static final @NonNull ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    // TODO: allow other languages.
+    private static final @NonNull Map<@NonNull String, @NonNull Object> FTS_COLUMN_CONFIG = Map.of("tokenizer", Map.of("type", "default", "stemmer", "English"));
 
     private final DSLContextResolver resolver;
 
@@ -54,6 +66,7 @@ public class JOOQTableCreator implements TableCreator {
         }
     }
 
+    @SneakyThrows
     private void createTableForEntity(DSLContext dslContext, Application application, Entity entity) {
         var step = dslContext.createTable(entity.getTable().getValue())
                 .column(JOOQUtils.resolvePrimaryKey(entity))
@@ -67,13 +80,38 @@ public class JOOQTableCreator implements TableCreator {
             throw new InvalidSqlException(e.getMessage(), e);
         }
 
-        // Create FTS indexes.
-        entity.getSearchFilters()
-                .stream()
-                .filter(searchFilter -> searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
-                        attributeSearchFilter.getOperation().equals(AttributeSearchFilter.Operation.FTS))
-                .map(searchFilter -> application.resolvePropertyPath(entity, ((AttributeSearchFilter) searchFilter).getAttributePath()))
-                .forEach(simpleAttribute -> createFTSIndex(dslContext, entity, simpleAttribute));
+        List<SimpleAttribute> ftsAttributes = entity.getSearchFilters()
+                .stream().flatMap(searchFilter -> {
+                    if (!(searchFilter instanceof BaseAttributeSearchFilter baseAttributeSearchFilter) || !baseAttributeSearchFilter.getOperation().equals(BaseAttributeSearchFilter.Operation.FTS)) return Stream.of();
+                    if (baseAttributeSearchFilter instanceof SimpleAttributeSearchFilter simpleAttributeSearchFilter) return Stream.of(simpleAttributeSearchFilter.getAttributePath());
+                    if (baseAttributeSearchFilter instanceof CompositeAttributeSearchFilter compositeAttributeSearchFilter) return compositeAttributeSearchFilter.getAttributePaths().stream();
+                    throw new IllegalArgumentException("Unknown search filter type (%s).".formatted(searchFilter.getClass().getName()));
+                })
+                .distinct()
+                .map(propertyPath -> application.resolvePropertyPath(entity, propertyPath))
+                .toList();
+        if (!ftsAttributes.isEmpty())  createFTSIndices(dslContext, entity, ftsAttributes);
+    }
+
+    @SneakyThrows
+    private void createFTSIndices(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull List<@NonNull SimpleAttribute> attributes) throws RuntimeException, JsonProcessingException {
+        String tableName = entity.getTable().getValue();
+        String idColumnName = entity.getPrimaryKey().getColumn().getValue();
+        List<String> ftsColumnNames = attributes.stream().map(attr -> attr.getColumn().getValue()).toList();
+        String indexName = "%s_%s_fts_idx".formatted(tableName, String.join("_", ftsColumnNames));
+
+        // TODO: ugly code.
+        log.debug("Creating an FTS index ({}) on table ({}) for columns ({}).", indexName, tableName, ftsColumnNames);
+        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
+        String statement = ftsIndexPreparedStatement.formatted(indexName, tableName, idColumnName, OBJECT_MAPPER.writeValueAsString(ftsColumnNames).replace("[", "").replace("]", ""), idColumnName, OBJECT_MAPPER.writeValueAsString(createFTSIndexTextFieldStatement(ftsColumnNames)));
+        System.out.println("Executing FTS index creation statement: " + statement);
+        dslContext.execute(statement);
+    }
+
+    private @NonNull Map<@NonNull String, @NonNull Object> createFTSIndexTextFieldStatement(@NonNull List<@NonNull String> columnNames) throws JsonProcessingException {
+        return columnNames.stream()
+                .map(columnName -> Map.entry(columnName, FTS_COLUMN_CONFIG))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {
@@ -92,17 +130,6 @@ public class JOOQTableCreator implements TableCreator {
                 return step;
             }
         }
-    }
-
-    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull SimpleAttribute attribute) throws RuntimeException {
-        String tableName = entity.getTable().getValue();
-        String idColumnName = entity.getPrimaryKey().getColumn().getValue();
-        String ftsColumnName = attribute.getColumn().getValue();
-        String indexName = "%s_%s_fts_idx".formatted(tableName, ftsColumnName);
-
-        log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
-        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
-        dslContext.execute(ftsIndexPreparedStatement.formatted(indexName, tableName, idColumnName, ftsColumnName, idColumnName, ftsColumnName));
     }
 
     @Override

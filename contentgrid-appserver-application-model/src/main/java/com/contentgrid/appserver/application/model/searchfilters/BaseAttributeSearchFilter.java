@@ -1,29 +1,25 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
-import com.contentgrid.appserver.application.model.i18n.Translatable;
-import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
-import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
-import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
-import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import static lombok.AccessLevel.PROTECTED;
+
 import java.util.Locale;
 import java.util.Set;
+
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Singular;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
-/**
- * AttributeSearchFilter is a class representing search filters that operate on entity attributes.
- */
 @Getter
-public class AttributeSearchFilter implements SearchFilter {
+public abstract class BaseAttributeSearchFilter implements SearchFilter {
 
     @NonNull
     private final Operation operation;
@@ -33,14 +29,6 @@ public class AttributeSearchFilter implements SearchFilter {
      */
     @NonNull
     private final FilterName name;
-
-    /**
-     * The path to the attribute this search filter operates on.
-     * For simple attributes, this will be a single-element list.
-     * For composite attributes, this will be a multi-element list representing the path.
-     */
-    @NonNull
-    private final PropertyPath attributePath;
 
     @NonNull
     @Delegate
@@ -53,21 +41,12 @@ public class AttributeSearchFilter implements SearchFilter {
     @NonNull
     private final Set<SearchFilterFlag> flags;
 
-    /**
-     * Constructs an AttributeSearchFilter with the specified parameters.
-     *
-     * @param name the name of the search filter
-     * @param attributePath the path to the attribute to apply the filter on
-     * @param flags the flags of the search filter
-     * @throws InvalidSearchFilterException if the attribute type is not supported
-     */
-    @Builder
-    AttributeSearchFilter(
+    
+    protected BaseAttributeSearchFilter(
             @NonNull Operation operation,
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
-            @NonNull PropertyPath attributePath,
-            @NonNull @Singular Set<SearchFilterFlag> flags) {
+            @NonNull Set<SearchFilterFlag> flags) {
         this.operation = operation;
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
@@ -76,7 +55,6 @@ public class AttributeSearchFilter implements SearchFilter {
             }
             return t;
         });
-        this.attributePath = attributePath;
         this.flags = Set.copyOf(flags);
 
         flags.forEach(flag -> flag.checkSupported(this));
@@ -113,19 +91,4 @@ public class AttributeSearchFilter implements SearchFilter {
         }
     }
 
-    public static AttributeSearchFilterBuilder builder() {
-        return new AttributeSearchFilterBuilder()
-                .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
-    }
-
-    public static class AttributeSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, AttributeSearchFilterBuilder> {
-        {
-            getTranslations = () -> translations;
-        }
-
-        public AttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
-            this.attributePath = PropertyPath.of(attribute.getName());
-            return this;
-        }
-    }
 }

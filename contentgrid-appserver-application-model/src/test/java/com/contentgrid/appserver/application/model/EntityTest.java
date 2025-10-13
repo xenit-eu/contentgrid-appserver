@@ -14,8 +14,8 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentMod
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -58,15 +58,15 @@ class EntityTest {
             .name(AttributeName.of("composite"))
             .attribute(NESTED_ATTRIBUTE)
             .build();
-    private static final SearchFilter FILTER1 = AttributeSearchFilter.builder()
+    private static final SearchFilter FILTER1 = SimpleAttributeSearchFilter.builder()
             .operation(Operation.PREFIX)
             .name(FilterName.of("filter1"))
-            .attribute(ATTRIBUTE1)
+            .attributePath(ATTRIBUTE1)
             .build();
-    private static final SearchFilter FILTER2 = AttributeSearchFilter.builder()
+    private static final SearchFilter FILTER2 = SimpleAttributeSearchFilter.builder()
             .operation(Operation.EXACT)
             .name(FilterName.of("filter2"))
-            .attribute(ATTRIBUTE2)
+            .attributePath(ATTRIBUTE2)
             .build();
     private static final SortableField SORTABLE1 = SortableField.builder().name(SortableName.of("sortable1")).propertyPath(PropertyPath.of(ATTRIBUTE1.getName())).build();
 
@@ -104,7 +104,7 @@ class EntityTest {
         // getFilterByName
         var filter = entity.getFilterByName(FilterName.of("filter1")).orElseThrow();
         assertEquals(FilterName.of("filter1"), filter.getName());
-        var attrSearchFilter = assertInstanceOf(AttributeSearchFilter.class, filter);
+        var attrSearchFilter = assertInstanceOf(SimpleAttributeSearchFilter.class, filter);
         assertEquals(Operation.PREFIX, attrSearchFilter.getOperation());
         assertEquals(AttributeName.of("attribute1"), attrSearchFilter.getAttributePath().getFirst());
 
@@ -127,10 +127,10 @@ class EntityTest {
         );
 
         var filters = entity.getSearchFilters();
-        var filter3 = AttributeSearchFilter.builder()
+        var filter3 = SimpleAttributeSearchFilter.builder()
                 .operation(Operation.EXACT)
                 .name(FilterName.of("filter3"))
-                .attribute(ATTRIBUTE1)
+                .attributePath(ATTRIBUTE1)
                 .build();
 
         // validate that the list of search filters is immutable
@@ -301,10 +301,10 @@ class EntityTest {
 
     @Test
     void entity_duplicateFilterName() {
-        var duplicate = AttributeSearchFilter.builder()
+        var duplicate = SimpleAttributeSearchFilter.builder()
                 .operation(Operation.EXACT)
                 .name(FILTER1.getName())
-                .attribute(ATTRIBUTE2)
+                .attributePath(ATTRIBUTE2)
                 .build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
@@ -345,7 +345,7 @@ class EntityTest {
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(COMPOSITE)
-                .searchFilter(AttributeSearchFilter.builder()
+                .searchFilter(SimpleAttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName()))
@@ -361,7 +361,7 @@ class EntityTest {
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(ATTRIBUTE1)
-                .searchFilter(AttributeSearchFilter.builder()
+                .searchFilter(SimpleAttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(ATTRIBUTE1.getName(), AttributeName.of("foo")))
@@ -384,7 +384,7 @@ class EntityTest {
                 .linkName(LinkName.of("link"))
                 .table(TableName.of("table"))
                 .attribute(COMPOSITE)
-                .searchFilter(AttributeSearchFilter.builder()
+                .searchFilter(SimpleAttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
                         .attributePath(PropertyPath.of(COMPOSITE.getName()))

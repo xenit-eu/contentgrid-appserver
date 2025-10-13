@@ -10,7 +10,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
@@ -74,8 +74,8 @@ public class ProfileAttributeRepresentationModelAssembler {
                 .toList();
 
         var searchParams = entity.getSearchFilters().stream()
-                .filter(AttributeSearchFilter.class::isInstance)
-                .map(AttributeSearchFilter.class::cast)
+                .filter(SimpleAttributeSearchFilter.class::isInstance)
+                .map(SimpleAttributeSearchFilter.class::cast)
                 .filter(filter -> filter.getAttributePath().equals(path))
                 .map(filter -> attributeSearchFilterToModel(context, filter))
                 .flatMap(Optional::stream)
@@ -104,7 +104,7 @@ public class ProfileAttributeRepresentationModelAssembler {
         };
     }
 
-    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Context context, AttributeSearchFilter filter) {
+    private Optional<ProfileSearchParamRepresentationModel> attributeSearchFilterToModel(Context context, SimpleAttributeSearchFilter filter) {
         if (filter.hasFlag(HiddenSearchFilterFlag.class)) {
             return Optional.empty();
         }

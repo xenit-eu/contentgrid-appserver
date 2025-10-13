@@ -17,7 +17,8 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -28,6 +29,8 @@ import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -134,15 +137,22 @@ public class HalFormsTemplateGenerator {
             if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
                 continue;
             }
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
-                        .withPrompt(attributeSearchFilter.getTranslations(userLocales).getName())
+            if (searchFilter instanceof SimpleAttributeSearchFilter simpleAttributeSearchFilter) {
+                var attribute = application.resolvePropertyPath(entity, simpleAttributeSearchFilter.getAttributePath());
+                var property = HalFormsProperty.named(simpleAttributeSearchFilter.getName().getValue())
+                        .withPrompt(simpleAttributeSearchFilter.getTranslations(userLocales).getName())
                         .withAttributeType(attribute.getType());
                 properties.add(addAllowedValues(property, attribute, true));
-            } else {
-                throw new IllegalStateException("Unexpected value: " + searchFilter);
-            }
+            } else if (searchFilter instanceof CompositeAttributeSearchFilter compositeAttributeSearchFilter) {
+                var attributes = compositeAttributeSearchFilter.getAttributePaths().stream()
+                        .map(path -> application.resolvePropertyPath(entity, path))
+                        .filter(attr -> !attr.isIgnored())
+                        .toList();
+                var property = HalFormsProperty.named(compositeAttributeSearchFilter.getName().getValue())
+                        .withPrompt(compositeAttributeSearchFilter.getTranslations(userLocales).getName())
+                        .withAttributeType(attributes.getFirst().getType()); // Not-empty & single-type is enforced in Application.
+                properties.add(addAllowedValues(property, attributes, true));
+            } else throw new IllegalStateException("Unexpected value: " + searchFilter);
         }
         entityToSortProperty(entity).ifPresent(properties::add);
 
@@ -255,6 +265,26 @@ public class HalFormsTemplateGenerator {
                 .withAttributeType(attribute.getType())
                 .withRequired(attribute.hasConstraint(RequiredConstraint.class));
         return addAllowedValues(property, attribute, false);
+    }
+
+    private HalFormsProperty addAllowedValues(HalFormsProperty property, Collection<SimpleAttribute> attributes, boolean unbounded) {
+        HashSet<String> allowedValues = null;
+        long minValues = property.isRequired() ? 1L : 0L;
+        Long maxValues = unbounded ? null : 1L;
+
+        for (var attribute : attributes) {
+            Optional<AllowedValuesConstraint> constraint = attribute.getConstraint(AllowedValuesConstraint.class);
+            if (constraint.isEmpty()) continue;
+            
+            if (allowedValues == null) allowedValues = new HashSet<>(constraint.get().getValues());
+            else allowedValues.retainAll(constraint.get().getValues());
+        }
+
+        return (allowedValues != null) ?
+                property.withOptions(HalFormsOptions.inline(List.copyOf(allowedValues))
+                        .withMinItems(minValues)
+                        .withMaxItems(maxValues))
+                : property;
     }
 
     private HalFormsProperty addAllowedValues(HalFormsProperty property, SimpleAttribute attribute, boolean unbounded) {

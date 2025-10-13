@@ -23,8 +23,8 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -97,14 +97,14 @@ class JOOQThunkExpressionVisitorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
-            .searchFilter(AttributeSearchFilter.builder()
+            .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
-                    .attribute(PERSON_VAT)
+                    .attributePath(PERSON_VAT)
                     .name(FilterName.of("vat"))
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
+            .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
-                    .attribute(PERSON_NAME)
+                    .attributePath(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
             .build();
@@ -201,15 +201,15 @@ class JOOQThunkExpressionVisitorTest {
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .attribute(INVOICE_COMMENT)
-            .searchFilter(AttributeSearchFilter.builder()
+            .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
-                    .attribute(INVOICE_NUMBER)
+                    .attributePath(INVOICE_NUMBER)
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
+            .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.FTS)
                     .name(FilterName.of("comment~fts"))
-                    .attribute(INVOICE_COMMENT)
+                    .attributePath(INVOICE_COMMENT)
                     .build())
             .build();
 

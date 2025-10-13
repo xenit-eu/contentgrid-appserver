@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
@@ -8,7 +9,8 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilte
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -27,6 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -266,14 +270,28 @@ public class Application {
 
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                    var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                    if(!attributeSearchFilter.supports(resolvedAttribute)) {
+            if (searchFilter instanceof SimpleAttributeSearchFilter simpleAttributeSearchFilter) {
+                    var resolvedAttribute = resolvePropertyPath(entity, simpleAttributeSearchFilter.getAttributePath());
+                    if(!simpleAttributeSearchFilter.supports(resolvedAttribute)) {
                         throw new InvalidSearchFilterException(
                             "SearchFilter %s does not support the attribute %s".formatted(
-                                    attributeSearchFilter.getName(), resolvedAttribute
+                                    simpleAttributeSearchFilter.getName(), resolvedAttribute
                             ));
                     }
+            } else if (searchFilter instanceof CompositeAttributeSearchFilter compositeAttributeSearchFilter) {
+                if (compositeAttributeSearchFilter.getAttributePaths().isEmpty()) throw new InvalidSearchFilterException(
+                        "CompositeAttributeSearchFilter %s has no attributes".formatted(
+                                compositeAttributeSearchFilter.getName()
+                    ));
+                
+
+                Set<Type> resolvedAttributeTypes = compositeAttributeSearchFilter.getAttributePaths().stream()
+                        .map(path -> resolvePropertyPath(entity, path).getType())
+                        .collect(Collectors.toSet());
+                if (resolvedAttributeTypes.size() != 1) throw new InvalidSearchFilterException(
+                    "CompositeAttributeSearchFilter %s has attributes of different types: %s".formatted(
+                            compositeAttributeSearchFilter.getName(), resolvedAttributeTypes
+                    ));
             }
         });
     }

@@ -8,8 +8,8 @@ import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -27,7 +27,6 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import lombok.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
@@ -44,7 +43,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.testcontainers.containers.GenericContainer;
 
 import com.contentgrid.appserver.query.engine.jooq.ContentGridDatabaseContainer;
 
@@ -75,10 +73,10 @@ class JOOQCountStrategyTest {
             .linkName(LinkName.of("products"))
             .attribute(PRODUCT_CODE)
             .attribute(PRODUCT_DESCRIPTION)
-            .searchFilter(AttributeSearchFilter.builder()
+            .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("code"))
-                    .attribute(PRODUCT_CODE)
+                    .attributePath(PRODUCT_CODE)
                     .build())
             .build();
 

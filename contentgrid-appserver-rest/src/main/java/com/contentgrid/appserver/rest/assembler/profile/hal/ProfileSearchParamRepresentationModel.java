@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.rest.assembler.profile.hal;
 
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -53,7 +53,7 @@ public class ProfileSearchParamRepresentationModel {
             return value;
         }
 
-        public static ProfileSearchParamType from(AttributeSearchFilter filter) {
+        public static ProfileSearchParamType from(SimpleAttributeSearchFilter filter) {
             return switch (filter.getOperation()) {
                 case EXACT -> EXACT;
                 case PREFIX -> PREFIX;

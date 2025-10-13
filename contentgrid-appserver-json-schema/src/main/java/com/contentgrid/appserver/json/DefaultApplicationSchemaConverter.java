@@ -26,8 +26,8 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RelationEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.ConfigurableSearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -318,7 +318,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             case "less-or-equal" -> Operation.LESS_THAN_OR_EQUAL;
             default -> throw new UnknownFilterTypeException("Unknown filter type: " + type);
         };
-        return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, AttributeSearchFilter.builder())
+        return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, SimpleAttributeSearchFilter.builder())
                 .operation(operation)
                 .name(filterName)
                 .attributePath(propertyPath)
@@ -548,7 +548,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonFilter.setTitle(toJsonTranslations(filter, SearchFilterTranslations::getName).omitIfEqualTo(jsonFilter.getName()));
         jsonFilter.setDescription(toJsonTranslations(filter, SearchFilterTranslations::getDescription));
         jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
-        if (filter instanceof AttributeSearchFilter attributeFilter) {
+        if (filter instanceof SimpleAttributeSearchFilter attributeFilter) {
             jsonFilter.setAttributePath(toJsonPropertyPath(attributeFilter.getAttributePath()));
             var type = switch (attributeFilter.getOperation()) {
                 case EXACT -> "exact";
