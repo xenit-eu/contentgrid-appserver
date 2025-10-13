@@ -123,6 +123,12 @@ public class JsonRequestInputData implements RequestInputData {
         if(node.isNull()) {
             return NullDataEntry.INSTANCE;
         }
+        if (node.isObject()) {
+            throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.OBJECT);
+        }
+        if (node.isArray()) {
+            throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.LIST);
+        }
         try (var parser = node.traverse(codec)){
             var classMapping = CLASS_MAPPING.getOrDefault(typeHint, STRING_CLASS_MAPPING);
             return classMapping.parseUsing(parser);
