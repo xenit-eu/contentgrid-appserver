@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
+import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
@@ -14,19 +14,16 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.*;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -38,7 +35,11 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -67,7 +68,7 @@ class ApplicationTest {
                     .lengthColumn(ColumnName.of("content__length"))
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(EXACT)
                     .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
                     .name(FilterName.of("invoiceNumber"))
                     .build())
@@ -83,7 +84,7 @@ class ApplicationTest {
             .attribute(SimpleAttribute.builder().name(AttributeName.of("email")).column(ColumnName.of("email"))
                     .description("The email of the customer").type(Type.TEXT).build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.PREFIX)
+                    .operation(PREFIX)
                     .attributePath(PropertyPath.of(AttributeName.of("name")))
                     .name(FilterName.of("name~prefix"))
                     .build())
@@ -131,7 +132,7 @@ class ApplicationTest {
                         .pathSegment(PathSegmentName.of("other-segment"))
                         .linkName(LinkName.of("other-link"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -145,7 +146,7 @@ class ApplicationTest {
                         .pathSegment(PathSegmentName.of("other-segment"))
                         .linkName(LinkName.of("other-link"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -161,7 +162,7 @@ class ApplicationTest {
                         .sourceReference(ColumnName.of("source_id"))
                         .targetReference(ColumnName.of("target_id"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -175,7 +176,7 @@ class ApplicationTest {
                         .pathSegment(INVOICE.getPathSegment())
                         .linkName(LinkName.of("other-link"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -189,7 +190,7 @@ class ApplicationTest {
                         .pathSegment(PathSegmentName.of("other-segment"))
                         .linkName(INVOICE.getLinkName())
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -212,7 +213,7 @@ class ApplicationTest {
                         .sourceReference(ColumnName.of("ref_on_source"))
                         .targetReference(ColumnName.of("ref_on_target"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -233,7 +234,7 @@ class ApplicationTest {
                         .targetEndPoint(MANY_TO_ONE.getTargetEndPoint())
                         .targetReference(ColumnName.of("ref_on_target"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -254,7 +255,7 @@ class ApplicationTest {
                         .targetEndPoint(MANY_TO_ONE.getSourceEndPoint())
                         .sourceReference(ColumnName.of("ref_on_source"))
                         .build());
-        assertThrows(DuplicateElementException.class, builder::build);
+        Assertions.assertThrows(DuplicateElementException.class, builder::build);
     }
 
     @Test
@@ -278,7 +279,7 @@ class ApplicationTest {
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
-        assertThrows(EntityDefinitionNotFoundException.class, builder::build);
+        Assertions.assertThrows(EntityDefinitionNotFoundException.class, builder::build);
     }
 
     @Test
@@ -302,7 +303,7 @@ class ApplicationTest {
                                 .build())
                         .targetReference(ColumnName.of("ref_on_source"))
                         .build());
-        assertThrows(EntityDefinitionNotFoundException.class, builder::build);
+        Assertions.assertThrows(EntityDefinitionNotFoundException.class, builder::build);
     }
 
     @Test
@@ -319,7 +320,7 @@ class ApplicationTest {
                         .flag(ReadOnlyFlag.INSTANCE)
                         .build())
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
+                        .operation(EXACT)
                         .name(FilterName.of("nonexistent.name"))
                         .attributePath(PropertyPath.of(RelationName.of("nonexistent"), AttributeName.of("name")))
                         .build())
@@ -329,7 +330,7 @@ class ApplicationTest {
                 .name(ApplicationName.of("testApp"))
                 .entity(entity);
 
-        assertThrows(RelationNotFoundException.class, applicationBuilder::build);
+        Assertions.assertThrows(RelationNotFoundException.class, applicationBuilder::build);
     }
 
     @Test
@@ -346,7 +347,7 @@ class ApplicationTest {
                         .flag(ReadOnlyFlag.INSTANCE)
                         .build())
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
+                        .operation(EXACT)
                         .name(FilterName.of("target.nonexistent"))
                         .attributePath(PropertyPath.of(RelationName.of("target"), AttributeName.of("nonexistent")))
                         .build())
@@ -392,7 +393,7 @@ class ApplicationTest {
                 .entity(targetEntity)
                 .relation(relation);
 
-        assertThrows(AttributeNotFoundException.class, applicationBuilder::build);
+        Assertions.assertThrows(AttributeNotFoundException.class, applicationBuilder::build);
     }
 
     @ParameterizedTest
@@ -413,14 +414,14 @@ class ApplicationTest {
                 )
                 .searchFilter(
                         SimpleAttributeSearchFilter.builder()
-                                .operation(Operation.PREFIX)
+                                .operation(PREFIX)
                                 .name(FilterName.of("filter~prefix"))
                                 .attributePath(PropertyPath.of(AttributeName.of("test")))
                                 .build()
                 )
                 .build();
 
-        assertThrows(InvalidSearchFilterException.class, () -> {
+        Assertions.assertThrows(InvalidSearchFilterException.class, () -> {
             Application.builder()
                     .name(ApplicationName.of("test-app"))
                     .entity(entity)
@@ -430,13 +431,13 @@ class ApplicationTest {
 
     static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
         var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN);
-        var operations = List.of(Operation.GREATER_THAN, Operation.GREATER_THAN_OR_EQUAL, Operation.LESS_THAN, Operation.LESS_THAN_OR_EQUAL);
+        var operations = List.of(GREATER_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN, LESS_THAN_OR_EQUAL);
         return types.flatMap(type -> operations.stream().map(operation -> Arguments.of(type, operation)));
     }
 
     @ParameterizedTest
     @MethodSource
-    void application_orderedSearchFilterInvalidAttributeType(Type type, Operation operation) {
+    void application_orderedSearchFilterInvalidAttributeType(Type type, BaseAttributeSearchFilter.Operation operation) {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
                 .table(TableName.of("test"))
@@ -455,7 +456,7 @@ class ApplicationTest {
                         .build())
                 .build();
 
-        assertThrows(InvalidSearchFilterException.class, () -> {
+        Assertions.assertThrows(InvalidSearchFilterException.class, () -> {
             Application.builder()
                     .name(ApplicationName.of("test-app"))
                     .entity(entity)
@@ -546,14 +547,14 @@ class ApplicationTest {
                 .primaryKey(customerId)
                 .attribute(customerName)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.PREFIX)
-                        .attributePath(customerName)
+                        .operation(PREFIX)
+                        .attribute(customerName)
                         .name(FilterName.of("name~prefix"))
                         .build())
                 .attribute(customerEmail)
                 .attribute(customerPhone)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
+                        .operation(EXACT)
                         .name(FilterName.of("orders.order_number"))
                         .attributePath(PropertyPath.of(RelationName.of("orders"), AttributeName.of("order_number")))
                         .build())
@@ -622,8 +623,8 @@ class ApplicationTest {
                 .primaryKey(orderId)
                 .attribute(orderNumber)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
-                        .attributePath(orderNumber)
+                        .operation(EXACT)
+                        .attribute(orderNumber)
                         .name(FilterName.of("order_number"))
                         .build()
                 )
@@ -631,12 +632,12 @@ class ApplicationTest {
                 .attribute(orderDocument)
                 .attribute(orderAudit)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.PREFIX)
+                        .operation(PREFIX)
                         .name(FilterName.of("products.name"))
                         .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("name")))
                         .build())
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
+                        .operation(EXACT)
                         .name(FilterName.of("products.category"))
                         .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("category")))
                         .build())
@@ -667,16 +668,16 @@ class ApplicationTest {
                 .primaryKey(SimpleAttribute.builder().type(Type.UUID).name(AttributeName.of("id")).column(ColumnName.of("id")).flag(ReadOnlyFlag.INSTANCE).build())
                 .attribute(productName)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.PREFIX)
-                        .attributePath(productName)
+                        .operation(PREFIX)
+                        .attribute(productName)
                         .name(FilterName.of("name"))
                         .build())
                 .attribute(SimpleAttribute.builder().type(Type.DOUBLE).name(AttributeName.of("price")).column(ColumnName.of("price")).build())
                 .attribute(productCode)
                 .attribute(productCategory)
                 .searchFilter(SimpleAttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
-                        .attributePath(productCategory)
+                        .operation(EXACT)
+                        .attribute(productCategory)
                         .name(FilterName.of("category"))
                         .build())
                 .build();
@@ -720,6 +721,122 @@ class ApplicationTest {
         assertTrue(orderIncomingRelations.stream()
                 .allMatch(incomingRelation -> orderOutgoingRelations.contains(incomingRelation.inverse())));
 
+    }
+
+    @Test
+    void application_compositeSearchFilterWithoutAttributes() {
+        CompositeAttributeSearchFilter fts = CompositeAttributeSearchFilter.builder()
+                .operation(FTS)
+                .name(FilterName.of("fts"))
+                .build();
+
+        Entity invalidEntity = Entity.builder()
+                .name(EntityName.of("customer"))
+                .table(TableName.of("customer"))
+                .linkName(LinkName.of("customers"))
+                .pathSegment(PathSegmentName.of("customer"))
+                .attribute(SimpleAttribute.builder()
+                        .type(Type.TEXT)
+                        .name(AttributeName.of("code"))
+                        .column(ColumnName.of("code"))
+                        .build()
+                )
+                .searchFilter(fts)
+                .build();
+
+        var expected = new CompositeSearchFilterWithoutAttributesException(fts);
+        assertThrows(expected, () -> Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(invalidEntity)
+                .build());
+    }
+
+    @Test
+    void application_compositeSearchFilterWithMultipleAttributeTypes() {
+        SimpleAttribute codeAttribute = SimpleAttribute.builder()
+                .type(Type.TEXT)
+                .name(AttributeName.of("code"))
+                .column(ColumnName.of("code"))
+                .build();
+
+        SimpleAttribute uuidAttribute = SimpleAttribute.builder()
+                .type(Type.UUID)
+                .name(AttributeName.of("uuid"))
+                .column(ColumnName.of("uuid"))
+                .build();
+
+        CompositeAttributeSearchFilter fts = CompositeAttributeSearchFilter.builder()
+                .operation(FTS)
+                .name(FilterName.of("fts"))
+                .attributes(codeAttribute, uuidAttribute)
+                .build();
+
+        Entity invalidEntity = Entity.builder()
+                .name(EntityName.of("customer"))
+                .table(TableName.of("customer"))
+                .linkName(LinkName.of("customers"))
+                .pathSegment(PathSegmentName.of("customer"))
+                .attribute(codeAttribute)
+                .attribute(uuidAttribute)
+                .searchFilter(fts)
+                .build();
+
+        var expected = new CompositeSearchFilterAttributesWithDifferentTypesException(fts, List.of(Type.TEXT, Type.UUID));
+        assertThrows(expected, () -> Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(invalidEntity)
+                .build());
+    }
+
+    @Test
+    void application_compositeSearchFilter() {
+        SimpleAttribute codeAttribute = SimpleAttribute.builder()
+                .type(Type.TEXT)
+                .name(AttributeName.of("code"))
+                .column(ColumnName.of("code"))
+                .build();
+
+        SimpleAttribute descriptionAttribute = SimpleAttribute.builder()
+                .type(Type.TEXT)
+                .name(AttributeName.of("description"))
+                .column(ColumnName.of("description"))
+                .build();
+
+        CompositeAttributeSearchFilter fts = CompositeAttributeSearchFilter.builder()
+                .operation(FTS)
+                .name(FilterName.of("fts"))
+                .attributes(codeAttribute, descriptionAttribute)
+                .build();
+
+        Entity entity = Entity.builder()
+                .name(EntityName.of("customer"))
+                .table(TableName.of("customer"))
+                .linkName(LinkName.of("customers"))
+                .pathSegment(PathSegmentName.of("customer"))
+                .attribute(codeAttribute)
+                .attribute(descriptionAttribute)
+                .searchFilter(fts)
+                .build();
+
+        Application.builder()
+                .name(ApplicationName.of("testApp"))
+                .entity(entity)
+                .build();
+    }
+
+    <T extends Exception> void assertThrows(@NonNull T expected, @NonNull Callable<?> callable) {
+        Class<?> exceptionClass = expected.getClass();
+
+        try {
+            callable.call();
+        } catch (Exception e) {
+            if (exceptionClass.isInstance(e)) return;
+
+            String message = "Expected exception of type (%s), but got (%s).".formatted(exceptionClass.getName(), e.getClass().getName());
+            throw new AssertionError(message, e);
+        }
+
+        throw new AssertionError("Expected exception of type (%s), but no exception was thrown.".formatted(exceptionClass.getName()));
     }
 
 }

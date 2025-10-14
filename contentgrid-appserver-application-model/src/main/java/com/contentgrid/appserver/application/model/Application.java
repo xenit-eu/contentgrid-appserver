@@ -2,11 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
-import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
-import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.*;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
@@ -279,19 +275,12 @@ public class Application {
                             ));
                     }
             } else if (searchFilter instanceof CompositeAttributeSearchFilter compositeAttributeSearchFilter) {
-                if (compositeAttributeSearchFilter.getAttributePaths().isEmpty()) throw new InvalidSearchFilterException(
-                        "CompositeAttributeSearchFilter %s has no attributes".formatted(
-                                compositeAttributeSearchFilter.getName()
-                    ));
-                
+                if (compositeAttributeSearchFilter.getAttributePaths().isEmpty()) throw new CompositeSearchFilterWithoutAttributesException(compositeAttributeSearchFilter);
 
                 Set<Type> resolvedAttributeTypes = compositeAttributeSearchFilter.getAttributePaths().stream()
                         .map(path -> resolvePropertyPath(entity, path).getType())
                         .collect(Collectors.toSet());
-                if (resolvedAttributeTypes.size() != 1) throw new InvalidSearchFilterException(
-                    "CompositeAttributeSearchFilter %s has attributes of different types: %s".formatted(
-                            compositeAttributeSearchFilter.getName(), resolvedAttributeTypes
-                    ));
+                if (resolvedAttributeTypes.size() != 1) throw new CompositeSearchFilterAttributesWithDifferentTypesException(compositeAttributeSearchFilter, resolvedAttributeTypes);
             }
         });
     }

@@ -17,8 +17,10 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -30,6 +32,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -125,97 +128,97 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("count"))
-                    .attributePath(LONG_ATTR)
+                    .attribute(LONG_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN)
                     .name(FilterName.of("count~gt"))
-                    .attributePath(LONG_ATTR)
+                    .attribute(LONG_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN_OR_EQUAL)
                     .name(FilterName.of("count~gte"))
-                    .attributePath(LONG_ATTR)
+                    .attribute(LONG_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN)
                     .name(FilterName.of("count~lt"))
-                    .attributePath(LONG_ATTR)
+                    .attribute(LONG_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN_OR_EQUAL)
                     .name(FilterName.of("count~lte"))
-                    .attributePath(LONG_ATTR)
+                    .attribute(LONG_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("price"))
-                    .attributePath(DOUBLE_ATTR)
+                    .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN)
                     .name(FilterName.of("price~gt"))
-                    .attributePath(DOUBLE_ATTR)
+                    .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN_OR_EQUAL)
                     .name(FilterName.of("price~gte"))
-                    .attributePath(DOUBLE_ATTR)
+                    .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN)
                     .name(FilterName.of("price~lt"))
-                    .attributePath(DOUBLE_ATTR)
+                    .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN_OR_EQUAL)
                     .name(FilterName.of("price~lte"))
-                    .attributePath(DOUBLE_ATTR)
+                    .attribute(DOUBLE_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("in_stock"))
-                    .attributePath(BOOLEAN_ATTR)
+                    .attribute(BOOLEAN_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("description"))
-                    .attributePath(TEXT_ATTR)
+                    .attribute(TEXT_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .name(FilterName.of("description~prefix"))
-                    .attributePath(TEXT_ATTR)
+                    .attribute(TEXT_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("arrival_date"))
-                    .attributePath(DATETIME_ATTR)
+                    .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN)
                     .name(FilterName.of("arrival_date~after"))
-                    .attributePath(DATETIME_ATTR)
+                    .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN_OR_EQUAL)
                     .name(FilterName.of("arrival_date~from"))
-                    .attributePath(DATETIME_ATTR)
+                    .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN)
                     .name(FilterName.of("arrival_date~before"))
-                    .attributePath(DATETIME_ATTR)
+                    .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN_OR_EQUAL)
                     .name(FilterName.of("arrival_date~to"))
-                    .attributePath(DATETIME_ATTR)
+                    .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("id"))
-                    .attributePath(UUID_ATTR)
+                    .attribute(UUID_ATTR)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
@@ -249,7 +252,7 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("shipped_on"))
-                    .attributePath(SimpleAttribute.builder()
+                    .attribute(SimpleAttribute.builder()
                             .name(AttributeName.of("shipped_on"))
                             .column(ColumnName.of("shipped_on"))
                             .type(Type.DATETIME)
@@ -258,7 +261,7 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("destination"))
-                    .attributePath(SimpleAttribute.builder()
+                    .attribute(SimpleAttribute.builder()
                             .name(AttributeName.of("destination"))
                             .column(ColumnName.of("destination"))
                             .type(Type.TEXT)
@@ -286,7 +289,7 @@ class ThunkExpressionGeneratorTest {
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("barcode"))
-                    .attributePath(barcode)
+                    .attribute(barcode)
                     .build())
             .build();
 
@@ -295,16 +298,24 @@ class ThunkExpressionGeneratorTest {
             .column(ColumnName.of("name"))
             .type(Type.TEXT)
             .build();
+
+    private static final SimpleAttribute customerComment = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT)
+            .build();
+
     private static final Entity customerEntity = Entity.builder()
             .name(EntityName.of("customer"))
             .table(TableName.of("customer"))
             .pathSegment(PathSegmentName.of("customers"))
             .linkName(LinkName.of("customers"))
             .attribute(customerName)
+            .attribute(customerComment)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(BaseAttributeSearchFilter.Operation.EXACT)
                     .name(FilterName.of("name"))
-                    .attributePath(customerName)
+                    .attribute(customerName)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
@@ -763,5 +774,26 @@ class ThunkExpressionGeneratorTest {
                 comparison.getLeftTerm()
         );
         assertEquals(Scalar.of("A unicorn"), comparison.getRightTerm());
+    }
+
+    @Test
+    void canTranslateCompositeAttributeSearchFilter() {
+        List<SimpleAttribute> attributes = List.of(customerName, customerComment);
+        List<String> allowedValues = List.of("Alice", "Bob", "Charlie");
+
+        Map<String, List<String>> params = Map.of("does not matter", allowedValues);
+        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
+        var filter = CompositeAttributeSearchFilter.builder()
+                .operation(Operation.FTS)
+                .name(FilterName.of("really don't care"))
+                .attributes(attributes)
+                .build();
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params.entrySet().iterator().next(), filter);
+
+        Set<ContentGridFullTextSearch> expectedExpressions = attributes.stream()
+                .flatMap(simpleAttribute -> allowedValues.stream()
+                        .map(allowedValue -> new StringComparison.ContentGridFullTextSearch())
+                )
     }
 }

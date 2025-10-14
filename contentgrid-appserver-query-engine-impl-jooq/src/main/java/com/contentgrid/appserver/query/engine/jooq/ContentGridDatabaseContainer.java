@@ -25,7 +25,7 @@ public class ContentGridDatabaseContainer {
     @Bean
     public GenericContainer<?> jooqContainer(@Value("${spring.datasource.username:contentgrid}") String username,
                                              @Value("${spring.datasource.password:contentgrid}") String password) {
-        log.warn("The application is starting a temporary PostgreSQL database using Testcontainers. This is not recommended for production use. " +
+        log.warn("The application is starting a temporary database using Testcontainers. This is not recommended for production use. " +
                 "Please configure a persistent database connection via 'spring.datasource.url'.");
         ImageFromDockerfile dockerFileImage = new ImageFromDockerfile()
                 .withFileFromClasspath("Dockerfile", "com/contentgrid/appserver/query/engine/jooq/docker/Dockerfile");

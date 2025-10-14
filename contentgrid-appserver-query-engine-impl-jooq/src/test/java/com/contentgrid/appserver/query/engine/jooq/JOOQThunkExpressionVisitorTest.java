@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
+import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.EXACT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,8 +24,8 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -98,13 +99,13 @@ class JOOQThunkExpressionVisitorTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .attributePath(PERSON_VAT)
+                    .operation(EXACT)
+                    .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.PREFIX)
-                    .attributePath(PERSON_NAME)
+                    .operation(BaseAttributeSearchFilter.Operation.PREFIX)
+                    .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
             .build();
@@ -202,14 +203,14 @@ class JOOQThunkExpressionVisitorTest {
             .attribute(INVOICE_AUDIT_METADATA)
             .attribute(INVOICE_COMMENT)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(EXACT)
                     .name(FilterName.of("number"))
-                    .attributePath(INVOICE_NUMBER)
+                    .attribute(INVOICE_NUMBER)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.FTS)
+                    .operation(BaseAttributeSearchFilter.Operation.FTS)
                     .name(FilterName.of("comment~fts"))
-                    .attributePath(INVOICE_COMMENT)
+                    .attribute(INVOICE_COMMENT)
                     .build())
             .build();
 

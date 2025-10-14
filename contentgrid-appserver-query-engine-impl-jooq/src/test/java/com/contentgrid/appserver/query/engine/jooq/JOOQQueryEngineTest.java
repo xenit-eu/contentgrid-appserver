@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
+import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.EXACT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,8 +33,8 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -140,13 +141,13 @@ class JOOQQueryEngineTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .attributePath(PERSON_VAT)
+                    .operation(EXACT)
+                    .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.PREFIX)
-                    .attributePath(PERSON_NAME)
+                    .operation(BaseAttributeSearchFilter.Operation.PREFIX)
+                    .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
             .build();
@@ -245,9 +246,9 @@ class JOOQQueryEngineTest {
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(EXACT)
                     .name(FilterName.of("number"))
-                    .attributePath(INVOICE_NUMBER)
+                    .attribute(INVOICE_NUMBER)
                     .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("invoice_num"))
@@ -282,9 +283,9 @@ class JOOQQueryEngineTest {
             .attribute(PRODUCT_CODE)
             .attribute(PRODUCT_DESCRIPTION)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(BaseAttributeSearchFilter.Operation.EXACT)
                     .name(FilterName.of("code"))
-                    .attributePath(PRODUCT_CODE)
+                    .attribute(PRODUCT_CODE)
                     .build())
             .build();
 

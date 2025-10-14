@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -25,8 +27,9 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.CompositeAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.SimpleAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -44,10 +47,13 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.CreateTableAsStep;
+import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -84,6 +90,12 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
+    private static final CompositeAttributeSearchFilter PERSON_FTS_FILTER = CompositeAttributeSearchFilter.builder()
+            .operation(BaseAttributeSearchFilter.Operation.FTS)
+            .name(FilterName.of("fts"))
+            .attributes(PERSON_VAT, PERSON_NAME)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -92,15 +104,16 @@ class JOOQTableCreatorTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .attributePath(PERSON_VAT)
+                    .operation(BaseAttributeSearchFilter.Operation.EXACT)
+                    .attribute(PERSON_VAT)
                     .name(FilterName.of("vat"))
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.PREFIX)
-                    .attributePath(PERSON_NAME)
+                    .operation(BaseAttributeSearchFilter.Operation.PREFIX)
+                    .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
+            .searchFilter(PERSON_FTS_FILTER)
             .build();
 
     private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
@@ -196,14 +209,14 @@ class JOOQTableCreatorTest {
             .attribute(INVOICE_AUDIT_METADATA)
             .attribute(INVOICE_COMMENT)
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(BaseAttributeSearchFilter.Operation.EXACT)
                     .name(FilterName.of("number"))
-                    .attributePath(INVOICE_NUMBER)
+                    .attribute(INVOICE_NUMBER)
                     .build())
             .searchFilter(SimpleAttributeSearchFilter.builder()
-                    .operation(Operation.FTS)
+                    .operation(BaseAttributeSearchFilter.Operation.FTS)
                     .name(FilterName.of("comment~fts"))
-                    .attributePath(INVOICE_COMMENT)
+                    .attribute(INVOICE_COMMENT)
                     .build())
             .build();
 
@@ -562,6 +575,36 @@ class JOOQTableCreatorTest {
         // Drop tables should fail too
         assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
         assertEquals(WELL_KNOWN_TABLES, getTables("public"));
+    }
+
+    @Test
+    void ftsIndicesAreCreated() {
+        var application = Application.builder()
+                .name(ApplicationName.of("fts-application"))
+                .entity(PERSON)
+                .build();
+
+        DSLContext dslContext = mock(DSLContext.class);
+        AtomicReference<String> executedStatement = new AtomicReference<>();
+        doAnswer(invocation -> {
+            executedStatement.set((String) invocation.getArguments()[0]);
+            return null;
+        }).when(dslContext).execute(anyString());
+        CreateTableElementListStep createTableElementListStep = mock(CreateTableElementListStep.class);
+        when(dslContext.createTable((String) any())).thenReturn(createTableElementListStep);
+        when(createTableElementListStep.column(any())).thenReturn(createTableElementListStep);
+        when(createTableElementListStep.primaryKey(anyString())).thenReturn(createTableElementListStep);
+        when(createTableElementListStep.constraint(any())).thenReturn(createTableElementListStep);
+        JOOQTableCreator creator = new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
+
+        creator.createTables(application);
+        String expected = "CREATE INDEX IF NOT EXISTS \"person_name_vat_fts_idx\"\n" +
+                "    ON \"person\" USING bm25(\"id\", \"name\",\"vat\")\n" +
+                "    WITH (\n" +
+                "    key_field = \"id\",\n" +
+                "    text_fields = '{\"name\":{\"tokenizer\":{\"type\":\"default\",\"stemmer\":\"Dutch\"}},\"vat\":{\"tokenizer\":{\"type\":\"default\",\"stemmer\":\"Dutch\"}}}'\n" +
+                "    )";
+        assertEquals(expected, executedStatement.get());
     }
 
     @SpringBootApplication
