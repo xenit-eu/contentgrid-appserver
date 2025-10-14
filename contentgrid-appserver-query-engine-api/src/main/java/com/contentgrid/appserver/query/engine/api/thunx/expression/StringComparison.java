@@ -46,7 +46,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
 
     public static final class ContentGridFullTextSearch extends StringComparison {
 
-        private ContentGridFullTextSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        public ContentGridFullTextSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
             super("cg_fulltext_search", leftTerm, rightTerm);
         }
     }

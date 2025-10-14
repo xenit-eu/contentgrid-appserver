@@ -1,9 +1,5 @@
 package com.contentgrid.appserver.domain;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
@@ -42,13 +38,13 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class ThunkExpressionGeneratorTest {
 
@@ -789,11 +785,26 @@ class ThunkExpressionGeneratorTest {
                 .attributes(attributes)
                 .build();
 
+        Variable entityVar = Variable.named("entity");
+        Set<StringComparison.ContentGridFullTextSearch> expectedExpressions = attributes.stream()
+                .flatMap(attribute -> allowedValues.stream()
+                        .map(allowedValue -> new StringComparison.ContentGridFullTextSearch(SymbolicReference.of(entityVar, SymbolicReference.path(attribute.getName().getValue())), Scalar.of(allowedValue))))
+                .collect(HashSet::new, HashSet::add, HashSet::addAll); // Needs to be modifiable.
+
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params.entrySet().iterator().next(), filter);
 
-        Set<ContentGridFullTextSearch> expectedExpressions = attributes.stream()
-                .flatMap(simpleAttribute -> allowedValues.stream()
-                        .map(allowedValue -> new StringComparison.ContentGridFullTextSearch())
-                )
+        ArrayList<ThunkExpression<?>> toProcess = new ArrayList<>(Collections.singleton(result));
+        while (!toProcess.isEmpty()) {
+            ThunkExpression<?> next = toProcess.removeFirst();
+            if (next instanceof LogicalOperation logicalOperation && logicalOperation.getOperator().equals(Operator.OR)) {
+                toProcess.addAll(logicalOperation.getTerms());
+                continue;
+            }
+
+            assertTrue(expectedExpressions.remove(next));
+        }
+
+        assertTrue(expectedExpressions.isEmpty(), "Not all expected expressions were found (remaining: %s).".formatted(expectedExpressions));
     }
 }
+
