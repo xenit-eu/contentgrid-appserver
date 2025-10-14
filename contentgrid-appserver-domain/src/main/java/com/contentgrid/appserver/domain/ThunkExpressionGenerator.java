@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -70,7 +72,9 @@ public class ThunkExpressionGenerator {
         return LogicalOperation.conjunction(expressions.stream());
     }
 
-    static ThunkExpression<Boolean> from(Application application, Entity entity, Map.Entry<String, List<String>> entry, SimpleAttributeSearchFilter filter) {
+    static @NonNull ThunkExpression<Boolean> from(@NonNull Application application,
+                                                  @NonNull Entity entity, @NonNull Map.Entry<String, List<String>> entry,
+                                                  @NonNull SimpleAttributeSearchFilter filter) {
         var attribute = application.resolvePropertyPath(entity, filter.getAttributePath());
         List<PathElement> pathElements;
 
@@ -106,19 +110,14 @@ public class ThunkExpressionGenerator {
         } else return Scalar.of(true);
     }
 
-    static ThunkExpression<Boolean> from(Application application, Entity entity, Map.Entry<String, List<String>> entry, CompositeAttributeSearchFilter filter) {
-        // TODO: simplify this.
-
-        ThunkExpression<Boolean> expression = null;
-        for (SimpleAttributeSearchFilter simpleAttributeSearchFilter : filter.toSimpleAttributeSearchFilters().toList()) {
-            ThunkExpression<Boolean> subExpression = from(application, entity, entry, simpleAttributeSearchFilter);
-            if (expression == null) {
-                expression = subExpression;
-            } else {
-                expression = LogicalOperation.disjunction(expression, subExpression);
-            }
-        }
-        return expression == null ? Scalar.of(true) : expression;
+    @SuppressWarnings("unchecked")
+    static @NonNull ThunkExpression<Boolean> from(@NonNull Application application, @NonNull Entity entity,
+                                                  @NonNull Map.Entry<String, List<String>> entry,
+                                                  @NonNull CompositeAttributeSearchFilter filter) {
+        return filter.toSimpleAttributeSearchFilters()
+                .map(simpleAttributeSearchFilter -> from(application, entity, entry, simpleAttributeSearchFilter))
+                .reduce(LogicalOperation::disjunction)
+                .orElse(Scalar.of(true));
     }
 
 

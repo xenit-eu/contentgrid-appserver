@@ -33,7 +33,7 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
     @NonNull
     @Delegate
     @Getter(value = AccessLevel.NONE)
-    private final Translatable<SearchFilterTranslations> translations;
+    private final ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations;
 
     /**
      * Flags on the search filter
@@ -46,7 +46,7 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
             @NonNull Operation operation,
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
-            @NonNull Set<SearchFilterFlag> flags) {
+            @NonNull Set<@NonNull SearchFilterFlag> flags) {
         this.operation = operation;
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
@@ -58,6 +58,10 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
         this.flags = Set.copyOf(flags);
 
         flags.forEach(flag -> flag.checkSupported(this));
+    }
+
+    protected @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> getAttributeSearchFilterTranslations() {
+        return translations;
     }
 
     /**

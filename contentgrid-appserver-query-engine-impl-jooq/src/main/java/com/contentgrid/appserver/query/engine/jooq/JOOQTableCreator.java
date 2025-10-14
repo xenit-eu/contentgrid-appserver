@@ -29,6 +29,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,10 +49,15 @@ public class JOOQTableCreator implements TableCreator {
         }
     }
     private static final @NonNull ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    // TODO: allow other languages.
-    private static final @NonNull Map<@NonNull String, @NonNull Object> FTS_COLUMN_CONFIG = Map.of("tokenizer", Map.of("type", "default", "stemmer", "English"));
+    private static final @NonNull Map<@NonNull String, @NonNull Object> FTS_COLUMN_CONFIG;
 
     private final DSLContextResolver resolver;
+
+    static {
+        String language = Locale.getDefault().getDisplayLanguage(Locale.ENGLISH);
+        log.info("Defaulting the FTS stemmer language to system locale ({}).", language);
+        FTS_COLUMN_CONFIG = Map.of("tokenizer", Map.of("type", "default", "stemmer", language));
+    }
 
     @Override
     public void createTables(Application application) {
@@ -99,12 +105,13 @@ public class JOOQTableCreator implements TableCreator {
         String idColumnName = entity.getPrimaryKey().getColumn().getValue();
         List<String> ftsColumnNames = attributes.stream().map(attr -> attr.getColumn().getValue()).toList();
         String indexName = "%s_%s_fts_idx".formatted(tableName, String.join("_", ftsColumnNames));
+        String ftsColumnNamesAsString = OBJECT_MAPPER.writeValueAsString(ftsColumnNames);
+        ftsColumnNamesAsString = ftsColumnNamesAsString.substring(1, ftsColumnNamesAsString.length() - 1); // remove [ and ]
 
-        // TODO: ugly code.
         log.debug("Creating an FTS index ({}) on table ({}) for columns ({}).", indexName, tableName, ftsColumnNames);
-        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
-        String statement = ftsIndexPreparedStatement.formatted(indexName, tableName, idColumnName, OBJECT_MAPPER.writeValueAsString(ftsColumnNames).replace("[", "").replace("]", ""), idColumnName, OBJECT_MAPPER.writeValueAsString(createFTSIndexTextFieldStatement(ftsColumnNames)));
-        System.out.println("Executing FTS index creation statement: " + statement);
+        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a (semi-)prepared statement.
+        String statement = ftsIndexPreparedStatement.formatted(indexName, tableName, idColumnName, ftsColumnNamesAsString,
+                idColumnName, OBJECT_MAPPER.writeValueAsString(createFTSIndexTextFieldStatement(ftsColumnNames)));
         dslContext.execute(statement);
     }
 

@@ -87,7 +87,11 @@ public class ContentgridAppConfiguration {
                 .searchFilter(CompositeAttributeSearchFilter.builder()
                         .operation(Operation.FTS)
                         .name(FilterName.of("Search query"))
-                        .attributePaths(PropertyPath.of(AttributeName.of("first_name")), PropertyPath.of(AttributeName.of("last_name")), PropertyPath.of(AttributeName.of("comment")))
+                        .attributePaths(
+                                PropertyPath.of(AttributeName.of("first_name")),
+                                PropertyPath.of(AttributeName.of("last_name")),
+                                PropertyPath.of(AttributeName.of("comment"))
+                        )
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("first_name"))

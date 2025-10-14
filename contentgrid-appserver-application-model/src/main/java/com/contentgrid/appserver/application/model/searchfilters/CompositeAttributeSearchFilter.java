@@ -26,7 +26,7 @@ public class CompositeAttributeSearchFilter extends BaseAttributeSearchFilter  {
     CompositeAttributeSearchFilter(@NonNull Operation operation, @NonNull FilterName name,
                                    @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
                                    @NonNull Collection<@NonNull PropertyPath> attributePaths,
-                                   @NonNull Set<SearchFilterFlag> flags) {
+                                   @NonNull Set<@NonNull SearchFilterFlag> flags) {
         super(operation, name, translations, flags);
 
         this.attributePaths = Set.copyOf(attributePaths);
@@ -37,7 +37,8 @@ public class CompositeAttributeSearchFilter extends BaseAttributeSearchFilter  {
                 .map(attributePath -> SimpleAttributeSearchFilter.builder()
                         .operation(this.getOperation())
                         .name(this.getName()) 
-                        .attributePath(attributePath) // TODO: what about translations here?
+                        .attributePath(attributePath)
+                        .translations(getAttributeSearchFilterTranslations())
                         .flags(this.getFlags())
                         .build()
                 );

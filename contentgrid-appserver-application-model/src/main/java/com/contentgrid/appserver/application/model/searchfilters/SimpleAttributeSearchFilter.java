@@ -44,7 +44,7 @@ public class SimpleAttributeSearchFilter extends BaseAttributeSearchFilter {
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
-            @NonNull @Singular Set<SearchFilterFlag> flags) {
+            @NonNull @Singular Set<@NonNull SearchFilterFlag> flags) {
         super(operation, name, translations, flags);
 
         this.attributePath = attributePath;
