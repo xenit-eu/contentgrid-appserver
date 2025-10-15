@@ -1,8 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-//    id 'io.freefair.lombok' Lombok plugin currently causes issues with the Checker Framework
-    id 'org.checkerframework' version '0.6.60'
+    id 'io.freefair.lombok'
 }
 
 dependencies {
@@ -13,18 +12,30 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-jooq'
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    testCompileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-    checkerFramework "org.jooq:jooq-checker:3.20.8"
-    checkerFramework "org.checkerframework:checker:3.44.0" //Should be a version that is supported by jooq-checker
+    annotationProcessor "org.jooq:jooq-checker:3.20.8"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
 }
 
-checkerFramework {
-    checkers = ['org.jooq.checker.PlainSQLChecker']
+// Enable jOOQ's PlainSQLChecker annotation processor to error on plain SQL usage
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.compilerArgs += [
+            '-processor', 'org.jooq.checker.PlainSQLChecker' +
+            ',lombok.launch.AnnotationProcessorHider$AnnotationProcessor' // Make sure lombok still works
+    ]
+    options.forkOptions.jvmArgs += [
+            "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"
+    ]
 }
