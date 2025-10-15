@@ -13,6 +13,30 @@ dependencies {
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
 
+    annotationProcessor "org.jooq:jooq-checker:3.20.8"
+    testAnnotationProcessor "org.jooq:jooq-checker:3.20.8"
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
+}
+
+// Enable jOOQ's PlainSQLChecker annotation processor to error on plain SQL usage
+tasks.withType(JavaCompile) {
+    options.fork = true
+    options.compilerArgs += [
+            '-processor', 'org.jooq.checker.PlainSQLChecker' +
+            ',lombok.launch.AnnotationProcessorHider$AnnotationProcessor' // Make sure lombok still works
+    ]
+    options.forkOptions.jvmArgs += [
+            "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"
+    ]
 }

@@ -26,6 +26,7 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.jooq.Allow;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
@@ -46,6 +47,7 @@ import org.springframework.transaction.TransactionDefinition;
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
+@Allow.PlainSQL
 class JOOQCountStrategyTest {
 
     private static final SimpleAttribute PRODUCT_CODE = SimpleAttribute.builder()

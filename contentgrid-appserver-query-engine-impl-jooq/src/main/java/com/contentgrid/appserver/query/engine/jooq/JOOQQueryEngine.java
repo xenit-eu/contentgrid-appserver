@@ -136,7 +136,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throw new IllegalArgumentException("Sorting by complex property paths is not supported.");
         }
         var attr = entity.resolveAttributePath(attrPath);
-        var dslField = DSL.field(attr.getColumn().getValue());
+        var dslField = DSL.field(DSL.name(attr.getColumn().getValue()));
         return switch (field.getDirection()) {
             case ASC -> dslField.asc();
             case DESC -> dslField.desc();

@@ -92,6 +92,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.jooq.Allow;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
@@ -114,6 +115,7 @@ import org.springframework.transaction.PlatformTransactionManager;
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
+@Allow.PlainSQL
 class JOOQQueryEngineTest {
 
     private static final OffsetData DEFAULT_PAGE_DATA = new OffsetData(20, 0);
