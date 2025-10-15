@@ -209,7 +209,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
     @Allow.PlainSQL
     private static Field<String> normalize(Field<?> field) {
-        return DSL.field(DSL.sql("normalize(?, NFKC)", field), SQLDataType.CLOB);
+        return DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
     }
 
     @Allow.PlainSQL
