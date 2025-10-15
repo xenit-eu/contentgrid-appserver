@@ -51,6 +51,7 @@ import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -72,6 +73,7 @@ import org.springframework.transaction.annotation.Transactional;
 })
 @ContextConfiguration(classes = {TestApplication.class})
 @Transactional
+@Allow.PlainSQL
 class JOOQThunkExpressionVisitorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()

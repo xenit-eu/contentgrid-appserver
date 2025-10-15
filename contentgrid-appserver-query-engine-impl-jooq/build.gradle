@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'io.freefair.lombok'
+//    id 'io.freefair.lombok' Lombok plugin currently causes issues with the Checker Framework
     id 'org.checkerframework' version '0.6.60'
 }
 
@@ -13,9 +13,18 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-jooq'
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
-//    annotationProcessor "org.jooq:jooq-checker:3.20.8"
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    testCompileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
+    checkerFramework "org.jooq:jooq-checker:3.20.8"
+    checkerFramework "org.checkerframework:checker:3.44.0" //Should be a version that is supported by jooq-checker
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.assertj:assertj-core'
+}
+
+checkerFramework {
+    checkers = ['org.jooq.checker.PlainSQLChecker']
 }

@@ -31,6 +31,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.jooq.Allow;
+import org.jooq.Allow.PlainSQL;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -176,8 +178,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
                     var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
                     var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                    var leftField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", left), String.class);
-                    var rightField = DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", right), String.class);
+                    var leftField = prefixSearchNormalize(left);
+                    var rightField = prefixSearchNormalize(right);
                     yield leftField.startsWith(rightField);
                 } else {
                     throw new InvalidThunkExpressionException(
@@ -205,8 +207,14 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
+    @Allow.PlainSQL
     private static Field<String> normalize(Field<?> field) {
         return DSL.field(DSL.sql("normalize(?, NFKC)", field), SQLDataType.CLOB);
+    }
+
+    @Allow.PlainSQL
+    private static Field<String> prefixSearchNormalize(Field<?> field) {
+        return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
     }
 
     @Override
