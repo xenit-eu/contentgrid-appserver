@@ -62,7 +62,6 @@ import java.util.function.Function;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.OrderField;
@@ -174,7 +173,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 .map(checkVersionSatisfied(entityRequest));
     }
 
-    private static @NotNull Function<EntityData, EntityData> checkVersionSatisfied(@NotNull EntityRequest entityRequest) {
+    private static Function<EntityData, EntityData> checkVersionSatisfied(EntityRequest entityRequest) {
         return entityData -> {
             if (!entityRequest.getVersionConstraint().isSatisfiedBy(entityData.getIdentity().getVersion())) {
                 throw new UnsatisfiedVersionException(

@@ -1,0 +1,19 @@
+services:
+  database:
+    image: ${DATABASE_IMAGE:-docker.xenit.eu/contentgrid/contentgrid-database:local}
+    ports:
+      - "5432:5432"
+    environment:
+      # Much secure.
+      POSTGRES_DB: contentgrid
+      POSTGRES_USER: contentgrid
+      POSTGRES_PASSWORD: contentgrid
+    command:
+      - postgres
+      - -c
+      - log_statement=all
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:

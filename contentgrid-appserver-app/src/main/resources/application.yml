@@ -1,5 +1,8 @@
 spring:
-  datasource.url: jdbc:tc:postgresql:15:///
+  datasource:
+    url: jdbc:${DB_TYPE:postgresql}://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:contentgrid}
+    username: ${DB_USERNAME:contentgrid}
+    password: ${DB_PASSWORD:contentgrid}
   mvc.problemdetails.enabled: true
 server:
   port: ${PORT:8080}
