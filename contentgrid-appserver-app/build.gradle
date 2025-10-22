@@ -14,4 +14,7 @@ dependencies {
 
 bootRun {
     systemProperty('spring.profiles.active', 'bootRun')
+
+    dependsOn ':contentgrid-appserver-query-engine-impl-jooq:composeUp'
+    finalizedBy ':contentgrid-appserver-query-engine-impl-jooq:composeDown'
 }
