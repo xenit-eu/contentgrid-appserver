@@ -53,7 +53,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import lombok.NonNull;
-import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -74,7 +73,6 @@ import org.springframework.transaction.annotation.Transactional;
 })
 @ContextConfiguration(classes = {TestApplication.class})
 @Transactional
-@Allow.PlainSQL
 class JOOQThunkExpressionVisitorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -349,6 +347,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
                 .set(DSL.field("customer", UUID.class), ALICE_ID)
+                .set(DSL.field("comment", String.class), "This is the first invoice.")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE2_ID)
@@ -364,6 +363,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
                 .set(DSL.field("customer", UUID.class), BOB_ID)
                 .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID)
+                .set(DSL.field("comment", String.class), "This is the second invoice.")
                 .execute();
         dslContext.insertInto(DSL.table("person__friends"))
                 .set(DSL.field("person_src_id", UUID.class), BOB_ID)

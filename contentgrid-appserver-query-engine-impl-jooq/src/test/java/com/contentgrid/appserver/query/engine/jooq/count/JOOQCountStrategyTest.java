@@ -20,13 +20,13 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.jooq.ContentGridDatabaseContainer;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.jooq.Allow;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.impl.DSL;
@@ -43,14 +43,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.testcontainers.containers.GenericContainer;
-
-import com.contentgrid.appserver.query.engine.jooq.ContentGridDatabaseContainer;
 
 @SpringBootTest(properties = {
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
-@Allow.PlainSQL
 class JOOQCountStrategyTest {
 
     private static final SimpleAttribute PRODUCT_CODE = SimpleAttribute.builder()
