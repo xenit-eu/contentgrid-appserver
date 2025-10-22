@@ -12,6 +12,8 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridFullTextSearch;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
@@ -57,6 +59,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
 
+    @Allow.PlainSQL
     @Override
     public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
             throws InvalidThunkExpressionException {
@@ -195,6 +198,11 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     var leftField = JOOQUtils.prefixSearchNormalize(left);
                     var rightField = JOOQUtils.prefixSearchNormalize(right);
                     yield leftField.startsWith(rightField);
+                } else if (functionExpression instanceof ContentGridFullTextSearch contentGridFullTextSearch) {
+                    var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
+                    var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+                    // TODO: allow different languages.
+                    yield DSL.condition("to_tsvector('english', ?) @@ websearch_to_tsquery(?)", left, DSL.inline(right)); // TODO: split the right term. Also, add unaccent.
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(

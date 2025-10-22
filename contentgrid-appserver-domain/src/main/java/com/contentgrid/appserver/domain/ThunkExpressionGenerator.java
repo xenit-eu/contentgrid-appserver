@@ -119,6 +119,7 @@ public class ThunkExpressionGenerator {
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
+            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class));
             case GREATER_THAN -> Comparison.greater(attr, value);
             case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
             case LESS_THAN -> Comparison.less(attr, value);
