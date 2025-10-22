@@ -94,6 +94,7 @@ public class JOOQTableCreator implements TableCreator {
         }
     }
 
+    @Allow.PlainSQL
     private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull SimpleAttribute attribute) throws RuntimeException {
         String tableName = entity.getTable().getValue();
         String idColumnName = entity.getPrimaryKey().getColumn().getValue();

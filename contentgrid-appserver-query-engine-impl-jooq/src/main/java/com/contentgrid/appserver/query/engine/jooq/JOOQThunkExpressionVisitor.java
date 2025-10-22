@@ -55,6 +55,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
 
+    @Allow.PlainSQL
     @Override
     public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context) throws InvalidThunkExpressionException {
         Field<?> result = switch (functionExpression.getOperator()) {
