@@ -35,7 +35,7 @@ import static java.util.Map.entry;
 @Transactional
 public class JOOQTableCreator implements TableCreator {
 
-    private static final @NonNull Set<@NonNull Locale> SUPPORTED_LOCALES = Set.of(
+    static final @NonNull Set<@NonNull Locale> SUPPORTED_LOCALES = Set.of(
             Locale.of("ar"), // Arabic
             Locale.of("hy"), // Armenian
             Locale.of("eu"), // Basque
@@ -43,7 +43,6 @@ public class JOOQTableCreator implements TableCreator {
             Locale.of("da"), // Danish
             Locale.of("nl"), // Dutch
             Locale.of("en"), // English
-            Locale.of("et"), // Estonian
             Locale.of("fi"), // Finnish
             Locale.of("fr"), // French
             Locale.of("de"), // German
@@ -56,9 +55,10 @@ public class JOOQTableCreator implements TableCreator {
             Locale.of("lt"), // Lithuanian
             Locale.of("ne"), // Nepali
             Locale.of("no"), // Norwegian
-            Locale.of("pt-PT"), // Portuguese (Portugal)
+            Locale.of("pt"), // Portuguese
             Locale.of("ro"), // Romanian
             Locale.of("ru"), // Russian
+            Locale.of("sr"), // Serbian
             Locale.of("es"), // Spanish
             Locale.of("sv"), // Swedish
             Locale.of("ta"), // Tamil

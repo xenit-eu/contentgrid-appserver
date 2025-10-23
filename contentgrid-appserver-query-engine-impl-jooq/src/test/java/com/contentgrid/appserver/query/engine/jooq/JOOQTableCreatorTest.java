@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
+import static com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator.SUPPORTED_LOCALES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,11 +44,11 @@ import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextR
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
@@ -87,7 +88,16 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
-    private static final Entity PERSON = Entity.builder()
+    private static final Supplier<SimpleAttribute.SimpleAttributeBuilder> PERSON_COMMENT_BUILDER_SUPPLIER = () -> SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT);
+
+    private static final Supplier<AttributeSearchFilter.AttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> AttributeSearchFilter.builder()
+            .operation(Operation.FTS)
+            .name(FilterName.of("comment~fts"));
+
+    private static final Supplier<Entity.EntityBuilder> PERSON_BUILDER_SUPPLIER = () -> Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
@@ -103,7 +113,9 @@ class JOOQTableCreatorTest {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
-                    .build())
+                    .build());
+
+    private static final Entity PERSON = PERSON_BUILDER_SUPPLIER.get()
             .build();
 
     private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
@@ -527,6 +539,36 @@ class JOOQTableCreatorTest {
 
         // Drop tables should fail too
         assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
+        assertTrue(getTables("public").isEmpty());
+    }
+
+    static @NonNull Stream<@NonNull Locale> SUPPORTED_LOCALES() {
+        return JOOQTableCreator.SUPPORTED_LOCALES.stream();
+    }
+
+    @ParameterizedTest
+    @MethodSource("SUPPORTED_LOCALES")
+    void FTSLocaleIsActuallySupported(@NonNull Locale locale) {
+        var commentAttribute = PERSON_COMMENT_BUILDER_SUPPLIER
+                .get()
+                .locale(locale)
+                .build();
+        var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
+                .get()
+                .attribute(commentAttribute)
+                .build();
+        var personWithFTS = PERSON_BUILDER_SUPPLIER
+                .get()
+                .attribute(commentAttribute)
+                .searchFilter(ftsSearchFilter)
+                .build();
+        var application = Application.builder()
+                .name(ApplicationName.of("fts-locale-application-%s".formatted(locale.getLanguage())))
+                .entity(personWithFTS)
+                .build();
+
+        tableCreator.createTables(application);
+        tableCreator.dropTables(application);
         assertTrue(getTables("public").isEmpty());
     }
 

@@ -2,14 +2,13 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'io.freefair.lombok'
-    id 'eu.xenit.docker' version '5.5.1'
-    id 'eu.xenit.docker-compose' version '5.5.1'
 }
 
 dependencies {
     implementation project(':contentgrid-appserver-application-model')
     implementation project(':contentgrid-appserver-query-engine-api')
     runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.testcontainers:postgresql'
     api 'org.springframework.boot:spring-boot-starter-jooq'
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
@@ -40,17 +39,4 @@ tasks.withType(JavaCompile) {
             "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
             "--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"
     ]
-}
-
-
-dockerBuild {
-    dockerFile = file("$projectDir/docker/Dockerfile")
-
-    repositories = ["docker.xenit.eu/contentgrid/contentgrid-database"]
-    tags = ["local"]
-}
-
-dockerCompose {
-    fromProject("DATABASE_IMAGE", project)
-    useComposeFiles = ["$projectDir/docker/docker-compose.yaml"]
 }

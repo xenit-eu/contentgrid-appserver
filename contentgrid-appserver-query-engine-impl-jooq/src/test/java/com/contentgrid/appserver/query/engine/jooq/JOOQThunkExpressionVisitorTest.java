@@ -49,7 +49,10 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jooq.Allow;
 import org.jooq.Condition;
@@ -69,7 +72,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
+        "logging.level.org.jooq.tools.LoggerListener=DEBUG",
 })
 @ContextConfiguration(classes = {TestApplication.class})
 @Transactional
@@ -91,6 +94,13 @@ class JOOQThunkExpressionVisitorTest {
             .constraint(Constraint.unique())
             .build();
 
+    private static final SimpleAttribute PERSON_COMMENT = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .locale(Locale.ENGLISH)
+            .type(Type.TEXT)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -98,6 +108,7 @@ class JOOQThunkExpressionVisitorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -107,6 +118,11 @@ class JOOQThunkExpressionVisitorTest {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.FTS)
+                    .attribute(PERSON_COMMENT)
+                    .name(FilterName.of("comment~fts"))
                     .build())
             .build();
 
@@ -304,21 +320,25 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field("id", UUID.class), ALICE_ID)
                 .set(DSL.field("name", String.class), "alice")
                 .set(DSL.field("vat", String.class), "vat_1")
+                .set(DSL.field("comment", String.class), "Comment with the words foo and bar.")
                 .execute();
         dslContext.insertInto(DSL.table("person"))
                 .set(DSL.field("id", UUID.class), BOB_ID)
                 .set(DSL.field("name", String.class), "bob")
                 .set(DSL.field("vat", String.class), "vat_2")
+                .set(DSL.field("comment", String.class), "Another comment mentioning foo.")
                 .execute();
         dslContext.insertInto(DSL.table("person"))
                 .set(DSL.field("id", UUID.class), JOHN_ID)
                 .set(DSL.field("name", String.class), "john")
                 .set(DSL.field("vat", String.class), "vat_3")
+                .set(DSL.field("comment", String.class), "Just a random comment.")
                 .execute();
         dslContext.insertInto(DSL.table("person"))
                 .set(DSL.field("id", UUID.class), THIJS_ID)
                 .set(DSL.field("name", String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
                 .set(DSL.field("vat", String.class), "Thijs")
+                .set(DSL.field("comment", String.class), "Comment with bar and foo.")
                 .execute();
         dslContext.insertInto(DSL.table("invoice"))
                 .set(DSL.field("id", UUID.class), INVOICE1_ID)
@@ -400,6 +420,23 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(ALICE_ID, result.get("id"));
         assertEquals("alice", result.get("name"));
         assertEquals("vat_1", result.get("vat"));
+    }
+
+    @Test
+    void findWithFullTextSearch() {
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                Scalar.of("bar foo")
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoSet("name", String.class);
+
+        assertEquals(Set.of("alice", "Thĳs"), results);
     }
 
     @Test
