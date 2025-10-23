@@ -24,7 +24,11 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -270,7 +274,9 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
     private Field<?> handlePath(@NonNull Entity entity, @NonNull List<PathElement> path, @NonNull JOOQContext context)
             throws InvalidThunkExpressionException {
-        if (path.isEmpty()) throw new InvalidThunkExpressionException("Empty path");
+        if (path.isEmpty()) {
+            throw new InvalidThunkExpressionException("Empty path");
+        }
         var pathElement = path.getFirst();
         var maybeAttribute = getOptionalAttributeByName(entity, pathElement);
         var tail = path.subList(1, path.size());

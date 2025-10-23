@@ -568,6 +568,7 @@ class JOOQTableCreatorTest {
                 .build();
 
         tableCreator.createTables(application);
+
         tableCreator.dropTables(application);
         assertTrue(getTables("public").isEmpty());
     }

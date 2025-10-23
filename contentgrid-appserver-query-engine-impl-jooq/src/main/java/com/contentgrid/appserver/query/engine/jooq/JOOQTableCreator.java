@@ -105,7 +105,8 @@ public class JOOQTableCreator implements TableCreator {
 
         // Create FTS indices.
         entity.getSearchFilters()
-                .stream().filter(searchFilter -> searchFilter instanceof AttributeSearchFilter && ((AttributeSearchFilter) searchFilter).getOperation().equals(AttributeSearchFilter.Operation.FTS))
+                .stream()
+                .filter(searchFilter -> searchFilter instanceof AttributeSearchFilter && ((AttributeSearchFilter) searchFilter).getOperation().equals(AttributeSearchFilter.Operation.FTS))
                 .map(searchFilter -> application.resolvePropertyPath(entity, ((AttributeSearchFilter) searchFilter).getAttributePath()))
                 .distinct()
                 .forEach(simpleAttribute -> createFTSIndex(dslContext, entity, simpleAttribute));
@@ -121,7 +122,7 @@ public class JOOQTableCreator implements TableCreator {
 
         log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
         // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
-        // Prepared statement template expects: indexName, tableName, tsConfig, columnName
+        // Allow.PlainSQL since this code is executed only during the model definition phase, not during request processing.
         dslContext.execute(ftsIndexPreparedStatement.formatted(indexName, tableName, attributeLocale.getDisplayLanguage(ENGLISH), ftsColumnName));
     }
 
