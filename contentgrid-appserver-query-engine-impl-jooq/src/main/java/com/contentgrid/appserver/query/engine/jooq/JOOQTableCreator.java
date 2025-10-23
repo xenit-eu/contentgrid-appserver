@@ -121,9 +121,10 @@ public class JOOQTableCreator implements TableCreator {
         if (!SUPPORTED_LOCALES.contains(attributeLocale)) throw new InvalidArgumentModelException("Locale (%s) is not supported for full-text search.".formatted(attributeLocale));
 
         log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
-        // JOOQ is not flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
+        // JOOQ does not seem to be flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
         // Allow.PlainSQL since this code is executed only during the model definition phase, not during request processing.
-        dslContext.execute(ftsIndexPreparedStatement.formatted(indexName, tableName, attributeLocale.getDisplayLanguage(ENGLISH), ftsColumnName));
+        dslContext.execute(ftsIndexPreparedStatement, DSL.name(indexName), DSL.name(tableName),
+                DSL.inline(attributeLocale.getDisplayLanguage(ENGLISH)), DSL.inline(ftsColumnName));
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {
