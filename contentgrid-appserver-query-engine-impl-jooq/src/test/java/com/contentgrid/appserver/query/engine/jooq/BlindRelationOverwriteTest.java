@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -47,6 +48,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest(properties = {
@@ -57,6 +59,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 class BlindRelationOverwriteTest {
 
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
+
+    @MockitoBean
+    private EventHandlers eventHandlers;
     @Autowired
     private QueryEngine queryEngine;
 
@@ -336,9 +341,10 @@ class BlindRelationOverwriteTest {
         }
 
         @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, PlatformTransactionManager transactionManager) {
+        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
+                PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
                     transactionManager
             );
         }

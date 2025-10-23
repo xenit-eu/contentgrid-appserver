@@ -51,6 +51,7 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -108,6 +109,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest(properties = {
@@ -2570,10 +2572,13 @@ class JOOQQueryEngineTest {
             return new JOOQTableCreator(dslContextResolver);
         }
 
+        @MockitoBean
+        EventHandlers eventHandlers;
+
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, PlatformTransactionManager transactionManager) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
                     transactionManager
             );
         }

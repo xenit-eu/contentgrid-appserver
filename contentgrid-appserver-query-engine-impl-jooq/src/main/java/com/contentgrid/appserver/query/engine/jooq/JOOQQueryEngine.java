@@ -16,6 +16,7 @@ import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
+import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
@@ -78,12 +79,17 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @NonNull
     private final DSLContextResolver resolver;
+
+    @NonNull
+    private final JOOQCountStrategy countStrategy;
+
+    @NonNull
+    private EventHandlers eventHandlers;
+
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
-    @NonNull
-    private final JOOQCountStrategy countStrategy;
 
     private static final long VERSION_MODULUS = 1L << 32;
 
@@ -280,6 +286,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
         assertPermission(application, insertedData.getIdentity().toRequest(), permitCreatePredicate);
 
+        eventHandlers.dispatchCreate(application, data.getEntityName(), insertedData);
+
         return insertedData;
     }
 
@@ -339,7 +347,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         // Increment version
         var maybeVersionField = JOOQUtils.resolveVersionField(entity);
-        // Randomize the increase a bit, so its clear for consumers that it is not a number or monotonically increasing field to be dependent on
+        // Randomize the increase a bit, so it's clear for consumers that it is not a number or monotonically increasing field to be dependent on
         // Instead, due to the large possibility of version increments, it will wrap around very soon and very often
         var versionIncrement = secureRandom.nextLong(1, VERSION_MODULUS >> 1);
         if(maybeVersionField.isPresent()) {
@@ -375,6 +383,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
             assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
+            eventHandlers.dispatchUpdate(application, data.getName(), oldValue, newValue);
+
             return new UpdateResult(
                     oldValue,
                     newValue
@@ -408,7 +418,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
-        findById(application, entityRequest, permitDeletePredicate)
+        var data = findById(application, entityRequest, permitDeletePredicate)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
 
         try {
@@ -422,6 +432,9 @@ public class JOOQQueryEngine implements QueryEngine {
                     strategy.delete(dslContext, application, relation, entityRequest.getEntityId());
                 }
             }
+
+            eventHandlers.dispatchDelete(application, data.getName(), data);
+
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
                     .returning(JOOQUtils.resolveAttributeFields(entity))
