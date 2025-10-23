@@ -1,3 +1,3 @@
-CREATE INDEX IF NOT EXISTS "%s"
-ON "%s"
-USING GIN (to_tsvector('%s', coalesce("%s", '')));
+CREATE INDEX IF NOT EXISTS ?
+ON ?
+USING GIN (to_tsvector(?, coalesce(?, '')));
