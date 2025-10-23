@@ -12,7 +12,6 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridFullTextSearch;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
@@ -24,22 +23,21 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jooq.Allow;
-import org.jooq.Allow.PlainSQL;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
-import org.jooq.impl.SQLDataType;
+
+import static java.util.Locale.ENGLISH;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQThunkExpressionVisitor.JOOQContext> {
@@ -187,8 +185,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 } else if (functionExpression instanceof ContentGridFullTextSearch contentGridFullTextSearch) {
                     var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                     var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
-                    // TODO: allow different languages.
-                    yield DSL.condition("to_tsvector('english', ?) @@ websearch_to_tsquery(?)", left, DSL.inline(right)); // TODO: split the right term. Also, add unaccent.
+
+                    var entity = context.getEntity();
+                    var simpleAttribute = getSimpleAttributeByName(entity, (SymbolicReference) contentGridFullTextSearch.getLeftTerm());
+                    var locale = simpleAttribute.getLocale();
+                    var language = locale.getDisplayLanguage(ENGLISH);
+
+                    yield DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, DSL.inline(right));
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
@@ -240,17 +243,40 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return result;
     }
 
+    private @NonNull SimpleAttribute getSimpleAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
+        Attribute attribute = getAttributeByName(entity, symbolicReference);
+        if (!(attribute instanceof SimpleAttribute simpleAttribute)) throw new InvalidThunkExpressionException("Attribute for symbolic reference (%s) is not a simple attribute.".formatted(symbolicReference));
+        return simpleAttribute;
+    }
+
+    private @NonNull Attribute getAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
+        Optional<Attribute> maybeAttribute = getOptionalAttributeByName(entity, symbolicReference);
+        return maybeAttribute.orElseThrow(() -> new InvalidThunkExpressionException("Attribute not found for symbolic reference (%s).".formatted(symbolicReference)));
+    }
+
+    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
+        return getOptionalAttributeByName(entity, symbolicReference.getPath());
+    }
+
+    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull List<PathElement> path) {
+        if (path.isEmpty()) return Optional.empty();
+        return getOptionalAttributeByName(entity, path.getFirst());
+    }
+
+    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference.PathElement path) throws InvalidThunkExpressionException {
+        var name = getPathElementName(path);
+        return entity.getAttributeByName(AttributeName.of(name));
+    }
+
     private Field<?> handlePath(@NonNull Entity entity, @NonNull List<PathElement> path, @NonNull JOOQContext context)
             throws InvalidThunkExpressionException {
-        if (path.isEmpty()) {
-            throw new InvalidThunkExpressionException("Empty path");
-        }
+        if (path.isEmpty()) throw new InvalidThunkExpressionException("Empty path");
         var pathElement = path.getFirst();
+        var maybeAttribute = getOptionalAttributeByName(entity, pathElement);
         var tail = path.subList(1, path.size());
         var name = getPathElementName(pathElement);
 
         // Check if pathElement references attribute
-        Optional<Attribute> maybeAttribute = entity.getAttributeByName(AttributeName.of(name));
         if (maybeAttribute.isPresent()) {
             var attribute = maybeAttribute.get();
             return handleAttribute(context.getJoinCollection().getCurrentAlias(), attribute, tail);
