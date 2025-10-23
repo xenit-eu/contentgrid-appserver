@@ -48,6 +48,9 @@ public class SimpleAttribute implements Attribute {
     @NonNull
     ColumnName column;
 
+    @NonNull
+    Locale locale;
+
     /**
      * The data type of this attribute.
      */
@@ -75,7 +78,8 @@ public class SimpleAttribute implements Attribute {
 
     @Builder
     SimpleAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @NonNull ColumnName column,
-            @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+                    @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints,
+                    @NonNull Locale locale) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
             if(t.getName() == null) {
@@ -90,6 +94,7 @@ public class SimpleAttribute implements Attribute {
         for (var flag : this.flags) {
             flag.checkSupported(this);
         }
+        this.locale = locale;
     }
 
 
@@ -124,7 +129,8 @@ public class SimpleAttribute implements Attribute {
 
     public static SimpleAttributeBuilder builder() {
         return new SimpleAttributeBuilder()
-                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new));
+                .translations(new TranslatableImpl<>(ConfigurableAttributeTranslations::new))
+                .locale(Locale.getDefault());
     }
 
     public static class SimpleAttributeBuilder extends TranslationBuilderSupport<AttributeTranslations, ConfigurableAttributeTranslations, SimpleAttributeBuilder> {

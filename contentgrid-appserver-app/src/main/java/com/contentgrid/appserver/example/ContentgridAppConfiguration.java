@@ -33,6 +33,8 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Locale;
+
 @Configuration(proxyBeanMethods = false)
 public class ContentgridAppConfiguration {
 
@@ -69,6 +71,7 @@ public class ContentgridAppConfiguration {
                         .description("Comment")
                         .column(ColumnName.of("comment"))
                         .type(Type.TEXT)
+                        .locale(Locale.ENGLISH)
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("birth_date"))
