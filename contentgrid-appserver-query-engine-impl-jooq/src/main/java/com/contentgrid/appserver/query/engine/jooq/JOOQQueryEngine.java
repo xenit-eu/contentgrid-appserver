@@ -173,7 +173,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 .map(checkVersionSatisfied(entityRequest));
     }
 
-    private static @NonNull Function<EntityData, EntityData> checkVersionSatisfied(@NonNull EntityRequest entityRequest) {
+    private static Function<EntityData, EntityData> checkVersionSatisfied(@NonNull EntityRequest entityRequest) {
         return entityData -> {
             if (!entityRequest.getVersionConstraint().isSatisfiedBy(entityData.getIdentity().getVersion())) {
                 throw new UnsatisfiedVersionException(
