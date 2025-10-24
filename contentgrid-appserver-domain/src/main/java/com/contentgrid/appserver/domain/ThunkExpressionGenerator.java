@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -63,6 +65,7 @@ public class ThunkExpressionGenerator {
                     try {
                         Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
                         subexpressions.add(createExpression(
+                                application,
                                 attributeSearchFilter,
                                 pathElements,
                                 parsedValue
@@ -113,13 +116,16 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
+    private static ThunkExpression<Boolean> createExpression(@NonNull Application application,
+                                                             @NonNull AttributeSearchFilter filter,
+                                                             @NonNull List<@NonNull PathElement> pathElements,
+                                                             @NonNull Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter);
+            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), application, filter);
             case GREATER_THAN -> Comparison.greater(attr, value);
             case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
             case LESS_THAN -> Comparison.less(attr, value);

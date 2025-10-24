@@ -1,13 +1,15 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+
+import java.util.Locale;
 
 @EqualsAndHashCode(callSuper = true)
 public sealed class StringComparison extends Comparison implements CustomFunctionExpression<Boolean> {
@@ -37,10 +39,11 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
     }
 
     public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
-                                                                                    @NonNull ThunkExpression<String> rightTerm,
-                                                                                    @NonNull AttributeSearchFilter searchFilter) throws IllegalArgumentException {
+                                                                           @NonNull ThunkExpression<String> rightTerm,
+                                                                           @NonNull Application application,
+                                                                           @NonNull AttributeSearchFilter searchFilter) throws IllegalArgumentException {
         if (!(searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter)) throw new IllegalArgumentException("Excepted an instance of AttributeSearchFilter, but got (%s).".formatted(searchFilter));
-        return contentGridFullTextSearchMatch(leftTerm, rightTerm, fullTextSearchAttributeSearchFilter.getLocale());
+        return contentGridFullTextSearchMatch(leftTerm, rightTerm, fullTextSearchAttributeSearchFilter.getLocale(application));
     }
 
     public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
