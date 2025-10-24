@@ -247,26 +247,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return result;
     }
 
-    private @NonNull SimpleAttribute getSimpleAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
-        Attribute attribute = getAttributeByName(entity, symbolicReference);
-        if (!(attribute instanceof SimpleAttribute simpleAttribute)) throw new InvalidThunkExpressionException("Attribute for symbolic reference (%s) is not a simple attribute.".formatted(symbolicReference));
-        return simpleAttribute;
-    }
-
-    private @NonNull Attribute getAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
-        Optional<Attribute> maybeAttribute = getOptionalAttributeByName(entity, symbolicReference);
-        return maybeAttribute.orElseThrow(() -> new InvalidThunkExpressionException("Attribute not found for symbolic reference (%s).".formatted(symbolicReference)));
-    }
-
-    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference symbolicReference) throws InvalidThunkExpressionException {
-        return getOptionalAttributeByName(entity, symbolicReference.getPath());
-    }
-
-    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull List<PathElement> path) {
-        if (path.isEmpty()) return Optional.empty();
-        return getOptionalAttributeByName(entity, path.getFirst());
-    }
-
     private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference.PathElement path) throws InvalidThunkExpressionException {
         var name = getPathElementName(path);
         return entity.getAttributeByName(AttributeName.of(name));
