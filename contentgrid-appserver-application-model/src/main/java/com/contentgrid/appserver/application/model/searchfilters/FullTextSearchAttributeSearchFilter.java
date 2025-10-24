@@ -4,24 +4,20 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
-import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.Singular;
 
 import java.util.Locale;
 import java.util.Set;
 
-import static java.util.Locale.ENGLISH;
-
 /**
  * FullTextSearchAttributeSearchFilter is a search filter that performs full-text search operations on a specified attribute.
  * <br>
- * The main difference between this and a regular AttributeSearchFilter is that this filter specifies a {@link Locale}.
+ * The main difference between this and a regular {@link AttributeSearchFilter} is that this filter specifies a {@link Locale}.
  */
 public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter {
 
