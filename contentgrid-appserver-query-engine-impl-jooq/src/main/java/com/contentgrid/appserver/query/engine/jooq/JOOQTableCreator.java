@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -106,25 +107,29 @@ public class JOOQTableCreator implements TableCreator {
         // Create FTS indices.
         entity.getSearchFilters()
                 .stream()
-                .filter(searchFilter -> searchFilter instanceof AttributeSearchFilter && ((AttributeSearchFilter) searchFilter).getOperation().equals(AttributeSearchFilter.Operation.FTS))
-                .map(searchFilter -> application.resolvePropertyPath(entity, ((AttributeSearchFilter) searchFilter).getAttributePath()))
-                .distinct()
-                .forEach(simpleAttribute -> createFTSIndex(dslContext, entity, simpleAttribute));
+                .filter(searchFilter -> searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter && fullTextSearchAttributeSearchFilter.getOperation().equals(AttributeSearchFilter.Operation.FTS))
+                .forEach(searchFilter -> createFTSIndex(dslContext, application, entity, (FullTextSearchAttributeSearchFilter) searchFilter));
+    }
+
+    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity, @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
+        Attribute attribute = application.resolvePropertyPath(entity, searchFilter.getAttributePath());
+        if (!(attribute instanceof SimpleAttribute simpleAttribute)) throw new InvalidArgumentModelException("Full-text search can only be applied to simple attributes.");
+        createFTSIndex(dslContext, entity, simpleAttribute, searchFilter.getLocale());
     }
 
     @Allow.PlainSQL
-    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Entity entity, @NonNull SimpleAttribute attribute) throws RuntimeException {
+    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Entity entity,
+                                @NonNull SimpleAttribute attribute, @NonNull Locale locale) throws RuntimeException {
         String tableName = entity.getTable().getValue();
         String ftsColumnName = attribute.getColumn().getValue();
         String indexName = "%s_%s_fts_idx".formatted(tableName, ftsColumnName);
-        Locale attributeLocale = attribute.getLocale();
-        if (!SUPPORTED_LOCALES.contains(attributeLocale)) throw new InvalidArgumentModelException("Locale (%s) is not supported for full-text search.".formatted(attributeLocale));
+        if (!SUPPORTED_LOCALES.contains(locale)) throw new InvalidArgumentModelException("Locale (%s) is not supported for full-text search.".formatted(locale));
 
         log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
         // JOOQ does not seem to be flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
         // Allow.PlainSQL since this code is executed only during the model definition phase, not during request processing.
         dslContext.execute(ftsIndexPreparedStatement, DSL.name(indexName), DSL.name(tableName),
-                DSL.inline(attributeLocale.getDisplayLanguage(ENGLISH)), DSL.inline(ftsColumnName));
+                DSL.inline(locale.getDisplayLanguage(ENGLISH)), DSL.inline(ftsColumnName));
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {

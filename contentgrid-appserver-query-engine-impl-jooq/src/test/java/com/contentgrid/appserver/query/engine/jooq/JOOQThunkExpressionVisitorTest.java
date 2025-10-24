@@ -97,7 +97,6 @@ class JOOQThunkExpressionVisitorTest {
     private static final SimpleAttribute PERSON_COMMENT = SimpleAttribute.builder()
             .name(AttributeName.of("comment"))
             .column(ColumnName.of("comment"))
-            .locale(Locale.ENGLISH)
             .type(Type.TEXT)
             .build();
 
@@ -426,7 +425,8 @@ class JOOQThunkExpressionVisitorTest {
     void findWithFullTextSearch() {
         ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
-                Scalar.of("bar foo")
+                Scalar.of("bar foo"), Locale.ENGLISH
+
         );
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());

@@ -190,9 +190,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                     var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
 
-                    var entity = context.getEntity();
-                    var simpleAttribute = getSimpleAttributeByName(entity, (SymbolicReference) contentGridFullTextSearch.getLeftTerm());
-                    var locale = simpleAttribute.getLocale();
+                    var locale = contentGridFullTextSearch.getLocale();
                     var language = locale.getDisplayLanguage(ENGLISH);
 
                     yield DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, DSL.inline(right));

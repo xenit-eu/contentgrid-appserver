@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -71,7 +72,6 @@ public class ContentgridAppConfiguration {
                         .description("Comment")
                         .column(ColumnName.of("comment"))
                         .type(Type.TEXT)
-                        .locale(Locale.ENGLISH)
                         .build())
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("birth_date"))
@@ -90,9 +90,9 @@ public class ContentgridAppConfiguration {
                         .name(FilterName.of("last_name"))
                         .attributePath(PropertyPath.of(AttributeName.of("last_name")))
                         .build())
-                .searchFilter(AttributeSearchFilter.builder()
-                        .operation(Operation.FTS)
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
                         .name(FilterName.of("comment"))
+                        .locale(Locale.ENGLISH)
                         .attributePath(PropertyPath.of(AttributeName.of("comment")))
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
