@@ -89,10 +89,11 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
-    private static final Supplier<SimpleAttribute.SimpleAttributeBuilder> PERSON_COMMENT_BUILDER_SUPPLIER = () -> SimpleAttribute.builder()
+    private static final SimpleAttribute PERSON_COMMENT = SimpleAttribute.builder()
             .name(AttributeName.of("comment"))
             .column(ColumnName.of("comment"))
-            .type(Type.TEXT);
+            .type(Type.TEXT)
+            .build();
 
     private static final Supplier<AttributeSearchFilter.AttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> AttributeSearchFilter.builder()
             .operation(Operation.FTS)
@@ -105,6 +106,7 @@ class JOOQTableCreatorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -351,10 +353,11 @@ class JOOQTableCreatorTest {
 
         var columnInfo = getColumnInfo("public", "person");
 
-        assertEquals(3, columnInfo.size());
+        assertEquals(4, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
         assertEquals("text", columnInfo.get("vat"));
         assertEquals("text", columnInfo.get("name"));
+        assertEquals("text", columnInfo.get("comment"));
 
         // drop tables
         tableCreator.dropTables(application);
@@ -438,7 +441,7 @@ class JOOQTableCreatorTest {
         var invoiceInfo = getColumnInfo("public", "invoice");
         var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
-        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(4, personInfo.size()); // unchanged
         assertEquals(19, invoiceInfo.size());
         assertEquals("uuid", invoiceInfo.get("customer"));
 
@@ -465,7 +468,7 @@ class JOOQTableCreatorTest {
         var joinTableInfo = getColumnInfo("public", "person__friends");
         var joinTableForeignKeys = getForeignKeys("public", "person__friends");
 
-        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(4, personInfo.size()); // unchanged
         assertEquals(2, joinTableInfo.size());
         assertEquals("uuid", joinTableInfo.get("person_src_id"));
         assertEquals("uuid", joinTableInfo.get("person_tgt_id"));
@@ -550,17 +553,12 @@ class JOOQTableCreatorTest {
     @ParameterizedTest
     @MethodSource("SUPPORTED_LOCALES")
     void FTSLocaleIsActuallySupported(@NonNull Locale locale) {
-        var commentAttribute = PERSON_COMMENT_BUILDER_SUPPLIER
-                .get()
-                .locale(locale)
-                .build();
         var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
                 .get()
-                .attribute(commentAttribute)
+                .attribute(PERSON_COMMENT)
                 .build();
         var personWithFTS = PERSON_BUILDER_SUPPLIER
                 .get()
-                .attribute(commentAttribute)
                 .searchFilter(ftsSearchFilter)
                 .build();
         var application = Application.builder()

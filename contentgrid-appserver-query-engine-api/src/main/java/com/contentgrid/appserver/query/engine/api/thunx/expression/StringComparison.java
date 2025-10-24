@@ -1,9 +1,12 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Locale;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
 
 @EqualsAndHashCode(callSuper = true)
@@ -33,8 +36,17 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new ContentGridPrefixSearch(leftTerm, rightTerm);
     }
 
-    public static @NonNull ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
-        return new ContentGridFullTextSearch(leftTerm, rightTerm);
+    public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
+                                                                                    @NonNull ThunkExpression<String> rightTerm,
+                                                                                    @NonNull AttributeSearchFilter searchFilter) throws IllegalArgumentException {
+        if (!(searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter)) throw new IllegalArgumentException("Excepted an instance of AttributeSearchFilter, but got (%s).".formatted(searchFilter));
+        return contentGridFullTextSearchMatch(leftTerm, rightTerm, fullTextSearchAttributeSearchFilter.getLocale());
+    }
+
+    public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
+                                                                           @NonNull ThunkExpression<String> rightTerm,
+                                                                           @NonNull Locale locale) {
+        return new ContentGridFullTextSearch(leftTerm, rightTerm, locale);
     }
 
     public static final class ContentGridPrefixSearch extends StringComparison {
@@ -44,10 +56,17 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         }
     }
 
+    @Getter
     public static final class ContentGridFullTextSearch extends StringComparison {
 
-        private ContentGridFullTextSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
+        private final @NonNull Locale locale;
+
+        private ContentGridFullTextSearch(@NonNull ThunkExpression<?> leftTerm,
+                                          @NonNull ThunkExpression<String> rightTerm,
+                                          @NonNull Locale locale) {
             super("cg_fulltext_search", leftTerm, rightTerm);
+
+            this.locale = locale;
         }
     }
 

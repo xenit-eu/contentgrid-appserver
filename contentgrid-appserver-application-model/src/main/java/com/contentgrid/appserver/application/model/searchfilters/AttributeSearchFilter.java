@@ -19,6 +19,8 @@ import lombok.NonNull;
 import lombok.Singular;
 import lombok.experimental.Delegate;
 
+import static java.util.Locale.ENGLISH;
+
 /**
  * AttributeSearchFilter is a class representing search filters that operate on entity attributes.
  */
