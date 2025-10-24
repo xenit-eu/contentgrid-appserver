@@ -92,7 +92,6 @@ public class ContentgridAppConfiguration {
                         .build())
                 .searchFilter(FullTextSearchAttributeSearchFilter.builder()
                         .name(FilterName.of("comment"))
-                        .locale(Locale.ENGLISH)
                         .attributePath(PropertyPath.of(AttributeName.of("comment")))
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()

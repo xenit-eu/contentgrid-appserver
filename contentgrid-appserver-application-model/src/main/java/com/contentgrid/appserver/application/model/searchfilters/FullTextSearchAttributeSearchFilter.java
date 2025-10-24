@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
@@ -22,21 +23,24 @@ import static java.util.Locale.ENGLISH;
  * <br>
  * The main difference between this and a regular AttributeSearchFilter is that this filter specifies a {@link Locale}.
  */
-@Getter
 public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter {
 
     /**
      * The locale for which the search filter is defined.
+     * Might be null, in which case the default locale for the {@link com.contentgrid.appserver.application.model.Application} will be used.
      */
-    @NonNull
     Locale locale;
+
+    public Locale getLocale(@NonNull Application application) {
+        return locale == null? application.getLocale() : locale;
+    }
 
     @Builder
     FullTextSearchAttributeSearchFilter(@NonNull Operation operation, @NonNull FilterName name,
                                         @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
                                         @NonNull PropertyPath attributePath,
                                         @NonNull @Singular Set<SearchFilterFlag> flags,
-                                        @NonNull Locale locale) {
+                                        Locale locale) {
         super(operation, name, translations, attributePath, flags);
         this.locale = locale;
     }
@@ -49,8 +53,7 @@ public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter {
     public static FullTextSearchAttributeSearchFilterBuilder builder() {
         return new FullTextSearchAttributeSearchFilterBuilder()
                 .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new))
-                .operation(Operation.FTS)
-                .locale(ENGLISH); // Default.
+                .operation(Operation.FTS);
     }
 
     public static class FullTextSearchAttributeSearchFilterBuilder extends AttributeSearchFilterBuilder {
