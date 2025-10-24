@@ -23,13 +23,6 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -40,6 +33,11 @@ import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Locale.ENGLISH;
 
@@ -58,7 +56,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
 
-    @Allow.PlainSQL
     @Override
     public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context) throws InvalidThunkExpressionException {
         Field<?> result = switch (functionExpression.getOperator()) {
@@ -187,13 +184,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     var rightField = prefixSearchNormalize(right);
                     yield leftField.startsWith(rightField);
                 } else if (functionExpression instanceof ContentGridFullTextSearch contentGridFullTextSearch) {
-                    var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
-                    var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
-
-                    var locale = contentGridFullTextSearch.getLocale();
-                    var language = locale.getDisplayLanguage(ENGLISH);
-
-                    yield DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, DSL.inline(right));
+                    yield generateFTSCondition(context, contentGridFullTextSearch);
                 } else {
                     throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
@@ -206,6 +197,17 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             return context.getJoinCollection().collect(condition);
         }
         return result;
+    }
+
+    @Allow.PlainSQL
+    private Condition generateFTSCondition(@NonNull JOOQContext context, @NonNull ContentGridFullTextSearch contentGridFullTextSearch) {
+        var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
+        var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+
+        var locale = contentGridFullTextSearch.getLocale();
+        var language = locale.getDisplayLanguage(ENGLISH);
+
+        return DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, DSL.inline(right));
     }
 
     private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {

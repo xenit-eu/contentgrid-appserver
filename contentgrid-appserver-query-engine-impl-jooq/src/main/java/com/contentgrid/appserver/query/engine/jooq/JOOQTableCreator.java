@@ -20,16 +20,13 @@ import org.jooq.Allow;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
+import java.util.Locale;
+import java.util.Set;
 
 import static java.util.Locale.ENGLISH;
-import static java.util.Map.entry;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -66,15 +63,12 @@ public class JOOQTableCreator implements TableCreator {
             Locale.of("tr"), // Turkish
             Locale.of("yi")  // Yiddish
     );
-    private static final @NonNull String ftsIndexPreparedStatement;
 
-    static {
-        try (InputStream inputStream = new ClassPathResource("com/contentgrid/appserver/query/engine/jooq/sql/statements/create_fts_index.sql").getInputStream()) {
-            ftsIndexPreparedStatement = new String(inputStream.readAllBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final @NonNull String ftsIndexPreparedStatement = """
+        CREATE INDEX IF NOT EXISTS ?
+        ON ?
+        USING GIN (to_tsvector(?, coalesce(?, '')));
+    """;
 
     private final DSLContextResolver resolver;
 
