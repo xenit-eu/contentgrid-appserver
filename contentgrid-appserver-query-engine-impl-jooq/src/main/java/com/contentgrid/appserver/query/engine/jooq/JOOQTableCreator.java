@@ -108,7 +108,7 @@ public class JOOQTableCreator implements TableCreator {
     void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity, @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
         Attribute attribute = application.resolvePropertyPath(entity, searchFilter.getAttributePath());
         if (!(attribute instanceof SimpleAttribute simpleAttribute)) throw new InvalidArgumentModelException("Full-text search can only be applied to simple attributes.");
-        createFTSIndex(dslContext, entity, simpleAttribute, searchFilter.getLocale(application));
+        createFTSIndex(dslContext, entity, simpleAttribute, searchFilter.getLocale());
     }
 
     @Allow.PlainSQL

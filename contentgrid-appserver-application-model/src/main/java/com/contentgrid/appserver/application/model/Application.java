@@ -30,13 +30,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import static java.util.Locale.ENGLISH;
 
 /**
  * Represents an application in the ContentGrid platform.
@@ -59,8 +56,7 @@ public class Application {
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
-                @NonNull Locale locale) {
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
         this.name = name;
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
@@ -97,8 +93,6 @@ public class Application {
 
         // Validating entity search filters (happens here rather than in Entity because they might go across relations)
         this.entities.values().forEach(this::validateEntitySearchFilters);
-
-        this.locale = locale;
     }
 
     /**
@@ -106,12 +100,6 @@ public class Application {
      */
     @NonNull
     ApplicationName name;
-
-    /**
-     * The default locale for the application.
-     */
-    @NonNull
-    Locale locale;
 
     /**
      * Internal map of entities by name.
@@ -316,19 +304,6 @@ public class Application {
         }
 
         throw new AttributeNotFoundException("Invalid property path: path ended without reaching an attribute");
-    }
-
-    public static class ApplicationBuilder {
-
-        public ApplicationBuilder() {
-            locale(ENGLISH); // Default.
-        }
-
-        public ApplicationBuilder locale(@NonNull Locale locale) {
-            this.locale = locale;
-            return this;
-        }
-
     }
 
 }

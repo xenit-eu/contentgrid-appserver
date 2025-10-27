@@ -67,7 +67,6 @@ public class ThunkExpressionGenerator {
                     try {
                         Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
                         subexpressions.add(createExpression(
-                                application,
                                 attributeSearchFilter,
                                 pathElements,
                                 parsedValue
@@ -118,8 +117,7 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(@NonNull Application application,
-                                                             @NonNull BaseAttributeSearchFilter filter,
+    private static ThunkExpression<Boolean> createExpression(@NonNull BaseAttributeSearchFilter filter,
                                                              @NonNull List<@NonNull PathElement> pathElements,
                                                              @NonNull Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
@@ -127,7 +125,7 @@ public class ThunkExpressionGenerator {
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), application, (FullTextSearchAttributeSearchFilter) filter);
+            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), (FullTextSearchAttributeSearchFilter) filter);
             case GREATER_THAN -> Comparison.greater(attr, value);
             case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
             case LESS_THAN -> Comparison.less(attr, value);
