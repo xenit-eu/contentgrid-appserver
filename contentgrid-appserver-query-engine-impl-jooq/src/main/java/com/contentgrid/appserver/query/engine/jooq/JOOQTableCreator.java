@@ -33,7 +33,7 @@ import static java.util.Locale.ENGLISH;
 @Transactional
 public class JOOQTableCreator implements TableCreator {
 
-    static final @NonNull Set<@NonNull Locale> SUPPORTED_LOCALES = Set.of(
+    static final @NonNull Set<@NonNull Locale> FTS_SUPPORTED_LOCALES = Set.of(
             Locale.of("ar"), // Arabic
             Locale.of("hy"), // Armenian
             Locale.of("eu"), // Basque
