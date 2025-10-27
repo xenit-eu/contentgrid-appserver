@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
@@ -9,6 +8,7 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFil
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Singular;
 
@@ -22,6 +22,7 @@ import static com.contentgrid.appserver.application.model.searchfilters.BaseAttr
  * <br>
  * The main difference between this and a regular {@link AttributeSearchFilter} is that this filter specifies a {@link Locale}.
  */
+@Getter
 public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilter implements LocaleAwareSearchFilter {
 
     /**
@@ -29,10 +30,6 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
      * Might be null, in which case the default locale for the {@link com.contentgrid.appserver.application.model.Application} will be used.
      */
     Locale locale;
-
-    public Locale getLocale(@NonNull Application application) {
-        return locale == null? application.getLocale() : locale;
-    }
 
     @Builder
     FullTextSearchAttributeSearchFilter(@NonNull FilterName name,

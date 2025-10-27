@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -39,9 +38,8 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
 
     public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
                                                                            @NonNull ThunkExpression<String> rightTerm,
-                                                                           @NonNull Application application,
                                                                            @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
-        return contentGridFullTextSearchMatch(leftTerm, rightTerm, searchFilter.getLocale(application));
+        return contentGridFullTextSearchMatch(leftTerm, rightTerm, searchFilter.getLocale());
     }
 
     public static ContentGridFullTextSearch contentGridFullTextSearchMatch(@NonNull ThunkExpression<?> leftTerm,
