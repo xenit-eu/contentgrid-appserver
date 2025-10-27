@@ -64,7 +64,7 @@ public class JOOQTableCreator implements TableCreator {
             Locale.of("yi")  // Yiddish
     );
 
-    private static final @NonNull String ftsIndexPreparedStatement = """
+    private static final @NonNull String FTS_INDEX_PREPARED_STATEMENT = """
         CREATE INDEX IF NOT EXISTS ?
         ON ?
         USING GIN (to_tsvector(?, coalesce(?, '')));
@@ -122,7 +122,7 @@ public class JOOQTableCreator implements TableCreator {
         log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
         // JOOQ does not seem to be flexible enough to create the FTS index with the required configuration, so we use a prepared statement.
         // Allow.PlainSQL since this code is executed only during the model definition phase, not during request processing.
-        dslContext.execute(ftsIndexPreparedStatement, DSL.name(indexName), DSL.name(tableName),
+        dslContext.execute(FTS_INDEX_PREPARED_STATEMENT, DSL.name(indexName), DSL.name(tableName),
                 DSL.inline(locale.getDisplayLanguage(ENGLISH)), DSL.inline(ftsColumnName));
     }
 
