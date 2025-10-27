@@ -6,6 +6,8 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -20,15 +22,15 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ThunkExpressionGenerator {
@@ -117,7 +119,7 @@ public class ThunkExpressionGenerator {
     }
 
     private static ThunkExpression<Boolean> createExpression(@NonNull Application application,
-                                                             @NonNull AttributeSearchFilter filter,
+                                                             @NonNull BaseAttributeSearchFilter filter,
                                                              @NonNull List<@NonNull PathElement> pathElements,
                                                              @NonNull Scalar<?> value) {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
@@ -125,7 +127,7 @@ public class ThunkExpressionGenerator {
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), application, filter);
+            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), application, (FullTextSearchAttributeSearchFilter) filter);
             case GREATER_THAN -> Comparison.greater(attr, value);
             case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
             case LESS_THAN -> Comparison.less(attr, value);
