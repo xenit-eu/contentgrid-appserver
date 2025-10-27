@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
+import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -13,14 +15,14 @@ import lombok.Singular;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation.FTS;
+import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.FTS;
 
 /**
  * FullTextSearchAttributeSearchFilter is a search filter that performs full-text search operations on a specified attribute.
  * <br>
  * The main difference between this and a regular {@link AttributeSearchFilter} is that this filter specifies a {@link Locale}.
  */
-public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter implements LocaleAwareSearchFilter {
+public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilter implements LocaleAwareSearchFilter {
 
     /**
      * The locale for which the search filter is defined.
@@ -48,15 +50,14 @@ public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter i
                 .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
-    public static class FullTextSearchAttributeSearchFilterBuilder extends AttributeSearchFilterBuilder {
+    public static class FullTextSearchAttributeSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, FullTextSearchAttributeSearchFilter.FullTextSearchAttributeSearchFilterBuilder> {
         {
             getTranslations = () -> translations;
         }
 
-        @Override
-        public AttributeSearchFilterBuilder operation(@NonNull Operation operation) throws IllegalArgumentException {
-            if (!FTS.equals(operation)) throw new IllegalArgumentException("FullTextSearchAttributeSearchFilter instances only support the FTS operation (but %s was provided).".formatted(operation));
-            return this; // What's the point of calling the super method then?
+        public FullTextSearchAttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = PropertyPath.of(attribute.getName());
+            return this;
         }
     }
 

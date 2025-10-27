@@ -1,7 +1,5 @@
 package com.contentgrid.appserver.application.model;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
@@ -15,7 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -28,11 +26,14 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.List;
-import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.List;
+import java.util.Locale;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class EntityTest {
 
