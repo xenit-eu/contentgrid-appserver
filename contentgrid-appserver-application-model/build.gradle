@@ -6,8 +6,6 @@ plugins {
 }
 
 dependencies {
-    compileOnly 'org.slf4j:slf4j-api:2.0.17'
-
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-junit-jupiter'
 }
