@@ -9,7 +9,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Locale;
 import java.util.Set;
@@ -21,7 +20,6 @@ import static com.contentgrid.appserver.application.model.searchfilters.Attribut
  * <br>
  * The main difference between this and a regular {@link AttributeSearchFilter} is that this filter specifies a {@link Locale}.
  */
-@Slf4j
 public class FullTextSearchAttributeSearchFilter extends AttributeSearchFilter implements LocaleAwareSearchFilter {
 
     /**
