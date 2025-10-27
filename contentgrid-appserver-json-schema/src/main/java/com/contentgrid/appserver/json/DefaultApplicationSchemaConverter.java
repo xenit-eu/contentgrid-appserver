@@ -27,7 +27,7 @@ import com.contentgrid.appserver.application.model.relations.flags.RelationEndpo
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.ConfigurableSearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -71,6 +71,7 @@ import com.contentgrid.appserver.json.model.UniqueConstraint;
 import com.contentgrid.appserver.json.model.UserAttribute;
 import com.contentgrid.appserver.json.validation.ApplicationSchemaValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

@@ -31,4 +31,5 @@ class FullTextSearchAttributeSearchFilterTest {
                 .build();
         assert filterWithLocale.getLocale(application).equals(filterSpecificLocale);
     }
+
 }

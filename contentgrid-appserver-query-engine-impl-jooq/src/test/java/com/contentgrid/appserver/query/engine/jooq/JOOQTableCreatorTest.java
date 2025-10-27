@@ -21,7 +21,8 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -37,7 +38,9 @@ import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestAppl
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.Allow;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,10 +63,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator.FTS_INDEX_PREPARED_STATEMENT;
+import static java.util.Locale.ENGLISH;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///"
@@ -94,9 +103,9 @@ class JOOQTableCreatorTest {
             .type(Type.TEXT)
             .build();
 
-    private static final Supplier<AttributeSearchFilter.AttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> AttributeSearchFilter.builder()
-            .operation(Operation.FTS)
-            .name(FilterName.of("comment~fts"));
+    private static final Supplier<FullTextSearchAttributeSearchFilter.FullTextSearchAttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> FullTextSearchAttributeSearchFilter.builder()
+            .name(FilterName.of("comment~fts"))
+            .locale(Locale.GERMAN);
 
     private static final Supplier<Entity.EntityBuilder> PERSON_BUILDER_SUPPLIER = () -> Entity.builder()
             .name(EntityName.of("person"))
@@ -264,7 +273,7 @@ class JOOQTableCreatorTest {
     private DSLContext dslContext;
 
     @Autowired
-    private TableCreator tableCreator;
+    private JOOQTableCreator tableCreator;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -569,6 +578,36 @@ class JOOQTableCreatorTest {
 
         tableCreator.dropTables(application);
         assertTrue(getTables("public").isEmpty());
+    }
+
+    @Test
+    @Allow.PlainSQL
+    void createFTSIndexTest() {
+        var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
+                .get()
+                .attribute(PERSON_COMMENT)
+
+                .build();
+        var personWithFTS = PERSON_BUILDER_SUPPLIER
+                .get()
+                .searchFilter(ftsSearchFilter)
+                .build();
+        var application = Application.builder()
+                .name(ApplicationName.of("fts-index-application"))
+                .entity(personWithFTS)
+                .build();
+
+        AtomicBoolean successfulExecution = new AtomicBoolean(false);
+        DSLContext dsl = mock(DSLContext.class);
+        when(dsl.execute(eq(FTS_INDEX_PREPARED_STATEMENT), eq(DSL.name("person_comment_fts_idx")),
+                        eq(DSL.name("person")), eq(DSL.inline(Locale.GERMAN.getDisplayLanguage(ENGLISH))), eq(DSL.inline("comment"))))
+                .thenAnswer(invocation -> {
+                    successfulExecution.set(true);
+                    return null;
+                });
+
+        tableCreator.createFTSIndex(dsl, application, personWithFTS, ftsSearchFilter);
+        assertTrue(successfulExecution.get());
     }
 
     @SpringBootApplication

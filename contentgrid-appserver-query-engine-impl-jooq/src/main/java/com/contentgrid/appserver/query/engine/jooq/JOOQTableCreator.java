@@ -7,7 +7,6 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
@@ -26,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Locale;
 import java.util.Set;
 
+import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.FTS;
 import static java.util.Locale.ENGLISH;
 
 @Slf4j
@@ -64,7 +64,7 @@ public class JOOQTableCreator implements TableCreator {
             Locale.of("yi")  // Yiddish
     );
 
-    private static final @NonNull String FTS_INDEX_PREPARED_STATEMENT = """
+    static final @NonNull String FTS_INDEX_PREPARED_STATEMENT = """
         CREATE INDEX IF NOT EXISTS ?
         ON ?
         USING GIN (to_tsvector(?, coalesce(?, '')));
@@ -101,11 +101,11 @@ public class JOOQTableCreator implements TableCreator {
         // Create FTS indices.
         entity.getSearchFilters()
                 .stream()
-                .filter(searchFilter -> searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter && fullTextSearchAttributeSearchFilter.getOperation().equals(AttributeSearchFilter.Operation.FTS))
+                .filter(searchFilter -> searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter && fullTextSearchAttributeSearchFilter.getOperation().equals(FTS))
                 .forEach(searchFilter -> createFTSIndex(dslContext, application, entity, (FullTextSearchAttributeSearchFilter) searchFilter));
     }
 
-    private void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity, @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
+    void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity, @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
         Attribute attribute = application.resolvePropertyPath(entity, searchFilter.getAttributePath());
         if (!(attribute instanceof SimpleAttribute simpleAttribute)) throw new InvalidArgumentModelException("Full-text search can only be applied to simple attributes.");
         createFTSIndex(dslContext, entity, simpleAttribute, searchFilter.getLocale(application));
