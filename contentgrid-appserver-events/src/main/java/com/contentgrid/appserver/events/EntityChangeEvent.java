@@ -1,5 +1,9 @@
 package com.contentgrid.appserver.events;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import java.io.Serializable;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,22 +13,26 @@ import lombok.Value;
 
 @Value
 @Builder
-class EntityChangeEvent {
+public class EntityChangeEvent {
 
     @NonNull
     ChangeKind trigger;
+
     @NonNull
-    Class<?> domainType;
+    Application application;
 
-    Object oldEntity;
-    Object newEntity;
+    @NonNull
+    EntityName entity;
 
-    public Optional<Object> getOldEntity() {
-        return Optional.ofNullable(oldEntity);
+    EntityData oldData;
+    EntityData newData;
+
+    public Optional<EntityData> getOldData() {
+        return Optional.ofNullable(oldData);
     }
 
-    public Optional<Object> getNewEntity() {
-        return Optional.ofNullable(newEntity);
+    public Optional<EntityData> getNewData() {
+        return Optional.ofNullable(newData);
     }
 
     @RequiredArgsConstructor

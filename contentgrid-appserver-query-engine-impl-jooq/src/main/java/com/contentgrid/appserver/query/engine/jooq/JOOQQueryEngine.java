@@ -48,6 +48,7 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
+import jakarta.annotation.Nullable;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -84,7 +85,7 @@ public class JOOQQueryEngine implements QueryEngine {
     private final JOOQCountStrategy countStrategy;
 
     @NonNull
-    private EventHandlers eventHandlers;
+    private final EventHandlers eventHandlers;
 
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 

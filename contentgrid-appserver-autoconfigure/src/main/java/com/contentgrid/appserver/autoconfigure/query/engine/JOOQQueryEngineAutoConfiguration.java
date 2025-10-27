@@ -1,9 +1,14 @@
 package com.contentgrid.appserver.autoconfigure.query.engine;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
+import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
 import com.contentgrid.appserver.query.engine.jooq.TransactionalQueryEngine;
@@ -12,6 +17,7 @@ import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.DisposableBean;
@@ -25,7 +31,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class})
+@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class, ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass(JOOQQueryEngine.class)
 public class JOOQQueryEngineAutoConfiguration {
 
@@ -41,8 +47,20 @@ public class JOOQQueryEngineAutoConfiguration {
     }
 
     @Bean
-    QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy, PlatformTransactionManager transactionManager) {
-        return new TransactionalQueryEngine(new JOOQQueryEngine(dslContextResolver, countStrategy), transactionManager);
+    // When we run with the initContainer profile, we won't have real event handlers available
+    @ConditionalOnMissingBean(EventHandlers.class)
+    EventHandlers noopEventHandlers() {
+        return new EventHandlers() {
+            public void dispatchCreate(Application application, EntityName entity, EntityData data) {}
+            public void dispatchUpdate(Application application, EntityName entity, EntityData oldData, EntityData newData) {}
+            public void dispatchDelete(Application application, EntityName entity, EntityData oldData) {}
+        };
+    }
+
+    @Bean
+    QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy,
+            PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
+        return new TransactionalQueryEngine(new JOOQQueryEngine(dslContextResolver, countStrategy, eventHandlers), transactionManager);
     }
 
     @Bean

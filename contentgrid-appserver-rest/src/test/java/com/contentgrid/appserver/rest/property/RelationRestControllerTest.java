@@ -98,7 +98,7 @@ class RelationRestControllerTest {
             return new SingleApplicationResolver(APPLICATION);
         }
 
-                }
+    }
 
     @BeforeEach
     void setup() {

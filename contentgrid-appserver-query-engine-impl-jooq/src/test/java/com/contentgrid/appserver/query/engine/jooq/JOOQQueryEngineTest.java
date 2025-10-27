@@ -428,6 +428,9 @@ class JOOQQueryEngineTest {
 
     private static final ThunkExpression<Boolean> TRUE_EXPRESSION = Scalar.of(true);
 
+    @MockitoBean
+    private EventHandlers eventHandlers;
+
     @Autowired
     private DSLContext dslContext;
 
@@ -2572,11 +2575,9 @@ class JOOQQueryEngineTest {
             return new JOOQTableCreator(dslContextResolver);
         }
 
-        @MockitoBean
-        EventHandlers eventHandlers;
-
         @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, PlatformTransactionManager transactionManager) {
+        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
+                PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
             return new TransactionalQueryEngine(
                     new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
                     transactionManager
