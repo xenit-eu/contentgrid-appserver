@@ -20,7 +20,8 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -116,9 +117,9 @@ class JOOQThunkExpressionVisitorTest {
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.FTS)
+            .searchFilter(FullTextSearchAttributeSearchFilter.builder()
                     .attribute(PERSON_COMMENT)
+                    .locale(Locale.ENGLISH)
                     .name(FilterName.of("comment~fts"))
                     .build())
             .build();

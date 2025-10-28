@@ -21,6 +21,9 @@ import java.util.Set;
 @Getter
 public class AttributeSearchFilter extends BaseAttributeSearchFilter {
 
+    @NonNull
+    private final Operation operation;
+
     /**
      * Constructs an AttributeSearchFilter with the specified parameters.
      *
@@ -36,12 +39,44 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
-        super(operation, name, translations, attributePath, flags);
+        super(name, translations, attributePath, flags);
+
+        this.operation = operation;
     }
 
     public static AttributeSearchFilterBuilder builder() {
         return new AttributeSearchFilterBuilder()
                 .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
+    }
+
+    /**
+     * Determines if this search filter supports the given attribute.
+     * <p>
+     * @param attribute the attribute to check support for
+     * @return true if the attribute is supported, false otherwise
+     */
+    public boolean supports(SimpleAttribute attribute) {
+        return operation.supports(attribute);
+    }
+
+    public enum Operation {
+        EXACT(Set.of(SimpleAttribute.Type.TEXT, SimpleAttribute.Type.UUID, SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.BOOLEAN, SimpleAttribute.Type.DATETIME)),
+        PREFIX(Set.of(SimpleAttribute.Type.TEXT)),
+        GREATER_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
+        GREATER_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
+        LESS_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
+        LESS_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
+        ;
+
+        private final Set<SimpleAttribute.Type> supportedTypes;
+
+        Operation(Set<SimpleAttribute.Type> supportedTypes) {
+            this.supportedTypes = supportedTypes;
+        }
+
+        public boolean supports(SimpleAttribute attribute) {
+            return supportedTypes.contains(attribute.getType());
+        }
     }
 
     public static class AttributeSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, AttributeSearchFilterBuilder> {

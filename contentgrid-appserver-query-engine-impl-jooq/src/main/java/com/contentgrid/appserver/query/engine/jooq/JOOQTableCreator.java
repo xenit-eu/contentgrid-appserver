@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.FTS;
 import static java.util.Locale.ENGLISH;
 
 @Slf4j
@@ -101,8 +100,9 @@ public class JOOQTableCreator implements TableCreator {
         // Create FTS indices.
         entity.getSearchFilters()
                 .stream()
-                .filter(searchFilter -> searchFilter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter && fullTextSearchAttributeSearchFilter.getOperation().equals(FTS))
-                .forEach(searchFilter -> createFTSIndex(dslContext, application, entity, (FullTextSearchAttributeSearchFilter) searchFilter));
+                .filter(searchFilter -> searchFilter instanceof FullTextSearchAttributeSearchFilter)
+                .map(FullTextSearchAttributeSearchFilter.class::cast)
+                .forEach(searchFilter -> createFTSIndex(dslContext, application, entity, searchFilter));
     }
 
     void createFTSIndex(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity, @NonNull FullTextSearchAttributeSearchFilter searchFilter) {
@@ -117,7 +117,7 @@ public class JOOQTableCreator implements TableCreator {
         String tableName = entity.getTable().getValue();
         String ftsColumnName = attribute.getColumn().getValue();
         String indexName = "%s_%s_fts_idx".formatted(tableName, ftsColumnName);
-        if (!SUPPORTED_LOCALES.contains(locale)) throw new InvalidArgumentModelException("Locale (%s) is not supported for full-text search.".formatted(locale));
+        if (!FTS_SUPPORTED_LOCALES.contains(locale)) throw new InvalidArgumentModelException("Locale (%s) is not supported for full-text search.".formatted(locale));
 
         log.debug("Creating an FTS index ({}) on table ({}) for column ({}).", indexName, tableName, ftsColumnName);
         // JOOQ does not seem to be flexible enough to create the FTS index with the required configuration, so we use a prepared statement.

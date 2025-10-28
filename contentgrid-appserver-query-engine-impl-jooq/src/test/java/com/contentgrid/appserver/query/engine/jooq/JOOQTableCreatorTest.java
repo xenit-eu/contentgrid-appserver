@@ -21,7 +21,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -554,12 +554,12 @@ class JOOQTableCreatorTest {
         assertTrue(getTables("public").isEmpty());
     }
 
-    static @NonNull Stream<@NonNull Locale> SUPPORTED_LOCALES() {
-        return JOOQTableCreator.SUPPORTED_LOCALES.stream();
+    static @NonNull Stream<@NonNull Locale> FTS_SUPPORTED_LOCALES() {
+        return JOOQTableCreator.FTS_SUPPORTED_LOCALES.stream();
     }
 
     @ParameterizedTest
-    @MethodSource("SUPPORTED_LOCALES")
+    @MethodSource("FTS_SUPPORTED_LOCALES")
     void FTSLocaleIsActuallySupported(@NonNull Locale locale) {
         var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
                 .get()

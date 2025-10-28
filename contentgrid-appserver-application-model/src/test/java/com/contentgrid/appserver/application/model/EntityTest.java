@@ -13,7 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
