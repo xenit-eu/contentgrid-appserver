@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contentgrid.cloud/schemas/application-schema.json",
   "title": "ContentGrid Application Configuration",
   "type": "object",
@@ -280,7 +280,7 @@
           "type": "array",
           "description": "A list of flags for the relation",
           "items": {
-            "ref": "#/$defs/relationEndpointFlag"
+            "$ref": "#/$defs/relationEndpointFlag"
           }
         }
       },
@@ -324,7 +324,7 @@
           "type": "array",
           "description": "A list of flags for the attribute.",
           "items": {
-            "ref": "#/$defs/attributeFlag"
+            "$ref": "#/$defs/attributeFlag"
           }
         },
         "dataType": {
@@ -470,7 +470,7 @@
           "type": "array",
           "description": "A list of flags for the attribute.",
           "items": {
-            "ref": "#/$defs/attributeFlag"
+            "$ref": "#/$defs/attributeFlag"
           }
         }
       },

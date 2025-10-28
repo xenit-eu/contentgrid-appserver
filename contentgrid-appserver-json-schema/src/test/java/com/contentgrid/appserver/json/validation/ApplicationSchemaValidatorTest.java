@@ -15,8 +15,8 @@ class ApplicationSchemaValidatorTest {
     void jsonSchemaIsValid() {
         var schema = ApplicationSchemaValidator.schema;
 
-        var metaSchemaValidation = JsonSchemaFactory.getInstance(VersionFlag.V7)
-                .getSchema(SchemaLocation.of(SchemaId.V7))
+        var metaSchemaValidation = JsonSchemaFactory.getInstance(VersionFlag.V202012)
+                .getSchema(SchemaLocation.of(SchemaId.V202012))
                 .validate(schema.getSchemaNode());
         assertThat(metaSchemaValidation, empty());
     }
