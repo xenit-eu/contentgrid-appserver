@@ -26,6 +26,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
+import com.contentgrid.appserver.json.exceptions.SchemaValidationException;
 import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -106,7 +107,7 @@ class DefaultApplicationSchemaConverterTest {
                 """;
 
         var converter = new DefaultApplicationSchemaConverter();
-        assertThrows(UnknownFlagException.class, () -> converter.convert(
+        assertThrows(SchemaValidationException.class, () -> converter.convert(
                 new ByteArrayInputStream(jsonWithUnknownFlag.getBytes(StandardCharsets.UTF_8))));
     }
 
