@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Slf4j
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.contentgrid.appserver")
 public class ContentgridApp {
     public static void main(String[] args) {
         log.info("Running Spring application...");
@@ -20,7 +20,7 @@ public class ContentgridApp {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**").allowedOriginPatterns("http://localhost:*").allowedMethods("*");
+                registry.addMapping("/**").allowedOriginPatterns("http://localhost:*").allowedMethods("*").allowCredentials(true);
             }
         };
     }

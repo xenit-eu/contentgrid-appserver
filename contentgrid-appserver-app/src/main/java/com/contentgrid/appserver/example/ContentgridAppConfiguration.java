@@ -33,6 +33,7 @@ import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import java.util.Locale;
 
 @Configuration(proxyBeanMethods = false)
 public class ContentgridAppConfiguration {
@@ -91,6 +92,7 @@ public class ContentgridAppConfiguration {
                 .searchFilter(FullTextSearchAttributeSearchFilter.builder()
                         .name(FilterName.of("comment"))
                         .attributePath(PropertyPath.of(AttributeName.of("comment")))
+                        .locale(Locale.ENGLISH) // temporary
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
