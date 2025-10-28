@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -22,9 +21,6 @@ import java.util.Set;
  */
 @Getter
 public abstract class BaseAttributeSearchFilter implements SearchFilter {
-
-    @NonNull
-    private final Operation operation;
 
     /**
      * The name of the search filter.
@@ -52,12 +48,10 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
     private final Set<SearchFilterFlag> flags;
 
     protected BaseAttributeSearchFilter(
-            @NonNull Operation operation,
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
             @NonNull PropertyPath attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
-        this.operation = operation;
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
             if(t.getName() == null) {
@@ -69,37 +63,6 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
         this.flags = Set.copyOf(flags);
 
         flags.forEach(flag -> flag.checkSupported(this));
-    }
-
-    /**
-     * Determines if this search filter supports the given attribute.
-     * <p>
-     * @param attribute the attribute to check support for
-     * @return true if the attribute is supported, false otherwise
-     */
-    public boolean supports(SimpleAttribute attribute) {
-        return operation.supports(attribute);
-    }
-
-    public enum Operation {
-        EXACT(Set.of(SimpleAttribute.Type.TEXT, SimpleAttribute.Type.UUID, SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.BOOLEAN, SimpleAttribute.Type.DATETIME)),
-        PREFIX(Set.of(SimpleAttribute.Type.TEXT)),
-        FTS(Set.of(SimpleAttribute.Type.TEXT)),
-        GREATER_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        GREATER_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        LESS_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        LESS_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        ;
-
-        private final Set<SimpleAttribute.Type> supportedTypes;
-
-        Operation(Set<SimpleAttribute.Type> supportedTypes) {
-            this.supportedTypes = supportedTypes;
-        }
-
-        public boolean supports(SimpleAttribute attribute) {
-            return supportedTypes.contains(attribute.getType());
-        }
     }
 
 }

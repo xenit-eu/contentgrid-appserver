@@ -15,7 +15,6 @@ import lombok.Singular;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation.FTS;
 
 /**
  * FullTextSearchAttributeSearchFilter is a search filter that performs full-text search operations on a specified attribute.
@@ -37,7 +36,7 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
                                         @NonNull PropertyPath attributePath,
                                         @NonNull @Singular Set<SearchFilterFlag> flags,
                                         Locale locale) {
-        super(FTS, name, translations, attributePath, flags);
+        super(name, translations, attributePath, flags);
 
         this.locale = locale;
     }

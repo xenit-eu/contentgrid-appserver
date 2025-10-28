@@ -119,18 +119,36 @@ public class ThunkExpressionGenerator {
 
     private static ThunkExpression<Boolean> createExpression(@NonNull BaseAttributeSearchFilter filter,
                                                              @NonNull List<@NonNull PathElement> pathElements,
-                                                             @NonNull Scalar<?> value) {
+                                                             @NonNull Scalar<?> value) throws IllegalArgumentException {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
+        /*
+            Alternative solution would be to have the filter define its own expressions.
+            The Operation enum could store a Scalar supplier.
+         */
+        if (filter instanceof FullTextSearchAttributeSearchFilter ftsSearchFilter) return createExpression(ftsSearchFilter, attr, value);
+        if (filter instanceof AttributeSearchFilter attrSearchFilter) return createExpression(attrSearchFilter, attr, value);
+
+        throw new IllegalArgumentException("Received unknown filter type (%s).".formatted(filter.getClass().getName()));
+    }
+
+    private static ThunkExpression<Boolean> createExpression(@NonNull AttributeSearchFilter filter,
+                                                             @NonNull SymbolicReference attr,
+                                                             @NonNull Scalar<?> value) {
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case FTS -> StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), (FullTextSearchAttributeSearchFilter) filter);
             case GREATER_THAN -> Comparison.greater(attr, value);
             case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
             case LESS_THAN -> Comparison.less(attr, value);
             case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
         };
+    }
+
+    private static ThunkExpression<Boolean> createExpression(@NonNull FullTextSearchAttributeSearchFilter filter,
+                                                             @NonNull SymbolicReference attr,
+                                                             @NonNull Scalar<?> value) {
+        return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter);
     }
 
     private static List<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {

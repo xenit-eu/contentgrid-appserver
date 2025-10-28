@@ -27,7 +27,7 @@ import com.contentgrid.appserver.application.model.relations.flags.RelationEndpo
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.ConfigurableSearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -312,7 +312,6 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
         var operation = switch (type) {
             case "prefix" -> Operation.PREFIX;
-            case "fts" -> Operation.FTS;
             case "exact" -> Operation.EXACT;
             case "greater" -> Operation.GREATER_THAN;
             case "greater-or-equal" -> Operation.GREATER_THAN_OR_EQUAL;
@@ -554,7 +553,6 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             jsonFilter.setAttributePath(toJsonPropertyPath(attributeFilter.getAttributePath()));
             var type = switch (attributeFilter.getOperation()) {
                 case EXACT -> "exact";
-                case FTS -> "fts";
                 case PREFIX -> "prefix";
                 case GREATER_THAN -> "greater";
                 case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
