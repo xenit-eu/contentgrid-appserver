@@ -19,7 +19,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.events.EventHandlers;
+import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -61,7 +61,7 @@ class BlindRelationOverwriteTest {
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
 
     @MockitoBean
-    private EventHandlers eventHandlers;
+    private EventConsumer eventConsumer;
     @Autowired
     private QueryEngine queryEngine;
 
@@ -342,9 +342,9 @@ class BlindRelationOverwriteTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
+                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
                     transactionManager
             );
         }

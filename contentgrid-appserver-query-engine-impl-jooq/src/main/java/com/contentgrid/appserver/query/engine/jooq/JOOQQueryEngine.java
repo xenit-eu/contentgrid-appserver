@@ -16,8 +16,8 @@ import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
-import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
+import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -48,7 +48,6 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
-import jakarta.annotation.Nullable;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -84,8 +83,9 @@ public class JOOQQueryEngine implements QueryEngine {
     @NonNull
     private final JOOQCountStrategy countStrategy;
 
+
     @NonNull
-    private final EventHandlers eventHandlers;
+    private final EventConsumer eventHandler;
 
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
@@ -287,7 +287,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         assertPermission(application, insertedData.getIdentity().toRequest(), permitCreatePredicate);
 
-        eventHandlers.dispatchCreate(application, data.getEntityName(), insertedData);
+        eventHandler.dispatchCreate(application, data.getEntityName(), insertedData);
 
         return insertedData;
     }
@@ -384,7 +384,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
             assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
-            eventHandlers.dispatchUpdate(application, data.getName(), oldValue, newValue);
+            eventHandler.dispatchUpdate(application, data.getName(), oldValue, newValue);
 
             return new UpdateResult(
                     oldValue,
@@ -434,7 +434,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 }
             }
 
-            eventHandlers.dispatchDelete(application, data.getName(), data);
+            eventHandler.dispatchDelete(application, data.getName(), data);
 
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))

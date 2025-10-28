@@ -27,16 +27,29 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestFormatterAutoConfiguration;
+import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.events.EntityFormatter;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.ContentGridRestFormatterConfiguration;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -113,7 +126,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                     .build())
             .build();
 
-    @SpringBootApplication(exclude = {ContentGridDomainAutoConfiguration.class, ContentGridRestAutoConfiguration.class})
+    @SpringBootApplication(exclude = {ContentGridDomainAutoConfiguration.class, ContentGridRestAutoConfiguration.class, ContentGridRestFormatterAutoConfiguration.class})
     public static class TestApplication {
 
         @Bean
@@ -141,6 +154,18 @@ class DynamicDispatchApplicationHandlerMappingTest {
             };
         }
 
+        @Bean
+        public EntityFormatter dummyFormatter() {
+            return new EntityFormatter() {
+                private final ObjectMapper mapper = JsonMapper.builder()
+                        .configure(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES, false)
+                        .build();
+                @Override
+                public JsonNode format(Application application, EntityName entityName, EntityInstance entityInstance) {
+                    return mapper.valueToTree(entityInstance);
+                }
+            };
+        }
     }
 
     @RestController

@@ -8,6 +8,7 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
     api 'com.contentgrid.hateoas:contentgrid-pagination-api'
+    api 'com.fasterxml.jackson.core:jackson-databind'
 
     implementation 'org.slf4j:slf4j-api'
     implementation project(':contentgrid-appserver-contentstore-api')

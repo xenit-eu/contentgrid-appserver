@@ -2,10 +2,9 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
@@ -19,20 +18,19 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.events.EventHandlers;
+import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import com.contentgrid.appserver.domain.values.EntityRequest;
 import java.time.Duration;
-import java.util.Objects;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,13 +59,13 @@ public class EventsDispatchTest {
     private TableCreator tableCreator;
 
     @MockitoBean
-    EventHandlers eventHandlers;
+    EventConsumer eventConsumer;
 
 
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
-        Mockito.reset(eventHandlers);
+        Mockito.reset(eventConsumer);
     }
 
     @AfterEach
@@ -88,7 +86,7 @@ public class EventsDispatchTest {
                         .build(),
                 PERMIT_ALWAYS
         );
-        Mockito.verify(eventHandlers).dispatchCreate(
+        Mockito.verify(eventConsumer).dispatchCreate(
                 eq(APPLICATION),
                 eq(ENTITY_A.getName()),
                 argThat(entityData -> {
@@ -134,7 +132,7 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS
         );
 
-        Mockito.verify(eventHandlers).dispatchUpdate(
+        Mockito.verify(eventConsumer).dispatchUpdate(
                 eq(APPLICATION),
                 eq(ENTITY_A.getName()),
                 argThat(oldData -> {
@@ -181,7 +179,7 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS
         );
 
-        Mockito.verify(eventHandlers).dispatchDelete(
+        Mockito.verify(eventConsumer).dispatchDelete(
                 eq(APPLICATION),
                 eq(ENTITY_A.getName()),
                 argThat(oldData -> {
@@ -201,7 +199,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyCreate_unhappy() {
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventHandlers)
+        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
                 .dispatchCreate(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.create(
@@ -235,7 +233,7 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventHandlers)
+        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
                 .dispatchUpdate(any(), any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.update(
@@ -271,7 +269,7 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventHandlers)
+        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
                 .dispatchDelete(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.delete(
@@ -326,9 +324,9 @@ public class EventsDispatchTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
+                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
                     transactionManager
             );
         }

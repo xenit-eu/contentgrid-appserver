@@ -51,8 +51,8 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
-import com.contentgrid.appserver.events.EventHandlers;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
+import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -429,7 +429,7 @@ class JOOQQueryEngineTest {
     private static final ThunkExpression<Boolean> TRUE_EXPRESSION = Scalar.of(true);
 
     @MockitoBean
-    private EventHandlers eventHandlers;
+    private EventConsumer eventConsumer;
 
     @Autowired
     private DSLContext dslContext;
@@ -2577,9 +2577,9 @@ class JOOQQueryEngineTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventHandlers eventHandlers) {
+                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventHandlers),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
                     transactionManager
             );
         }
