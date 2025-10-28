@@ -50,7 +50,7 @@ public class ThunkExpressionGenerator {
             SearchFilter searchFilter = maybeSearchFilter.get();
 
             // currently only handle attribute search filters
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                 List<PathElement> pathElements;
 
