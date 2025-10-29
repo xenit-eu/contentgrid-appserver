@@ -11,6 +11,13 @@ contentgrid:
   system:
     policyPackage: xfb0e9318f3894300a64edba3532e6ac0
 
+# spring:
+#   rabbitmq:
+#     host: localhost
+#     port: 5672
+#     username: guest
+#     password: guest
+
 # When unauthenticated, you get HTTP 403 instead of 401 if you don't have the following
 
 #spring:

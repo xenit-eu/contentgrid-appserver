@@ -1,65 +1,51 @@
 package com.contentgrid.appserver.events;
 
-import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.domain.events.FormattedEventDispatcher;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
 
 @RequiredArgsConstructor
-class RabbitMqEventHandlers implements EventHandlers {
+public class RabbitMqEventHandlers implements FormattedEventDispatcher {
 
     private final RabbitTemplate rabbitTemplate;
     private final RabbitProperties rabbitProperties;
     private final ContentGridEventHandlerProperties contentGridProps;
-    private final EventMapper eventMapper;
+    private final ObjectMapper objectMapper;
 
-    @Override
-    public void dispatchCreate(@NonNull Application application, @NonNull EntityName entity, @NonNull EntityData data) {
-        var event = EntityChangeEvent.builder()
-                .trigger(EntityChangeEvent.ChangeKind.CREATE)
-                .application(application)
-                .entity(entity)
-                .newData(data)
-                .build();
-        send(event);
+    public void dispatchCreate(@NonNull String entity, @NonNull JsonNode newData) {
+        send(EntityChangeEventPayload.forCreate(newData), "create", entity);
     }
 
-    @Override
-    public void dispatchUpdate(@NonNull Application application, @NonNull EntityName entity, @NonNull EntityData oldData, @NonNull EntityData newData) {
-        var event = EntityChangeEvent.builder()
-                .trigger(EntityChangeEvent.ChangeKind.UPDATE)
-                .application(application)
-                .entity(entity)
-                .oldData(oldData)
-                .newData(newData)
-                .build();
-        send(event);
+    public void dispatchUpdate(@NonNull String entity, @NonNull JsonNode oldData, @NonNull JsonNode newData) {
+        send(EntityChangeEventPayload.forUpdate(oldData, newData), "update", entity);
     }
 
-    @Override
-    public void dispatchDelete(@NonNull Application application, @NonNull EntityName entity, @NonNull EntityData oldData) {
-        var event = EntityChangeEvent.builder()
-                .trigger(EntityChangeEvent.ChangeKind.DELETE)
-                .application(application)
-                .entity(entity)
-                .oldData(oldData)
-                .build();
-        send(event);
+    public void dispatchDelete(@NonNull String entity, @NonNull JsonNode oldData) {
+        send(EntityChangeEventPayload.forDelete(oldData), "delete", entity);
     }
 
-    private void send(EntityChangeEvent event) {
-        var objectMapper = new ObjectMapper();
-        var payload = objectMapper.valueToTree(eventMapper.map(event)).toString();
+    private void send(EntityChangeEventPayload payload, String trigger, String entity) {
+        var payloadString = objectMapper.valueToTree(payload).toString();
+        Message message = MessageBuilder
+                .withBody(payloadString.getBytes(StandardCharsets.UTF_8))
+                .setContentType(MessageProperties.CONTENT_TYPE_JSON)
+                .setHeader("trigger", trigger)
+                .setHeader("entity", entity)
+                .build();
         var exchange = rabbitProperties.getTemplate() != null ? rabbitProperties.getTemplate().getExchange() : null;
         var routingKey = contentGridProps.getEvents().getRabbitmq().getRoutingKey();
         if (exchange == null || exchange.isBlank()) {
-            rabbitTemplate.convertAndSend(routingKey, payload); // default exchange from template
+            rabbitTemplate.send(routingKey, message); // default exchange from template
         } else {
-            rabbitTemplate.convertAndSend(exchange, routingKey, payload);
+            rabbitTemplate.send(exchange, routingKey, message);
         }
     }
 }
