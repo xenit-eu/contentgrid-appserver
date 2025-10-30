@@ -101,6 +101,10 @@ class DatamodelApiImplTest {
     private QueryEngine queryEngine;
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private ContentStore contentStore;
+    @Mock(answer = Answers.RETURNS_SMART_NULLS)
+    private com.contentgrid.appserver.domain.events.EntityFormatter entityFormatter;
+    @Mock(answer = Answers.RETURNS_SMART_NULLS)
+    private com.contentgrid.appserver.domain.events.FormattedEventDispatcher formattedEventDispatcher;
     @Spy
     private CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
 
@@ -132,9 +136,11 @@ class DatamodelApiImplTest {
 
     @BeforeEach
     void setup() {
+        var domainEventDispatcher = new DomainEventDispatcher(entityFormatter, formattedEventDispatcher);
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
                 contentStore,
+                domainEventDispatcher,
                 codec,
                 clock
         );
@@ -179,7 +185,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                             "number", "invoice-1",
@@ -312,7 +318,7 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             var productIds = List.of(EntityId.of(UUID.randomUUID()), EntityId.of(UUID.randomUUID()));
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -368,7 +374,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                             "name", "Test person",
@@ -401,7 +407,7 @@ class DatamodelApiImplTest {
         void inverseRelation_unmapped_ignored() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                     "name", "test",
@@ -432,7 +438,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -470,7 +476,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -513,7 +519,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -613,7 +619,7 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             var fileId = "my-file-123.bin";
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 110));
 
@@ -699,7 +705,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -759,7 +765,7 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -772,7 +778,7 @@ class DatamodelApiImplTest {
                     .id(entityId)
                     .build();
             setupEntityQueryWithContent("content.bin");
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -878,7 +884,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -926,7 +932,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
 
             Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 50));
@@ -980,7 +986,7 @@ class DatamodelApiImplTest {
                     .build();
 
             setupEntityQuery();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1029,7 +1035,7 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -1053,7 +1059,7 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
             Mockito.verifyNoInteractions(contentStore);
 
         }
@@ -1067,7 +1073,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1092,7 +1098,7 @@ class DatamodelApiImplTest {
 
             setupEntityQueryWithContent("content.bin");
 
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1187,7 +1193,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1222,7 +1228,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1258,7 +1264,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1295,7 +1301,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any()))
+            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
             Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 150));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
@@ -1653,7 +1659,7 @@ class DatamodelApiImplTest {
             EntityData data = EntityData.builder().name(invoice).id(id).attributes(List.of()).build();
 
             ArgumentCaptor<EntityRequest> deleteArg = ArgumentCaptor.forClass(EntityRequest.class);
-            Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture(), Mockito.any()))
+            Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(Optional.of(data));
 
             datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id), AuthorizationContext.allowAll());
@@ -1666,7 +1672,7 @@ class DatamodelApiImplTest {
             EntityId id = EntityId.of(UUID.randomUUID());
             EntityName invoice = EntityName.of("invoice");
 
-            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
+import com.contentgrid.appserver.domain.DomainEventDispatcher;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
@@ -25,8 +26,9 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, cursorCodec, clock);
+    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
+            CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
     }
 
     @Bean

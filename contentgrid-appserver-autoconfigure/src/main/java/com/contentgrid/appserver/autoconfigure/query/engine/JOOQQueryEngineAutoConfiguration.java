@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
-import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -45,20 +44,9 @@ public class JOOQQueryEngineAutoConfiguration {
     }
 
     @Bean
-    // When we run with the initContainer profile, we won't have real event handlers available
-    @ConditionalOnMissingBean(EventConsumer.class)
-    EventConsumer noopEventHandlers() {
-        return new EventConsumer() {
-            public void dispatchCreate(Application application, EntityName entity, EntityData data) {}
-            public void dispatchUpdate(Application application, EntityName entity, EntityData oldData, EntityData newData) {}
-            public void dispatchDelete(Application application, EntityName entity, EntityData oldData) {}
-        };
-    }
-
-    @Bean
     QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy,
-            PlatformTransactionManager transactionManager, EventConsumer eventHandlers) {
-        return new TransactionalQueryEngine(new JOOQQueryEngine(dslContextResolver, countStrategy, eventHandlers), transactionManager);
+            PlatformTransactionManager transactionManager) {
+        return new TransactionalQueryEngine(new JOOQQueryEngine(dslContextResolver, countStrategy), transactionManager);
     }
 
     @Bean

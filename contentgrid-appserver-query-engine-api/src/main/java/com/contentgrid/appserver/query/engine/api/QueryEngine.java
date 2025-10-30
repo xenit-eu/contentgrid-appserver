@@ -69,7 +69,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the create operation
      */
     EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
-            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException;
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate,
+            @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
@@ -81,7 +82,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the update operation
      */
     UpdateResult update(@NonNull Application application, @NonNull EntityData data,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException;
 
     /**
      * Deletes the entity that matches the given identity
@@ -93,7 +95,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the delete operation
      */
     Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull ThunkExpression<Boolean> permitDeletePredicate)
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate,
+            @NonNull DeleteEventConsumer deleteEventConsumer)
             throws QueryEngineException;
 
     /**

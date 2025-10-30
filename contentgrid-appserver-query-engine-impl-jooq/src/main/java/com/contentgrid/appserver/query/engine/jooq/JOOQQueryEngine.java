@@ -17,7 +17,9 @@ import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
-import com.contentgrid.appserver.query.engine.api.EventConsumer;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -84,8 +86,6 @@ public class JOOQQueryEngine implements QueryEngine {
     private final JOOQCountStrategy countStrategy;
 
 
-    @NonNull
-    private final EventConsumer eventHandler;
 
     private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
 
@@ -195,7 +195,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
-            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate,
+            @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
@@ -287,7 +288,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         assertPermission(application, insertedData.getIdentity().toRequest(), permitCreatePredicate);
 
-        eventHandler.dispatchCreate(application, data.getEntityName(), insertedData);
+        createEventConsumer.dispatchCreate(application, insertedData);
 
         return insertedData;
     }
@@ -324,7 +325,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = getRequiredEntity(application, data.getName());
         var table = JOOQUtils.resolveTable(entity);
@@ -384,7 +386,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
             assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
-            eventHandler.dispatchUpdate(application, data.getName(), oldValue, newValue);
+            updateEventConsumer.dispatchUpdate(application, oldValue, newValue);
 
             return new UpdateResult(
                     oldValue,
@@ -412,7 +414,8 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull ThunkExpression<Boolean> permitDeletePredicate)
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate,
+            @NonNull DeleteEventConsumer deleteEventConsumer)
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
@@ -434,7 +437,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 }
             }
 
-            eventHandler.dispatchDelete(application, data.getName(), data);
+            deleteEventConsumer.dispatchDelete(application, data);
 
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))

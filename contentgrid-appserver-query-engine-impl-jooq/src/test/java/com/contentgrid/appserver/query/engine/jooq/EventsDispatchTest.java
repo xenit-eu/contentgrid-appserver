@@ -19,7 +19,9 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
-import com.contentgrid.appserver.query.engine.api.EventConsumer;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -59,13 +61,19 @@ public class EventsDispatchTest {
     private TableCreator tableCreator;
 
     @MockitoBean
-    EventConsumer eventConsumer;
+    CreateEventConsumer createEventConsumer;
+
+    @MockitoBean
+    UpdateEventConsumer updateEventConsumer;
+
+    @MockitoBean
+    DeleteEventConsumer deleteEventConsumer;
 
 
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
-        Mockito.reset(eventConsumer);
+        Mockito.reset(createEventConsumer, updateEventConsumer, deleteEventConsumer);
     }
 
     @AfterEach
@@ -84,11 +92,11 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         );
-        Mockito.verify(eventConsumer).dispatchCreate(
+        Mockito.verify(createEventConsumer).dispatchCreate(
                 eq(APPLICATION),
-                eq(ENTITY_A.getName()),
                 argThat(entityData -> {
                     var attribute = entityData.getAttributeByName(ATTRIBUTE_A.getName());
                     if (attribute.isPresent() && attribute.get() instanceof SimpleAttributeData<?> attr) {
@@ -116,7 +124,8 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         );
 
         queryEngine.update(
@@ -129,12 +138,12 @@ public class EventsDispatchTest {
                                 .value(456)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                updateEventConsumer
         );
 
-        Mockito.verify(eventConsumer).dispatchUpdate(
+        Mockito.verify(updateEventConsumer).dispatchUpdate(
                 eq(APPLICATION),
-                eq(ENTITY_A.getName()),
                 argThat(oldData -> {
                     var attribute = oldData.getAttributeByName(ATTRIBUTE_A.getName());
                     if (attribute.isPresent() && attribute.get() instanceof SimpleAttributeData<?> attr) {
@@ -170,18 +179,19 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         );
 
         queryEngine.delete(
                 APPLICATION,
                 EntityRequest.forEntity(created.getName(), created.getId()),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                deleteEventConsumer
         );
 
-        Mockito.verify(eventConsumer).dispatchDelete(
+        Mockito.verify(deleteEventConsumer).dispatchDelete(
                 eq(APPLICATION),
-                eq(ENTITY_A.getName()),
                 argThat(oldData -> {
                     var attribute = oldData.getAttributeByName(ATTRIBUTE_A.getName());
                     if (attribute.isPresent() && attribute.get() instanceof SimpleAttributeData<?> attr) {
@@ -199,8 +209,8 @@ public class EventsDispatchTest {
 
     @Test
     void verifyCreate_unhappy() {
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
-                .dispatchCreate(any(), any(), any());
+        Mockito.doThrow(new RuntimeException("event failed")).when(createEventConsumer)
+                .dispatchCreate(any(), any());
 
         assertThatThrownBy(() -> queryEngine.create(
                 APPLICATION,
@@ -211,7 +221,8 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         )).isInstanceOf(RuntimeException.class);
 
         // Transaction rolled back → it doesn't exist in db
@@ -230,11 +241,12 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
-                .dispatchUpdate(any(), any(), any(), any());
+        Mockito.doThrow(new RuntimeException("event failed")).when(updateEventConsumer)
+                .dispatchUpdate(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.update(
                 APPLICATION,
@@ -246,7 +258,8 @@ public class EventsDispatchTest {
                                 .value(456)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                updateEventConsumer
         )).isInstanceOf(RuntimeException.class);
 
         // Transaction rolled back → it's not updated in db
@@ -266,16 +279,18 @@ public class EventsDispatchTest {
                                 .value(123)
                                 .build())
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(eventConsumer)
-                .dispatchDelete(any(), any(), any());
+        Mockito.doThrow(new RuntimeException("event failed")).when(deleteEventConsumer)
+                .dispatchDelete(any(), any());
 
         assertThatThrownBy(() -> queryEngine.delete(
                 APPLICATION,
                 EntityRequest.forEntity(created.getName(), created.getId()),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                deleteEventConsumer
         )).isInstanceOf(RuntimeException.class);
 
         // Transaction rolled back → it's not deleted in db
@@ -324,9 +339,9 @@ public class EventsDispatchTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
+                PlatformTransactionManager transactionManager) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
                     transactionManager
             );
         }

@@ -51,10 +51,12 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
-import com.contentgrid.appserver.query.engine.api.EventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -429,7 +431,13 @@ class JOOQQueryEngineTest {
     private static final ThunkExpression<Boolean> TRUE_EXPRESSION = Scalar.of(true);
 
     @MockitoBean
-    private EventConsumer eventConsumer;
+    private CreateEventConsumer createEventConsumer;
+
+    @MockitoBean
+    private UpdateEventConsumer updateEventConsumer;
+
+    @MockitoBean
+    private DeleteEventConsumer deleteEventConsumer;
 
     @Autowired
     private DSLContext dslContext;
@@ -988,7 +996,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("validCreateData")
     void createEntityValidData(EntityCreateData data) {
-        var createdEntity = queryEngine.create(APPLICATION, data, TRUE_EXPRESSION);
+        var createdEntity = queryEngine.create(APPLICATION, data, TRUE_EXPRESSION, createEventConsumer);
         var entity = APPLICATION.getEntityByName(data.getEntityName()).orElseThrow();
         var actual = queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION).orElseThrow();
 
@@ -1047,10 +1055,10 @@ class JOOQQueryEngineTest {
         );
 
         if(allowed) {
-            var createdEntity = queryEngine.create(APPLICATION, entityData, permissionCheck);
+            var createdEntity = queryEngine.create(APPLICATION, entityData, permissionCheck, createEventConsumer);
             assertNotNull(createdEntity);
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.create(APPLICATION, entityData, permissionCheck));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.create(APPLICATION, entityData, permissionCheck, createEventConsumer));
             assertNothingChanged();
         }
     }
@@ -1366,7 +1374,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidCreateData")
     void createEntityInvalidData(EntityCreateData data) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.create(APPLICATION, data, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.create(APPLICATION, data, TRUE_EXPRESSION, createEventConsumer));
         assertNothingChanged();
     }
 
@@ -1467,7 +1475,7 @@ class JOOQQueryEngineTest {
     @MethodSource("validUpdateData")
     void updateEntityValidData(EntityData data) {
         var old = queryEngine.findById(APPLICATION, data.getIdentity().toRequest(), TRUE_EXPRESSION).orElseThrow();
-        var updateResult = queryEngine.update(APPLICATION, data, TRUE_EXPRESSION);
+        var updateResult = queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer);
         var updated = queryEngine.findById(APPLICATION, data.getIdentity().toRequest(), TRUE_EXPRESSION).orElseThrow();
 
         assertEntityDataEquals(updateResult.getOriginal(), old);
@@ -1595,7 +1603,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidUpdateData")
     void updateEntityInvalidData(EntityData data) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION));
+        assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer));
         assertNothingChanged();
     }
 
@@ -1610,7 +1618,7 @@ class JOOQQueryEngineTest {
                 // This does not match the version set during construction
                 .version(Version.exactly("5"))
                 .attribute(new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), 5.3))
-                .build(), TRUE_EXPRESSION)
+                .build(), TRUE_EXPRESSION, updateEventConsumer)
         );
 
         var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
@@ -1630,7 +1638,7 @@ class JOOQQueryEngineTest {
                 .id(INVOICE2_ID)
                 .version(existingEntity.getIdentity().getVersion())
                 .attribute(new SimpleAttributeData<>(INVOICE_NUMBER.getName(), newValue))
-                .build(), TRUE_EXPRESSION);
+                .build(), TRUE_EXPRESSION, updateEventConsumer);
 
         var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
                 .orElseThrow();
@@ -1661,7 +1669,7 @@ class JOOQQueryEngineTest {
                     .id(INVOICE2_ID)
                     .version(identity.getVersion())
                     .attribute(new SimpleAttributeData<>(INVOICE_NUMBER.getName(), newValue+i))
-                    .build(), TRUE_EXPRESSION);
+                    .build(), TRUE_EXPRESSION, updateEventConsumer);
 
             identity = updateResult.getUpdated().getIdentity();
             versions.add(identity.getVersion());
@@ -1711,7 +1719,7 @@ class JOOQQueryEngineTest {
                         .build())
                 .build();
 
-        var createdEntity = queryEngine.create(APPLICATION, entityData, TRUE_EXPRESSION);
+        var createdEntity = queryEngine.create(APPLICATION, entityData, TRUE_EXPRESSION, createEventConsumer);
 
 
         var updatedData = new EntityData(createdEntity.getIdentity(), List.of(
@@ -1725,7 +1733,7 @@ class JOOQQueryEngineTest {
 
 
         if(allowed) {
-            queryEngine.update(APPLICATION, updatedData, permissionCheck);
+            queryEngine.update(APPLICATION, updatedData, permissionCheck, updateEventConsumer);
             // Check that changed
             assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(createdEntity.getName(), createdEntity.getId()), TRUE_EXPRESSION))
                     .hasValueSatisfying(newData -> {
@@ -1736,7 +1744,7 @@ class JOOQQueryEngineTest {
                         });
                     });
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck, updateEventConsumer));
             // Check that unchanged
             assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(createdEntity.getName(), createdEntity.getId()), TRUE_EXPRESSION))
                     .hasValueSatisfying(newData -> {
@@ -1764,7 +1772,7 @@ class JOOQQueryEngineTest {
     void deleteEntityValidId(Entity entity, EntityId id) {
         var originalData = queryEngine.findById(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION)
                 .orElseThrow();
-        var deletedData = queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION);
+        var deletedData = queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION, deleteEventConsumer);
         var maybeData = queryEngine.findById(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION);
 
         assertTrue(deletedData.isPresent());
@@ -1776,7 +1784,7 @@ class JOOQQueryEngineTest {
     @Test
     void deleteEntityNonExistingId() {
         assertThrows(EntityIdNotFoundException.class, () -> queryEngine.delete(APPLICATION,
-                EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())), TRUE_EXPRESSION));
+                EntityRequest.forEntity(INVOICE.getName(), EntityId.of(UUID.randomUUID())), TRUE_EXPRESSION, deleteEventConsumer));
 
         assertNothingChanged();
     }
@@ -1791,7 +1799,7 @@ class JOOQQueryEngineTest {
     @MethodSource("invalidDeleteData")
     void deleteEntityInvalidId(Entity entity, EntityId id) {
         assertThrows(QueryEngineException.class,
-                () -> queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION));
+                () -> queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION, deleteEventConsumer));
         assertNothingChanged();
     }
 
@@ -1805,7 +1813,8 @@ class JOOQQueryEngineTest {
                 EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID)
                         // This does not match the version specified during entity setup
                         .withVersionConstraint(Version.exactly("5")),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                deleteEventConsumer
         ));
 
         var keptEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
@@ -1819,7 +1828,7 @@ class JOOQQueryEngineTest {
         var existingEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
                 .orElseThrow();
 
-        var removedData = queryEngine.delete(APPLICATION, existingEntity.getIdentity().toRequest(), TRUE_EXPRESSION);
+        var removedData = queryEngine.delete(APPLICATION, existingEntity.getIdentity().toRequest(), TRUE_EXPRESSION, deleteEventConsumer);
 
         assertTrue(removedData.isPresent());
         assertEntityDataEquals(existingEntity, removedData.get());
@@ -1844,7 +1853,7 @@ class JOOQQueryEngineTest {
                         .build())
                 .build();
 
-        var createdEntity = queryEngine.create(APPLICATION, entityData, TRUE_EXPRESSION);
+        var createdEntity = queryEngine.create(APPLICATION, entityData, TRUE_EXPRESSION, createEventConsumer);
 
         var permissionCheck = Comparison.less(
                 SymbolicReference.parse("entity.amount"),
@@ -1852,10 +1861,10 @@ class JOOQQueryEngineTest {
         );
 
         if(allowed) {
-            queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck);
+            queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck, deleteEventConsumer);
             assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isEmpty();
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck, deleteEventConsumer));
             assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isPresent();
         }
     }
@@ -1937,7 +1946,8 @@ class JOOQQueryEngineTest {
                                 .ref(ALICE_ID)
                                 .build())
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var newEntity = queryEngine.create(
@@ -1951,7 +1961,8 @@ class JOOQQueryEngineTest {
                                 .ref(ALICE_ID)
                                 .build())
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var subject = queryEngine.create(
@@ -1970,7 +1981,8 @@ class JOOQQueryEngineTest {
                                 .build()
                         )
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
 
@@ -2114,7 +2126,8 @@ class JOOQQueryEngineTest {
                                 .ref(ALICE_ID)
                                 .build())
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var subject = queryEngine.create(
@@ -2133,7 +2146,8 @@ class JOOQQueryEngineTest {
                                 .build()
                         )
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
 
@@ -2250,7 +2264,8 @@ class JOOQQueryEngineTest {
                                 .ref(ALICE_ID)
                                 .build())
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var newEntity = queryEngine.create(
@@ -2264,7 +2279,8 @@ class JOOQQueryEngineTest {
                                 .ref(ALICE_ID)
                                 .build())
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var subject = queryEngine.create(
@@ -2278,7 +2294,8 @@ class JOOQQueryEngineTest {
                                 .build()
                         )
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
 
@@ -2387,7 +2404,8 @@ class JOOQQueryEngineTest {
                                 .build()
                         )
                         .build(),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION,
+                createEventConsumer
         );
 
         var permissionCheck = Comparison.less(
@@ -2514,7 +2532,7 @@ class JOOQQueryEngineTest {
                 .attribute(new SimpleAttributeData<>(ORDER_ORDER.getName(), "TEST"))
                 .build();
 
-        queryEngine.create(APPLICATION, createOrder, TRUE_EXPRESSION);
+        queryEngine.create(APPLICATION, createOrder, TRUE_EXPRESSION, createEventConsumer);
 
         var orders = queryEngine.findAll(APPLICATION, ORDER, Comparison.areEqual(SymbolicReference.parse("entity.order"), Scalar.of("TEST")), null, new OffsetData(40, 0));
         assertEquals(1, orders.getEntities().size());
@@ -2577,9 +2595,9 @@ class JOOQQueryEngineTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
+                PlatformTransactionManager transactionManager) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
                     transactionManager
             );
         }

@@ -6,6 +6,8 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
@@ -76,25 +78,28 @@ public class TransactionalQueryEngine implements QueryEngine {
 
     @Override
     public EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
-            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate,
+            @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.create(application, data, permitCreatePredicate)
+                delegate.create(application, data, permitCreatePredicate, createEventConsumer)
         );
     }
 
     @Override
     public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull com.contentgrid.appserver.query.engine.api.UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.update(application, data, permitUpdatePredicate)
+                delegate.update(application, data, permitUpdatePredicate, updateEventConsumer)
         );
     }
 
     @Override
     public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull ThunkExpression<Boolean> permitDeletePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate,
+            @NonNull DeleteEventConsumer deleteEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.delete(application, entityRequest, permitDeletePredicate)
+                delegate.delete(application, entityRequest, permitDeletePredicate, deleteEventConsumer)
         );
     }
 

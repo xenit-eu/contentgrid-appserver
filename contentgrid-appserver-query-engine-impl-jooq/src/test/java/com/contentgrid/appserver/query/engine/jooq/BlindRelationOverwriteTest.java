@@ -19,9 +19,11 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.query.engine.api.EventConsumer;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
@@ -61,7 +63,14 @@ class BlindRelationOverwriteTest {
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
 
     @MockitoBean
-    private EventConsumer eventConsumer;
+    private CreateEventConsumer createEventConsumer;
+
+    @MockitoBean
+    private UpdateEventConsumer updateEventConsumer;
+
+    @MockitoBean
+    private DeleteEventConsumer deleteEventConsumer;
+
     @Autowired
     private QueryEngine queryEngine;
 
@@ -162,7 +171,8 @@ class BlindRelationOverwriteTest {
                 EntityCreateData.builder()
                         .entityName(entityName)
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         ).getIdentity();
     }
 
@@ -342,9 +352,9 @@ class BlindRelationOverwriteTest {
 
         @Bean
         public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager, EventConsumer eventConsumer) {
+                PlatformTransactionManager transactionManager) {
             return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)), eventConsumer),
+                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
                     transactionManager
             );
         }
