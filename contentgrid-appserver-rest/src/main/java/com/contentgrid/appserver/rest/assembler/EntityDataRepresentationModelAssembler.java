@@ -18,6 +18,8 @@ import com.contentgrid.appserver.rest.paging.ItemCountPageMetadata;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +27,11 @@ import lombok.With;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.PagedModel.PageMetadata;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
+import org.springframework.hateoas.server.core.EmbeddedWrapper;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -76,7 +80,13 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         var pageMetadata = getPageMetadata(slice);
 
         // Add pageMetadata to slicedModel by wrapping it in a PagedModel
-        return PagedModel.of(slicedModel.getContent(), pageMetadata, slicedModel.getLinks());
+        return PagedModel.of(wrap(slicedModel.getContent()), pageMetadata, slicedModel.getLinks());
+    }
+
+    private Collection<EntityDataRepresentationModel> wrap(Collection<EntityDataRepresentationModel> content) {
+        // Yes, this is casting to a type that it really isn't, but that's the only way to make spring hateoas
+        // properly make this object always present and have an 'item' linkrel
+        return (Collection)List.of(new EntityDataCollectionRepresentationModelEmbeddedWrapper(content));
     }
 
     @Override
@@ -85,7 +95,8 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         if (entities instanceof ResultSlice slice) {
             return toSlicedModel(slice, context);
         }
-        var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context);
+        var result = RepresentationModelContextAssembler.super.toCollectionModel(entities, context)
+                .withFallbackType(EntityDataRepresentationModel.class);
         result.add(getCollectionSelfLink(context))
                 .add(getEntityProfileLink(context));
         return result;
@@ -150,6 +161,37 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
     ) {
         HalFormsTemplateGenerator templateGenerator() {
             return new HalFormsTemplateGenerator(application, userLocales, linkFactoryProvider);
+        }
+    }
+
+    @RequiredArgsConstructor
+    private static class EntityDataCollectionRepresentationModelEmbeddedWrapper implements EmbeddedWrapper {
+
+        private final Collection<EntityDataRepresentationModel> contents;
+
+        @Override
+        public Optional<LinkRelation> getRel() {
+            return Optional.of(IanaLinkRelations.ITEM);
+        }
+
+        @Override
+        public boolean hasRel(LinkRelation rel) {
+            return IanaLinkRelations.ITEM.isSameAs(rel);
+        }
+
+        @Override
+        public boolean isCollectionValue() {
+            return true;
+        }
+
+        @Override
+        public Object getValue() {
+            return contents;
+        }
+
+        @Override
+        public Class<?> getRelTargetType() {
+            return EntityDataRepresentationModel.class;
         }
     }
 }

@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -684,6 +685,15 @@ class EntityRestControllerTest {
                             jsonPath("$._embedded.item[?(@.name=='Second Product')]._links.self.href", notNullValue()))
                     .andExpect(jsonPath("$._links.curies").isArray())
                     .andExpect(jsonPath("$.page").exists());
+        }
+
+        @Test
+        void testListEntityInstances_emptyResults() throws Exception {
+            mockMvc.perform(get("/products").accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaTypes.HAL_JSON))
+                    .andExpect(jsonPath("$._embedded.item").isArray())
+                    .andExpect(jsonPath("$._embedded.item[0]").doesNotExist());
         }
 
         @Test
