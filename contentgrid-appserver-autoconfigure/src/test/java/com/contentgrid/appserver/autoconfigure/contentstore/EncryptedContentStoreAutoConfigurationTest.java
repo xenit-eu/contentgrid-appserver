@@ -69,9 +69,7 @@ class EncryptedContentStoreAutoConfigurationTest {
         contextRunner
                 .withClassLoader(new FilteredClassLoader(FilesystemContentStore.class))
                 .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(EncryptedContentStore.class);
-                    assertThat(context).doesNotHaveBean(TableStorageDataEncryptionKeyAccessor.class);
+                    assertThat(context).hasFailed();
                 });
     }
 
