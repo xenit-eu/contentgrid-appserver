@@ -37,10 +37,11 @@ public class ContentGridRestFormatterConfiguration {
                 .build();
 
         @Override
-        public JsonNode format(Application application, EntityName entity, EntityInstance entityInstance) {
+        public JsonNode format(Application application, EntityInstance entityInstance) {
             var locales = new DummyLocales();
             var linkFactoryProvider = new LinkFactoryProvider(application, locales, linkBuilderFactory);
-            var model = assembler.withContext(application, entity, locales, linkFactoryProvider).toModel(entityInstance);
+            var name = entityInstance.getIdentity().getEntityName();
+            var model = assembler.withContext(application, name, locales, linkFactoryProvider).toModel(entityInstance);
             return mapper.valueToTree(model);
         }
 
@@ -55,7 +56,7 @@ public class ContentGridRestFormatterConfiguration {
 
         @Override
         public Stream<Locale> preferredLocales() {
-            return Stream.empty();
+            return Stream.of(Locale.ENGLISH);
         }
     }
 }

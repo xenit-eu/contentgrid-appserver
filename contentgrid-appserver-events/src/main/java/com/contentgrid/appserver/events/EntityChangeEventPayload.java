@@ -9,6 +9,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EntityChangeEventPayload {
 
+    private static final String CREATE = "create";
+    private static final String UPDATE = "update";
+    private static final String DELETE = "delete";
+
     @Getter
     @NonNull
     private final String trigger;
@@ -16,32 +20,21 @@ public class EntityChangeEventPayload {
     @Getter
     private final JsonNode old;
 
-    @JsonProperty("new")
     private final JsonNode _new;
 
     public JsonNode getNew() {
         return _new;
     }
 
-    @RequiredArgsConstructor
-    public enum ChangeKind {
-        CREATE("create"),
-        UPDATE("update"),
-        DELETE("delete");
-
-        @Getter
-        private final String value;
-    }
-
     public static EntityChangeEventPayload forCreate(@NonNull JsonNode newData) {
-        return new EntityChangeEventPayload(ChangeKind.CREATE.getValue(), null, newData);
+        return new EntityChangeEventPayload(CREATE, null, newData);
     }
 
     public static EntityChangeEventPayload forUpdate(@NonNull JsonNode oldData, @NonNull JsonNode newData) {
-        return new EntityChangeEventPayload(ChangeKind.UPDATE.getValue(), oldData, newData);
+        return new EntityChangeEventPayload(UPDATE, oldData, newData);
     }
 
     public static EntityChangeEventPayload forDelete(@NonNull JsonNode oldData) {
-        return new EntityChangeEventPayload(ChangeKind.DELETE.getValue(), oldData, null);
+        return new EntityChangeEventPayload(DELETE, oldData, null);
     }
 }

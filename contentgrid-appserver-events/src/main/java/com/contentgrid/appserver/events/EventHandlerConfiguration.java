@@ -20,7 +20,6 @@ public class EventHandlerConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean({RabbitTemplate.class, RabbitProperties.class})
     @ConditionalOnProperty(value = {"spring.rabbitmq.host"})
     RabbitMqEventHandlers rabbitEventHandlers(RabbitTemplate rabbitTemplate,
             RabbitProperties rabbitProperties,

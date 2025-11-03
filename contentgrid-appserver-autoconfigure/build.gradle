@@ -49,6 +49,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-contentstore-impl-fs')
     testImplementation project(':contentgrid-appserver-contentstore-impl-s3')
     testImplementation project(':contentgrid-appserver-domain')
+    testImplementation project(':contentgrid-appserver-events')
     testImplementation project(':contentgrid-appserver-json-schema')
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')

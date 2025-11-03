@@ -20,7 +20,7 @@ public class DomainEventDispatcher {
         log.debug("=== CREATE === [{}]: {}", entity, instance);
 
         if (formatter != null) {
-            var jsonNode = formatter.format(application, entity, instance);
+            var jsonNode = formatter.format(application, instance);
             if (rabbitMqEventDispatcher != null) {
                 rabbitMqEventDispatcher.dispatchCreate(entity.getValue(), jsonNode);
             }
@@ -33,8 +33,8 @@ public class DomainEventDispatcher {
         log.debug("=== UPDATE === [{}] Was:\n{}\nBecomes:\n{}", entity, oldInstance, newInstance);
 
         if (formatter != null) {
-            var oldJson = formatter.format(application, entity, oldInstance);
-            var newJson = formatter.format(application, entity, newInstance);
+            var oldJson = formatter.format(application, oldInstance);
+            var newJson = formatter.format(application, newInstance);
 
             if (rabbitMqEventDispatcher != null) {
                 rabbitMqEventDispatcher.dispatchUpdate(entity.getValue(), oldJson, newJson);
@@ -47,7 +47,7 @@ public class DomainEventDispatcher {
         log.debug("=== DELETE === [{}]: {}", entity, instance);
 
         if (formatter != null) {
-            var jsonNode = formatter.format(application, entity, instance);
+            var jsonNode = formatter.format(application, instance);
 
             if (rabbitMqEventDispatcher != null) {
                 rabbitMqEventDispatcher.dispatchDelete(entity.getValue(), jsonNode);

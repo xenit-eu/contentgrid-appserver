@@ -4,6 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 
 public interface DeleteEventConsumer {
-    void dispatchDelete(Application application, EntityData data);
+    void onEntityDelete(Application application, EntityData data);
 }
 

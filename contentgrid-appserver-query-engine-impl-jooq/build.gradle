@@ -7,7 +7,6 @@ plugins {
 dependencies {
     implementation project(':contentgrid-appserver-application-model')
     implementation project(':contentgrid-appserver-query-engine-api')
-    implementation project(':contentgrid-appserver-events')
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.testcontainers:postgresql'
     api 'org.springframework.boot:spring-boot-starter-jooq'

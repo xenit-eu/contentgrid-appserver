@@ -161,7 +161,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                         .configure(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES, false)
                         .build();
                 @Override
-                public JsonNode format(Application application, EntityName entityName, EntityInstance entityInstance) {
+                public JsonNode format(Application application, EntityInstance entityInstance) {
                     return mapper.valueToTree(entityInstance);
                 }
             };

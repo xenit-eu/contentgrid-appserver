@@ -288,7 +288,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         assertPermission(application, insertedData.getIdentity().toRequest(), permitCreatePredicate);
 
-        createEventConsumer.dispatchCreate(application, insertedData);
+        createEventConsumer.onEntityCreate(application, insertedData);
 
         return insertedData;
     }
@@ -386,7 +386,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
             assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
-            updateEventConsumer.dispatchUpdate(application, oldValue, newValue);
+            updateEventConsumer.onEntityUpdate(application, oldValue, newValue);
 
             return new UpdateResult(
                     oldValue,
@@ -437,7 +437,7 @@ public class JOOQQueryEngine implements QueryEngine {
                 }
             }
 
-            deleteEventConsumer.dispatchDelete(application, data);
+            deleteEventConsumer.onEntityDelete(application, data);
 
             return dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))

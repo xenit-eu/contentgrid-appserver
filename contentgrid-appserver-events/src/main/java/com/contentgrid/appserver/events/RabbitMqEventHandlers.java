@@ -42,10 +42,6 @@ public class RabbitMqEventHandlers implements FormattedEventDispatcher {
                 .build();
         var exchange = rabbitProperties.getTemplate() != null ? rabbitProperties.getTemplate().getExchange() : null;
         var routingKey = contentGridProps.getEvents().getRabbitmq().getRoutingKey();
-        if (exchange == null || exchange.isBlank()) {
-            rabbitTemplate.send(routingKey, message); // default exchange from template
-        } else {
-            rabbitTemplate.send(exchange, routingKey, message);
-        }
+        rabbitTemplate.send(exchange, routingKey, message);
     }
 }

@@ -4,6 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 
 public interface UpdateEventConsumer {
-    void dispatchUpdate(Application application, EntityData oldData, EntityData newData);
+    void onEntityUpdate(Application application, EntityData oldData, EntityData newData);
 }
 

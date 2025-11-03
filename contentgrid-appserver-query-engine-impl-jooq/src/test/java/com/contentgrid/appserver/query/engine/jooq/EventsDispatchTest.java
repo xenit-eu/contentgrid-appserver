@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -95,15 +96,13 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS,
                 createEventConsumer
         );
-        Mockito.verify(createEventConsumer).dispatchCreate(
+        Mockito.verify(createEventConsumer).onEntityCreate(
                 eq(APPLICATION),
-                argThat(entityData -> {
+                assertArg(entityData -> {
                     var attribute = entityData.getAttributeByName(ATTRIBUTE_A.getName());
-                    if (attribute.isPresent() && attribute.get() instanceof SimpleAttributeData<?> attr) {
-                        assertThat(attr.getValue()).isEqualTo(123L);
-                        return true;
-                    }
-                    return false;
+                    assertThat(attribute).get().isInstanceOfSatisfying(SimpleAttributeData.class, attr ->
+                            assertThat(attr.getValue()).isEqualTo(123L)
+                    );
                 })
         );
 
@@ -142,7 +141,7 @@ public class EventsDispatchTest {
                 updateEventConsumer
         );
 
-        Mockito.verify(updateEventConsumer).dispatchUpdate(
+        Mockito.verify(updateEventConsumer).onEntityUpdate(
                 eq(APPLICATION),
                 argThat(oldData -> {
                     var attribute = oldData.getAttributeByName(ATTRIBUTE_A.getName());
@@ -190,7 +189,7 @@ public class EventsDispatchTest {
                 deleteEventConsumer
         );
 
-        Mockito.verify(deleteEventConsumer).dispatchDelete(
+        Mockito.verify(deleteEventConsumer).onEntityDelete(
                 eq(APPLICATION),
                 argThat(oldData -> {
                     var attribute = oldData.getAttributeByName(ATTRIBUTE_A.getName());
@@ -210,7 +209,7 @@ public class EventsDispatchTest {
     @Test
     void verifyCreate_unhappy() {
         Mockito.doThrow(new RuntimeException("event failed")).when(createEventConsumer)
-                .dispatchCreate(any(), any());
+                .onEntityCreate(any(), any());
 
         assertThatThrownBy(() -> queryEngine.create(
                 APPLICATION,
@@ -246,7 +245,7 @@ public class EventsDispatchTest {
         );
 
         Mockito.doThrow(new RuntimeException("event failed")).when(updateEventConsumer)
-                .dispatchUpdate(any(), any(), any());
+                .onEntityUpdate(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.update(
                 APPLICATION,
@@ -284,7 +283,7 @@ public class EventsDispatchTest {
         );
 
         Mockito.doThrow(new RuntimeException("event failed")).when(deleteEventConsumer)
-                .dispatchDelete(any(), any());
+                .onEntityDelete(any(), any());
 
         assertThatThrownBy(() -> queryEngine.delete(
                 APPLICATION,
