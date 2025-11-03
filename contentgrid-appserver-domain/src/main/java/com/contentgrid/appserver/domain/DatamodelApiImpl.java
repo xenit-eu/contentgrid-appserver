@@ -46,7 +46,9 @@ import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -381,34 +383,56 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate());
+        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
+
+        LinkEventConsumer onLink = (Application app, EntityData oldData, EntityData newData) ->
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+
+        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
     }
 
     @Override
     public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate());
+        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
+
+        UnlinkEventConsumer onUnlink = (Application app, EntityData oldData, EntityData newData) ->
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+
+        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate(), onUnlink);
     }
 
     @Override
     public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
+
+        LinkEventConsumer onLink = (Application app, EntityData oldData, EntityData newData) ->
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+
         queryEngine.addLinks(
                 application,
                 relation,
                 targetIds,
-                authorizationContext.predicate()
+                authorizationContext.predicate(),
+                onLink
         );
     }
 
     @Override
     public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
+
+        UnlinkEventConsumer onUnlink = (Application app, EntityData oldData, EntityData newData) ->
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+
         queryEngine.removeLinks(
                 application,
                 relation,
                 targetIds,
-                authorizationContext.predicate()
+                authorizationContext.predicate(),
+                onUnlink
         );
     }
 

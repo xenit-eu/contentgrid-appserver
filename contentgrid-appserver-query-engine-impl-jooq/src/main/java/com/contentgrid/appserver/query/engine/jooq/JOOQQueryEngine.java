@@ -19,6 +19,8 @@ import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
@@ -275,13 +277,15 @@ public class JOOQQueryEngine implements QueryEngine {
                         application,
                         relationRequest,
                         xToOneRelationData.getRef(),
-                        Scalar.of(true)
+                        Scalar.of(true),
+                        (app, oldData, newData) -> {} // no-op: create event already dispatched
                 );
                 case XToManyRelationData xToManyRelationData -> addLinks(
                         application,
                         relationRequest,
                         xToManyRelationData.getRefs(),
-                        Scalar.of(true)
+                        Scalar.of(true),
+                        (app, oldData, newData) -> {} // no-op: create event already dispatched
                 );
             }
         }
@@ -508,7 +512,10 @@ public class JOOQQueryEngine implements QueryEngine {
 
     @Override
     public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException {
+
+        var oldEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
 
         // implicit permission check + version check
         var expectedId = findTarget(application, relationRequest, permitUpdatePredicate)
@@ -529,13 +536,23 @@ public class JOOQQueryEngine implements QueryEngine {
             throw ex;
         }
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
+
+        var newEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
+        linkEventConsumer.onLink(application, oldEntityData, newEntityData);
     }
 
     @Override
     public void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull UnlinkEventConsumer unlinkEventConsumer) throws QueryEngineException {
+
+        var oldEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
+
         if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
             // implicit permission check + version check
             var expectedId = findTarget(application, relationRequest, permitUpdatePredicate)
@@ -562,28 +579,51 @@ public class JOOQQueryEngine implements QueryEngine {
                 .delete(dslContext, application, relation, relationRequest.getEntityId());
 
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
+
+        var newEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
+        unlinkEventConsumer.onUnlink(application, oldEntityData, newEntityData);
     }
 
     @Override
     public void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException {
+
+        var oldEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.add(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
+
+        var newEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
+        linkEventConsumer.onLink(application, oldEntityData, newEntityData);
     }
 
     @Override
     public void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull UnlinkEventConsumer unlinkEventConsumer) throws QueryEngineException {
+
+        var oldEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
         strategy.remove(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
         assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
+
+        var newEntityData = findById(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate)
+                .orElseThrow(() -> new EntityIdNotFoundException(relationRequest.getEntityName(), relationRequest.getEntityId()));
+
+        unlinkEventConsumer.onUnlink(application, oldEntityData, newEntityData);
     }
 
     @Override

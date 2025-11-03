@@ -21,6 +21,7 @@ import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
@@ -70,6 +71,9 @@ class BlindRelationOverwriteTest {
 
     @MockitoBean
     private DeleteEventConsumer deleteEventConsumer;
+
+    @MockitoBean
+    private LinkEventConsumer linkEventConsumer;
 
     @Autowired
     private QueryEngine queryEngine;
@@ -184,10 +188,11 @@ class BlindRelationOverwriteTest {
                     APPLICATION,
                     relationRequest,
                     Set.of(target.getEntityId()),
-                    PERMIT_ALWAYS
+                    PERMIT_ALWAYS,
+                    linkEventConsumer
             );
         } else {
-            queryEngine.setLink(APPLICATION, relationRequest, target.getEntityId(), PERMIT_ALWAYS);
+            queryEngine.setLink(APPLICATION, relationRequest, target.getEntityId(), PERMIT_ALWAYS, linkEventConsumer);
         }
     }
 
@@ -303,7 +308,8 @@ class BlindRelationOverwriteTest {
                 APPLICATION,
                 originalSourceRelationRequest,
                 targetIds,
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                linkEventConsumer
         );
 
         var newSource = createEntity(relation.getSourceEndPoint().getEntity());
@@ -317,7 +323,8 @@ class BlindRelationOverwriteTest {
                     APPLICATION,
                     newSourceRelationRequest,
                     Stream.concat(Stream.of(succeedingTarget.getEntityId()), targetIds.stream()).collect(Collectors.toSet()),
-                    PERMIT_ALWAYS
+                    PERMIT_ALWAYS,
+                    linkEventConsumer
             );
         }).isInstanceOfSatisfying(BlindRelationOverwriteException.class, ex -> {
             var allExceptions = Stream.concat(Stream.of(ex), Arrays.stream(ex.getSuppressed()));

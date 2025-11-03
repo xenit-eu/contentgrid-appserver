@@ -54,8 +54,10 @@ import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -438,6 +440,12 @@ class JOOQQueryEngineTest {
 
     @MockitoBean
     private DeleteEventConsumer deleteEventConsumer;
+
+    @MockitoBean
+    private LinkEventConsumer linkEventConsumer;
+
+    @MockitoBean
+    private UnlinkEventConsumer unlinkEventConsumer;
 
     @Autowired
     private DSLContext dslContext;
@@ -1891,7 +1899,7 @@ class JOOQQueryEngineTest {
                 id,
                 relation.getSourceEndPoint().getName()
         );
-        queryEngine.setLink(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION);
+        queryEngine.setLink(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION, linkEventConsumer);
 
         assertTrue(queryEngine.isLinked(APPLICATION, relationRequest, targetId, TRUE_EXPRESSION));
     }
@@ -1918,7 +1926,7 @@ class JOOQQueryEngineTest {
                         relation.getSourceEndPoint().getName()
                 ),
                 targetId,
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, linkEventConsumer
         ));
         assertNothingChanged();
     }
@@ -2002,7 +2010,7 @@ class JOOQQueryEngineTest {
                     APPLICATION,
                     relationRequest,
                     newEntity.getId(),
-                    permissionCheck
+                    permissionCheck, linkEventConsumer
             );
             assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
                     .map(EntityIdAndVersion::entityId)
@@ -2013,7 +2021,7 @@ class JOOQQueryEngineTest {
                         APPLICATION,
                         relationRequest,
                         newEntity.getId(),
-                        permissionCheck
+                        permissionCheck, linkEventConsumer
                 );
             });
             assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
@@ -2044,7 +2052,7 @@ class JOOQQueryEngineTest {
         queryEngine.unsetLink(
                 APPLICATION,
                 relationRequest,
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, unlinkEventConsumer
         );
 
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
@@ -2104,7 +2112,7 @@ class JOOQQueryEngineTest {
                         id,
                         relation.getSourceEndPoint().getName()
                 ),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, unlinkEventConsumer
         ));
         assertNothingChanged();
     }
@@ -2166,7 +2174,7 @@ class JOOQQueryEngineTest {
             queryEngine.unsetLink(
                     APPLICATION,
                     relationRequest,
-                    permissionCheck
+                    permissionCheck, unlinkEventConsumer
             );
             assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
                     .isEmpty();
@@ -2175,7 +2183,7 @@ class JOOQQueryEngineTest {
                 queryEngine.unsetLink(
                         APPLICATION,
                         relationRequest,
-                        permissionCheck
+                        permissionCheck, unlinkEventConsumer
                 );
             });
             assertThat(queryEngine.findTarget(APPLICATION, relationRequest, TRUE_EXPRESSION))
@@ -2207,7 +2215,7 @@ class JOOQQueryEngineTest {
                 APPLICATION,
                 relationRequest,
                 targetIds,
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, linkEventConsumer
         );
         for (var ref : targetIds) {
             assertTrue(queryEngine.isLinked(APPLICATION, relationRequest, ref, TRUE_EXPRESSION));
@@ -2236,7 +2244,7 @@ class JOOQQueryEngineTest {
                         relation.getSourceEndPoint().getName()
                 ),
                 targetIds,
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, linkEventConsumer
         ));
         assertNothingChanged();
     }
@@ -2321,7 +2329,7 @@ class JOOQQueryEngineTest {
                             APPLICATION,
                             subjectRelationRequest,
                             Set.of(newEntity.getId()),
-                            permissionCheck
+                            permissionCheck, linkEventConsumer
                     );
                 }
         );
@@ -2360,7 +2368,7 @@ class JOOQQueryEngineTest {
                         relation.getSourceEndPoint().getName()
                 ),
                 targetIds,
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, unlinkEventConsumer
         ));
         assertNothingChanged();
     }
@@ -2376,7 +2384,7 @@ class JOOQQueryEngineTest {
                 APPLICATION,
                 relationRequest,
                 Set.of(PRODUCT1_ID),
-                TRUE_EXPRESSION
+                TRUE_EXPRESSION, unlinkEventConsumer
         );
         assertFalse(queryEngine.isLinked(APPLICATION, relationRequest, PRODUCT1_ID, TRUE_EXPRESSION));
     }
@@ -2423,7 +2431,7 @@ class JOOQQueryEngineTest {
                     APPLICATION,
                     relationRequest,
                     Set.of(PRODUCT1_ID),
-                    permissionCheck
+                    permissionCheck, unlinkEventConsumer
             );
         });
 

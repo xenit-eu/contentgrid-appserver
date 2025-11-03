@@ -12,22 +12,31 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
-import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import java.util.Set;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -70,11 +79,18 @@ public class EventsDispatchTest {
     @MockitoBean
     DeleteEventConsumer deleteEventConsumer;
 
+    @MockitoBean
+    LinkEventConsumer linkEventConsumer;
+
+    @MockitoBean
+    UnlinkEventConsumer unlinkEventConsumer;
+
 
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
-        Mockito.reset(createEventConsumer, updateEventConsumer, deleteEventConsumer);
+        Mockito.reset(createEventConsumer, updateEventConsumer, deleteEventConsumer,
+                linkEventConsumer, unlinkEventConsumer);
     }
 
     @AfterEach
@@ -297,6 +313,344 @@ public class EventsDispatchTest {
         assertThat(stillThere).isPresent();
     }
 
+    @Test
+    void verifySetLink_happy() {
+        var createdA = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdB = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_B.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_C.getName())
+                                .value("test")
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
+        queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer);
+
+        Mockito.verify(linkEventConsumer).onLink(
+                eq(APPLICATION),
+                assertArg(oldData -> assertThat(oldData.getId()).isEqualTo(createdA.getId())),
+                assertArg(newData -> assertThat(newData.getId()).isEqualTo(createdA.getId()))
+        );
+
+        // Transaction completed → link exists in db
+        var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
+        assertThat(target).isPresent();
+        assertThat(target.get().entityId()).isEqualTo(createdB.getId());
+    }
+
+    @Test
+    void verifyUnsetLink_happy() {
+        var createdA = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdB = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_B.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_C.getName())
+                                .value("test")
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
+        queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer);
+
+        queryEngine.unsetLink(APPLICATION, relation, PERMIT_ALWAYS, unlinkEventConsumer);
+
+        Mockito.verify(unlinkEventConsumer).onUnlink(
+                eq(APPLICATION),
+                assertArg(oldData -> assertThat(oldData.getId()).isEqualTo(createdA.getId())),
+                assertArg(newData -> assertThat(newData.getId()).isEqualTo(createdA.getId()))
+        );
+
+        // Transaction completed → link removed from db
+        var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
+        assertThat(target).isEmpty();
+    }
+
+    @Test
+    void verifyAddLinks_happy() {
+        var createdA1 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdA2 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
+        queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer);
+
+        Mockito.verify(linkEventConsumer).onLink(
+                eq(APPLICATION),
+                assertArg(oldData -> assertThat(oldData.getId()).isEqualTo(createdA1.getId())),
+                assertArg(newData -> assertThat(newData.getId()).isEqualTo(createdA1.getId()))
+        );
+
+        // Transaction completed → link exists in db
+        var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
+        assertThat(isLinked).isTrue();
+    }
+
+    @Test
+    void verifyRemoveLinks_happy() {
+        var createdA1 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdA2 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
+        queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer);
+
+        queryEngine.removeLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, unlinkEventConsumer);
+
+        Mockito.verify(unlinkEventConsumer).onUnlink(
+                eq(APPLICATION),
+                assertArg(oldData -> assertThat(oldData.getId()).isEqualTo(createdA1.getId())),
+                assertArg(newData -> assertThat(newData.getId()).isEqualTo(createdA1.getId()))
+        );
+
+        // Transaction completed → link removed from db
+        var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
+        assertThat(isLinked).isFalse();
+    }
+
+    @Test
+    void verifySetLink_unhappy() {
+        var createdA = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdB = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_B.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_C.getName())
+                                .value("test")
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        Mockito.doThrow(new RuntimeException("event failed")).when(linkEventConsumer)
+                .onLink(any(), any(), any());
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
+        assertThatThrownBy(() -> queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer))
+                .isInstanceOf(RuntimeException.class);
+
+        // Transaction rolled back → link not set in db
+        var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
+        assertThat(target).isEmpty();
+    }
+
+    @Test
+    void verifyUnsetLink_unhappy() {
+        var createdA = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdB = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_B.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_C.getName())
+                                .value("test")
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
+        queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer);
+
+        Mockito.doThrow(new RuntimeException("event failed")).when(unlinkEventConsumer)
+                .onUnlink(any(), any(), any());
+
+        assertThatThrownBy(() -> queryEngine.unsetLink(APPLICATION, relation, PERMIT_ALWAYS, unlinkEventConsumer))
+                .isInstanceOf(RuntimeException.class);
+
+        // Transaction rolled back → link still set in db
+        var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
+        assertThat(target).isPresent();
+        assertThat(target.get().entityId()).isEqualTo(createdB.getId());
+    }
+
+    @Test
+    void verifyAddLinks_unhappy() {
+        var createdA1 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdA2 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        Mockito.doThrow(new RuntimeException("event failed")).when(linkEventConsumer)
+                .onLink(any(), any(), any());
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
+        assertThatThrownBy(() -> queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer))
+                .isInstanceOf(RuntimeException.class);
+
+        // Transaction rolled back → link not added in db
+        var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
+        assertThat(isLinked).isFalse();
+    }
+
+    @Test
+    void verifyRemoveLinks_unhappy() {
+        var createdA1 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var createdA2 = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
+        queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer);
+
+        Mockito.doThrow(new RuntimeException("event failed")).when(unlinkEventConsumer)
+                .onUnlink(any(), any(), any());
+
+        assertThatThrownBy(() -> queryEngine.removeLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, unlinkEventConsumer))
+                .isInstanceOf(RuntimeException.class);
+
+        // Transaction rolled back → link still exists in db
+        var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
+        assertThat(isLinked).isTrue();
+    }
+
 
 
 
@@ -310,6 +664,11 @@ public class EventsDispatchTest {
             .column(ColumnName.of("attribute_b"))
             .type(Type.BOOLEAN)
             .build();
+    private static final Attribute ATTRIBUTE_C = SimpleAttribute.builder()
+            .name(AttributeName.of("attribute_c"))
+            .column(ColumnName.of("attribute_c"))
+            .type(Type.TEXT)
+            .build();
     private static final Entity ENTITY_A = Entity.builder()
             .name(EntityName.of("entityA"))
             .pathSegment(PathSegmentName.of("entity-a"))
@@ -318,9 +677,47 @@ public class EventsDispatchTest {
             .attribute(ATTRIBUTE_A)
             .attribute(ATTRIBUTE_B)
             .build();
+    private static final Entity ENTITY_B = Entity.builder()
+            .name(EntityName.of("entityB"))
+            .pathSegment(PathSegmentName.of("entity-b"))
+            .linkName(LinkName.of("entity-b"))
+            .table(TableName.of("entity_b"))
+            .attribute(ATTRIBUTE_C)
+            .build();
+    private static final ManyToOneRelation RELATION_A_TO_B = ManyToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(RelationName.of("entityB"))
+                    .linkName(LinkName.of("entity-b"))
+                    .pathSegment(PathSegmentName.of("b"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_B.getName())
+                    .build())
+            .targetReference(ColumnName.of("entity_b_id"))
+            .build();
+    private static final ManyToManyRelation RELATION_A_TO_A = ManyToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(RelationName.of("related"))
+                    .linkName(LinkName.of("related"))
+                    .pathSegment(PathSegmentName.of("related"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(null)
+                    .linkName(null)
+                    .build())
+            .joinTable(TableName.of("entity_a_related"))
+            .sourceReference(ColumnName.of("source_id"))
+            .targetReference(ColumnName.of("target_id"))
+            .build();
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("test"))
             .entity(ENTITY_A)
+            .entity(ENTITY_B)
+            .relation(RELATION_A_TO_B)
+            .relation(RELATION_A_TO_A)
             .build();
 
     @SpringBootApplication
