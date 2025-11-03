@@ -46,7 +46,6 @@ public class S3ContentStoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     @ConditionalOnBean(MinioAsyncClient.class)
     ContentStore s3ContentStore(MinioAsyncClient minioClient, S3Properties properties) {
         return new S3ContentStore(minioClient, properties.bucket());

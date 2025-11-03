@@ -25,16 +25,14 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-@AutoConfiguration(after = {FilesystemContentStoreAutoConfiguration.class, S3ContentStoreAutoConfiguration.class, JooqAutoConfiguration.class})
+@AutoConfiguration
 @ConditionalOnClass(EncryptedContentStore.class)
-@ConditionalOnBean(ContentStore.class)
 @ConditionalOnBooleanProperty("contentgrid.appserver.content.encryption.enabled")
 @EnableConfigurationProperties({EncryptionKeyWrapperProperties.class, EncryptionEngineProperties.class})
 public class EncryptedContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(DSLContext.class)
     DataEncryptionKeyAccessor tableStorageEncryptionKeyAccessor(DSLContext dslContext) {
         return new TableStorageDataEncryptionKeyAccessor(dslContext);
     }

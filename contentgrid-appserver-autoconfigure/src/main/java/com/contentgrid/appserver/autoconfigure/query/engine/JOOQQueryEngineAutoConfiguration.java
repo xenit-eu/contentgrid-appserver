@@ -21,16 +21,16 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@AutoConfiguration(after = {JooqAutoConfiguration.class, ApplicationResolverAutoConfiguration.class})
+@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class})
 @ConditionalOnClass(JOOQQueryEngine.class)
-@ConditionalOnBean({DSLContext.class, PlatformTransactionManager.class})
 public class JOOQQueryEngineAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean
     DSLContextResolver dslContextResolver(DSLContext dslContext) {
         return new AutowiredDSLContextResolver(dslContext);
     }
