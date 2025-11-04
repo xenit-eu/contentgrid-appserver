@@ -8,9 +8,9 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -19,10 +19,8 @@ import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
-import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.BadSqlGrammarException;
 
 final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<OneToManyRelation> {
 
@@ -49,24 +47,16 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
         var sourceTable = JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
         var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
 
-        try {
-            dslContext.alterTable(targetTable)
-                    .add(sourceRef, DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
-                    .execute();
-        } catch (BadSqlGrammarException e) {
-            throw new InvalidSqlException(e.getMessage(), e);
-        }
+        dslContext.alterTable(targetTable)
+                .add(sourceRef, DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
+                .execute();
     }
 
     @Override
     public void destroy(DSLContext dslContext, Application application, OneToManyRelation relation) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
-        try {
-            dslContext.alterTable(table).dropColumnIfExists(sourceRef).execute();
-        } catch (BadSqlGrammarException e) {
-            throw new InvalidSqlException(e.getMessage(), e); // table could not exist
-        }
+        dslContext.alterTable(table).dropColumnIfExists(sourceRef).execute();
     }
 
     private Collection<UUID> getRefs(Set<EntityId> data) {
@@ -110,16 +100,15 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                 throw maybeException.get();
             }
 
-
-
             checkModifiedItems(
                     refs,
                     updatedItems.stream().map(i -> i.get(targetRef)).collect(Collectors.toSet()),
                     targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(), targetId)
             );
 
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
+        } catch (DataAccessException e) {
+            // TODO: handle FK violation when source id does not exist
+            throw e;
         }
     }
 
@@ -140,13 +129,13 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
 
             checkModifiedItems(refs, updated, targetId -> new RelationLinkNotFoundException(relation, id, targetId));
 
-        } catch (IntegrityConstraintViolationException | DataIntegrityViolationException e) {
-            if (relation.getTargetEndPoint().isRequired()) {
+        } catch (DataAccessException e) {
+            if (PostgresqlErrorType.from(e).is(PostgresqlErrorType.NOT_NULL_CONSTRAINT_VIOLATION) && relation.getTargetEndPoint().isRequired()) {
                 throw new ConstraintViolationException(
                         "Cannot remove references from relation '%s' because inverse many-to-one relation is required"
                                 .formatted(relation.getSourceEndPoint().getName()), e);
             } else {
-                throw new ConstraintViolationException(e.getMessage(), e);
+                throw e;
             }
         }
     }
@@ -161,8 +150,9 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                     .set(sourceRef, (UUID) null)
                     .where(sourceRef.eq(id.getValue()))
                     .execute();
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
+        } catch (DataAccessException e) {
+            // TODO: handle non-null constraint violation
+            throw e;
         }
     }
 
@@ -171,12 +161,8 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
 
-        try {
-            dslContext.update(table)
-                    .set(sourceRef, (UUID) null)
-                    .execute();
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // inverse could be required
-        }
+        dslContext.update(table)
+                .set(sourceRef, (UUID) null)
+                .execute();
     }
 }

@@ -26,10 +26,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
+import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class})
+@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class}, before = JooqAutoConfiguration.class)
 @ConditionalOnClass(JOOQQueryEngine.class)
 public class JOOQQueryEngineAutoConfiguration {
 
@@ -48,6 +50,13 @@ public class JOOQQueryEngineAutoConfiguration {
     QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, JOOQCountStrategy countStrategy,
             PlatformTransactionManager transactionManager) {
         return new TransactionalQueryEngine(new JOOQQueryEngine(dslContextResolver, countStrategy), transactionManager);
+    }
+
+    @Bean
+    ExceptionTranslatorExecuteListener jooqNoneExceptionTranslatorExecuteListener() {
+        return new ExceptionTranslatorExecuteListener() {
+            // No implementation, to fall back to jOOQ defaults and exceptions are not wrapped by spring
+        };
     }
 
     @Bean

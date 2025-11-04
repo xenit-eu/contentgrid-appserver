@@ -7,10 +7,9 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
-import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,11 +18,8 @@ import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record1;
-import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.BadSqlGrammarException;
 
 public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> implements JOOQRelationStrategy<R>
         permits JOOQSourceOneToOneRelationStrategy, JOOQManyToOneRelationStrategy, JOOQTargetOneToOneRelationStrategy {
@@ -42,24 +38,16 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var foreignTable = JOOQUtils.resolveTable(foreignEntity);
         var foreignPrimaryKey = JOOQUtils.resolvePrimaryKey(foreignEntity);
 
-        try {
-            dslContext.alterTable(table)
-                    .add(foreignKey, DSL.foreignKey(foreignKey).references(foreignTable, foreignPrimaryKey))
-                    .execute();
-        } catch (BadSqlGrammarException e) {
-            throw new InvalidSqlException(e.getMessage(), e);
-        }
+        dslContext.alterTable(table)
+                .add(foreignKey, DSL.foreignKey(foreignKey).references(foreignTable, foreignPrimaryKey))
+                .execute();
     }
 
     @Override
     public void destroy(DSLContext dslContext, Application application, R relation) {
         var table = getTable(application, relation);
         var foreignKey = getForeignKey(application, relation);
-        try {
-            dslContext.alterTable(table).dropColumnIfExists(foreignKey).execute();
-        } catch (BadSqlGrammarException e) {
-            throw new InvalidSqlException(e.getMessage(), e); // table could not exist
-        }
+        dslContext.alterTable(table).dropColumnIfExists(foreignKey).execute();
     }
 
     @Override
@@ -126,7 +114,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
             if (!Objects.equals(newValue, targetValue)) {
                 throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, newValue);
             }
-        } catch (DuplicateKeyException e) {
+        } catch (DataAccessException e) {
+            if(!PostgresqlErrorType.from(e).is(PostgresqlErrorType.UNIQUE_CONSTRAINT_VIOLATION)) {
+                throw e;
+            }
             dslContext.rollback().toSavepoint(savepointName).execute();
 
             var conflictingRowId = dslContext.select(sourceRef)
@@ -147,8 +138,6 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
             );
             ex.initCause(e);
             throw ex;
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
         }
     }
 
@@ -157,12 +146,8 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var table = getTable(application, relation);
         var foreignKey = getForeignKey(application, relation);
 
-        try {
-            dslContext.update(table)
-                    .set(foreignKey, (UUID) null)
-                    .execute();
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // this endpoint could be required
-        }
+        dslContext.update(table)
+                .set(foreignKey, (UUID) null)
+                .execute();
     }
 }

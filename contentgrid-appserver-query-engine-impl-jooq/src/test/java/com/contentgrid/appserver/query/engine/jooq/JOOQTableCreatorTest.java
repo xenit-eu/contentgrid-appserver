@@ -36,7 +36,6 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
@@ -50,6 +49,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,6 +57,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -520,13 +521,13 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
+        assertThrows(DataAccessException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
         assertTrue(getTables("public").isEmpty());
 
         // Drop tables should fail too
-        assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
+        assertThrows(DataAccessException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
     }
 
@@ -536,6 +537,11 @@ class JOOQTableCreatorTest {
             SpringApplication.run(TestApplication.class, args);
         }
 
+        @Bean
+        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
+            return new ExceptionTranslatorExecuteListener() {
+            };
+        }
         @Bean
         public TableCreator jooqTableCreator(DSLContext dslContext) {
             return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));

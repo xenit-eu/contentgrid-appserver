@@ -73,10 +73,8 @@ import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
 import org.jooq.SortField;
-import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 
 @RequiredArgsConstructor
 public class JOOQQueryEngine implements QueryEngine {
@@ -255,10 +253,12 @@ public class JOOQQueryEngine implements QueryEngine {
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchSingleMap();
             insertedData = EntityDataMapper.from(entity, insertedRecord);
-        } catch (DuplicateKeyException e) {
-            throw new ConstraintViolationException("Provided value for unique field already exists. " + e.getMessage(), e);
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // null for required field or foreign key does not exist
+        } catch (DataAccessException e) {
+            throw switch (PostgresqlErrorType.from(e)) {
+                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData, e);
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData, e);
+                default -> e;
+            };
         }
 
         // add relations owned by other entities
@@ -392,11 +392,25 @@ public class JOOQQueryEngine implements QueryEngine {
                     oldValue,
                     newValue
             );
-        } catch (DuplicateKeyException e) {
-            throw new ConstraintViolationException("Provided value for unique field already exists" + e.getMessage(), e);
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e);
+        } catch (DataAccessException e) {
+            throw switch (PostgresqlErrorType.from(e)) {
+                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, data, e);
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, data, e);
+                default -> e;
+            };
         }
+    }
+
+    private QueryEngineException handleNotNullConstraintViolation(@NonNull Application application,
+            @NonNull EntityData entity, DataAccessException e) {
+        // TODO: implement handling
+        return new ConstraintViolationException(e.getMessage(), e);
+    }
+
+    private QueryEngineException handleUniqueConstraintViolation(@NonNull Application application,
+            @NonNull EntityData entityData, DataAccessException e) {
+        // TODO: implement handling
+        return new ConstraintViolationException(e.getMessage(), e);
     }
 
     private Version previousVersion(@NonNull Version version, long versionIncrement) {
@@ -448,8 +462,11 @@ public class JOOQQueryEngine implements QueryEngine {
 
             return deleted;
 
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e);
+        } catch (DataAccessException e) {
+            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
+                // TODO: handle this
+            }
+            throw e;
         }
     }
 
@@ -569,6 +586,9 @@ public class JOOQQueryEngine implements QueryEngine {
                 ex.initCause(e);
                 throw ex;
             }
+
+        } else {
+            assertPermission(application, EntityRequest.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()), permitUpdatePredicate);
         }
 
         JOOQRelationStrategyFactory.forRelation(relation)

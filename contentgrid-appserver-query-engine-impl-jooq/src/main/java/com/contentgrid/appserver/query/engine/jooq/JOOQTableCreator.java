@@ -7,14 +7,12 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import lombok.RequiredArgsConstructor;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
@@ -43,11 +41,7 @@ public class JOOQTableCreator implements TableCreator {
         for (var attribute : entity.getAttributes()) {
             step = createColumnsForAttribute(step, attribute);
         }
-        try {
-            step.execute();
-        } catch (BadSqlGrammarException e) {
-            throw new InvalidSqlException(e.getMessage(), e);
-        }
+        step.execute();
     }
 
     private CreateTableElementListStep createColumnsForAttribute(CreateTableElementListStep step, Attribute attribute) {
@@ -81,11 +75,7 @@ public class JOOQTableCreator implements TableCreator {
         // Drop entity tables after relations are dropped
         for (var entity : application.getEntities()) {
             var table = JOOQUtils.resolveTable(entity);
-            try {
-                dslContext.dropTable(table).execute();
-            } catch (BadSqlGrammarException e) {
-                throw new InvalidSqlException(e.getMessage(), e);
-            }
+            dslContext.dropTable(table).execute();
         }
     }
 

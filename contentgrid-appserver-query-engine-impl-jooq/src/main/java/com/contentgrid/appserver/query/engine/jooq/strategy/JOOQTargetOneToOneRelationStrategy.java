@@ -7,20 +7,17 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
-import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
-import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.UnspecifiedExpectedId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
-import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.springframework.dao.DataIntegrityViolationException;
 
 final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<TargetOneToOneRelation> {
 
@@ -150,8 +147,9 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                     .execute();
 
 
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
+        } catch (DataAccessException e) {
+            // TODO: handle FK update failure
+            throw e;
         }
     }
 

@@ -9,7 +9,8 @@ dependencies {
     implementation project(':contentgrid-appserver-query-engine-api')
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.testcontainers:postgresql'
-    api 'org.springframework.boot:spring-boot-starter-jooq'
+    implementation 'org.springframework:spring-tx'
+    api 'org.jooq:jooq'
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
 
@@ -17,6 +18,7 @@ dependencies {
     testAnnotationProcessor "org.jooq:jooq-checker:3.20.8"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
     testImplementation 'org.assertj:assertj-core'
 }
 
