@@ -6,13 +6,10 @@ package com.contentgrid.appserver.query.engine.api.exception;
  * An exception of this type being thrown <b>always</b> indicates programmer error,
  * and is never thrown when the problem is caused by user-supplied data.
  */
-public class InvalidDataException extends IllegalArgumentException {
+public class IllegalInputDataException extends IllegalArgumentException {
 
-    public InvalidDataException(String message) {
+    public IllegalInputDataException(String message) {
         super(message);
     }
 
-    public InvalidDataException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

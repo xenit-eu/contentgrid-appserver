@@ -9,7 +9,7 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
+import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import java.math.BigDecimal;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class EntityDataConverter {
             var attribute = entity.getAttributeByName(attributeData.getName())
                     .filter(attr -> !entity.getPrimaryKey().getName().equals(attr.getName())) // filter out primary key
                     .filter(attr -> !attr.hasFlag(ETagFlag.class)) // Skip attribute containing version (it's handled separately)
-                    .orElseThrow(() -> new InvalidDataException("Attribute '%s' not found on entity '%s'"
+                    .orElseThrow(() -> new IllegalInputDataException("Attribute '%s' not found on entity '%s'"
                             .formatted(attributeData.getName(), entity.getName())));
             var converted = convert(attributeData, attribute);
             result.addAll(converted);
@@ -43,7 +43,7 @@ public class EntityDataConverter {
                 if (data instanceof SimpleAttributeData<?> simpleAttributeData) {
                     yield convert(simpleAttributeData, simpleAttribute);
                 } else {
-                    throw new InvalidDataException("Expected attribute '%s' to be of type %s, got %s"
+                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
                             .formatted(data.getName(), SimpleAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
@@ -51,7 +51,7 @@ public class EntityDataConverter {
                 if (data instanceof CompositeAttributeData compositeAttributeData) {
                     yield convert(compositeAttributeData, compositeAttribute);
                 } else {
-                    throw new InvalidDataException("Expected attribute '%s' to be of type %s, got %s"
+                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
                             .formatted(data.getName(), CompositeAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
@@ -68,7 +68,7 @@ public class EntityDataConverter {
         var result = new ArrayList<JOOQPair<Object>>();
         for (var attributeData : data.getAttributes()) {
             var attr = attribute.getAttributeByName(attributeData.getName())
-                    .orElseThrow(() -> new InvalidDataException("Attribute '%s' not found on attribute '%s'"
+                    .orElseThrow(() -> new IllegalInputDataException("Attribute '%s' not found on attribute '%s'"
                             .formatted(attributeData.getName(), attribute.getName())));
             var converted = convert(attributeData, attr);
             result.addAll(converted);
@@ -83,37 +83,37 @@ public class EntityDataConverter {
         switch (type) {
             case TEXT -> {
                 if (!(value instanceof String)) {
-                    throw new InvalidDataException("Expected value to be of type %s, got %s"
+                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
                             .formatted(String.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }
             case LONG -> {
                 var longTypes = Stream.of(int.class, long.class, Integer.class, Long.class);
                 if (longTypes.noneMatch(clazz -> clazz.isInstance(value))) {
-                    throw new InvalidDataException("Expected value to be an integer type, got %s".formatted(value.getClass().getSimpleName()));
+                    throw new IllegalInputDataException("Expected value to be an integer type, got %s".formatted(value.getClass().getSimpleName()));
                 }
             }
             case DOUBLE -> {
                 var doubleTypes = Stream.of(float.class, double.class, Float.class, Double.class, BigDecimal.class);
                 if (doubleTypes.noneMatch(clazz -> clazz.isInstance(value))) {
-                    throw new InvalidDataException("Expected value to be decimal, got %s".formatted(value.getClass().getSimpleName()));
+                    throw new IllegalInputDataException("Expected value to be decimal, got %s".formatted(value.getClass().getSimpleName()));
                 }
             }
             case BOOLEAN -> {
                 var boolTypes = Stream.of(boolean.class, Boolean.class);
                 if (boolTypes.noneMatch(clazz -> clazz.isInstance(value))) {
-                    throw new InvalidDataException("Expected value to be a boolean, got %s".formatted(value.getClass().getSimpleName()));
+                    throw new IllegalInputDataException("Expected value to be a boolean, got %s".formatted(value.getClass().getSimpleName()));
                 }
             }
             case DATETIME -> {
                 if (!(value instanceof Temporal)) {
-                    throw new InvalidDataException("Expected value to be of type %s, got %s"
+                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
                             .formatted(Temporal.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }
             case UUID -> {
                 if (!(value instanceof UUID)) {
-                    throw new InvalidDataException("Expected value to be of type %s, got %s"
+                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
                             .formatted(UUID.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }

@@ -13,7 +13,4 @@ public class InvalidThunkExpressionException extends IllegalArgumentException {
         super(message);
     }
 
-    public InvalidThunkExpressionException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

@@ -3,11 +3,9 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
@@ -37,7 +35,7 @@ import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
+import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -196,7 +194,7 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull ThunkExpression<Boolean> permitCreatePredicate,
             @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getRequiredEntity(application, data.getEntityName());
+        var entity = application.getRequiredEntityByName(data.getEntityName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
@@ -229,11 +227,11 @@ public class JOOQQueryEngine implements QueryEngine {
 
         for (var relationData : data.getRelations()) {
             if (!processedRelations.add(relationData.getName())) {
-                throw new InvalidDataException("Multiple RelationData instances provided for relation '%s'"
+                throw new IllegalInputDataException("Multiple RelationData instances provided for relation '%s'"
                         .formatted(relationData.getName()));
             }
             var relation = application.getRelationForEntity(entity, relationData.getName())
-                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
+                    .orElseThrow(() -> new IllegalInputDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
 
             if(relationData instanceof XToOneRelationData toOneRelationData) {
                 var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
@@ -264,7 +262,7 @@ public class JOOQQueryEngine implements QueryEngine {
         // add relations owned by other entities
         for (var relationData : nonOwningRelations) {
             var relation = application.getRelationForEntity(entity, relationData.getName())
-                    .orElseThrow(() -> new InvalidDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
+                    .orElseThrow(() -> new IllegalInputDataException("Relation '%s' does not exist on entity '%s'".formatted(relationData.getName(), entity.getName())));
             var relationRequest = RelationRequest.forRelation(
                     relation.getSourceEndPoint().getEntity(),
                     id,
@@ -309,17 +307,9 @@ public class JOOQQueryEngine implements QueryEngine {
         getByIdRequired(application, request, predicate);
     }
 
-    private Entity getRequiredEntity(Application application, EntityName entityName) throws InvalidDataException {
-        try {
-            return application.getRequiredEntityByName(entityName);
-        } catch (EntityDefinitionNotFoundException e) {
-            throw new InvalidDataException(e.getMessage(), e);
-        }
-    }
-
-    private EntityId generateId(Entity entity) throws InvalidDataException {
+    private EntityId generateId(Entity entity) throws IllegalInputDataException {
         if (!Type.UUID.equals(entity.getPrimaryKey().getType())) {
-            throw new InvalidDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
+            throw new IllegalInputDataException("Primary key with type %s not supported".formatted(entity.getPrimaryKey().getType()));
         }
         return EntityId.of(uuidGenerator.generate());
     }
@@ -329,7 +319,7 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
             @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
-        var entity = getRequiredEntity(application, data.getName());
+        var entity = application.getRequiredEntityByName(data.getName());
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
@@ -343,7 +333,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         if(!updatedFields.changed()) {
             // Check that at least one field is updated
-            throw new InvalidDataException("Provided data is empty");
+            throw new IllegalInputDataException("Provided data is empty");
         }
 
         var update = dslContext.update(table)
