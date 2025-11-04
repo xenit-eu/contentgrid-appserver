@@ -15,7 +15,6 @@ import org.jooq.Table;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
 
 final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<ManyToManyRelation> {
@@ -81,9 +80,8 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
         }
 
         try {
-            step.execute();
-        } catch (DuplicateKeyException e) {
-            throw new ConstraintViolationException("One of the provided references already linked with provided id", e);
+            step.onDuplicateKeyIgnore()
+                    .execute();
         } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e.getMessage(), e); // provided source id could not exist
         }
