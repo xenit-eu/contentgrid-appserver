@@ -1950,18 +1950,12 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidSetRelationData() {
         return Stream.of(
-                // Non-existing relation
-                Arguments.of(ALICE_ID, INVOICE_CUSTOMER, INVOICE1_ID),
-                // Non-existing source id
-                Arguments.of(ALICE_ID, INVOICE_PREVIOUS, INVOICE1_ID), // alice is not an invoice
-                // Non-existing target in owning *-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, ALICE_ID), // alice is not an invoice
-                // Non-existing target in non-owning *-to-one relation
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID), // alice is not an invoice
-                // Duplicate value for a one-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
-                // For *-to-many relation
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID)
+                Arguments.argumentSet("non-existing relation", ALICE_ID, INVOICE_CUSTOMER, INVOICE1_ID),
+                Arguments.argumentSet("non-existing source", ALICE_ID, INVOICE_PREVIOUS, INVOICE1_ID), // alice is not an invoice
+                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, ALICE_ID), // alice is not an invoice
+                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID), // alice is not an invoice
+                Arguments.argumentSet("duplicate value for one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID)
         );
     }
 
@@ -2079,18 +2073,12 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validUnsetRelationData() {
         return Stream.of(
-                // Non-empty owning one-to-one relation
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS),
-                // Empty owning one-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS),
-                // Non-empty non-owning one-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS.inverse()),
-                // Empty non-owning one-to-one relation
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
-                // Non-empty many-to-many relation
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS),
-                // Empty one-to-many relation
-                Arguments.of(JOHN_ID, INVOICE_CUSTOMER.inverse())
+                Arguments.argumentSet("non-empty owning one-to-one relation", INVOICE2_ID, INVOICE_PREVIOUS),
+                Arguments.argumentSet("empty owning one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS),
+                Arguments.argumentSet("non-empty, non-owning one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS.inverse()),
+                Arguments.argumentSet("empty non-owning one-to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse()),
+                Arguments.argumentSet("non-empty many-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS),
+                Arguments.argumentSet("empty one-to-many relation", JOHN_ID, INVOICE_CUSTOMER.inverse())
         );
     }
 
@@ -2147,16 +2135,11 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidUnsetRelationData() {
         return Stream.of(
-                // Non-existing source id of an owning *-to-one relation
-                Arguments.of(ALICE_ID, INVOICE_PREVIOUS),
-                // Non-existing source id of a non-owning *-to-one relation
-                Arguments.of(ALICE_ID, INVOICE_PREVIOUS.inverse()),
-                // Non-existing source id of a *-to-many relation
-                Arguments.of(ALICE_ID, INVOICE_PRODUCTS),
-                // Required *-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER),
-                // Inverse required one-to-* relation
-                Arguments.of(ALICE_ID, INVOICE_CUSTOMER.inverse())
+                Arguments.argumentSet("non-existing source id of an owning to-one relation", ALICE_ID, INVOICE_PREVIOUS),
+                Arguments.argumentSet("non-existing source id of non-owning to-one relation", ALICE_ID, INVOICE_PREVIOUS.inverse()),
+                Arguments.argumentSet("non-existing source id of a to-many relation", ALICE_ID, INVOICE_PRODUCTS),
+                Arguments.argumentSet("required to-one relation", INVOICE1_ID, INVOICE_CUSTOMER),
+                Arguments.argumentSet("inverse required one-to-* relation", ALICE_ID, INVOICE_CUSTOMER.inverse())
         );
     }
 
@@ -2250,16 +2233,12 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> validAddRelationData() {
         return Stream.of(
-                // One-to-many: new values
-                Arguments.of(BOB_ID, PERSON_ADDRESSES, Set.of(ADDRESS1_ID, ADDRESS2_ID)),
-                // Many-to-many: new values
-                Arguments.of(INVOICE2_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                // One-to-many: already linked values
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
-                // One-to-many: empty list
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of()),
-                // Many-to-many: empty list
-                Arguments.of(INVOICE2_ID, INVOICE_PRODUCTS, Set.of())
+                Arguments.argumentSet("one-to-many: new values", BOB_ID, PERSON_ADDRESSES, Set.of(ADDRESS1_ID, ADDRESS2_ID)),
+                Arguments.argumentSet("many-to-many: new values", INVOICE2_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
+                Arguments.argumentSet("one-to-many: already linked values", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
+                Arguments.argumentSet("many-to-many: already linked values", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT2_ID)),
+                Arguments.argumentSet("one-to-many: empty list", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of()),
+                Arguments.argumentSet("many-to-many: empty list", INVOICE2_ID, INVOICE_PRODUCTS, Set.of())
         );
     }
 
@@ -2284,20 +2263,12 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidAddRelationData() {
         return Stream.of(
-                // One-to-many: non-existing source ref
-                Arguments.of(INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
-                // One-to-many: non-existing target ref
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
-                // One-to-many: value already linked with another customer
-                Arguments.of(BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
-                // Many-to-many: non-existing source ref
-                Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                // Many-to-many: non-existing target ref
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /* not a product */, PRODUCT3_ID)),
-                // Many-to-many: already linked values
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                // *-to-one relation
-                Arguments.of(INVOICE1_ID, INVOICE_PREVIOUS, Set.of(INVOICE2_ID))
+                Arguments.argumentSet("one-to-many: non-existing source ref", INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
+                Arguments.argumentSet("one-to-many: non-existing target ref", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
+                Arguments.argumentSet("one-to-many: value already linked with another source", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
+                Arguments.argumentSet("many-to-many: non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
+                Arguments.argumentSet("many-to-many: non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /* not a product */, PRODUCT3_ID)),
+                Arguments.argumentSet("*-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, Set.of(INVOICE2_ID))
         );
     }
 
@@ -2414,16 +2385,11 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidRemoveRelationData() {
         return Stream.of(
-                // Non-existing source ref
-                Arguments.of(ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                // Non-existing target ref
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /*  not a product */, PRODUCT3_ID)),
-                // Invalid target value
-                Arguments.of(INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID /* not linked with INVOICE1_ID */)),
-                // Inverse of one-to-many required
-                Arguments.of(ALICE_ID, INVOICE_CUSTOMER, Set.of(INVOICE1_ID)),
-                // *-to-one relation
-                Arguments.of(INVOICE2_ID, INVOICE_PREVIOUS, Set.of(INVOICE1_ID))
+                Arguments.argumentSet("non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
+                Arguments.argumentSet("non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /*  not a product */, PRODUCT3_ID)),
+                Arguments.argumentSet("invalid target value", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID /* not linked with INVOICE1_ID */)),
+                Arguments.argumentSet("inverse of one-to-many required", ALICE_ID, INVOICE_CUSTOMER, Set.of(INVOICE1_ID)),
+                Arguments.argumentSet("to-one relation", INVOICE2_ID, INVOICE_PREVIOUS, Set.of(INVOICE1_ID))
         );
     }
 

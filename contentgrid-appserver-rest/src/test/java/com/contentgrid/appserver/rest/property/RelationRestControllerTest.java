@@ -396,6 +396,39 @@ class RelationRestControllerTest {
 
         @ParameterizedTest
         @MethodSource("toManyRelations")
+        void addToManyRelationItem_alreadyExisting(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity1 = createEntity(targetEntity);
+            var targetEntityIdentity2 = createEntity(targetEntity);
+
+            var relationRequest = RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            );
+
+            // Make one item already present in the relation
+            datamodelApi.addRelationItems(APPLICATION, relationRequest, Set.of(targetEntityIdentity1.getEntityId()), AuthorizationContext.allowAll());
+
+            // Then add both items to the relation.
+            // This should not fail because adding an item is an idempotent operation.
+            // If one is already present in the relation, it's not an error to add it again
+            mockMvc.perform(post("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .contentType("text/uri-list")
+                            .content("http://localhost/%s/%s%nhttp://localhost/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
+                                    targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()))
+                    )
+                    .andExpect(status().isNoContent());
+
+            // End result is that both items are present in the relation
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity1.getEntityId(), AuthorizationContext.allowAll())).isTrue();
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity2.getEntityId(), AuthorizationContext.allowAll())).isTrue();
+        }
+
+        @ParameterizedTest
+        @MethodSource("toManyRelations")
         void removeToManyRelationItem(Relation relation) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
