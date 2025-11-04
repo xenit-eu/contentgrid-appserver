@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -23,6 +24,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
@@ -35,14 +37,15 @@ import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
-import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
-import java.util.Set;
+import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,6 +100,8 @@ public class EventsDispatchTest {
     void cleanup() {
         tableCreator.dropTables(APPLICATION);
     }
+
+    private static class SomeEventFailureException extends RuntimeException {}
 
     @Test
     void verifyCreate_happy() {
@@ -223,8 +228,8 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyCreate_unhappy() {
-        Mockito.doThrow(new RuntimeException("event failed")).when(createEventConsumer)
+    void verifyCreate_eventThrows() {
+        Mockito.doThrow(new SomeEventFailureException()).when(createEventConsumer)
                 .onEntityCreate(any(), any());
 
         assertThatThrownBy(() -> queryEngine.create(
@@ -238,7 +243,7 @@ public class EventsDispatchTest {
                         .build(),
                 PERMIT_ALWAYS,
                 createEventConsumer
-        )).isInstanceOf(RuntimeException.class);
+        )).isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → it doesn't exist in db
         var count = queryEngine.count(APPLICATION, ENTITY_A, PERMIT_ALWAYS);
@@ -246,7 +251,48 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyUpdate_unhappy() {
+    void verifyCreate_dbThrows() {
+        queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_B.getName())
+                                .value(true)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        // unique constraint violation on attribute B
+        assertThatThrownBy(() -> queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_B.getName())
+                                .value(true)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        )).isInstanceOf(QueryEngineException.class);
+
+        // Failure to create → no events sent
+        Mockito.verify(createEventConsumer, Mockito.times(1)).onEntityCreate(any(), any());
+    }
+
+    @Test
+    void verifyUpdate_eventThrows() {
         var created = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -260,7 +306,7 @@ public class EventsDispatchTest {
                 createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(updateEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(updateEventConsumer)
                 .onEntityUpdate(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.update(
@@ -275,7 +321,7 @@ public class EventsDispatchTest {
                         .build(),
                 PERMIT_ALWAYS,
                 updateEventConsumer
-        )).isInstanceOf(RuntimeException.class);
+        )).isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → it's not updated in db
         var existing = queryEngine.findById(APPLICATION, created.getIdentity().toRequest(), PERMIT_ALWAYS).orElseThrow();
@@ -284,7 +330,66 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyDelete_unhappy() {
+    void verifyUpdate_dbThrows() {
+        queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_B.getName())
+                                .value(true)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var second = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_B.getName())
+                                .value(false)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        // Update second entity to violate unique constraint
+        assertThatThrownBy(() -> queryEngine.update(
+                APPLICATION,
+                EntityData.builder()
+                        .name(ENTITY_A.getName())
+                        .id(second.getId())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(456)
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_B.getName())
+                                .value(true)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                updateEventConsumer
+        )).isInstanceOf(QueryEngineException.class);
+
+        // Failure to update → no events sent
+        Mockito.verify(updateEventConsumer, Mockito.never()).onEntityUpdate(any(), any(), any());
+    }
+
+    @Test
+    void verifyDelete_eventThrows() {
         var created = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -298,7 +403,7 @@ public class EventsDispatchTest {
                 createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(deleteEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(deleteEventConsumer)
                 .onEntityDelete(any(), any());
 
         assertThatThrownBy(() -> queryEngine.delete(
@@ -306,7 +411,7 @@ public class EventsDispatchTest {
                 EntityRequest.forEntity(created.getName(), created.getId()),
                 PERMIT_ALWAYS,
                 deleteEventConsumer
-        )).isInstanceOf(RuntimeException.class);
+        )).isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → it's not deleted in db
         var stillThere = queryEngine.findById(APPLICATION, created.getIdentity().toRequest(), PERMIT_ALWAYS);
@@ -487,7 +592,7 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifySetLink_unhappy() {
+    void verifySetLink_eventThrows() {
         var createdA = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -514,12 +619,12 @@ public class EventsDispatchTest {
                 createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(linkEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(linkEventConsumer)
                 .onLink(any(), any(), any());
 
         var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
         assertThatThrownBy(() -> queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → link not set in db
         var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
@@ -527,7 +632,30 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyUnsetLink_unhappy() {
+    void verifySetLink_dbThrows() {
+        var created = queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_A.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(ATTRIBUTE_A.getName())
+                                .value(123)
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        var missing = EntityId.of(UUID.randomUUID());
+        var relation = RelationRequest.forRelation(ENTITY_A.getName(), created.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
+        assertThatThrownBy(() -> queryEngine.setLink(APPLICATION, relation, missing, PERMIT_ALWAYS, linkEventConsumer))
+                .isInstanceOf(QueryEngineException.class);
+
+        Mockito.verify(linkEventConsumer, Mockito.never()).onLink(any(), any(), any());
+    }
+
+    @Test
+    void verifyUnsetLink_eventThrows() {
         var createdA = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -557,11 +685,11 @@ public class EventsDispatchTest {
         var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
         queryEngine.setLink(APPLICATION, relation, createdB.getId(), PERMIT_ALWAYS, linkEventConsumer);
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(unlinkEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(unlinkEventConsumer)
                 .onUnlink(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.unsetLink(APPLICATION, relation, PERMIT_ALWAYS, unlinkEventConsumer))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → link still set in db
         var target = queryEngine.findTarget(APPLICATION, relation, PERMIT_ALWAYS);
@@ -570,7 +698,7 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyAddLinks_unhappy() {
+    void verifyAddLinks_eventThrows() {
         var createdA1 = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -597,12 +725,12 @@ public class EventsDispatchTest {
                 createEventConsumer
         );
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(linkEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(linkEventConsumer)
                 .onLink(any(), any(), any());
 
         var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
         assertThatThrownBy(() -> queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → link not added in db
         var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
@@ -610,7 +738,7 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifyRemoveLinks_unhappy() {
+    void verifyRemoveLinks_eventThrows() {
         var createdA1 = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
@@ -640,11 +768,11 @@ public class EventsDispatchTest {
         var relation = RelationRequest.forRelation(ENTITY_A.getName(), createdA1.getId(), RELATION_A_TO_A.getSourceEndPoint().getName());
         queryEngine.addLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, linkEventConsumer);
 
-        Mockito.doThrow(new RuntimeException("event failed")).when(unlinkEventConsumer)
+        Mockito.doThrow(new SomeEventFailureException()).when(unlinkEventConsumer)
                 .onUnlink(any(), any(), any());
 
         assertThatThrownBy(() -> queryEngine.removeLinks(APPLICATION, relation, Set.of(createdA2.getId()), PERMIT_ALWAYS, unlinkEventConsumer))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(SomeEventFailureException.class);
 
         // Transaction rolled back → link still exists in db
         var isLinked = queryEngine.isLinked(APPLICATION, relation, createdA2.getId(), PERMIT_ALWAYS);
@@ -663,6 +791,7 @@ public class EventsDispatchTest {
             .name(AttributeName.of("attribute_b"))
             .column(ColumnName.of("attribute_b"))
             .type(Type.BOOLEAN)
+            .constraint(Constraint.unique())
             .build();
     private static final Attribute ATTRIBUTE_C = SimpleAttribute.builder()
             .name(AttributeName.of("attribute_c"))
