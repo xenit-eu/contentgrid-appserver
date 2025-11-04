@@ -8,13 +8,13 @@ import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentSto
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
-import com.contentgrid.appserver.domain.DomainEventDispatcher;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
@@ -47,6 +47,7 @@ class ContentGridRestAutoConfigurationTest {
                     ContentGridEventsAutoConfiguration.class,
                     ContentGridRestFormatterAutoConfiguration.class,
                     // autoconfigurations for rest
+                    HttpMessageConvertersAutoConfiguration.class,
                     WebMvcAutoConfiguration.class,
                     AbacContextAutoConfiguration.class,
                     ContentGridRestAutoConfiguration.class

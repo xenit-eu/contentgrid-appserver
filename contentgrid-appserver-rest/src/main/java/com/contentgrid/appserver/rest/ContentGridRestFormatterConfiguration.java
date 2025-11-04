@@ -2,29 +2,33 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.events.EntityFormatter;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.MethodLinkBuilderFactory;
+import org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter;
 
 public class ContentGridRestFormatterConfiguration {
+
     @Bean
     public EntityFormatter formatter(
             EntityDataRepresentationModelAssembler assembler,
-            MethodLinkBuilderFactory<?> linkBuilderFactory
+            MethodLinkBuilderFactory<?> linkBuilderFactory,
+            HttpMessageConverters httpMessageConverters
     ) {
-        return new RestEntityFormatter(assembler, linkBuilderFactory);
+        return new RestEntityFormatter(assembler, linkBuilderFactory, httpMessageConverters);
     }
 
 
@@ -32,9 +36,7 @@ public class ContentGridRestFormatterConfiguration {
     private static class RestEntityFormatter implements EntityFormatter {
         private final EntityDataRepresentationModelAssembler assembler;
         private final MethodLinkBuilderFactory<?> linkBuilderFactory;
-        private final ObjectMapper mapper = JsonMapper.builder()
-                .configure(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES, false)
-                .build();
+        private final HttpMessageConverters httpMessageConverters;
 
         @Override
         public JsonNode format(Application application, EntityInstance entityInstance) {
@@ -42,7 +44,24 @@ public class ContentGridRestFormatterConfiguration {
             var linkFactoryProvider = new LinkFactoryProvider(application, locales, linkBuilderFactory);
             var name = entityInstance.getIdentity().getEntityName();
             var model = assembler.withContext(application, name, locales, linkFactoryProvider).toModel(entityInstance);
+
+            // TODO: Should we
+            //  - fall back to a default ObjectMapper if we can't find one?
+            //  - cache this mapper for other models?
+            var mapper = selectObjectMapperFor(model.getClass())
+                    .orElseThrow(() -> new IllegalStateException("No Jackson HttpMessageConverter available"));
+
             return mapper.valueToTree(model);
+        }
+
+        private Optional<ObjectMapper> selectObjectMapperFor(Class<?> type) {
+            return httpMessageConverters.getConverters().stream()
+                    .filter(AbstractJackson2HttpMessageConverter.class::isInstance)
+                    .map(AbstractJackson2HttpMessageConverter.class::cast)
+                    .filter(converter -> converter.canWrite(type, MediaTypes.HAL_JSON))
+                    .map(converter -> converter.getObjectMappersForType(type).get(MediaTypes.HAL_JSON))
+                    .filter(Objects::nonNull)
+                    .findFirst();
         }
 
     }

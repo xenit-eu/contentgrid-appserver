@@ -4,11 +4,8 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -19,9 +16,6 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,112 +170,36 @@ class RabbitMqEventHandlersTest {
                   "old": null,
                   "new": {
                     "id": "<id>",
-                    "links": [
-                      {
-                        "rel": "self",
+                    "name": "Widget Reprogrammer",
+                    "description": "Flashes firmware to widgets",
+                    "price": 299.99,
+                    "release_date": null,
+                    "in_stock": null,
+                    "picture": null,
+                    "_links": {
+                      "self": {
                         "href": "http://localhost/products/<id>"
                       },
-                      {
-                        "rel": "cg:relation",
+                      "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
                         "name": "invoices"
-                      },
-                      {
-                        "rel": "cg:content",
+                      }],
+                      "cg:content": [{
                         "href": "http://localhost/products/<id>/picture",
                         "name": "picture"
-                      }
-                    ],
-                    "_templates": {
-                      "add-invoices": {
-                        "method": "POST",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "contentType": "text/uri-list",
-                        "properties": [
-                          {
-                            "name": "invoices",
-                            "type": "url",
-                            "options": {
-                              "valueField": "/_links/self/href",
-                              "minItems": 0,
-                              "link": {
-                                "rel": "self",
-                                "href": "http://localhost/invoices"
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "clear-invoices": {
-                        "method": "DELETE",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "properties": []
-                      },
-                      "default": {
-                        "method": "PUT",
-                        "contentType": "application/json",
-                        "properties": [
-                          {
-                            "name": "name",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "text"
-                          },
-                          {
-                            "name": "description",
-                            "prompt": "null",
-                            "type": "text"
-                          },
-                          {
-                            "name": "price",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "number"
-                          },
-                          {
-                            "name": "release_date",
-                            "prompt": "null",
-                            "type": "datetime"
-                          },
-                          {
-                            "name": "in_stock",
-                            "prompt": "null",
-                            "type": "checkbox"
-                          },
-                          {
-                            "name": "picture.filename",
-                            "prompt": "null: Filename",
-                            "type": "text"
-                          },
-                          {
-                            "name": "picture.mimetype",
-                            "prompt": "null: Mimetype",
-                            "type": "text"
-                          }
-                        ]
-                      },
-                      "delete": {
-                        "method": "DELETE",
-                        "properties": []
-                      }
-                    },
-                    "name": {
-                      "value": "Widget Reprogrammer"
-                    },
-                    "description": {
-                      "value": "Flashes firmware to widgets"
-                    },
-                    "price": {
-                      "value": 299.99
-                    },
-                    "release_date": {
-                      "value": null
-                    },
-                    "in_stock": {
-                      "value": null
-                    },
-                    "picture": {
-                      "value": null
+                      }],
+                      "curies": [
+                        {
+                          "href": "https://contentgrid.cloud/rels/contentgrid/{rel}",
+                          "name": "cg",
+                          "templated": true
+                        },
+                        {
+                          "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
+                          "name": "blueprint",
+                          "templated": true
+                        }
+                      ]
                     }
                   }
                 }
@@ -292,112 +210,36 @@ class RabbitMqEventHandlersTest {
                   "trigger": "delete",
                   "old": {
                     "id": "<id>",
-                    "links": [
-                      {
-                        "rel": "self",
+                    "name": "Widget Reprogrammer",
+                    "description": "Flashes firmware to widgets",
+                    "price": 299.99,
+                    "release_date": null,
+                    "in_stock": null,
+                    "picture": null,
+                    "_links": {
+                      "self": {
                         "href": "http://localhost/products/<id>"
                       },
-                      {
-                        "rel": "cg:relation",
+                      "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
                         "name": "invoices"
-                      },
-                      {
-                        "rel": "cg:content",
+                      }],
+                      "cg:content": [{
                         "href": "http://localhost/products/<id>/picture",
                         "name": "picture"
-                      }
-                    ],
-                    "_templates": {
-                      "add-invoices": {
-                        "method": "POST",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "contentType": "text/uri-list",
-                        "properties": [
-                          {
-                            "name": "invoices",
-                            "type": "url",
-                            "options": {
-                              "valueField": "/_links/self/href",
-                              "minItems": 0,
-                              "link": {
-                                "rel": "self",
-                                "href": "http://localhost/invoices"
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "clear-invoices": {
-                        "method": "DELETE",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "properties": []
-                      },
-                      "default": {
-                        "method": "PUT",
-                        "contentType": "application/json",
-                        "properties": [
-                          {
-                            "name": "name",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "text"
-                          },
-                          {
-                            "name": "description",
-                            "prompt": "null",
-                            "type": "text"
-                          },
-                          {
-                            "name": "price",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "number"
-                          },
-                          {
-                            "name": "release_date",
-                            "prompt": "null",
-                            "type": "datetime"
-                          },
-                          {
-                            "name": "in_stock",
-                            "prompt": "null",
-                            "type": "checkbox"
-                          },
-                          {
-                            "name": "picture.filename",
-                            "prompt": "null: Filename",
-                            "type": "text"
-                          },
-                          {
-                            "name": "picture.mimetype",
-                            "prompt": "null: Mimetype",
-                            "type": "text"
-                          }
-                        ]
-                      },
-                      "delete": {
-                        "method": "DELETE",
-                        "properties": []
-                      }
-                    },
-                    "name": {
-                      "value": "Widget Reprogrammer"
-                    },
-                    "description": {
-                      "value": "Flashes firmware to widgets"
-                    },
-                    "price": {
-                      "value": 299.99
-                    },
-                    "release_date": {
-                      "value": null
-                    },
-                    "in_stock": {
-                      "value": null
-                    },
-                    "picture": {
-                      "value": null
+                      }],
+                      "curies": [
+                        {
+                          "href": "https://contentgrid.cloud/rels/contentgrid/{rel}",
+                          "name": "cg",
+                          "templated": true
+                        },
+                        {
+                          "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
+                          "name": "blueprint",
+                          "templated": true
+                        }
+                      ]
                     }
                   },
                   "new": null
@@ -409,222 +251,70 @@ class RabbitMqEventHandlersTest {
                   "trigger": "update",
                   "old": {
                     "id": "<id>",
-                    "links": [
-                      {
-                        "rel": "self",
+                    "name": "Widget Reprogrammer",
+                    "description": "Flashes firmware to widgets",
+                    "price": 299.99,
+                    "release_date": null,
+                    "in_stock": null,
+                    "picture": null,
+                    "_links": {
+                      "self": {
                         "href": "http://localhost/products/<id>"
                       },
-                      {
-                        "rel": "cg:relation",
+                      "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
                         "name": "invoices"
-                      },
-                      {
-                        "rel": "cg:content",
+                      }],
+                      "cg:content": [{
                         "href": "http://localhost/products/<id>/picture",
                         "name": "picture"
-                      }
-                    ],
-                    "_templates": {
-                      "add-invoices": {
-                        "method": "POST",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "contentType": "text/uri-list",
-                        "properties": [
-                          {
-                            "name": "invoices",
-                            "type": "url",
-                            "options": {
-                              "valueField": "/_links/self/href",
-                              "minItems": 0,
-                              "link": {
-                                "rel": "self",
-                                "href": "http://localhost/invoices"
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "clear-invoices": {
-                        "method": "DELETE",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "properties": []
-                      },
-                      "default": {
-                        "method": "PUT",
-                        "contentType": "application/json",
-                        "properties": [
-                          {
-                            "name": "name",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "text"
-                          },
-                          {
-                            "name": "description",
-                            "prompt": "null",
-                            "type": "text"
-                          },
-                          {
-                            "name": "price",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "number"
-                          },
-                          {
-                            "name": "release_date",
-                            "prompt": "null",
-                            "type": "datetime"
-                          },
-                          {
-                            "name": "in_stock",
-                            "prompt": "null",
-                            "type": "checkbox"
-                          },
-                          {
-                            "name": "picture.filename",
-                            "prompt": "null: Filename",
-                            "type": "text"
-                          },
-                          {
-                            "name": "picture.mimetype",
-                            "prompt": "null: Mimetype",
-                            "type": "text"
-                          }
-                        ]
-                      },
-                      "delete": {
-                        "method": "DELETE",
-                        "properties": []
-                      }
-                    },
-                    "name": {
-                      "value": "Widget Reprogrammer"
-                    },
-                    "description": {
-                      "value": "Flashes firmware to widgets"
-                    },
-                    "price": {
-                      "value": 299.99
-                    },
-                    "release_date": {
-                      "value": null
-                    },
-                    "in_stock": {
-                      "value": null
-                    },
-                    "picture": {
-                      "value": null
+                      }],
+                      "curies": [
+                        {
+                          "href": "https://contentgrid.cloud/rels/contentgrid/{rel}",
+                          "name": "cg",
+                          "templated": true
+                        },
+                        {
+                          "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
+                          "name": "blueprint",
+                          "templated": true
+                        }
+                      ]
                     }
                   },
                   "new": {
                     "id": "<id>",
-                    "links": [
-                      {
-                        "rel": "self",
+                    "name": "Widget Reprogrammer",
+                    "description": "Flashes firmware to widgets",
+                    "price": 300.00,
+                    "release_date": null,
+                    "in_stock": null,
+                    "picture": null,
+                    "_links": {
+                      "self": {
                         "href": "http://localhost/products/<id>"
                       },
-                      {
-                        "rel": "cg:relation",
+                      "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
                         "name": "invoices"
-                      },
-                      {
-                        "rel": "cg:content",
+                      }],
+                      "cg:content": [{
                         "href": "http://localhost/products/<id>/picture",
                         "name": "picture"
-                      }
-                    ],
-                    "_templates": {
-                      "add-invoices": {
-                        "method": "POST",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "contentType": "text/uri-list",
-                        "properties": [
-                          {
-                            "name": "invoices",
-                            "type": "url",
-                            "options": {
-                              "valueField": "/_links/self/href",
-                              "minItems": 0,
-                              "link": {
-                                "rel": "self",
-                                "href": "http://localhost/invoices"
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "clear-invoices": {
-                        "method": "DELETE",
-                        "target": "http://localhost/products/<id>/invoices",
-                        "properties": []
-                      },
-                      "default": {
-                        "method": "PUT",
-                        "contentType": "application/json",
-                        "properties": [
-                          {
-                            "name": "name",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "text"
-                          },
-                          {
-                            "name": "description",
-                            "prompt": "null",
-                            "type": "text"
-                          },
-                          {
-                            "name": "price",
-                            "prompt": "null",
-                            "required": true,
-                            "type": "number"
-                          },
-                          {
-                            "name": "release_date",
-                            "prompt": "null",
-                            "type": "datetime"
-                          },
-                          {
-                            "name": "in_stock",
-                            "prompt": "null",
-                            "type": "checkbox"
-                          },
-                          {
-                            "name": "picture.filename",
-                            "prompt": "null: Filename",
-                            "type": "text"
-                          },
-                          {
-                            "name": "picture.mimetype",
-                            "prompt": "null: Mimetype",
-                            "type": "text"
-                          }
-                        ]
-                      },
-                      "delete": {
-                        "method": "DELETE",
-                        "properties": []
-                      }
-                    },
-                    "name": {
-                      "value": "Widget Reprogrammer"
-                    },
-                    "description": {
-                      "value": "Flashes firmware to widgets"
-                    },
-                    "price": {
-                      "value": 300.00
-                    },
-                    "release_date": {
-                      "value": null
-                    },
-                    "in_stock": {
-                      "value": null
-                    },
-                    "picture": {
-                      "value": null
+                      }],
+                      "curies": [
+                        {
+                          "href": "https://contentgrid.cloud/rels/contentgrid/{rel}",
+                          "name": "cg",
+                          "templated": true
+                        },
+                        {
+                          "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
+                          "name": "blueprint",
+                          "templated": true
+                        }
+                      ]
                     }
                   }
                 }
