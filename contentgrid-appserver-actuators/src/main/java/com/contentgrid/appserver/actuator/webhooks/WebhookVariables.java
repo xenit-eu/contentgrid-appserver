@@ -17,13 +17,11 @@ public class WebhookVariables implements PlaceholderResolver {
         if (placeholderName.startsWith("vars.")) {
             return userVariables.get(placeholderName.substring("vars.".length()));
         }
-        switch(placeholderName) {
-            case "system.application.id":
-                return systemProperties.getApplicationId();
-            case "system.deployment.id":
-                return systemProperties.getDeploymentId();
-            default:
-                throw new IllegalArgumentException(String.format("Can not find a replacement for placeholder '%s'", placeholderName));
-        }
+        return switch (placeholderName) {
+            case "system.application.id" -> systemProperties.getApplicationId();
+            case "system.deployment.id" -> systemProperties.getDeploymentId();
+            default -> throw new IllegalArgumentException(
+                    String.format("Can not find a replacement for placeholder '%s'", placeholderName));
+        };
     }
 }

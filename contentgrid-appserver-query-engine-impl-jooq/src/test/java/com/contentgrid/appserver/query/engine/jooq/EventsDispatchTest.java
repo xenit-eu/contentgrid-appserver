@@ -232,15 +232,16 @@ public class EventsDispatchTest {
         Mockito.doThrow(new SomeEventFailureException()).when(createEventConsumer)
                 .onEntityCreate(any(), any());
 
+        var createPayload = EntityCreateData.builder()
+                .entityName(ENTITY_A.getName())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_A.getName())
+                        .value(123)
+                        .build())
+                .build();
         assertThatThrownBy(() -> queryEngine.create(
                 APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
+                createPayload,
                 PERMIT_ALWAYS,
                 createEventConsumer
         )).isInstanceOf(SomeEventFailureException.class);
@@ -270,19 +271,20 @@ public class EventsDispatchTest {
         );
 
         // unique constraint violation on attribute B
+        var createPayload = EntityCreateData.builder()
+                .entityName(ENTITY_A.getName())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_A.getName())
+                        .value(456)
+                        .build())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_B.getName())
+                        .value(true)
+                        .build())
+                .build();
         assertThatThrownBy(() -> queryEngine.create(
                 APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(456)
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_B.getName())
-                                .value(true)
-                                .build())
-                        .build(),
+                createPayload,
                 PERMIT_ALWAYS,
                 createEventConsumer
         )).isInstanceOf(QueryEngineException.class);
@@ -309,16 +311,17 @@ public class EventsDispatchTest {
         Mockito.doThrow(new SomeEventFailureException()).when(updateEventConsumer)
                 .onEntityUpdate(any(), any(), any());
 
+        var updatePayload = EntityData.builder()
+                .name(ENTITY_A.getName())
+                .id(created.getId())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_A.getName())
+                        .value(456)
+                        .build())
+                .build();
         assertThatThrownBy(() -> queryEngine.update(
                 APPLICATION,
-                EntityData.builder()
-                        .name(ENTITY_A.getName())
-                        .id(created.getId())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(456)
-                                .build())
-                        .build(),
+                updatePayload,
                 PERMIT_ALWAYS,
                 updateEventConsumer
         )).isInstanceOf(SomeEventFailureException.class);
@@ -366,20 +369,21 @@ public class EventsDispatchTest {
         );
 
         // Update second entity to violate unique constraint
+        var updatePayload = EntityData.builder()
+                .name(ENTITY_A.getName())
+                .id(second.getId())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_A.getName())
+                        .value(456)
+                        .build())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_B.getName())
+                        .value(true)
+                        .build())
+                .build();
         assertThatThrownBy(() -> queryEngine.update(
                 APPLICATION,
-                EntityData.builder()
-                        .name(ENTITY_A.getName())
-                        .id(second.getId())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(456)
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_B.getName())
-                                .value(true)
-                                .build())
-                        .build(),
+                updatePayload,
                 PERMIT_ALWAYS,
                 updateEventConsumer
         )).isInstanceOf(QueryEngineException.class);

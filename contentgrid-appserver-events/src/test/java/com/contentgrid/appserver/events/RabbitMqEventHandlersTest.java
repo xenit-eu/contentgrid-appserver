@@ -96,8 +96,8 @@ class RabbitMqEventHandlersTest {
 
         var message = messageCaptor.getValue();
         var headers = message.getMessageProperties().getHeaders();
-        assertThat(headers.get("trigger")).isEqualTo("create");
-        assertThat(headers.get("entity")).isEqualTo(PRODUCT.getName().getValue());
+        assertThat(headers).containsEntry("trigger", "create");
+        assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
 
         var mapper = new ObjectMapper();
         var expected = mapper.readTree(CREATED.replaceAll("<id>", created.getEntityId().getValue().toString()));
@@ -124,8 +124,8 @@ class RabbitMqEventHandlersTest {
         var messages = messageCaptor.getAllValues();
         assertThat(messages).anySatisfy(message -> {
             var headers = message.getMessageProperties().getHeaders();
-            assertThat(headers.get("trigger")).isEqualTo("delete");
-            assertThat(headers.get("entity")).isEqualTo(PRODUCT.getName().getValue());
+            assertThat(headers).containsEntry("trigger", "delete");
+            assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
 
             var mapper = new ObjectMapper();
             var expected = mapper.readTree(DELETED.replaceAll("<id>", created.getEntityId().getValue().toString()));
@@ -154,8 +154,8 @@ class RabbitMqEventHandlersTest {
         var messages = messageCaptor.getAllValues();
         assertThat(messages).anySatisfy(message -> {
             var headers = message.getMessageProperties().getHeaders();
-            assertThat(headers.get("trigger")).isEqualTo("update");
-            assertThat(headers.get("entity")).isEqualTo(PRODUCT.getName().getValue());
+            assertThat(headers).containsEntry("trigger", "update");
+            assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
 
             var mapper = new ObjectMapper();
             var expected = mapper.readTree(UPDATED.replaceAll("<id>", created.getEntityId().getValue().toString()));
@@ -164,7 +164,7 @@ class RabbitMqEventHandlersTest {
         });
     }
 
-    private final String CREATED = """
+    private static final String CREATED = """
                 {
                   "trigger": "create",
                   "old": null,
@@ -205,7 +205,7 @@ class RabbitMqEventHandlersTest {
                 }
                 """;
 
-    private final String DELETED = """
+    private static final String DELETED = """
                 {
                   "trigger": "delete",
                   "old": {
@@ -246,7 +246,7 @@ class RabbitMqEventHandlersTest {
                 }
                 """;
 
-    private final String UPDATED = """
+    private static final String UPDATED = """
                 {
                   "trigger": "update",
                   "old": {

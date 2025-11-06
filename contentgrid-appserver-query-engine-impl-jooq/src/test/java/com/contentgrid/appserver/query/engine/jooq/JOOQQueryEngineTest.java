@@ -1862,6 +1862,7 @@ class JOOQQueryEngineTest {
                 .build();
 
         var createdEntity = queryEngine.create(APPLICATION, entityData, TRUE_EXPRESSION, createEventConsumer);
+        var createdId = createdEntity.getIdentity().toRequest();
 
         var permissionCheck = Comparison.less(
                 SymbolicReference.parse("entity.amount"),
@@ -1869,11 +1870,11 @@ class JOOQQueryEngineTest {
         );
 
         if(allowed) {
-            queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck, deleteEventConsumer);
-            assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isEmpty();
+            queryEngine.delete(APPLICATION, createdId, permissionCheck, deleteEventConsumer);
+            assertThat(queryEngine.findById(APPLICATION, createdId, TRUE_EXPRESSION)).isEmpty();
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.delete(APPLICATION, createdEntity.getIdentity().toRequest(), permissionCheck, deleteEventConsumer));
-            assertThat(queryEngine.findById(APPLICATION, createdEntity.getIdentity().toRequest(), TRUE_EXPRESSION)).isPresent();
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.delete(APPLICATION, createdId, permissionCheck, deleteEventConsumer));
+            assertThat(queryEngine.findById(APPLICATION, createdId, TRUE_EXPRESSION)).isPresent();
         }
     }
 

@@ -48,8 +48,8 @@ public class ContentgridActuatorConfigurationTest {
     void policyEndpointIsPublic() {
         ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/policy", String.class);
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(resp.getHeaders().getContentType().toString())
-                .isEqualTo("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8");
+        assertThat(resp.getHeaders().getContentType())
+                .hasToString("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8");
         assertThat(resp.getBody()).contains("xfb0"); // templating works
     }
 
@@ -57,8 +57,8 @@ public class ContentgridActuatorConfigurationTest {
     void webhooksEndpointIsPublic() {
         ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/webhooks", String.class);
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(resp.getHeaders().getContentType().toString())
-                .isEqualTo("application/vnd.contentgrid.webhooks.v1+json");
+        assertThat(resp.getHeaders().getContentType())
+                .hasToString("application/vnd.contentgrid.webhooks.v1+json");
         // Check application id/deployment id templating
         assertThat(resp.getBody()).contains("18-f3");
         assertThat(resp.getBody()).contains("a5-94");
