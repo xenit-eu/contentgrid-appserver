@@ -37,6 +37,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class ContentgridAppConfiguration {
 
+    private static final String COMMENT = "comment";
+
     @Bean
     ApplicationResolver applicationResolver() {
         var person = Entity.builder()
@@ -66,9 +68,9 @@ public class ContentgridAppConfiguration {
                         .build()
                 )
                 .attribute(SimpleAttribute.builder()
-                        .name(AttributeName.of("comment"))
-                        .description("Comment")
-                        .column(ColumnName.of("comment"))
+                        .name(AttributeName.of(COMMENT))
+                        .description(COMMENT)
+                        .column(ColumnName.of(COMMENT))
                         .type(Type.TEXT)
                         .build())
                 .attribute(SimpleAttribute.builder()
@@ -89,8 +91,8 @@ public class ContentgridAppConfiguration {
                         .attributePath(PropertyPath.of(AttributeName.of("last_name")))
                         .build())
                 .searchFilter(FullTextSearchAttributeSearchFilter.builder()
-                        .name(FilterName.of("comment"))
-                        .attributePath(PropertyPath.of(AttributeName.of("comment")))
+                        .name(FilterName.of(COMMENT))
+                        .attributePath(PropertyPath.of(AttributeName.of(COMMENT)))
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)

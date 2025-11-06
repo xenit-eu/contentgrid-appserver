@@ -56,6 +56,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
     }
 
     @Getter
+    @EqualsAndHashCode(callSuper = true)
     public static final class ContentGridFullTextSearch extends StringComparison {
 
         private final @NonNull Locale locale;
