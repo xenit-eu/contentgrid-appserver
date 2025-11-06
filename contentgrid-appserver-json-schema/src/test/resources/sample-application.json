@@ -475,6 +475,12 @@
           "name": "titleFilter",
           "attributePath": [{"name": "title", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "descriptionFilter",
+          "attributePath": [{"name": "description", "type": "attr"}],
+          "type": "full-text",
+          "locale": "en"
         }
       ],
       "sortableFields": [

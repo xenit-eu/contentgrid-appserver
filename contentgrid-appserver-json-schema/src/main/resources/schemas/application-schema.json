@@ -84,6 +84,7 @@
                   "enum": [
                     "exact",
                     "prefix",
+                    "full-text",
                     "greater",
                     "greater-or-equal",
                     "less",
