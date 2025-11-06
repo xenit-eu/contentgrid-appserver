@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
@@ -60,17 +61,17 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
     }
 
     public enum Operation {
-        EXACT(Set.of(SimpleAttribute.Type.TEXT, SimpleAttribute.Type.UUID, SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.BOOLEAN, SimpleAttribute.Type.DATETIME)),
-        PREFIX(Set.of(SimpleAttribute.Type.TEXT)),
-        GREATER_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        GREATER_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        LESS_THAN(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
-        LESS_THAN_OR_EQUAL(Set.of(SimpleAttribute.Type.LONG, SimpleAttribute.Type.DOUBLE, SimpleAttribute.Type.DATETIME)),
+        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATETIME)),
+        PREFIX(Set.of(Type.TEXT)),
+        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
+        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATETIME)),
         ;
 
-        private final Set<SimpleAttribute.Type> supportedTypes;
+        private final Set<Type> supportedTypes;
 
-        Operation(Set<SimpleAttribute.Type> supportedTypes) {
+        Operation(Set<Type> supportedTypes) {
             this.supportedTypes = supportedTypes;
         }
 

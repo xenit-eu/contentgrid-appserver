@@ -16,7 +16,7 @@ import java.util.Set;
 
 /**
  * Base class for the attribute-based search filters (e.g. {@link FullTextSearchAttributeSearchFilter} and {@link AttributeSearchFilter}).
- * @implNote This base class was originally introduced to share common logic between different attribute search filters,
+ * This base class was originally introduced to share common logic between different attribute search filters,
  * while making sure that each filter type can have its own builder and specific properties.
  */
 @Getter
