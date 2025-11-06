@@ -75,7 +75,7 @@ public class SimpleAttribute implements Attribute {
 
     @Builder
     SimpleAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @NonNull ColumnName column,
-                    @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+            @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
             if(t.getName() == null) {
