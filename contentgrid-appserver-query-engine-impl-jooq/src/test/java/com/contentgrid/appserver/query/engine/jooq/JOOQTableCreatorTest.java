@@ -94,10 +94,6 @@ class JOOQTableCreatorTest {
             .type(Type.TEXT)
             .build();
 
-    private static final Supplier<FullTextSearchAttributeSearchFilter.FullTextSearchAttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> FullTextSearchAttributeSearchFilter.builder()
-            .name(FilterName.of("comment~fts"))
-            .locale(Locale.GERMAN);
-
     private static final Supplier<Entity.EntityBuilder> PERSON_BUILDER_SUPPLIER = () -> Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))

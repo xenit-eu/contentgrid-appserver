@@ -578,20 +578,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             jsonFilter.setAttributePath(toJsonPropertyPath(baseAttributeSearchFilter.getAttributePath()));
 
             String type;
-            if (filter instanceof AttributeSearchFilter attributeSearchFilter) {
-                type = switch (attributeSearchFilter.getOperation()) {
-                    case EXACT -> "exact";
-                    case PREFIX -> "prefix";
-                    case GREATER_THAN -> "greater";
-                    case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
-                    case LESS_THAN -> "less";
-                    case LESS_THAN_OR_EQUAL -> "less-or-equal";
-                };
-            } else if (filter instanceof FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter) {
-                type = FTS_TYPE;
-                jsonFilter.setLocale(fullTextSearchAttributeSearchFilter.getLocale());
-            } else {
-                throw new IllegalStateException("Unexpected value: " + filter);
+            switch (filter) {
+                case AttributeSearchFilter attributeSearchFilter ->
+                        type = switch (attributeSearchFilter.getOperation()) {
+                            case EXACT -> "exact";
+                            case PREFIX -> "prefix";
+                            case GREATER_THAN -> "greater";
+                            case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
+                            case LESS_THAN -> "less";
+                            case LESS_THAN_OR_EQUAL -> "less-or-equal";
+                        };
+                case FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter -> {
+                    type = FTS_TYPE;
+                    jsonFilter.setLocale(fullTextSearchAttributeSearchFilter.getLocale());
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + filter);
             }
             jsonFilter.setType(type);
         } else {

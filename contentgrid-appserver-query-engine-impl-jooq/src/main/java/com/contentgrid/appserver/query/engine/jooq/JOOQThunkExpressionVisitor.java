@@ -177,16 +177,18 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case CUSTOM -> {
-                if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
-                    var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
-                    var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                    var leftField = prefixSearchNormalize(left);
-                    var rightField = prefixSearchNormalize(right);
-                    yield leftField.startsWith(rightField);
-                } else if (functionExpression instanceof ContentGridFullTextSearch contentGridFullTextSearch) {
-                    yield generateFTSCondition(context, contentGridFullTextSearch);
-                } else {
-                    throw new InvalidThunkExpressionException(
+                switch (functionExpression) {
+                    case ContentGridPrefixSearch contentGridPrefixSearch -> {
+                        var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
+                        var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
+                        var leftField = prefixSearchNormalize(left);
+                        var rightField = prefixSearchNormalize(right);
+                        yield leftField.startsWith(rightField);
+                    }
+                    case ContentGridFullTextSearch contentGridFullTextSearch -> {
+                        yield generateFTSCondition(context, contentGridFullTextSearch);
+                    }
+                    default -> throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
                                     functionExpression.getClass().getSimpleName()));
                 }
