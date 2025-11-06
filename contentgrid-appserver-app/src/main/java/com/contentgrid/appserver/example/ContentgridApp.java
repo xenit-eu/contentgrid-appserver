@@ -11,5 +11,4 @@ public class ContentgridApp {
         log.info("Running Spring application...");
         SpringApplication.run(ContentgridApp.class, args);
     }
-
 }
