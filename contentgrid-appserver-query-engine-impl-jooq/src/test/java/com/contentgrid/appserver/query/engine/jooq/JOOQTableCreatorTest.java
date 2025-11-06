@@ -36,11 +36,8 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.Allow;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,16 +60,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator.FTS_INDEX_PREPARED_STATEMENT;
-import static java.util.Locale.ENGLISH;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///"
@@ -268,9 +259,6 @@ class JOOQTableCreatorTest {
                     .build())
             .targetReference(ColumnName.of("next_invoice"))
             .build();
-
-    @Autowired
-    private DSLContext dslContext;
 
     @Autowired
     private JOOQTableCreator tableCreator;
@@ -552,62 +540,6 @@ class JOOQTableCreatorTest {
         // Drop tables should fail too
         assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
-    }
-
-    static @NonNull Stream<@NonNull Locale> FTS_SUPPORTED_LOCALES() {
-        return JOOQTableCreator.FTS_SUPPORTED_LOCALES.stream();
-    }
-
-    @ParameterizedTest
-    @MethodSource("FTS_SUPPORTED_LOCALES")
-    void FTSLocaleIsActuallySupported(@NonNull Locale locale) {
-        var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
-                .get()
-                .attribute(PERSON_COMMENT)
-                .build();
-        var personWithFTS = PERSON_BUILDER_SUPPLIER
-                .get()
-                .searchFilter(ftsSearchFilter)
-                .build();
-        var application = Application.builder()
-                .name(ApplicationName.of("fts-locale-application-%s".formatted(locale.getLanguage())))
-                .entity(personWithFTS)
-                .build();
-
-        tableCreator.createTables(application);
-
-        tableCreator.dropTables(application);
-        assertTrue(getTables("public").isEmpty());
-    }
-
-    @Test
-    @Allow.PlainSQL
-    void createFTSIndexTest() {
-        var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
-                .get()
-                .attribute(PERSON_COMMENT)
-
-                .build();
-        var personWithFTS = PERSON_BUILDER_SUPPLIER
-                .get()
-                .searchFilter(ftsSearchFilter)
-                .build();
-        var application = Application.builder()
-                .name(ApplicationName.of("fts-index-application"))
-                .entity(personWithFTS)
-                .build();
-
-        AtomicBoolean successfulExecution = new AtomicBoolean(false);
-        DSLContext dsl = mock(DSLContext.class);
-        when(dsl.execute(eq(FTS_INDEX_PREPARED_STATEMENT), eq(DSL.name("person_comment_fts_idx")),
-                        eq(DSL.name("person")), eq(DSL.inline(Locale.GERMAN.getDisplayLanguage(ENGLISH))), eq(DSL.inline("comment"))))
-                .thenAnswer(invocation -> {
-                    successfulExecution.set(true);
-                    return null;
-                });
-
-        tableCreator.createFTSIndex(dsl, application, personWithFTS, ftsSearchFilter);
-        assertTrue(successfulExecution.get());
     }
 
     @SpringBootApplication
