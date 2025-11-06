@@ -394,13 +394,14 @@ public class JOOQQueryEngine implements QueryEngine {
     private QueryEngineException handleNotNullConstraintViolation(@NonNull Application application,
             @NonNull EntityData entity, DataAccessException e) {
         // TODO: implement handling
-        return new ConstraintViolationException(e.getMessage(), e);
+        return new QueryEngineException(e.getMessage(), e) {};
     }
 
     private QueryEngineException handleUniqueConstraintViolation(@NonNull Application application,
             @NonNull EntityData entityData, DataAccessException e) {
         // TODO: implement handling
-        return new ConstraintViolationException(e.getMessage(), e);
+        return new QueryEngineException(e.getMessage(), e) {
+        };
     }
 
     private Version previousVersion(@NonNull Version version, long versionIncrement) {

@@ -24,6 +24,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -69,10 +70,16 @@ import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
+import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
@@ -1104,9 +1111,9 @@ class JOOQQueryEngineTest {
         }
     }
 
-    static Stream<EntityCreateData> invalidCreateData() {
+    static Stream<Arguments> invalidCreateData() {
         return Stream.of(
-                // Invalid entity name
+                Arguments.argumentSet("invalid entity name", EntityDefinitionNotFoundException.class,
                 EntityCreateData.builder()
                         .entityName(EntityName.of("invalid_entity"))
                         .attribute(SimpleAttributeData.builder()
@@ -1117,8 +1124,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Invalid attribute name
+                        .build()),
+                Arguments.argumentSet("invalid attribute name", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1129,16 +1136,16 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Missing required attribute
+                        .build()),
+                Arguments.argumentSet("missing required attribute", RequiredConstraintViolationException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Null for required value
+                        .build()),
+                Arguments.argumentSet("null for required value", RequiredConstraintViolationException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1149,8 +1156,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Duplicate unique attribute
+                        .build()),
+                Arguments.argumentSet("duplicate unique attribute", UniqueConstraintViolationException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1161,8 +1168,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("vat_1") // vat of alice
                                 .build())
-                        .build(),
-                // CompositeAttributeData instead of SimpleAttributeData
+                        .build()),
+                Arguments.argumentSet("CompositeAttributeData instead of SimpleAttributeData", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(CompositeAttributeData.builder()
@@ -1172,8 +1179,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Extra CompositeAttributeData attribute
+                        .build()),
+                Arguments.argumentSet("Extra CompositeAttributeData attribute", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(PERSON.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1187,8 +1194,8 @@ class JOOQQueryEngineTest {
                         .attribute(CompositeAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute")) // no sub-attributes
                                 .build())
-                        .build(),
-                // Value of invalid type
+                        .build()),
+                Arguments.argumentSet("Value of invalid type", QueryEngineException.class, /* TODO: specific exception for invalid type */
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1207,10 +1214,10 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
                                 .ref(ALICE_ID)
                                 .build())
-                        .build(),
+                        .build()),
                 // TODO: ACC-2051: provide audit_metadata/readonly attribute
-                // Missing required relation
-                EntityCreateData.builder()
+                Arguments.argumentSet("Missing required relation", RequiredConstraintViolationException.class,
+                        EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_NUMBER.getName())
@@ -1220,8 +1227,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_AMOUNT.getName())
                                 .value(BigDecimal.valueOf(25.0))
                                 .build())
-                        .build(), // customer is required
-                // Non-existing relation
+                        .build()), // customer is required
+                Arguments.argumentSet("Non-existing relation", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1240,8 +1247,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_CUSTOMER.getTargetEndPoint().getName()) // person -> invoices
                                 .ref(INVOICE2_ID)
                                 .build())
-                        .build(),
-                // Non-existing target in owning *-to-one relation
+                        .build()),
+                Arguments.argumentSet("Non-existing target in owning to-one relation", EntityIdNotFoundException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1260,8 +1267,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                 .ref(ALICE_ID) // Should be id of invoice
                                 .build())
-                        .build(),
-                // Non-existing target in non-owning *-to-one relation
+                        .build()),
+                Arguments.argumentSet("Non-existing target in non-owning to-one relation", EntityIdNotFoundException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1280,8 +1287,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PREVIOUS.getTargetEndPoint().getName())
                                 .ref(ALICE_ID) // Should be id of invoice
                                 .build())
-                        .build(),
-                // Non-existing target in *-to-many relation
+                        .build()),
+                Arguments.argumentSet("Non-existing target in to-many relation", EntityIdNotFoundException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1301,8 +1308,8 @@ class JOOQQueryEngineTest {
                                 .ref(PRODUCT3_ID)
                                 .ref(ALICE_ID) // should be id of product
                                 .build())
-                        .build(),
-                // XToManyRelationData for *-to-one relation
+                        .build()),
+                Arguments.argumentSet("XTOManyRelationData for to-one relation", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1321,8 +1328,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                 .ref(INVOICE2_ID)
                                 .build())
-                        .build(),
-                // XToOneRelationData for *-to-many relation
+                        .build()),
+                Arguments.argumentSet("XToOneRelationData for to-many relation", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1341,8 +1348,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PRODUCTS.getSourceEndPoint().getName())
                                 .ref(PRODUCT3_ID)
                                 .build())
-                        .build(),
-                // Duplicate value in one-to-one relation
+                        .build()),
+                Arguments.argumentSet("Duplicate value in one-to-one relation", QueryEngineException.class, /* TODO: specific exception for unique constraint violation */
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1361,8 +1368,8 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                 .ref(INVOICE1_ID) // is already linked with INVOICE2_ID
                                 .build())
-                        .build(),
-                // Duplicate relation provided
+                        .build()),
+                Arguments.argumentSet("Duplicate relation provided", IllegalInputDataException.class,
                 EntityCreateData.builder()
                         .entityName(INVOICE.getName())
                         .attribute(SimpleAttributeData.builder()
@@ -1381,14 +1388,14 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
                                 .ref(BOB_ID)
                                 .build())
-                        .build()
+                        .build())
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidCreateData")
-    void createEntityInvalidData(EntityCreateData data) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.create(APPLICATION, data, TRUE_EXPRESSION, createEventConsumer));
+    void createEntityInvalidData(Class<? extends Throwable> exceptionType, EntityCreateData data) {
+        assertThrows(exceptionType, () -> queryEngine.create(APPLICATION, data, TRUE_EXPRESSION, createEventConsumer));
         assertNothingChanged();
     }
 
@@ -1496,9 +1503,9 @@ class JOOQQueryEngineTest {
         assertEntityDataEquals(updateResult.getUpdated(), updated);
     }
 
-    static Stream<EntityData> invalidUpdateData() {
+    static Stream<Arguments> invalidUpdateData() {
         return Stream.of(
-                // Invalid entity name
+                Arguments.argumentSet("Invalid entity name", EntityDefinitionNotFoundException.class,
                 EntityData.builder()
                         .name(EntityName.of("invalid_entity"))
                         .id(BOB_ID)
@@ -1510,8 +1517,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Invalid attribute name
+                        .build()),
+                Arguments.argumentSet("Invalid attribute name", IllegalInputDataException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
@@ -1523,8 +1530,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Unknown primary key provided
+                        .build()),
+                Arguments.argumentSet("Unknown primary key provided", EntityIdNotFoundException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(EntityId.of(UUID_GENERATOR.generate()))
@@ -1536,8 +1543,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Primary key provided as attribute
+                        .build()),
+                Arguments.argumentSet("Primary key provided as attribute", IllegalInputDataException.class,
                 EntityData.builder()
                         .id(BOB_ID)
                         .name(PERSON.getName())
@@ -1553,8 +1560,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("random_vat")
                                 .build())
-                        .build(),
-                // Null for required attribute
+                        .build()),
+                Arguments.argumentSet("Null for required attribute", RequiredConstraintViolationException.class,
                 EntityData.builder()
                         .id(BOB_ID)
                         .name(PERSON.getName())
@@ -1562,8 +1569,8 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_NAME.getName())
                                 .value(null)
                                 .build())
-                        .build(),
-                // Duplicate unique attribute
+                        .build()),
+                Arguments.argumentSet("Duplicate unique attribute", UniqueConstraintViolationException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
@@ -1571,24 +1578,25 @@ class JOOQQueryEngineTest {
                                 .name(PERSON_VAT.getName())
                                 .value("vat_1") // vat of alice
                                 .build())
-                        .build(),
-                // CompositeAttributeData instead of SimpleAttributeData
+                        .build()),
+                Arguments.argumentSet("CompositeAttributeData instead of SimpleAttributeData", IllegalInputDataException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(PERSON_NAME.getName()) // no attributes
                                 .build())
-                        .build(),
-                // Extra CompositeAttributeData attribute
+                        .build()
+                ),
+                Arguments.argumentSet("Extra CompositeAttributeData Attribute", IllegalInputDataException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(AttributeName.of("invalid_attribute")) // no sub-attributes
                                 .build())
-                        .build(),
-                // Value of invalid type
+                        .build()),
+                Arguments.argumentSet("Value of invalid type", QueryEngineException.class, /* TODO: specific exception for invalid data type */
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
@@ -1596,28 +1604,28 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_IS_PAID.getName())
                                 .value("invalid_boolean") // String instead of boolean
                                 .build())
-                        .build(),
-                // Empty data
+                        .build()),
+                Arguments.argumentSet("Empty data", IllegalInputDataException.class,
                 EntityData.builder()
                         .name(PERSON.getName())
                         .id(BOB_ID)
-                        .build(),
-                // No SimpleAttributeData provided
+                        .build()),
+                Arguments.argumentSet("No SimpleAttributeData provided in CompositeAttributeData", IllegalInputDataException.class,
                 EntityData.builder()
                         .name(INVOICE.getName())
                         .id(INVOICE1_ID)
                         .attribute(CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName()) // No attributes
                                 .build())
-                        .build()
+                        .build())
                 // TODO: ACC-2051: provide audit_metadata/readonly attribute
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidUpdateData")
-    void updateEntityInvalidData(EntityData data) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer));
+    void updateEntityInvalidData(Class<? extends Throwable> exceptionType, EntityData data) {
+        assertThrows(exceptionType, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer));
         assertNothingChanged();
     }
 
@@ -1805,14 +1813,14 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidDeleteData() {
         return Stream.of(
-                Arguments.of(PERSON, ALICE_ID) // ALICE_ID is present in required relation customer
+                Arguments.argumentSet("present in required relation", PERSON, ALICE_ID, EntityLinkedByRequiredRelationException.class) // ALICE_ID is present in required relation customer
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidDeleteData")
-    void deleteEntityInvalidId(Entity entity, EntityId id) {
-        assertThrows(QueryEngineException.class,
+    void deleteEntityInvalidId(Entity entity, EntityId id, Class<? extends Throwable> exceptionType) {
+        assertThrows(exceptionType,
                 () -> queryEngine.delete(APPLICATION, EntityRequest.forEntity(entity.getName(), id), TRUE_EXPRESSION, deleteEventConsumer));
         assertNothingChanged();
     }
@@ -1913,19 +1921,19 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidSetRelationData() {
         return Stream.of(
-                Arguments.argumentSet("non-existing relation", ALICE_ID, INVOICE_CUSTOMER, INVOICE1_ID),
-                Arguments.argumentSet("non-existing source", ALICE_ID, INVOICE_PREVIOUS, INVOICE1_ID), // alice is not an invoice
-                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, ALICE_ID), // alice is not an invoice
-                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID), // alice is not an invoice
-                Arguments.argumentSet("duplicate value for one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
-                Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID)
+                Arguments.argumentSet("non-existing relation", ALICE_ID, INVOICE_CUSTOMER, INVOICE1_ID, EntityIdNotFoundException.class),
+                Arguments.argumentSet("non-existing source", ALICE_ID, INVOICE_PREVIOUS, INVOICE1_ID, EntityIdNotFoundException.class), // alice is not an invoice
+                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, ALICE_ID, EntityIdNotFoundException.class), // alice is not an invoice
+                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID, EntityIdNotFoundException.class), // alice is not an invoice
+                Arguments.argumentSet("duplicate value for one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID, QueryEngineException.class /* TODO: specific type for unique constraint violation */), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID, IllegalInputDataException.class)
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidSetRelationData")
-    void setRelationInvalidData(EntityId id, Relation relation, EntityId targetId) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.setLink(
+    void setRelationInvalidData(EntityId id, Relation relation, EntityId targetId, Class<? extends Throwable> exceptionType) {
+        assertThrows(exceptionType, () -> queryEngine.setLink(
                 APPLICATION,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),
@@ -2101,18 +2109,18 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidUnsetRelationData() {
         return Stream.of(
-                Arguments.argumentSet("non-existing source id of an owning to-one relation", ALICE_ID, INVOICE_PREVIOUS),
-                Arguments.argumentSet("non-existing source id of non-owning to-one relation", ALICE_ID, INVOICE_PREVIOUS.inverse()),
-                Arguments.argumentSet("non-existing source id of a to-many relation", ALICE_ID, INVOICE_PRODUCTS),
-                Arguments.argumentSet("required to-one relation", INVOICE1_ID, INVOICE_CUSTOMER),
-                Arguments.argumentSet("inverse required one-to-* relation", ALICE_ID, INVOICE_CUSTOMER.inverse())
+                Arguments.argumentSet("non-existing source id of an owning to-one relation", ALICE_ID, INVOICE_PREVIOUS, EntityIdNotFoundException.class),
+                Arguments.argumentSet("non-existing source id of non-owning to-one relation", ALICE_ID, INVOICE_PREVIOUS.inverse(), EntityIdNotFoundException.class),
+                Arguments.argumentSet("non-existing source id of a to-many relation", ALICE_ID, INVOICE_PRODUCTS, EntityIdNotFoundException.class),
+                Arguments.argumentSet("required to-one relation", INVOICE1_ID, INVOICE_CUSTOMER, EntityLinkedByRequiredRelationException.class),
+                Arguments.argumentSet("inverse required one-to-* relation", ALICE_ID, INVOICE_CUSTOMER.inverse(), EntityLinkedByRequiredRelationException.class)
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidUnsetRelationData")
-    void unsetRelationInvalidData(EntityId id, Relation relation) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.unsetLink(
+    void unsetRelationInvalidData(EntityId id, Relation relation, Class<? extends Throwable> exceptionType) {
+        assertThrows(exceptionType, () -> queryEngine.unsetLink(
                 APPLICATION,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),
@@ -2231,19 +2239,20 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidAddRelationData() {
         return Stream.of(
-                Arguments.argumentSet("one-to-many: non-existing source ref", INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID)),
-                Arguments.argumentSet("one-to-many: non-existing target ref", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */)),
-                Arguments.argumentSet("one-to-many: value already linked with another source", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID)),
-                Arguments.argumentSet("many-to-many: non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                Arguments.argumentSet("many-to-many: non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /* not a product */, PRODUCT3_ID)),
-                Arguments.argumentSet("*-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, Set.of(INVOICE2_ID))
+                Arguments.argumentSet("one-to-many: non-existing source ref", INVOICE1_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE2_ID), EntityIdNotFoundException.class),
+                Arguments.argumentSet("one-to-many: non-existing target ref", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(ALICE_ID /* should be an invoice */), EntityIdNotFoundException.class),
+                Arguments.argumentSet("one-to-many: value already linked with another source", BOB_ID, INVOICE_CUSTOMER.inverse(), Set.of(INVOICE1_ID),
+                        BlindRelationOverwriteException.class),
+                Arguments.argumentSet("many-to-many: non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID), EntityIdNotFoundException.class),
+                Arguments.argumentSet("many-to-many: non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /* not a product */, PRODUCT3_ID), EntityIdNotFoundException.class),
+                Arguments.argumentSet("*-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, Set.of(INVOICE2_ID), IllegalInputDataException.class)
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidAddRelationData")
-    void addRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.addLinks(
+    void addRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds, Class<? extends Throwable> exceptionType) {
+        assertThrows(exceptionType, () -> queryEngine.addLinks(
                 APPLICATION,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),
@@ -2356,18 +2365,19 @@ class JOOQQueryEngineTest {
 
     static Stream<Arguments> invalidRemoveRelationData() {
         return Stream.of(
-                Arguments.argumentSet("non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID)),
-                Arguments.argumentSet("non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /*  not a product */, PRODUCT3_ID)),
-                Arguments.argumentSet("invalid target value", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID /* not linked with INVOICE1_ID */)),
-                Arguments.argumentSet("inverse of one-to-many required", ALICE_ID, INVOICE_CUSTOMER, Set.of(INVOICE1_ID)),
-                Arguments.argumentSet("to-one relation", INVOICE2_ID, INVOICE_PREVIOUS, Set.of(INVOICE1_ID))
+                Arguments.argumentSet("non-existing source ref", ALICE_ID /* not an invoice */, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID), EntityIdNotFoundException.class),
+                Arguments.argumentSet("non-existing target ref", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(ALICE_ID /*  not a product */, PRODUCT3_ID), RelationLinkNotFoundException.class),
+                Arguments.argumentSet("invalid target value", INVOICE1_ID, INVOICE_PRODUCTS, Set.of(PRODUCT1_ID, PRODUCT3_ID /* not linked with INVOICE1_ID */),
+                        RelationLinkNotFoundException.class),
+                Arguments.argumentSet("inverse of one-to-many required", ALICE_ID, INVOICE_CUSTOMER, Set.of(INVOICE1_ID), EntityLinkedByRequiredRelationException.class),
+                Arguments.argumentSet("to-one relation", INVOICE2_ID, INVOICE_PREVIOUS, Set.of(INVOICE1_ID), IllegalInputDataException.class)
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidRemoveRelationData")
-    void removeRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds) {
-        assertThrows(QueryEngineException.class, () -> queryEngine.removeLinks(
+    void removeRelationInvalidData(EntityId id, Relation relation, Set<EntityId> targetIds, Class<? extends Throwable> exceptionType) {
+        assertThrows(exceptionType, () -> queryEngine.removeLinks(
                 APPLICATION,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),

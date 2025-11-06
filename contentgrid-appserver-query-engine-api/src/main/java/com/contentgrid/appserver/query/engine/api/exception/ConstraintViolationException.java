@@ -1,12 +1,20 @@
 package com.contentgrid.appserver.query.engine.api.exception;
 
-public class ConstraintViolationException extends QueryEngineException {
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-    public ConstraintViolationException(String message) {
-        super(message);
-    }
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
+public abstract class ConstraintViolationException extends QueryEngineException {
 
-    public ConstraintViolationException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    @NonNull
+    private final EntityName entityName;
+
+    @NonNull
+    private final PropertyPath propertyPath;
+
 }
