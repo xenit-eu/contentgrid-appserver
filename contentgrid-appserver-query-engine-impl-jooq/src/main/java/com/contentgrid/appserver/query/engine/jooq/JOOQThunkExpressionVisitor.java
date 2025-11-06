@@ -207,7 +207,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         var locale = contentGridFullTextSearch.getLocale();
         var language = locale.getDisplayLanguage(ENGLISH);
 
-        return DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, DSL.inline(right));
+        return DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, right);
     }
 
     private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {
