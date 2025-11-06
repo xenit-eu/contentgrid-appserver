@@ -11,14 +11,12 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class JOOQTableCreator implements TableCreator {

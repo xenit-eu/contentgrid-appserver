@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -7,6 +9,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -22,6 +25,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.Inline;
@@ -30,12 +34,6 @@ import org.springframework.hateoas.mediatype.html.HtmlInputType;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilderFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-
-import java.util.UUID;
-
-import static com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import static org.assertj.core.api.Assertions.assertThat;
-
 
 class HalFormsTemplateGeneratorTest {
 

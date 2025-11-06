@@ -1,5 +1,9 @@
 package com.contentgrid.appserver.application.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -33,18 +37,13 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApplicationTest {
 

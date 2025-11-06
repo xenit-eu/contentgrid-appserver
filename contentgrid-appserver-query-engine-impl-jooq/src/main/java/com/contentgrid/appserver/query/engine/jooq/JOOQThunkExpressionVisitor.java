@@ -257,7 +257,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         var name = getPathElementName(pathElement);
 
         // Check if pathElement references attribute
-        var maybeAttribute =  entity.getAttributeByName(AttributeName.of(name));
+        Optional<Attribute> maybeAttribute = entity.getAttributeByName(AttributeName.of(name));
         if (maybeAttribute.isPresent()) {
             var attribute = maybeAttribute.get();
             return handleAttribute(context.getJoinCollection().getCurrentAlias(), attribute, tail);

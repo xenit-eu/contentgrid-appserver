@@ -39,7 +39,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-
 import java.util.List;
 import java.util.Locale;
 

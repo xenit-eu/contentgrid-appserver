@@ -18,13 +18,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Singular;
-import lombok.Value;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -34,6 +27,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Singular;
+import lombok.Value;
 
 /**
  * Represents an application in the ContentGrid platform.
