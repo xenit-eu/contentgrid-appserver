@@ -3,11 +3,15 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
+import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
+import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
@@ -96,11 +100,9 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
-        var savepointName = DSL.name("x_to_one_update_"+UUID.randomUUID());
-        dslContext.savepoint(savepointName).execute();
 
         try {
-            var newValue = dslContext.update(table)
+            var newValue = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext.update(table)
                     .set(targetRef, expectedTargetId.mapToNewValue(targetRef, targetRef, targetValue))
                     .where(sourceRef.eq(id.getValue()))
                     .returning(targetRef)
@@ -109,35 +111,51 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                         var entityName = relation.getSourceEndPoint().getEntity();
                         return new EntityIdNotFoundException(entityName, id);
                     })
-                    .get(targetRef);
+                    .get(targetRef));
 
             if (!Objects.equals(newValue, targetValue)) {
                 throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, newValue);
             }
         } catch (DataAccessException e) {
-            if(!PostgresqlErrorType.from(e).is(PostgresqlErrorType.UNIQUE_CONSTRAINT_VIOLATION)) {
-                throw e;
-            }
-            dslContext.rollback().toSavepoint(savepointName).execute();
+            throw switch (PostgresqlErrorType.from(e)) {
+                case UNIQUE_CONSTRAINT_VIOLATION -> ExceptionUtils.handleException(e, () -> {
+                    var conflictingRowId = dslContext.select(sourceRef)
+                            .from(table)
+                            .where(targetRef.eq(targetValue))
+                            .fetchOptional(sourceRef);
 
-            var conflictingRowId = dslContext.select(sourceRef)
-                    .from(table)
-                    .where(targetRef.eq(targetValue))
-                    .fetchOptional(sourceRef);
-
-            var ex = new BlindRelationOverwriteException(
-                    RelationIdentity.forRelation(
-                            relation.getTargetEndPoint().getEntity(),
-                            EntityId.of(targetValue),
-                            relation.getTargetEndPoint().getName()
-                    ),
-                    EntityIdentity.forEntity(
+                    return new BlindRelationOverwriteException(
+                            RelationIdentity.forRelation(
+                                    relation.getTargetEndPoint().getEntity(),
+                                    EntityId.of(targetValue),
+                                    relation.getTargetEndPoint().getName()
+                            ),
+                            EntityIdentity.forEntity(
+                                    relation.getSourceEndPoint().getEntity(),
+                                    EntityId.of(conflictingRowId.orElseThrow())
+                            )
+                    );
+                });
+                case FOREIGN_KEY_CONSTRAINT_VIOLATION -> ExceptionUtils.handleException(e , () -> {
+                    if(targetValue != null) {
+                        // A foreign-key constraint violation can only happen when *setting* a new value
+                        // (because the target id that is being set does not actually exist
+                        return new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(),
+                                EntityId.of(targetValue));
+                    }
+                    return null;
+                });
+                case NOT_NULL_CONSTRAINT_VIOLATION -> ExceptionUtils.handleException(e, () -> {
+                    // A not null constraint violation can only happen when clearing a value
+                    // (because otherwise, we would not be setting a null value)
+                    return new RequiredConstraintViolationException(
                             relation.getSourceEndPoint().getEntity(),
-                            EntityId.of(conflictingRowId.orElseThrow())
-                    )
-            );
-            ex.initCause(e);
-            throw ex;
+                            id,
+                            new RelationPath(relation.getSourceEndPoint().getName(), null)
+                    );
+                });
+                default -> e;
+            };
         }
     }
 

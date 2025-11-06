@@ -3,12 +3,18 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
+import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
+import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
 import java.util.Objects;
 import java.util.Optional;
@@ -130,6 +136,16 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             );
         }
 
+        if(maybeOldId.isPresent() && relation.getTargetEndPoint().isRequired()) {
+            // Relation is required, but because there is an old record (and it's a one-to-one relation),
+            // we have to wipe out the old value. We can't do that
+            throw new EntityLinkedByRequiredRelationException(
+                    relation,
+                    id,
+                    EntityId.of(maybeOldId.orElseThrow())
+            );
+        }
+
         try {
 
             // When there is an old record, we need to clear it out *before* setting the new record,
@@ -146,9 +162,13 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                     .where(newRowCondition)
                     .execute();
 
-
         } catch (DataAccessException e) {
-            // TODO: handle FK update failure
+            // Unique constraint violation can not happen, because the query above ensures that the unique is wiped out first
+            // Not null violation can not happen, because it is already checked above that when there is an old row, the side is not required
+            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
+                throw ExceptionUtils.handleException(e,
+                        () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+            }
             throw e;
         }
     }
