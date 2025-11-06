@@ -247,22 +247,17 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return result;
     }
 
-    private @NonNull Optional<Attribute> getOptionalAttributeByName(@NonNull Entity entity, @NonNull SymbolicReference.PathElement path) throws InvalidThunkExpressionException {
-        var name = getPathElementName(path);
-        return entity.getAttributeByName(AttributeName.of(name));
-    }
-
     private Field<?> handlePath(@NonNull Entity entity, @NonNull List<PathElement> path, @NonNull JOOQContext context)
             throws InvalidThunkExpressionException {
         if (path.isEmpty()) {
             throw new InvalidThunkExpressionException("Empty path");
         }
         var pathElement = path.getFirst();
-        var maybeAttribute = getOptionalAttributeByName(entity, pathElement);
         var tail = path.subList(1, path.size());
         var name = getPathElementName(pathElement);
 
         // Check if pathElement references attribute
+        var maybeAttribute =  entity.getAttributeByName(AttributeName.of(name));
         if (maybeAttribute.isPresent()) {
             var attribute = maybeAttribute.get();
             return handleAttribute(context.getJoinCollection().getCurrentAlias(), attribute, tail);

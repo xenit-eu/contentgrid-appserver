@@ -10,7 +10,6 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.CreateTableElementListStep;
@@ -27,10 +26,10 @@ public class JOOQTableCreator implements TableCreator {
     private final DSLContextResolver resolver;
 
     @Override
-    public void createTables(@NonNull Application application) {
+    public void createTables(Application application) {
         var dslContext = resolver.resolve(application);
         for (var entity : application.getEntities()) {
-            createTableForEntity(dslContext, application, entity);
+            createTableForEntity(dslContext, entity);
         }
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
@@ -39,7 +38,7 @@ public class JOOQTableCreator implements TableCreator {
         }
     }
 
-    private void createTableForEntity(@NonNull DSLContext dslContext, @NonNull Application application, @NonNull Entity entity) {
+    private void createTableForEntity(DSLContext dslContext, Entity entity) {
         var step = dslContext.createTable(entity.getTable().getValue())
                 .column(JOOQUtils.resolvePrimaryKey(entity))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
