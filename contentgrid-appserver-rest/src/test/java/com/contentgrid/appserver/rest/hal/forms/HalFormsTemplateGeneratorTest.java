@@ -376,7 +376,7 @@ class HalFormsTemplateGeneratorTest {
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 customerName -> {
@@ -401,7 +401,7 @@ class HalFormsTemplateGeneratorTest {
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 nextNumber -> {
@@ -418,7 +418,7 @@ class HalFormsTemplateGeneratorTest {
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 productsName -> {
@@ -527,7 +527,7 @@ class HalFormsTemplateGeneratorTest {
                                 value3 -> assertThat(value3).isEqualTo("secret")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 invoicesAmount -> {

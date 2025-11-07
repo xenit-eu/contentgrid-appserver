@@ -139,7 +139,13 @@ public class HalFormsTemplateGenerator {
                 var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
                         .withPrompt(attributeSearchFilter.getTranslations(userLocales).getName())
                         .withAttributeType(attribute.getType());
-                properties.add(addAllowedValues(property, attribute, true));
+
+                // Technically, multiple values per search filters are supported,
+                // which would indicate that unbounded = true. But the current display
+                // of multivalued fields in the frontend doesn't make it clear that
+                // the values are searched with an OR. Reconsider setting unbounded = true
+                // when the frontend supports this feature.
+                properties.add(addAllowedValues(property, attribute, false));
             } else {
                 throw new IllegalStateException("Unexpected value: " + searchFilter);
             }
