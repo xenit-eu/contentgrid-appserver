@@ -36,7 +36,6 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
-import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -274,7 +273,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throw switch (PostgresqlErrorType.from(e)) {
                 case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData.getIdentity(), record, e,
                         dslContext);
-                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData, e);
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData.getIdentity(), record, e);
                 default -> e;
             };
         }
@@ -406,31 +405,42 @@ public class JOOQQueryEngine implements QueryEngine {
         } catch (DataAccessException e) {
             throw switch (PostgresqlErrorType.from(e)) {
                 case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, data.getIdentity(), updatedFields, e, dslContext);
-                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, data, e);
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, data.getIdentity(), updatedFields, e);
                 default -> e;
             };
         }
     }
 
     private RequiredConstraintViolationException handleNotNullConstraintViolation(@NonNull Application application,
-            @NonNull EntityData entityData, DataAccessException exception) {
+            @NonNull EntityIdentity entityIdentity,
+            @NonNull Record entityData, DataAccessException exception) {
         return ExceptionUtils.handleException(exception, () -> {
-            var requiredAttributes = application.getRequiredEntityByName(entityData.getName())
+            var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
+            Map<Field<?>, PropertyPath> requiredFieldsMapping = entity
                     .nestedAttributes(SimpleAttribute.class)
                     .filter(e -> e.getAttribute().hasConstraint(RequiredConstraint.class))
-                    .map(Entry::getPath);
+                    .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
 
-            return ExceptionUtils.createMultiple(requiredAttributes, attributePath -> {
-                var hasData = entityData.getNestedAttributeByPath(attributePath)
-                        .filter(attributeData -> attributeData.getValue() != null)
-                        .isPresent();
-                if (hasData) {
+            for(var relation: application.getRelationsForSourceEntity(entity)) {
+                if(relation.getSourceEndPoint().isRequired() &&
+                        JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
+                ) {
+                        requiredFieldsMapping.put(
+                                hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
+                                new RelationPath(relation.getSourceEndPoint().getName(), null)
+                        );
+                    }
+
+            }
+
+            return ExceptionUtils.createMultiple(requiredFieldsMapping.entrySet(), entry -> {
+                if (entityData.get(entry.getKey()) != null) {
                     return null;
                 }
                 return new RequiredConstraintViolationException(
-                        entityData.getName(),
-                        entityData.getId(),
-                        attributePath
+                        entityIdentity.getEntityName(),
+                        entityIdentity.getEntityId(),
+                        entry.getValue()
                 );
             }).orElse(null);
         });
@@ -441,16 +451,20 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull Record entityData, DataAccessException exception, @NonNull DSLContext dslContext) {
         return ExceptionUtils.handleException(exception, () -> {
             var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
-            Map<Field<?>, PropertyPath> uniqueAttributesMapping = entity
+            Map<Field<?>, PropertyPath> uniqueFieldsMapping = entity
                     .nestedAttributes(SimpleAttribute.class)
                     .filter(attr -> attr.getAttribute().hasConstraint(UniqueConstraint.class))
                     .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
 
             for (var relation : application.getRelationsForSourceEntity(entity)) {
-                if(JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef) {
-                    uniqueAttributesMapping.put(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation), new RelationPath(relation.getSourceEndPoint()
-                            .getName(), null));
-                }
+                // Only one-to-one relations have a unique constraint
+                if(relation instanceof OneToOneRelation &&
+                        JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
+                ) {
+                        uniqueFieldsMapping.put(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
+                                new RelationPath(relation.getSourceEndPoint()
+                                        .getName(), null));
+                    }
 
             }
 
@@ -460,7 +474,7 @@ public class JOOQQueryEngine implements QueryEngine {
             var identificationField = DSL.field(DSL.name("_field_name_"+UUID.randomUUID()), String.class);
 
 
-            var maybeQuery = uniqueAttributesMapping.entrySet().stream()
+            var maybeQuery = uniqueFieldsMapping.entrySet().stream()
                     .flatMap(entry -> {
                         Field<?> field = entry.getKey();
                         var fieldName = field.getName();
@@ -495,7 +509,7 @@ public class JOOQQueryEngine implements QueryEngine {
             var results = dslContext.fetch(maybeQuery.get());
 
             return ExceptionUtils.createMultiple(results, result -> {
-                var propertyPath = uniqueAttributesMapping.entrySet()
+                var propertyPath = uniqueFieldsMapping.entrySet()
                         .stream()
                         .filter(e -> Objects.equals(e.getKey().getName(), result.get(identificationField)))
                         .map(Map.Entry::getValue)
