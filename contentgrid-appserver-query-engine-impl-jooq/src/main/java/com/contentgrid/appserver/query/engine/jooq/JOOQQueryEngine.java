@@ -85,6 +85,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.Record;
+import org.jooq.Record1;
 import org.jooq.Record3;
 import org.jooq.SelectUnionStep;
 import org.jooq.SortField;
@@ -270,12 +271,14 @@ public class JOOQQueryEngine implements QueryEngine {
                     .fetchSingleMap());
             insertedData = EntityDataMapper.from(entity, insertedRecord);
         } catch (DataAccessException e) {
-            throw switch (PostgresqlErrorType.from(e)) {
-                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData.getIdentity(), record, e,
+            throw ExceptionUtils.handleException(e, () -> switch (PostgresqlErrorType.from(e)) {
+                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData.getIdentity(), record,
                         dslContext);
-                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData.getIdentity(), record, e);
-                default -> e;
-            };
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData.getIdentity(), record);
+                case FOREIGN_KEY_CONSTRAINT_VIOLATION -> handleForeignKeyViolation(application, entityData.getIdentity(), record,
+                        dslContext);
+                default -> null;
+            });
         }
 
         // add relations owned by other entities
@@ -403,129 +406,236 @@ public class JOOQQueryEngine implements QueryEngine {
                     newValue
             );
         } catch (DataAccessException e) {
-            throw switch (PostgresqlErrorType.from(e)) {
-                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, data.getIdentity(), updatedFields, e, dslContext);
-                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, data.getIdentity(), updatedFields, e);
-                default -> e;
-            };
+            throw ExceptionUtils.handleException(e, () -> switch (PostgresqlErrorType.from(e)) {
+                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, data.getIdentity(), updatedFields,
+                        dslContext);
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, data.getIdentity(), updatedFields);
+                default -> null;
+            });
         }
     }
 
     private RequiredConstraintViolationException handleNotNullConstraintViolation(@NonNull Application application,
             @NonNull EntityIdentity entityIdentity,
-            @NonNull Record entityData, DataAccessException exception) {
-        return ExceptionUtils.handleException(exception, () -> {
-            var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
-            Map<Field<?>, PropertyPath> requiredFieldsMapping = entity
-                    .nestedAttributes(SimpleAttribute.class)
-                    .filter(e -> e.getAttribute().hasConstraint(RequiredConstraint.class))
-                    .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
+            @NonNull Record entityData) {
+        /*
+            The conceptual way how this function works to collect all required field violations:
+            1. Gather all required attributes (and relations that map to a column in our table)
+            2. For every required column, check if the record that we inserted contains a non-null value
+         */
+        var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
+        Map<Field<?>, PropertyPath> requiredFieldsMapping = entity
+                .nestedAttributes(SimpleAttribute.class)
+                .filter(e -> e.getAttribute().hasConstraint(RequiredConstraint.class))
+                .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
 
-            for(var relation: application.getRelationsForSourceEntity(entity)) {
-                if(relation.getSourceEndPoint().isRequired() &&
-                        JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
-                ) {
-                        requiredFieldsMapping.put(
-                                hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
-                                new RelationPath(relation.getSourceEndPoint().getName(), null)
-                        );
-                    }
-
+        for(var relation: application.getRelationsForSourceEntity(entity)) {
+            if(relation.getSourceEndPoint().isRequired() &&
+                    JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
+            ) {
+                requiredFieldsMapping.put(
+                        hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
+                        new RelationPath(relation.getSourceEndPoint().getName(), null)
+                );
             }
 
-            return ExceptionUtils.createMultiple(requiredFieldsMapping.entrySet(), entry -> {
-                if (entityData.get(entry.getKey()) != null) {
-                    return null;
-                }
-                return new RequiredConstraintViolationException(
-                        entityIdentity.getEntityName(),
-                        entityIdentity.getEntityId(),
-                        entry.getValue()
-                );
-            }).orElse(null);
-        });
+        }
+
+        return ExceptionUtils.createMultiple(requiredFieldsMapping.entrySet(), entry -> {
+            if (entityData.get(entry.getKey()) != null) {
+                return null;
+            }
+            return new RequiredConstraintViolationException(
+                    entityIdentity.getEntityName(),
+                    entityIdentity.getEntityId(),
+                    entry.getValue()
+            );
+        }).orElse(null);
     }
 
     private UniqueConstraintViolationException handleUniqueConstraintViolation(@NonNull Application application,
             @NonNull EntityIdentity entityIdentity,
-            @NonNull Record entityData, DataAccessException exception, @NonNull DSLContext dslContext) {
-        return ExceptionUtils.handleException(exception, () -> {
-            var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
-            Map<Field<?>, PropertyPath> uniqueFieldsMapping = entity
-                    .nestedAttributes(SimpleAttribute.class)
-                    .filter(attr -> attr.getAttribute().hasConstraint(UniqueConstraint.class))
-                    .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
+            @NonNull Record entityData, @NonNull DSLContext dslContext) {
+        /*
+            The conceptual way how this function works to collect all unique constraint violations committed by the entity being saved:
+            1. Gather all unique attributes (and relations that are stored as a column in our table)
+            2. For every unique column, try to find the entity currently holding on to the value that we are trying to save
+            3. All other entities that we can find for this are the unique constraint violations
 
-            for (var relation : application.getRelationsForSourceEntity(entity)) {
-                // Only one-to-one relations have a unique constraint
-                if(relation instanceof OneToOneRelation &&
-                        JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
-                ) {
-                        uniqueFieldsMapping.put(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
-                                new RelationPath(relation.getSourceEndPoint()
-                                        .getName(), null));
+            Implementation:
+            To efficiently look up all entities, we want to do this in a single database query.
+
+            We could try this with a simple SELECT * FROM table WHERE unique_attr1 = value1 OR unique_attr2 = value2 OR ...
+            However, when a row is returned, this doesn't tell us *which* attribute caused the unique constraint violation.
+            We would have to do the attribute comparison again in code (and that gets complicated because of normalization on strings)
+            Additionally, a single row could be implicated for multiple unique constraint violations
+
+            Instead, we generate a bunch of queries:
+             - SELECT id, version, 'unique_attr1' as _field_name_x FROM table WHERE unique_attr1 = value1
+             - SELECT id, version, 'unique_attr2' as _field_name_x FROM table WHERE unique_attr2 = value2
+            and then tie them together with a UNION ALL between them.
+
+            Every returned row cleanly maps to back a single unique field that was violated (via _field_name_x).
+            We can pull the EntityIdentity from the returned id and version.
+
+            Sidenote: because these are unique fields, we know that each query will only return zero or one item.
+            So the maximum amount of data returned is limited by the number of unique fields, not by the size of the dataset.
+
+         */
+        var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
+        Map<Field<?>, PropertyPath> uniqueFieldsMapping = entity
+                .nestedAttributes(SimpleAttribute.class)
+                .filter(attr -> attr.getAttribute().hasConstraint(UniqueConstraint.class))
+                .collect(Collectors.toMap(e -> JOOQUtils.resolveField(e.getAttribute()), Entry::getPath));
+
+        for (var relation : application.getRelationsForSourceEntity(entity)) {
+            // Only one-to-one relations have a unique constraint
+            if(relation instanceof OneToOneRelation &&
+                    JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
+            ) {
+                uniqueFieldsMapping.put(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
+                        new RelationPath(relation.getSourceEndPoint()
+                                .getName(), null));
+            }
+
+        }
+
+        var primaryKeyField = JOOQUtils.resolvePrimaryKey(entity);
+        var versionField = JOOQUtils.resolveVersionField(entity)
+                .orElse(DSL.val(null, Long.class).as(DSL.name("_no_version_"+UUID.randomUUID())));
+        var identificationField = DSL.field(DSL.name("_field_name_"+UUID.randomUUID()), String.class);
+
+        var maybeQuery = uniqueFieldsMapping.entrySet().stream()
+                .flatMap(entry -> {
+                    Field<?> field = entry.getKey();
+                    if(entityData.get(field) == null) {
+                        return Stream.empty();
                     }
 
-            }
-
-            var primaryKeyField = JOOQUtils.resolvePrimaryKey(entity);
-            var versionField = JOOQUtils.resolveVersionField(entity)
-                    .orElse(DSL.val(null, Long.class).as(DSL.name("_no_version_"+UUID.randomUUID())));
-            var identificationField = DSL.field(DSL.name("_field_name_"+UUID.randomUUID()), String.class);
+                    var fieldName = field.getName();
+                    Field<?> value = DSL.val(entityData.get(field), field.getDataType());
 
 
-            var maybeQuery = uniqueFieldsMapping.entrySet().stream()
-                    .flatMap(entry -> {
-                        Field<?> field = entry.getKey();
-                        var fieldName = field.getName();
-                        Field<?> value = DSL.val(entityData.get(field), field.getDataType());
+                    if(field.getDataType().isString()) {
+                        field = JOOQUtils.normalize(field);
+                        value = JOOQUtils.normalize(value);
+                    }
 
+                    // Try to find the other entity (that is currently holding the unique value)
+                    return Stream.<SelectUnionStep<Record3<UUID, Long, String>>>of(
+                            DSL.select(
+                                            primaryKeyField,
+                                            versionField,
+                                            DSL.val(fieldName).as(identificationField)
+                                    )
+                                    .from(JOOQUtils.resolveTable(entity))
+                                    .where(field.equal((Field)value))
+                                    .and(primaryKeyField.notEqual(entityIdentity.getEntityId().getValue()))
+                    );
+                })
+                // The select statements generated above are all packed into one query with UNION ALL
+                .reduce(SelectUnionStep::unionAll);
+
+        if(maybeQuery.isEmpty()) {
+            // There is no query to execute, because there is no potentially unique field at all
+            return null;
+        }
+
+        var results = dslContext.fetch(maybeQuery.get());
+
+        return ExceptionUtils.createMultiple(results, result -> {
+            var propertyPath = uniqueFieldsMapping.entrySet()
+                    .stream()
+                    .filter(e -> Objects.equals(e.getKey().getName(), result.get(identificationField)))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElseThrow();
+            return new UniqueConstraintViolationException(
+                    entityIdentity.getEntityName(),
+                    entityIdentity.getEntityId(),
+                    propertyPath,
+                    EntityIdentity.forEntity(
+                            entity.getName(),
+                            EntityId.of(result.get(primaryKeyField))
+                    ).withVersion(EntityVersionUtils.getVersion(result.get(versionField)))
+            );
+        }).orElse(null);
+    }
+
+    private QueryEngineException handleForeignKeyViolation(@NonNull Application application,
+            @NonNull EntityIdentity entityIdentity, @NonNull Record entityData,
+            DSLContext dslContext) {
+        /*
+            The conceptual way how this function works to collect all foreign key violations committed by the entity
+            1. Collect all relations that are stored as a field in our table
+            2. For each relation, perform a query on the target side to find the entity that is being referenced
+            3. All queries that don't return any data don't actually exist and are foreign key violations
+
+            Implementation:
+            To efficiently look up all entities, we want to do this in a single database query.
+
+            To do this, we generate a bunch of queries:
+            - SELECT 'relation1' as _field_name FROM target_entity1 WHERE id = relation_value1
+            - SELECT 'relation2' as _field_name FROM target_entity2 WHERE id = relation_value2
+            and then combine them together using UNION ALL
+
+            We can now compare the returned rows with our relations.
+            All relations that *aren't* present in the rows are a foreign key violation.
+
+         */
+        var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
+
+        Map<Field<UUID>, Relation> fieldRelationMap = application.getRelationsForSourceEntity(entity).stream()
+                .flatMap(relation -> {
+                    if(JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef) {
+                        var field = hasSourceTableColumnRef.getSourceTableColumnRef(application, relation);
                         if(entityData.get(field) == null) {
+                            // Don't consider relations that don't have any data.
+                            // They can't be foreign key violations (non-null violations are handled elsewhere)
                             return Stream.empty();
                         }
+                        return Stream.of(Map.entry(field, relation));
+                    } else {
+                        return Stream.empty();
+                    }
+                }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                        if(field.getDataType().isString()) {
-                            field = JOOQUtils.normalize(field);
-                            value = JOOQUtils.normalize(value);
-                        }
+        var identificationField = DSL.field(DSL.name("_field_name"), String.class);
 
-                        return Stream.<SelectUnionStep<Record3<UUID, Long, String>>>of(
-                                DSL.select(
-                                                primaryKeyField,
-                                                versionField,
-                                                DSL.val(fieldName).as(identificationField)
-                                        )
-                                        .from(JOOQUtils.resolveTable(entity))
-                                        .where(field.equal((Field)value))
-                        );
-                    })
-                    .reduce(SelectUnionStep::unionAll);
+        var maybeQuery = fieldRelationMap.entrySet().stream()
+                .<SelectUnionStep<Record1<String>>>map(entry -> {
+                    var field = entry.getKey();
+                    var value = DSL.val(entityData.get(entry.getKey()), field.getDataType());
 
-            if(maybeQuery.isEmpty()) {
-                // There is no query to execute, because there is no potentially unique field at all
-                return null;
-            }
+                    var targetEntity = application.getRelationTargetEntity(entry.getValue());
+                    var targetEntityTable = JOOQUtils.resolveTable(targetEntity);
+                    var targetEntityPk = JOOQUtils.resolvePrimaryKey(targetEntity);
 
-            var results = dslContext.fetch(maybeQuery.get());
+                    return DSL.select(
+                                    DSL.val(field.getName()).as(identificationField)
+                            ).from(targetEntityTable)
+                            .where(targetEntityPk.eq(value));
+                })
+                .reduce(SelectUnionStep::unionAll);
 
-            return ExceptionUtils.createMultiple(results, result -> {
-                var propertyPath = uniqueFieldsMapping.entrySet()
-                        .stream()
-                        .filter(e -> Objects.equals(e.getKey().getName(), result.get(identificationField)))
-                        .map(Map.Entry::getValue)
-                        .findFirst()
-                        .orElseThrow();
-                return new UniqueConstraintViolationException(
-                        entityIdentity.getEntityName(),
-                        entityIdentity.getEntityId(),
-                        propertyPath,
-                        EntityIdentity.forEntity(
-                                entity.getName(),
-                                EntityId.of(result.get(primaryKeyField))
-                        ).withVersion(EntityVersionUtils.getVersion(result.get(versionField)))
-                );
-            }).orElse(null);
-        });
+        if (maybeQuery.isEmpty()) {
+            // There is no query to execute, because there are no relations stored in our table at all
+            return null;
+        }
+
+        var results = dslContext.fetchValues(maybeQuery.get());
+
+        // We can remove the fields that we received from our fieldRelationMap
+        // Going further, this will be our map of relations that have FK violations
+        fieldRelationMap.entrySet().removeIf(e -> results.contains(e.getKey().getName()));
+
+        return ExceptionUtils.createMultiple(
+                fieldRelationMap.entrySet(),
+                entry -> new EntityIdNotFoundException(
+                        entry.getValue().getTargetEndPoint().getEntity(),
+                        EntityId.of(entityData.get(entry.getKey()))
+                )
+        ).orElse(null);
     }
 
     private Version previousVersion(@NonNull Version version, long versionIncrement) {
