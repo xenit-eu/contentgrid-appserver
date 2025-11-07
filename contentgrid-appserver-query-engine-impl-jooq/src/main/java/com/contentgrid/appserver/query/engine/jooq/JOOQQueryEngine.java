@@ -661,38 +661,33 @@ public class JOOQQueryEngine implements QueryEngine {
         var table = JOOQUtils.resolveTable(entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
-        getByIdRequired(application, entityRequest, permitDeletePredicate);
+        assertPermission(application, entityRequest, permitDeletePredicate);
 
-        try {
-            // Remove relations that reference this entity
-            for (var relation : application.getRelationsForSourceEntity(entity)) {
-                var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-                // If data is not stored in the table of this entity, cascade-delete it
-                // Do not delete relations that are stored in this entity, as the row will be deleted anyway,
-                // and we might run into relations that are required on this side (and thus can't be cleared)
-                if(!(strategy instanceof HasSourceTableColumnRef<?>)) {
-                    strategy.delete(dslContext, application, relation, entityRequest.getEntityId());
-                }
+        // Remove relations that reference this entity
+        for (var relation : application.getRelationsForSourceEntity(entity)) {
+            var strategy = JOOQRelationStrategyFactory.forRelation(relation);
+            // If data is not stored in the row of this entity, cascade-delete it
+            // Do not delete relations that are stored in this entity, as the row will be deleted anyway,
+            // and we might run into relations that are required on this side (and thus can't be cleared)
+            if(!(strategy instanceof HasSourceTableColumnRef<?>)) {
+                strategy.delete(dslContext, application, relation, entityRequest.getEntityId());
             }
-
-
-            var deleted = dslContext.deleteFrom(table)
-                    .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
-                    .returning(JOOQUtils.resolveAttributeFields(entity))
-                    .fetchOptionalMap()
-                    .map(result -> EntityDataMapper.from(entity, result))
-                    .map(checkVersionSatisfied(entityRequest));
-
-            deleted.ifPresent(data -> deleteEventConsumer.onEntityDelete(application, data));
-
-            return deleted;
-
-        } catch (DataAccessException e) {
-            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
-                // TODO: handle this
-            }
-            throw e;
         }
+
+        // No foreign key constraint violation can be thrown here anymore,
+        // because all relations that reference the entity and are not stored in our own table have
+        // already been removed (or failed with an exception) above.
+        var deleted = dslContext.deleteFrom(table)
+                .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
+                .returning(JOOQUtils.resolveAttributeFields(entity))
+                .fetchOptionalMap()
+                .map(result -> EntityDataMapper.from(entity, result))
+                .map(checkVersionSatisfied(entityRequest));
+
+        deleted.ifPresent(data -> deleteEventConsumer.onEntityDelete(application, data));
+
+        return deleted;
+
     }
 
     /**
@@ -795,7 +790,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
 
-        if (relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
+        if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
             var expectedId = findTargetWithoutPermissionCheck(application, relationRequest)
                     .map(entityIdAndVersion -> ExpectedId.exactly(entityIdAndVersion.entityId()))
                     .orElse(ExpectedId.exactly(null));
