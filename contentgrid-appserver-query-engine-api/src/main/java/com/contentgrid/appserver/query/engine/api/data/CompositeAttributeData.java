@@ -14,7 +14,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class CompositeAttributeData implements AttributeData {
+public class CompositeAttributeData implements AttributeData, HasAttributesData {
 
     @NonNull
     AttributeName name;
@@ -33,10 +33,12 @@ public class CompositeAttributeData implements AttributeData {
         }
     }
 
+    @Override
     public List<AttributeData> getAttributes() {
         return List.copyOf(attributes.values());
     }
 
+    @Override
     public Optional<AttributeData> getAttributeByName(AttributeName name) {
         return Optional.ofNullable(attributes.get(name));
     }

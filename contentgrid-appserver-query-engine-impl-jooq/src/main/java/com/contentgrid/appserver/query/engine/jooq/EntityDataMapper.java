@@ -52,13 +52,7 @@ public class EntityDataMapper {
         return JOOQUtils.resolveVersionField(entity)
                 .map(versionField -> {
                     var versionFieldData = (Long)data.get(versionField.getName());
-
-                    if(versionFieldData == null) {
-                        // No data of the version field is returned, or the version field is null
-                        return Version.unspecified();
-                    }
-
-                    return Version.exactly(Long.toString(versionFieldData, Character.MAX_RADIX));
+                    return EntityVersionUtils.getVersion(versionFieldData);
                 })
                 .orElse(Version.unspecified());
     }

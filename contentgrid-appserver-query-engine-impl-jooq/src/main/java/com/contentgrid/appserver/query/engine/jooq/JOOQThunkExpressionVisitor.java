@@ -36,7 +36,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -67,8 +66,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
-                    left = normalize(left);
-                    right = normalize(right);
+                    left = JOOQUtils.normalize(left);
+                    right = JOOQUtils.normalize(right);
                 }
                 yield ((Field<Object>) left).equal((Field<Object>) right);
             }
@@ -77,8 +76,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
-                    left = normalize(left);
-                    right = normalize(right);
+                    left = JOOQUtils.normalize(left);
+                    right = JOOQUtils.normalize(right);
                 }
                 yield ((Field<Object>) left).notEqual((Field<Object>) right);
             }
@@ -111,7 +110,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = (Array) functionExpression.getTerms().getLast().accept(this, context);
                 if (left.getDataType().getType().equals(String.class)) {
-                    left = normalize(left);
+                    left = JOOQUtils.normalize(left);
                     // right side is already normalized in the visit function if needed
                 }
                 yield left.eq(DSL.any(right));
@@ -193,8 +192,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
                     var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
                     var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                    var leftField = prefixSearchNormalize(left);
-                    var rightField = prefixSearchNormalize(right);
+                    var leftField = JOOQUtils.prefixSearchNormalize(left);
+                    var rightField = JOOQUtils.prefixSearchNormalize(right);
                     yield leftField.startsWith(rightField);
                 } else {
                     throw new InvalidThunkExpressionException(
@@ -221,16 +220,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (terms.size() != 2) {
             throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
         }
-    }
-
-    @Allow.PlainSQL
-    private static Field<String> normalize(Field<?> field) {
-        return DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
-    }
-
-    @Allow.PlainSQL
-    private static Field<String> prefixSearchNormalize(Field<?> field) {
-        return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
     }
 
     @Override
@@ -350,7 +339,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                 Field<?> field = visit(scalar, context);
                 if (field.getType().equals(String.class)) {
-                    field = normalize(field);
+                    field = JOOQUtils.normalize(field);
                 }
                 return field;
             }

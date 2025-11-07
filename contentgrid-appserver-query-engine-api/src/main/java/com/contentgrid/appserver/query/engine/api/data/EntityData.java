@@ -19,7 +19,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class EntityData {
+public class EntityData implements HasAttributesData {
     @NonNull
     EntityIdentity identity;
 
@@ -57,10 +57,12 @@ public class EntityData {
         return identity.getEntityId();
     }
 
+    @Override
     public List<AttributeData> getAttributes() {
         return List.copyOf(attributes.values());
     }
 
+    @Override
     public Optional<AttributeData> getAttributeByName(AttributeName name) {
         return Optional.ofNullable(attributes.get(name));
     }
