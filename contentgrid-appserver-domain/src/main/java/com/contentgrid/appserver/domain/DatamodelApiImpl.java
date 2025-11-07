@@ -415,17 +415,17 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
             var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(entityData.getAttributes().size());
-            for (var attribute : entityData.getAttributes()) {
+            for (var attributeData : entityData.getAttributes()) {
                 try {
                     data.put(
-                            attribute.getName().getValue(),
-                            attributeMapper.mapAttribute(attributes.get(attribute.getName()), Optional.of(attribute))
+                            attributeData.getName().getValue(),
+                            attributeMapper.mapAttribute(attributes.get(attributeData.getName()), Optional.of(attributeData))
                     );
                 } catch (InvalidPropertyDataException e) {
                     throw new IllegalStateException(
                             "Invalid data from storage for %s (attribute %s)".formatted(
                                     entityData.getIdentity(),
-                                    attribute.getName()
+                                    attributeData.getName()
                             ),
                             e
                     );
