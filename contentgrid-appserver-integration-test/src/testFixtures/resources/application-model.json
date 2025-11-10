@@ -337,45 +337,6 @@
           ]
         },
         {
-          "name": "content.size",
-          "attributePath": [
-            {
-              "name": "content",
-              "type": "attr"
-            },
-            {
-              "name": "length",
-              "type": "attr"
-            }
-          ]
-        },
-        {
-          "name": "content.mimetype",
-          "attributePath": [
-            {
-              "name": "content",
-              "type": "attr"
-            },
-            {
-              "name": "mimetype",
-              "type": "attr"
-            }
-          ]
-        },
-        {
-          "name": "content.filename",
-          "attributePath": [
-            {
-              "name": "content",
-              "type": "attr"
-            },
-            {
-              "name": "filename",
-              "type": "attr"
-            }
-          ]
-        },
-        {
           "name": "birthday",
           "attributePath": [
             {
@@ -605,19 +566,6 @@
           "attributePath": [
             {
               "name": "paid",
-              "type": "attr"
-            }
-          ]
-        },
-        {
-          "name": "content.length",
-          "attributePath": [
-            {
-              "name": "content",
-              "type": "attr"
-            },
-            {
-              "name": "length",
               "type": "attr"
             }
           ]
