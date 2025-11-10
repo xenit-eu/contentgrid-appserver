@@ -1,0 +1,1249 @@
+{
+  "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+  "applicationName": "default",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "customer",
+      "title": "Customer",
+      "collectionTitle": "Customers",
+      "description": "Company or person that acts like a client",
+      "table": "customer",
+      "pathSegment": "customers",
+      "linkName": "customer",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "name",
+          "description": "Full name of the customer",
+          "dataType": "text",
+          "columnName": "name",
+          "title": "Name"
+        },
+        {
+          "type": "simple",
+          "name": "vat",
+          "description": "VAT number of the customer",
+          "dataType": "text",
+          "columnName": "vat",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ],
+          "title": "Vat"
+        },
+        {
+          "type": "content",
+          "name": "content",
+          "pathSegment": "content",
+          "linkName": "content",
+          "idColumn": "content__id",
+          "fileNameColumn": "content__filename",
+          "mimeTypeColumn": "content__mimetype",
+          "lengthColumn": "content__length",
+          "title": "Content"
+        },
+        {
+          "type": "simple",
+          "name": "birthday",
+          "dataType": "datetime",
+          "columnName": "birthday",
+          "title": "Birthday"
+        },
+        {
+          "type": "simple",
+          "name": "gender",
+          "dataType": "text",
+          "columnName": "gender",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": [
+                "female",
+                "male"
+              ]
+            }
+          ],
+          "title": "Gender"
+        },
+        {
+          "type": "simple",
+          "name": "total_spend",
+          "description": "Total amount of money spent (in euros)",
+          "dataType": "long",
+          "columnName": "total_spend",
+          "title": "Total spend"
+        },
+        {
+          "type": "composite",
+          "name": "audit_metadata",
+          "flags": [
+            "readOnly"
+          ],
+          "attributes": [
+            {
+              "type": "user",
+              "name": "created_by",
+              "idColumn": "audit_metadata__created_by_id",
+              "namespaceColumn": "audit_metadata__created_by_ns",
+              "userNameColumn": "audit_metadata__created_by_name",
+              "flags": [
+                "creator"
+              ]
+            },
+            {
+              "type": "simple",
+              "name": "created_date",
+              "dataType": "datetime",
+              "columnName": "audit_metadata__created_date",
+              "flags": [
+                "createdDate"
+              ]
+            },
+            {
+              "type": "user",
+              "name": "last_modified_by",
+              "idColumn": "audit_metadata__last_modified_by_id",
+              "namespaceColumn": "audit_metadata__last_modified_by_ns",
+              "userNameColumn": "audit_metadata__last_modified_by_name",
+              "flags": [
+                "modifier"
+              ]
+            },
+            {
+              "type": "simple",
+              "name": "last_modified_date",
+              "dataType": "datetime",
+              "columnName": "audit_metadata__last_modified_date",
+              "flags": [
+                "modifiedDate"
+              ]
+            }
+          ],
+          "title": "Audit metadata"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "vat",
+          "attributePath": [
+            {
+              "name": "vat",
+              "type": "attr"
+            }
+          ],
+          "title": "Vat",
+          "type": "exact"
+        },
+        {
+          "name": "birthday",
+          "attributePath": [
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "title": "Birthday",
+          "type": "exact"
+        },
+        {
+          "name": "birthday~after",
+          "attributePath": [
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "greater"
+        },
+        {
+          "name": "birthday~before",
+          "attributePath": [
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "less"
+        },
+        {
+          "name": "gender",
+          "attributePath": [
+            {
+              "name": "gender",
+              "type": "attr"
+            }
+          ],
+          "title": "Gender",
+          "type": "exact"
+        },
+        {
+          "name": "invoices.number",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Number",
+          "type": "exact"
+        },
+        {
+          "name": "invoices.paid",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "paid",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Paid",
+          "type": "exact"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "vat",
+          "attributePath": [
+            {
+              "name": "vat",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "birthday",
+          "attributePath": [
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "gender",
+          "attributePath": [
+            {
+              "name": "gender",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invoice",
+      "title": "Invoice",
+      "collectionTitle": "Invoices",
+      "description": "A bill containing a counterparty and several orders",
+      "table": "invoice",
+      "pathSegment": "invoices",
+      "linkName": "invoice",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "number",
+          "description": "Identifier of the invoice",
+          "dataType": "text",
+          "columnName": "number",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "Number"
+        },
+        {
+          "type": "simple",
+          "name": "draft",
+          "dataType": "boolean",
+          "columnName": "draft",
+          "title": "Draft"
+        },
+        {
+          "type": "simple",
+          "name": "paid",
+          "dataType": "boolean",
+          "columnName": "paid",
+          "title": "Paid"
+        },
+        {
+          "type": "content",
+          "name": "content",
+          "pathSegment": "content",
+          "linkName": "content",
+          "idColumn": "content__id",
+          "fileNameColumn": "content__filename",
+          "mimeTypeColumn": "content__mimetype",
+          "lengthColumn": "content__length",
+          "title": "Content"
+        },
+        {
+          "type": "content",
+          "name": "attachment",
+          "pathSegment": "attachment",
+          "linkName": "attachment",
+          "idColumn": "attachment__id",
+          "fileNameColumn": "attachment__filename",
+          "mimeTypeColumn": "attachment__mimetype",
+          "lengthColumn": "attachment__length",
+          "title": "Attachment"
+        },
+        {
+          "type": "composite",
+          "name": "audit_metadata",
+          "flags": [
+            "readOnly"
+          ],
+          "attributes": [
+            {
+              "type": "user",
+              "name": "created_by",
+              "idColumn": "audit_metadata__created_by_id",
+              "namespaceColumn": "audit_metadata__created_by_ns",
+              "userNameColumn": "audit_metadata__created_by_name",
+              "flags": [
+                "creator"
+              ]
+            },
+            {
+              "type": "simple",
+              "name": "created_date",
+              "dataType": "datetime",
+              "columnName": "audit_metadata__created_date",
+              "flags": [
+                "createdDate"
+              ]
+            },
+            {
+              "type": "user",
+              "name": "last_modified_by",
+              "idColumn": "audit_metadata__last_modified_by_id",
+              "namespaceColumn": "audit_metadata__last_modified_by_ns",
+              "userNameColumn": "audit_metadata__last_modified_by_name",
+              "flags": [
+                "modifier"
+              ]
+            },
+            {
+              "type": "simple",
+              "name": "last_modified_date",
+              "dataType": "datetime",
+              "columnName": "audit_metadata__last_modified_date",
+              "flags": [
+                "modifiedDate"
+              ]
+            }
+          ],
+          "title": "Audit metadata"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "number",
+          "attributePath": [
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Number",
+          "type": "exact"
+        },
+        {
+          "name": "paid",
+          "attributePath": [
+            {
+              "name": "paid",
+              "type": "attr"
+            }
+          ],
+          "title": "Paid",
+          "type": "exact"
+        },
+        {
+          "name": "counterparty.vat",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "vat",
+              "type": "attr"
+            }
+          ],
+          "title": "Counterparty: Vat",
+          "type": "exact"
+        },
+        {
+          "name": "counterparty.birthday",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "title": "Counterparty: Birthday",
+          "type": "exact"
+        },
+        {
+          "name": "counterparty.birthday~after",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "greater"
+        },
+        {
+          "name": "counterparty.birthday~before",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "less"
+        },
+        {
+          "name": "counterparty.gender",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "gender",
+              "type": "attr"
+            }
+          ],
+          "title": "Counterparty: Gender",
+          "type": "exact"
+        },
+        {
+          "name": "_internal_customer__invoices",
+          "attributePath": [
+            {
+              "name": "counterparty",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "number",
+          "attributePath": [
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "paid",
+          "attributePath": [
+            {
+              "name": "paid",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "order",
+      "title": "Order",
+      "collectionTitle": "Orders",
+      "table": "order",
+      "pathSegment": "orders",
+      "linkName": "order",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "customer.vat",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "vat",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Vat",
+          "type": "exact"
+        },
+        {
+          "name": "customer.birthday",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Birthday",
+          "type": "exact"
+        },
+        {
+          "name": "customer.birthday~after",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "greater"
+        },
+        {
+          "name": "customer.birthday~before",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "birthday",
+              "type": "attr"
+            }
+          ],
+          "type": "less"
+        },
+        {
+          "name": "customer.gender",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "gender",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Gender",
+          "type": "exact"
+        },
+        {
+          "name": "promos.promo_code",
+          "attributePath": [
+            {
+              "name": "promos",
+              "type": "rel"
+            },
+            {
+              "name": "promo_code",
+              "type": "attr"
+            }
+          ],
+          "title": "Promos: Promo code",
+          "type": "exact"
+        },
+        {
+          "name": "manual_promos.promo_code",
+          "attributePath": [
+            {
+              "name": "manual_promos",
+              "type": "rel"
+            },
+            {
+              "name": "promo_code",
+              "type": "attr"
+            }
+          ],
+          "title": "Manual promos: Promo code",
+          "type": "exact"
+        },
+        {
+          "name": "shipping_address.zip",
+          "attributePath": [
+            {
+              "name": "shipping_address",
+              "type": "rel"
+            },
+            {
+              "name": "zip",
+              "type": "attr"
+            }
+          ],
+          "title": "Shipping address: Zip",
+          "type": "exact"
+        },
+        {
+          "name": "_internal_customer__orders",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_invoice__orders",
+          "attributePath": [
+            {
+              "name": "_internal_invoice__orders",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "promotion-campaign",
+      "title": "Promotion campaign",
+      "collectionTitle": "Promotion campaigns",
+      "table": "promotion_campaign",
+      "pathSegment": "promotion-campaigns",
+      "linkName": "promotion-campaign",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "promo_code",
+          "dataType": "text",
+          "columnName": "promo_code",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "Promo code"
+        },
+        {
+          "type": "simple",
+          "name": "description",
+          "dataType": "text",
+          "columnName": "description",
+          "title": "Description"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "promo_code",
+          "attributePath": [
+            {
+              "name": "promo_code",
+              "type": "attr"
+            }
+          ],
+          "title": "Promo code",
+          "type": "exact"
+        },
+        {
+          "name": "_internal_order__promos",
+          "attributePath": [
+            {
+              "name": "_internal_order__promos",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_order__manualPromos",
+          "attributePath": [
+            {
+              "name": "_internal_order__manualPromos",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "promo_code",
+          "attributePath": [
+            {
+              "name": "promo_code",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "title": "Refund",
+      "collectionTitle": "Refunds",
+      "table": "refund",
+      "pathSegment": "refunds",
+      "linkName": "refund",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "invoice.number",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Number",
+          "type": "exact"
+        },
+        {
+          "name": "invoice.paid",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "paid",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Paid",
+          "type": "exact"
+        }
+      ]
+    },
+    {
+      "name": "shipping-address",
+      "title": "Shipping address",
+      "collectionTitle": "Shipping addresses",
+      "table": "shipping_address",
+      "pathSegment": "shipping-addresses",
+      "linkName": "shipping-address",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "street",
+          "dataType": "text",
+          "columnName": "street",
+          "title": "Street"
+        },
+        {
+          "type": "simple",
+          "name": "zip",
+          "dataType": "text",
+          "columnName": "zip",
+          "title": "Zip"
+        },
+        {
+          "type": "simple",
+          "name": "city",
+          "dataType": "text",
+          "columnName": "city",
+          "title": "City"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "zip",
+          "attributePath": [
+            {
+              "name": "zip",
+              "type": "attr"
+            }
+          ],
+          "title": "Zip",
+          "type": "exact"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "zip",
+          "attributePath": [
+            {
+              "name": "zip",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shipping-label",
+      "title": "Shipping label",
+      "collectionTitle": "Shipping labels",
+      "table": "shipping_label",
+      "pathSegment": "shipping-labels",
+      "linkName": "shipping-label",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "from",
+          "dataType": "text",
+          "columnName": "from",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "From"
+        },
+        {
+          "type": "simple",
+          "name": "to",
+          "dataType": "text",
+          "columnName": "to",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "To"
+        },
+        {
+          "type": "content",
+          "name": "barcode_picture",
+          "pathSegment": "barcode-picture",
+          "linkName": "barcode_picture",
+          "idColumn": "barcode_picture__id",
+          "fileNameColumn": "barcode_picture__filename",
+          "mimeTypeColumn": "barcode_picture__mimetype",
+          "lengthColumn": "barcode_picture__length",
+          "title": "Barcode picture"
+        },
+        {
+          "type": "content",
+          "name": "package",
+          "pathSegment": "package",
+          "linkName": "package",
+          "idColumn": "package__id",
+          "fileNameColumn": "package__filename",
+          "mimeTypeColumn": "package__mimetype",
+          "lengthColumn": "package__length",
+          "title": "Package"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "from",
+          "attributePath": [
+            {
+              "name": "from",
+              "type": "attr"
+            }
+          ],
+          "title": "From",
+          "type": "exact"
+        },
+        {
+          "name": "to",
+          "attributePath": [
+            {
+              "name": "to",
+              "type": "attr"
+            }
+          ],
+          "title": "To",
+          "type": "exact"
+        },
+        {
+          "name": "parent.from",
+          "attributePath": [
+            {
+              "name": "parent",
+              "type": "rel"
+            },
+            {
+              "name": "from",
+              "type": "attr"
+            }
+          ],
+          "title": "Parent: From",
+          "type": "exact"
+        },
+        {
+          "name": "parent.to",
+          "attributePath": [
+            {
+              "name": "parent",
+              "type": "rel"
+            },
+            {
+              "name": "to",
+              "type": "attr"
+            }
+          ],
+          "title": "Parent: To",
+          "type": "exact"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "from",
+          "attributePath": [
+            {
+              "name": "from",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "to",
+          "attributePath": [
+            {
+              "name": "to",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "orders",
+        "pathSegment": "orders",
+        "entityName": "customer",
+        "title": "Orders",
+        "linkName": "orders"
+      },
+      "targetEndpoint": {
+        "name": "customer",
+        "pathSegment": "customer",
+        "entityName": "order",
+        "title": "Customer",
+        "linkName": "customer"
+      },
+      "sourceReference": "customer"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "invoices",
+        "pathSegment": "invoices",
+        "entityName": "customer",
+        "title": "Invoices",
+        "linkName": "invoices"
+      },
+      "targetEndpoint": {
+        "name": "counterparty",
+        "pathSegment": "counterparty",
+        "entityName": "invoice",
+        "title": "Counterparty",
+        "description": "Client that has to pay the invoice",
+        "linkName": "counterparty",
+        "flags": [
+          "required"
+        ]
+      },
+      "sourceReference": "counterparty"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "orders",
+        "pathSegment": "orders",
+        "entityName": "invoice",
+        "title": "Orders",
+        "description": "Orders of the invoice",
+        "linkName": "orders"
+      },
+      "targetEndpoint": {
+        "name": "_internal_invoice__orders",
+        "entityName": "order",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "sourceReference": "_invoice_id__orders"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "promos",
+        "pathSegment": "promos",
+        "entityName": "order",
+        "title": "Promos",
+        "linkName": "promos"
+      },
+      "targetEndpoint": {
+        "name": "_internal_order__promos",
+        "entityName": "promotion-campaign",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "joinTable": "order__promos",
+      "sourceReference": "order_id",
+      "targetReference": "promotion_campaign_id"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "manual_promos",
+        "pathSegment": "manual-promos",
+        "entityName": "order",
+        "title": "Manual promos",
+        "linkName": "manual_promos"
+      },
+      "targetEndpoint": {
+        "name": "_internal_order__manualPromos",
+        "entityName": "promotion-campaign",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "joinTable": "order__manual_promos",
+      "sourceReference": "order_id",
+      "targetReference": "promotion_campaign_id"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "shipping_address",
+        "pathSegment": "shipping-address",
+        "entityName": "order",
+        "title": "Shipping address",
+        "linkName": "shipping_address"
+      },
+      "targetEndpoint": {
+        "name": "order",
+        "pathSegment": "order",
+        "entityName": "shipping-address",
+        "title": "Order",
+        "linkName": "order"
+      },
+      "targetReference": "shipping_address"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "invoice",
+        "pathSegment": "invoice",
+        "entityName": "refund",
+        "title": "Invoice",
+        "linkName": "invoice",
+        "flags": [
+          "required"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "refund",
+        "pathSegment": "refund",
+        "entityName": "invoice",
+        "title": "Refund",
+        "linkName": "refund"
+      },
+      "targetReference": "invoice"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "shipping-label",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "parent",
+        "pathSegment": "parent",
+        "entityName": "shipping-label",
+        "title": "Parent",
+        "linkName": "parent"
+      },
+      "sourceReference": "parent"
+    }
+  ]
+}

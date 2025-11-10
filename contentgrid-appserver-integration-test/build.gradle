@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+    id 'java-test-fixtures'
+    id 'org.springframework.boot'
+}
+
+dependencies {
+
+    testFixturesImplementation project(':contentgrid-appserver-spring-boot-starter')
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.hamcrest:hamcrest'
+}
+
+bootRun {
+    systemProperty('spring.profiles.active', 'bootRun')
+}

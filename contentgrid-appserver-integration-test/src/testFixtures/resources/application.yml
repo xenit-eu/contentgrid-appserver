@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:15:///
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+contentgrid:
+  appserver:
+    application-model: classpath:application-model.json
+    content:
+      encryption:
+        enabled: true
+    content-store:
+      type: ephemeral
+    query-engine:
+      bootstrap-tables: true
+  thunx:
+    abac:
+      source: none
+server:
+  port: ${PORT:8080}
+  max-http-request-header-size: 10MB
