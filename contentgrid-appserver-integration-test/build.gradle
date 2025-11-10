@@ -9,10 +9,14 @@ dependencies {
 
     testFixturesImplementation project(':contentgrid-appserver-spring-boot-starter')
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.hamcrest:hamcrest'
-}
+    testImplementation project(':contentgrid-appserver-domain')
 
-bootRun {
-    systemProperty('spring.profiles.active', 'bootRun')
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.hateoas:spring-hateoas'
+    testImplementation 'org.springframework:spring-tx'
+    testImplementation 'org.hamcrest:hamcrest'
+    testImplementation 'org.testcontainers:junit-jupiter:1.21.3'
+    testImplementation 'org.testcontainers:minio:1.21.3'
+    testImplementation 'io.minio:minio'
 }
