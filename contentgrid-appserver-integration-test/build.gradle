@@ -10,6 +10,7 @@ dependencies {
     testFixturesImplementation project(':contentgrid-appserver-spring-boot-starter')
 
     testImplementation project(':contentgrid-appserver-domain')
+    testImplementation testFixtures(project(':contentgrid-appserver-rest'))
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
