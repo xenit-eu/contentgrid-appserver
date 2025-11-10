@@ -5,7 +5,7 @@
   "entities": [
     {
       "name": "customer",
-      "title": "Customer",
+      "title": "Client",
       "collectionTitle": "Customers",
       "description": "Company or person that acts like a client",
       "table": "customer",
@@ -36,7 +36,7 @@
           "description": "Full name of the customer",
           "dataType": "text",
           "columnName": "name",
-          "title": "Name"
+          "title": "Customer name"
         },
         {
           "type": "simple",
@@ -52,7 +52,7 @@
               "type": "unique"
             }
           ],
-          "title": "Vat"
+          "title": "VAT number"
         },
         {
           "type": "content",
@@ -94,7 +94,7 @@
           "description": "Total amount of money spent (in euros)",
           "dataType": "long",
           "columnName": "total_spend",
-          "title": "Total spend"
+          "title": "Total Amount Spent"
         },
         {
           "type": "composite",
@@ -154,7 +154,52 @@
               "type": "attr"
             }
           ],
-          "title": "Vat",
+          "title": "VAT number",
+          "type": "exact"
+        },
+        {
+          "name": "content.size",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
+              "type": "attr"
+            }
+          ],
+          "title": "Content Length",
+          "type": "exact"
+        },
+        {
+          "name": "content.mimetype",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "mimetype",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer Document Mimetype",
+          "type": "exact"
+        },
+        {
+          "name": "content.filename",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "filename",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer Document Filename",
           "type": "exact"
         },
         {
@@ -169,26 +214,6 @@
           "type": "exact"
         },
         {
-          "name": "birthday~after",
-          "attributePath": [
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "greater"
-        },
-        {
-          "name": "birthday~before",
-          "attributePath": [
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "less"
-        },
-        {
           "name": "gender",
           "attributePath": [
             {
@@ -198,6 +223,40 @@
           ],
           "title": "Gender",
           "type": "exact"
+        },
+        {
+          "name": "orders",
+          "attributePath": [
+            {
+              "name": "orders",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "invoices.$$id",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
         },
         {
           "name": "invoices.number",
@@ -228,6 +287,43 @@
           ],
           "title": "Invoices: Paid",
           "type": "exact"
+        },
+        {
+          "name": "invoices.content.length",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Content Length",
+          "type": "exact"
+        },
+        {
+          "name": "invoices.orders.id",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "orders",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact"
         }
       ],
       "sortableFields": [
@@ -236,6 +332,45 @@
           "attributePath": [
             {
               "name": "vat",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "content.size",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "content.mimetype",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "mimetype",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "content.filename",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "filename",
               "type": "attr"
             }
           ]
@@ -334,7 +469,7 @@
           "fileNameColumn": "attachment__filename",
           "mimeTypeColumn": "attachment__mimetype",
           "lengthColumn": "attachment__length",
-          "title": "Attachment"
+          "title": "Attached File"
         },
         {
           "type": "composite",
@@ -409,80 +544,22 @@
           "type": "exact"
         },
         {
-          "name": "counterparty.vat",
+          "name": "content.length",
           "attributePath": [
             {
-              "name": "counterparty",
-              "type": "rel"
+              "name": "content",
+              "type": "attr"
             },
             {
-              "name": "vat",
+              "name": "length",
               "type": "attr"
             }
           ],
-          "title": "Counterparty: Vat",
+          "title": "Content Length",
           "type": "exact"
         },
         {
-          "name": "counterparty.birthday",
-          "attributePath": [
-            {
-              "name": "counterparty",
-              "type": "rel"
-            },
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "title": "Counterparty: Birthday",
-          "type": "exact"
-        },
-        {
-          "name": "counterparty.birthday~after",
-          "attributePath": [
-            {
-              "name": "counterparty",
-              "type": "rel"
-            },
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "greater"
-        },
-        {
-          "name": "counterparty.birthday~before",
-          "attributePath": [
-            {
-              "name": "counterparty",
-              "type": "rel"
-            },
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "less"
-        },
-        {
-          "name": "counterparty.gender",
-          "attributePath": [
-            {
-              "name": "counterparty",
-              "type": "rel"
-            },
-            {
-              "name": "gender",
-              "type": "attr"
-            }
-          ],
-          "title": "Counterparty: Gender",
-          "type": "exact"
-        },
-        {
-          "name": "_internal_customer__invoices",
+          "name": "counterparty",
           "attributePath": [
             {
               "name": "counterparty",
@@ -497,6 +574,20 @@
           "flags": [
             "hidden"
           ]
+        },
+        {
+          "name": "orders.id",
+          "attributePath": [
+            {
+              "name": "orders",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact"
         }
       ],
       "sortableFields": [
@@ -514,6 +605,19 @@
           "attributePath": [
             {
               "name": "paid",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "content.length",
+          "attributePath": [
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
               "type": "attr"
             }
           ]
@@ -560,7 +664,64 @@
               "type": "attr"
             }
           ],
-          "title": "Customer: Vat",
+          "title": "Customer: VAT number",
+          "type": "exact"
+        },
+        {
+          "name": "customer.content.size",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Content Length",
+          "type": "exact"
+        },
+        {
+          "name": "customer.content.mimetype",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "mimetype",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Customer Document Mimetype",
+          "type": "exact"
+        },
+        {
+          "name": "customer.content.filename",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "filename",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Customer Document Filename",
           "type": "exact"
         },
         {
@@ -579,34 +740,6 @@
           "type": "exact"
         },
         {
-          "name": "customer.birthday~after",
-          "attributePath": [
-            {
-              "name": "customer",
-              "type": "rel"
-            },
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "greater"
-        },
-        {
-          "name": "customer.birthday~before",
-          "attributePath": [
-            {
-              "name": "customer",
-              "type": "rel"
-            },
-            {
-              "name": "birthday",
-              "type": "attr"
-            }
-          ],
-          "type": "less"
-        },
-        {
           "name": "customer.gender",
           "attributePath": [
             {
@@ -619,36 +752,6 @@
             }
           ],
           "title": "Customer: Gender",
-          "type": "exact"
-        },
-        {
-          "name": "promos.promo_code",
-          "attributePath": [
-            {
-              "name": "promos",
-              "type": "rel"
-            },
-            {
-              "name": "promo_code",
-              "type": "attr"
-            }
-          ],
-          "title": "Promos: Promo code",
-          "type": "exact"
-        },
-        {
-          "name": "manual_promos.promo_code",
-          "attributePath": [
-            {
-              "name": "manual_promos",
-              "type": "rel"
-            },
-            {
-              "name": "promo_code",
-              "type": "attr"
-            }
-          ],
-          "title": "Manual promos: Promo code",
           "type": "exact"
         },
         {
@@ -667,7 +770,7 @@
           "type": "exact"
         },
         {
-          "name": "_internal_customer__orders",
+          "name": "customer._id",
           "attributePath": [
             {
               "name": "customer",
@@ -684,10 +787,61 @@
           ]
         },
         {
-          "name": "_internal_invoice__orders",
+          "name": "invoice._id",
           "attributePath": [
             {
-              "name": "_internal_invoice__orders",
+              "name": "__internal_invoice_id",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "promos._id",
+          "attributePath": [
+            {
+              "name": "promos",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "manual_promos._id",
+          "attributePath": [
+            {
+              "name": "manualPromos",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "shipping_address._id",
+          "attributePath": [
+            {
+              "name": "shipping_address",
               "type": "rel"
             },
             {
@@ -707,8 +861,8 @@
       "title": "Promotion campaign",
       "collectionTitle": "Promotion campaigns",
       "table": "promotion_campaign",
-      "pathSegment": "promotion-campaigns",
-      "linkName": "promotion-campaign",
+      "pathSegment": "promotions",
+      "linkName": "promotion",
       "primaryKey": {
         "type": "simple",
         "name": "id",
@@ -719,15 +873,6 @@
         ]
       },
       "attributes": [
-        {
-          "type": "simple",
-          "name": "_version",
-          "dataType": "long",
-          "columnName": "_version",
-          "flags": [
-            "eTag"
-          ]
-        },
         {
           "type": "simple",
           "name": "promo_code",
@@ -761,10 +906,10 @@
           "type": "exact"
         },
         {
-          "name": "_internal_order__promos",
+          "name": "orders",
           "attributePath": [
             {
-              "name": "_internal_order__promos",
+              "name": "orders",
               "type": "rel"
             },
             {
@@ -778,10 +923,10 @@
           ]
         },
         {
-          "name": "_internal_order__manualPromos",
+          "name": "ordersWithManualPromos",
           "attributePath": [
             {
-              "name": "_internal_order__manualPromos",
+              "name": "ordersWithManualPromos",
               "type": "rel"
             },
             {
@@ -823,17 +968,7 @@
           "readOnly"
         ]
       },
-      "attributes": [
-        {
-          "type": "simple",
-          "name": "_version",
-          "dataType": "long",
-          "columnName": "_version",
-          "flags": [
-            "eTag"
-          ]
-        }
-      ],
+      "attributes": [],
       "searchFilters": [
         {
           "name": "invoice.number",
@@ -864,6 +999,25 @@
           ],
           "title": "Invoice: Paid",
           "type": "exact"
+        },
+        {
+          "name": "invoice.content.length",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "content",
+              "type": "attr"
+            },
+            {
+              "name": "length",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Content Length",
+          "type": "exact"
         }
       ]
     },
@@ -884,15 +1038,6 @@
         ]
       },
       "attributes": [
-        {
-          "type": "simple",
-          "name": "_version",
-          "dataType": "long",
-          "columnName": "_version",
-          "flags": [
-            "eTag"
-          ]
-        },
         {
           "type": "simple",
           "name": "street",
@@ -957,15 +1102,6 @@
         ]
       },
       "attributes": [
-        {
-          "type": "simple",
-          "name": "_version",
-          "dataType": "long",
-          "columnName": "_version",
-          "flags": [
-            "eTag"
-          ]
-        },
         {
           "type": "simple",
           "name": "from",
@@ -1121,7 +1257,7 @@
         "name": "counterparty",
         "pathSegment": "counterparty",
         "entityName": "invoice",
-        "title": "Counterparty",
+        "title": "Sent by",
         "description": "Client that has to pay the invoice",
         "linkName": "counterparty",
         "flags": [
@@ -1141,13 +1277,13 @@
         "linkName": "orders"
       },
       "targetEndpoint": {
-        "name": "_internal_invoice__orders",
+        "name": "__internal_invoice_id",
         "entityName": "order",
         "flags": [
           "hidden"
         ]
       },
-      "sourceReference": "_invoice_id__orders"
+      "sourceReference": "__invoice_id__orders"
     },
     {
       "type": "many-to-many",
@@ -1159,7 +1295,7 @@
         "linkName": "promos"
       },
       "targetEndpoint": {
-        "name": "_internal_order__promos",
+        "name": "orders",
         "entityName": "promotion-campaign",
         "flags": [
           "hidden"
@@ -1172,14 +1308,14 @@
     {
       "type": "many-to-many",
       "sourceEndpoint": {
-        "name": "manual_promos",
+        "name": "manualPromos",
         "pathSegment": "manual-promos",
         "entityName": "order",
         "title": "Manual promos",
-        "linkName": "manual_promos"
+        "linkName": "manual-promos"
       },
       "targetEndpoint": {
-        "name": "_internal_order__manualPromos",
+        "name": "ordersWithManualPromos",
         "entityName": "promotion-campaign",
         "flags": [
           "hidden"
@@ -1193,10 +1329,10 @@
       "type": "one-to-one",
       "sourceEndpoint": {
         "name": "shipping_address",
-        "pathSegment": "shipping-address",
+        "pathSegment": "shippingAddress",
         "entityName": "order",
         "title": "Shipping address",
-        "linkName": "shipping_address"
+        "linkName": "shipping-address"
       },
       "targetEndpoint": {
         "name": "order",
