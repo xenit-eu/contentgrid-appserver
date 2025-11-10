@@ -1,0 +1,18 @@
+package com.contentgrid.appserver.integration.test.matchers;
+
+import org.springframework.test.web.servlet.result.HeaderResultMatchers;
+
+public class ExtendedHeaderResultMatchers extends HeaderResultMatchers {
+
+    public static ExtendedHeaderResultMatchers headers() {
+        return new ExtendedHeaderResultMatchers();
+    }
+
+    public LocationHeaderMatcher location() {
+        return new LocationHeaderMatcher();
+    }
+
+    public ETagHeaderMatcher etag() {
+        return new ETagHeaderMatcher();
+    }
+}
