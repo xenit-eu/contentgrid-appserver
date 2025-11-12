@@ -2,10 +2,14 @@ package com.contentgrid.appserver.integration.test.fixture.invoicing;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.ContentApi;
+import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MultipleRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
@@ -15,9 +19,11 @@ import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +39,8 @@ public class InvoicingApi {
 
     // TODO: use MockMvc?
     private final DatamodelApi datamodelApi;
+
+    private final ContentApi contentApi;
 
     private final ApplicationResolver applicationResolver;
 
@@ -148,5 +156,62 @@ public class InvoicingApi {
             return MissingDataEntry.INSTANCE;
         }
         return new MultipleRelationDataEntry(targetEntity, List.copyOf(targetIds));
+    }
+
+    private void storeContent(EntityName entityName, EntityId id, AttributeName attributeName, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        var application = getApplication();
+        var file = new FileDataEntry(filename, mimetype, () -> inputStream);
+        contentApi.update(application, entityName, id, attributeName, Version.unspecified(), file, AuthorizationContext.allowAll());
+    }
+
+    private Optional<Content> findContent(EntityName entityName, EntityId id, AttributeName attributeName) {
+        var application = getApplication();
+        return contentApi.find(application, entityName, id, attributeName, AuthorizationContext.allowAll());
+    }
+
+    public void storeCustomerContent(EntityId id, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        this.storeContent(EntityName.of("customer"), id, AttributeName.of("content"), filename, mimetype, inputStream);
+    }
+
+    public Optional<Content> findCustomerContent(EntityId id) {
+        return this.findContent(EntityName.of("customer"), id, AttributeName.of("content"));
+    }
+
+    public void storeInvoiceContent(EntityId id, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        this.storeContent(EntityName.of("invoice"), id, AttributeName.of("content"), filename, mimetype, inputStream);
+    }
+
+    public Optional<Content> findInvoiceContent(EntityId id) {
+        return this.findContent(EntityName.of("invoice"), id, AttributeName.of("content"));
+    }
+
+    public void storeInvoiceAttachment(EntityId id, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        this.storeContent(EntityName.of("invoice"), id, AttributeName.of("attachment"), filename, mimetype, inputStream);
+    }
+
+    public Optional<Content> findInvoiceAttachment(EntityId id) {
+        return this.findContent(EntityName.of("invoice"), id, AttributeName.of("attachment"));
+    }
+
+    public void storeShippingLabelBarcodePicture(EntityId id, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        this.storeContent(EntityName.of("shipping-label"), id, AttributeName.of("barcode_picture"), filename, mimetype, inputStream);
+    }
+
+    public Optional<Content> findShippingLabelBarcodePicture(EntityId id) {
+        return this.findContent(EntityName.of("shipping-label"), id, AttributeName.of("barcode_picture"));
+    }
+
+    public void storeShippingLabelPackage(EntityId id, String filename, String mimetype, InputStream inputStream)
+            throws InvalidPropertyDataException {
+        this.storeContent(EntityName.of("shipping-label"), id, AttributeName.of("package"), filename, mimetype, inputStream);
+    }
+
+    public Optional<Content> findShippingLabelPackage(EntityId id) {
+        return this.findContent(EntityName.of("shipping-label"), id, AttributeName.of("package"));
     }
 }
