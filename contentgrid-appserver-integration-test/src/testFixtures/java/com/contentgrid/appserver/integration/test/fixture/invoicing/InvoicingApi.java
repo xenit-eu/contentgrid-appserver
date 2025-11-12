@@ -1,10 +1,13 @@
 package com.contentgrid.appserver.integration.test.fixture.invoicing;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -12,16 +15,16 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MultipleRelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -75,12 +79,6 @@ public class InvoicingApi {
 
     public Optional<EntityInstance> findPromotionCampaignByPromoCode(String promoCode) {
         return this.findByAttribute(EntityName.of("promotion-campaign"), "promo_code", promoCode);
-    }
-
-    public Optional<EntityInstance> findOrderById(EntityId id) {
-        var application = getApplication();
-        return (Optional<EntityInstance>) datamodelApi.findById(application,
-                EntityRequest.forEntity(EntityName.of("order"), id), AuthorizationContext.allowAll());
     }
 
     private EntityInstance create(EntityName entityName, Map<String, Object> properties)
@@ -160,11 +158,12 @@ public class InvoicingApi {
         return new RelationDataEntry(targetEntity, targetId);
     }
 
-    private DataEntry convertRelation(EntityName targetEntity, Collection<EntityId> targetIds) {
+    private Object convertRelation(EntityName targetEntity, Collection<EntityId> targetIds) {
         if (targetIds == null) {
             return MissingDataEntry.INSTANCE;
         }
-        return new MultipleRelationDataEntry(targetEntity, List.copyOf(targetIds));
+        // TODO: use MultipleRelationDataEntry once supported
+        return targetIds.stream().map(targetId -> new RelationDataEntry(targetEntity, targetId)).toList();
     }
 
     private Optional<EntityInstance> findTarget(EntityName entityName, EntityId entityId, RelationName relationName) {
@@ -205,6 +204,9 @@ public class InvoicingApi {
     }
 
     public void deleteAll() {
+        // TODO: Many-to-many join tables need to be empty before you can delete all entity instances
+        clearManyToManyRelation(EntityName.of("order"), RelationName.of("promos"));
+        clearManyToManyRelation(EntityName.of("order"), RelationName.of("manualPromos"));
         deleteAll(EntityName.of("refund"));
         deleteAll(EntityName.of("order"));
         deleteAll(EntityName.of("invoice"));
@@ -225,11 +227,39 @@ public class InvoicingApi {
         }
     }
 
+    private void clearManyToManyRelation(EntityName entityName, RelationName relationName) {
+        // Clear join table by finding all source entities, and then deleting all targets for each source entity
+        var application = getApplication();
+        var sourceEntity = application.getRequiredEntityByName(entityName);
+        var relation = application.getRequiredRelationForEntity(entityName, relationName);
+        var targetEntity = application.getRequiredEntityByName(relation.getTargetEndPoint().getEntity());
+        var pagination = new EncodedCursorPagination(null, 100, SortData.unsorted());
+        var filterPath = new RelationPath(relation.getTargetEndPoint().getName(),
+                new SimpleAttributePath(sourceEntity.getPrimaryKey().getName()));
+        var searchFilter = targetEntity.getSearchFilters().stream()
+                .filter(AttributeSearchFilter.class::isInstance)
+                .map(AttributeSearchFilter.class::cast)
+                .filter(filter -> filter.getAttributePath().equals(filterPath))
+                .findFirst()
+                .orElseThrow();
+        var allSources = datamodelApi.findAll(application, sourceEntity, Map.of(), pagination, AuthorizationContext.allowAll());
+        for (var source : allSources.getContent()) {
+            var sourceId = source.getIdentity().getEntityId();
+            var params = Map.of(searchFilter.getName().getValue(), List.of(sourceId.toString()));
+            var targets = datamodelApi.findAll(application, targetEntity, params, pagination, AuthorizationContext.allowAll());
+            var targetIds = targets.getContent().stream()
+                    .map(EntityInstance::getIdentity)
+                    .map(EntityIdentity::getEntityId)
+                    .collect(Collectors.toSet());
+            datamodelApi.removeRelationItems(application, RelationRequest.forRelation(entityName, sourceId, relationName), targetIds, AuthorizationContext.allowAll());
+        }
+    }
+
     private void storeContent(EntityName entityName, EntityId id, AttributeName attributeName, String filename, String mimetype, InputStream inputStream)
             throws InvalidPropertyDataException {
         var application = getApplication();
         var file = new FileDataEntry(filename, mimetype, () -> inputStream);
-        contentApi.update(application, entityName, id, attributeName, Version.unspecified(), file, AuthorizationContext.allowAll());
+        contentApi.update(application, entityName, id, attributeName, VersionConstraint.ANY, file, AuthorizationContext.allowAll());
     }
 
     private Optional<Content> findContent(EntityName entityName, EntityId id, AttributeName attributeName) {
