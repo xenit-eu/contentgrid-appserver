@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -19,6 +20,7 @@ import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -48,12 +50,20 @@ public class InvoicingApi {
         return applicationResolver.resolve(ApplicationName.of("default"));
     }
 
-    private Optional<EntityInstance> findByAttribute(EntityName entityName, String filterName, String value) {
+    private List<EntityInstance> findAll(EntityName entityName, String filterName, String value) {
         var application = getApplication();
         var entity = application.getRequiredEntityByName(entityName);
-        var pagination = new EncodedCursorPagination(null, 1, SortData.unsorted());
+        var pagination = new EncodedCursorPagination(null, 100, SortData.unsorted());
         return datamodelApi.findAll(application, entity, Map.of(filterName, List.of(value)), pagination, AuthorizationContext.allowAll())
-                .getContent().stream().findFirst();
+                .getContent();
+    }
+
+    private Optional<EntityInstance> findByAttribute(EntityName entityName, String filterName, String value) {
+        var results = findAll(entityName, filterName, value);
+        if (results.size() > 1) {
+            throw new IllegalStateException("Expected one result, got %s".formatted(results.size()));
+        }
+        return results.stream().findFirst();
     }
 
     public Optional<EntityInstance> findCustomerByVat(String vat) {
@@ -156,6 +166,43 @@ public class InvoicingApi {
             return MissingDataEntry.INSTANCE;
         }
         return new MultipleRelationDataEntry(targetEntity, List.copyOf(targetIds));
+    }
+
+    private Optional<EntityInstance> findTarget(EntityName entityName, EntityId entityId, RelationName relationName) {
+        var application = getApplication();
+        var relation = application.getRequiredRelationForEntity(entityName, relationName);
+        var targetEntity = relation.getTargetEndPoint().getEntity();
+        return datamodelApi.findRelationTarget(application, relation, entityId, AuthorizationContext.allowAll())
+                .flatMap(targetId -> datamodelApi.findById(
+                        application, EntityRequest.forEntity(targetEntity, targetId), AuthorizationContext.allowAll()
+                ));
+    }
+
+    public Optional<EntityInstance> findInvoiceCounterparty(EntityId invoiceId) {
+        return findTarget(EntityName.of("invoice"), invoiceId, RelationName.of("counterparty"));
+    }
+
+    public List<EntityInstance> findInvoiceOrders(EntityId invoiceId) {
+        return findAll(EntityName.of("order"), "invoice._id", invoiceId.toString());
+    }
+
+    public Optional<EntityInstance> findOrderCustomer(EntityId orderId) {
+        return findTarget(EntityName.of("order"), orderId, RelationName.of("customer"));
+    }
+
+    public List<EntityInstance> findOrderPromos(EntityId orderId) {
+        return findAll(EntityName.of("promotion-campaign"), "orders", orderId.toString());
+    }
+
+    public Optional<EntityInstance> findOrderShippingAddress(EntityId orderId) {
+        return findTarget(EntityName.of("order"), orderId, RelationName.of("shipping_address"));
+    }
+
+    public void setShippingLabelParent(EntityId shippingLabelId, EntityId parentId) {
+        var application = getApplication();
+        datamodelApi.setRelation(application, RelationRequest.forRelation(
+                EntityName.of("shipping-label"), shippingLabelId, RelationName.of("parent")
+                ), parentId, AuthorizationContext.allowAll());
     }
 
     private void storeContent(EntityName entityName, EntityId id, AttributeName attributeName, String filename, String mimetype, InputStream inputStream)
