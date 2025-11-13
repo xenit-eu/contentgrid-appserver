@@ -99,11 +99,7 @@ class InvoicingApiApplicationTest {
     static EntityId XENIT_ID, INBEV_ID;
     static EntityId ORDER_1_ID, ORDER_2_ID;
     static EntityId INVOICE_1_ID, INVOICE_2_ID;
-
-
-    static final String PROMO_XMAS = "XMAS-2022";
-    static final String PROMO_SHIPPING = "FREE-SHIP";
-    static final String PROMO_CYBER = "CYBER-MON";
+    static EntityId PROMO_XMAS_ID, PROMO_SHIPPING_ID, PROMO_CYBER_ID;
 
     static EntityId ADDRESS_ID_XENIT;
 
@@ -159,9 +155,10 @@ class InvoicingApiApplicationTest {
             client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
             BUCKET_CREATED = true;
         }
-        invoicingApi.createPromotionCampaign(PROMO_XMAS, "10% off ");
-        invoicingApi.createPromotionCampaign(PROMO_SHIPPING, "Free Shipping");
-        var promoCyber = invoicingApi.createPromotionCampaign(PROMO_CYBER, "Cyber Monday");
+        PROMO_XMAS_ID = invoicingApi.createPromotionCampaign("XMAS-2022", "10% off ").getIdentity().getEntityId();
+        PROMO_SHIPPING_ID = invoicingApi.createPromotionCampaign("FREE-SHIP", "Free Shipping").getIdentity().getEntityId();
+        var promoCyber = invoicingApi.createPromotionCampaign("CYBER-MON", "Cyber Monday");
+        PROMO_CYBER_ID = promoCyber.getIdentity().getEntityId();
 
         var xenit = invoicingApi.createCustomer("XeniT", ORG_XENIT_VAT);
         var inbev = invoicingApi.createCustomer("AB InBev", ORG_INBEV_VAT);
@@ -371,7 +368,6 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
-            @Disabled("Providing multi-value associations during creation is not possible")
             void createOrder_withPromoCodes_shouldReturn_http201_created() throws Exception {
                 var customerId = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
 
@@ -379,14 +375,12 @@ class InvoicingApiApplicationTest {
                                 .content("""
                                         {
                                             "customer": "/customers/%s",
-                                            "_links": {
-                                                "d:promos" : [
-                                                    { "href": "/promotions/XMAS-2022" },
-                                                    { "href": "/promotions/FREE-SHIP" }
-                                                ]
-                                            }
+                                            "promos" : [
+                                                "/promotions/%s",
+                                                "/promotions/%s"
+                                            ]
                                         }
-                                        """.formatted(customerId))
+                                        """.formatted(customerId, PROMO_XMAS_ID, PROMO_SHIPPING_ID))
                                 .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isCreated())
                         .andExpect(headers().location().path("/orders/{id}"))
@@ -752,12 +746,12 @@ class InvoicingApiApplicationTest {
                                             {
                                                 "_links": {
                                                     "promos" : [
-                                                        { "href": "/promotions/XMAS-2022" },
-                                                        { "href": "/promotions/FREE-SHIP" }
+                                                        { "href": "/promotions/%s" },
+                                                        { "href": "/promotions/%s" }
                                                     ]
                                                 }
                                             }
-                                            """)
+                                            """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
 
                             )
                             .andExpect(status().isNoContent());
@@ -771,9 +765,9 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType("text/uri-list")
                                     .content("""
-                                            /promotions/XMAS-2022
-                                            /promotions/FREE-SHIP
-                                            """)
+                                            /promotions/%s
+                                            /promotions/%s
+                                            """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
                             )
                             .andExpect(status().isNoContent());
 
@@ -880,12 +874,12 @@ class InvoicingApiApplicationTest {
                                             {
                                                 "_links": {
                                                     "promos" : [
-                                                        { "href": "/promotions/XMAS-2022" },
-                                                        { "href": "/promotions/FREE-SHIP" }
+                                                        { "href": "/promotions/%s" },
+                                                        { "href": "/promotions/%s" }
                                                     ]
                                                 }
                                             }
-                                            """)
+                                            """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
 
                             )
                             .andExpect(status().isNoContent());
@@ -899,9 +893,9 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType("text/uri-list")
                                     .content("""
-                                            /promotions/XMAS-2022
-                                            /promotions/FREE-SHIP
-                                            """)
+                                            /promotions/%s
+                                            /promotions/%s
+                                            """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
 
                             )
                             .andExpect(status().isNoContent());
@@ -1020,21 +1014,19 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
-                @Disabled("See ACC-451")
                 void getPromoById_forOrder_shouldReturn_http302_redirect() throws Exception {
 
-                    invoicingApi.findPromotionCampaignByPromoCode(PROMO_CYBER).orElseThrow();
-
-                    mockMvc.perform(get("/orders/{id}/promos/{promoCode}", ORDER_1_ID, PROMO_CYBER)
+                    mockMvc.perform(get("/orders/{id}/promos/{promoId}", ORDER_1_ID, PROMO_CYBER_ID)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isFound())
-                            .andExpect(headers().location().uri("http://localhost/promotions/{promoCode}", PROMO_XMAS));
+                            .andExpect(headers().location().uri("http://localhost/promotions/{promoId}",
+                                    PROMO_CYBER_ID));
 
                 }
 
                 @Test
                 void getPromoById_forOrder_invalidId_shouldReturn_http404_notFound() throws Exception {
-                    mockMvc.perform(get("/orders/{id}/promos/{promoCode}", ORDER_1_ID, PROMO_XMAS)
+                    mockMvc.perform(get("/orders/{id}/promos/{promoId}", ORDER_1_ID, PROMO_XMAS_ID)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNotFound());
 
@@ -1082,7 +1074,6 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                @Disabled("ACC-453")
                 void deleteShippingAddressByWrongId_fromOrder_shouldReturn_http404() throws Exception {
                     assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
                             assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)

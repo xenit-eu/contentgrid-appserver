@@ -77,10 +77,6 @@ public class InvoicingApi {
         return this.findByAttribute(EntityName.of("invoice"), "number", number);
     }
 
-    public Optional<EntityInstance> findPromotionCampaignByPromoCode(String promoCode) {
-        return this.findByAttribute(EntityName.of("promotion-campaign"), "promo_code", promoCode);
-    }
-
     private EntityInstance create(EntityName entityName, Map<String, Object> properties)
             throws QueryEngineException, InvalidPropertyDataException {
         var application = getApplication();
