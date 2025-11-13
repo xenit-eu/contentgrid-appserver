@@ -276,7 +276,7 @@ public class JOOQQueryEngine implements QueryEngine {
                         relationRequest,
                         xToOneRelationData.getRef(),
                         Scalar.of(true),
-                        (app, oldData, newData) -> {} // no-op: create event already dispatched
+                        (app, oldData, newData) -> {} // no-op: create event will be dispatched
                 );
                 case XToManyRelationData xToManyRelationData -> addLinks(
                         application,
@@ -519,7 +519,6 @@ public class JOOQQueryEngine implements QueryEngine {
         // Permission check
         var oldEntityData = getByIdRequired(application, relationRequest, permitUpdatePredicate);
 
-        // Version check
         var expectedId = findTargetWithoutPermissionCheck(application, relationRequest)
                 .map(entityIdAndVersion -> ExpectedId.exactly(entityIdAndVersion.entityId()))
                 .orElse(ExpectedId.exactly(null));
@@ -555,7 +554,6 @@ public class JOOQQueryEngine implements QueryEngine {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
 
         if (relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
-            // version check
             var expectedId = findTargetWithoutPermissionCheck(application, relationRequest)
                     .map(entityIdAndVersion -> ExpectedId.exactly(entityIdAndVersion.entityId()))
                     .orElse(ExpectedId.exactly(null));

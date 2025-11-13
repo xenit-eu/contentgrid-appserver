@@ -29,7 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class, ContentGridEventsAutoConfiguration.class})
+@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class})
 @ConditionalOnClass(JOOQQueryEngine.class)
 public class JOOQQueryEngineAutoConfiguration {
 

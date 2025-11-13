@@ -10,7 +10,8 @@ contentgrid:
     content-store.type: ephemeral
   system:
     policyPackage: xfb0e9318f3894300a64edba3532e6ac0
-  rabbitmq.enabled: false
+  events:
+    rabbitmq.enabled: false
 
 # spring:
 #   rabbitmq:

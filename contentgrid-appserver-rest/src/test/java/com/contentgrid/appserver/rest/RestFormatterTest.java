@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.rest;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,21 +12,17 @@ import com.contentgrid.appserver.domain.events.EntityFormatter;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.example.ContentgridApp;
-import com.contentgrid.appserver.json.model.Entity;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
 import java.util.UUID;
 import lombok.Data;
-import lombok.Getter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -40,7 +35,6 @@ import org.springframework.context.annotation.Primary;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
-        "spring.rabbitmq.host=foo",
 })
 @AutoConfigureMockMvc
 class RestFormatterTest {

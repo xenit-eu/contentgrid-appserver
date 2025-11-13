@@ -403,8 +403,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws QueryEngineException {
         var outputMapper = createOutputDataMapper(application, relation.getEntityName());
 
-        LinkEventConsumer onLink = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
 
         queryEngine.addLinks(
                 application,
@@ -420,8 +419,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws QueryEngineException {
         var outputMapper = createOutputDataMapper(application, relation.getEntityName());
 
-        UnlinkEventConsumer onUnlink = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
 
         queryEngine.removeLinks(
                 application,

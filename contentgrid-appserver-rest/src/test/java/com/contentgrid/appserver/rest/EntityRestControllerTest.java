@@ -66,7 +66,7 @@ import org.springframework.util.LinkedMultiValueMap;
 @SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
         "contentgrid.thunx.abac.source=none",
         "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.rabbitmq.enabled=false",
+        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
 @WithMockJwt

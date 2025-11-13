@@ -21,7 +21,7 @@ public class EventHandlerConfiguration {
     }
 
     @Bean
-    @ConditionalOnBooleanProperty(value = "contentgrid.rabbitmq.enabled", matchIfMissing = true)
+    @ConditionalOnBooleanProperty(value = "contentgrid.events.rabbitmq.enabled", matchIfMissing = true)
     RabbitMqEventHandlers rabbitEventHandlers(RabbitTemplate rabbitTemplate,
             ContentGridEventHandlerProperties contentGridProps,
             ObjectMapper objectMapper
