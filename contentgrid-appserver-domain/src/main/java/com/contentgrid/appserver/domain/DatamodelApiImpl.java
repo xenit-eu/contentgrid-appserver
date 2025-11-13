@@ -265,7 +265,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var outputMapper = createOutputDataMapper(application, entityName);
 
-        CreateEventConsumer onCreate = (Application app, EntityData data) -> domainEventDispatcher.dispatchCreate(app, outputMapper.mapAttributes(data));
+        CreateEventConsumer onCreate = new EventConsumerImpl(outputMapper);
         return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
     }
 
@@ -303,8 +303,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
-        UpdateEventConsumer onUpdate = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
 
         return outputMapper.mapAttributes(updateData.getUpdated());
@@ -343,8 +342,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
-        UpdateEventConsumer onUpdate = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
 
         return outputMapper.mapAttributes(updateData.getUpdated());
@@ -355,7 +353,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws EntityIdNotFoundException {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
 
-        DeleteEventConsumer onDelete = (Application app, EntityData data) -> domainEventDispatcher.dispatchDelete(app, outputMapper.mapAttributes(data));
+        DeleteEventConsumer onDelete = new EventConsumerImpl(outputMapper);
         var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate(), onDelete)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
@@ -385,8 +383,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws QueryEngineException {
         var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
 
-        LinkEventConsumer onLink = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
 
         queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
     }
@@ -396,8 +393,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws QueryEngineException {
         var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
 
-        UnlinkEventConsumer onUnlink = (Application app, EntityData oldData, EntityData newData) ->
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
 
         queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate(), onUnlink);
     }
@@ -469,4 +465,31 @@ public class DatamodelApiImpl implements DatamodelApi {
             );
         }
     }
+
+    @RequiredArgsConstructor
+    private final class EventConsumerImpl implements CreateEventConsumer, UpdateEventConsumer, DeleteEventConsumer,
+            LinkEventConsumer, UnlinkEventConsumer {
+        private final ResponseOutputDataMapper outputMapper;
+
+        public void onEntityCreate(Application app, EntityData data) {
+            domainEventDispatcher.dispatchCreate(app, outputMapper.mapAttributes(data));
+        }
+
+        public void onEntityUpdate(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+
+        public void onEntityDelete(Application app, EntityData data) {
+            domainEventDispatcher.dispatchDelete(app, outputMapper.mapAttributes(data));
+        }
+
+        public void onLink(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+
+        public void onUnlink(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+    }
+
 }

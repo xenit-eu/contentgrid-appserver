@@ -55,7 +55,8 @@ class ContentGridRestAutoConfigurationTest {
             .withUserConfiguration(TestConfiguration.class)
             .withPropertyValues(
                     "spring.datasource.url=jdbc:tc:postgresql:15:///",
-                    "contentgrid.appserver.content-store.type=ephemeral"
+                    "contentgrid.appserver.content-store.type=ephemeral",
+                    "contentgrid.rabbitmq.enabled=false"
             );
 
     @Test

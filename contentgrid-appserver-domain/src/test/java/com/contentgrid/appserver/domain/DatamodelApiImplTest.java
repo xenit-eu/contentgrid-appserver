@@ -101,10 +101,8 @@ class DatamodelApiImplTest {
     private QueryEngine queryEngine;
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private ContentStore contentStore;
-    @Mock(answer = Answers.RETURNS_SMART_NULLS)
-    private com.contentgrid.appserver.domain.events.EntityFormatter entityFormatter;
-    @Mock(answer = Answers.RETURNS_SMART_NULLS)
-    private com.contentgrid.appserver.domain.events.FormattedEventDispatcher formattedEventDispatcher;
+    @Mock
+    private DomainEventDispatcher domainEventDispatcher;
     @Spy
     private CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
 
@@ -136,7 +134,6 @@ class DatamodelApiImplTest {
 
     @BeforeEach
     void setup() {
-        var domainEventDispatcher = new DomainEventDispatcher(entityFormatter, formattedEventDispatcher);
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
                 contentStore,

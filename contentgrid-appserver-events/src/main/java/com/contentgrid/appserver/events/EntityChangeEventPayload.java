@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.events;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.TreeNode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -18,23 +17,23 @@ public class EntityChangeEventPayload {
     private final String trigger;
 
     @Getter
-    private final JsonNode old;
+    private final TreeNode old;
 
-    private final JsonNode _new;
+    private final TreeNode _new;
 
-    public JsonNode getNew() {
+    public TreeNode getNew() {
         return _new;
     }
 
-    public static EntityChangeEventPayload forCreate(@NonNull JsonNode newData) {
+    public static EntityChangeEventPayload forCreate(@NonNull TreeNode newData) {
         return new EntityChangeEventPayload(CREATE, null, newData);
     }
 
-    public static EntityChangeEventPayload forUpdate(@NonNull JsonNode oldData, @NonNull JsonNode newData) {
+    public static EntityChangeEventPayload forUpdate(@NonNull TreeNode oldData, @NonNull TreeNode newData) {
         return new EntityChangeEventPayload(UPDATE, oldData, newData);
     }
 
-    public static EntityChangeEventPayload forDelete(@NonNull JsonNode oldData) {
+    public static EntityChangeEventPayload forDelete(@NonNull TreeNode oldData) {
         return new EntityChangeEventPayload(DELETE, oldData, null);
     }
 }

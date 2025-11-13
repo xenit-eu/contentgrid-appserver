@@ -2,8 +2,8 @@ package com.contentgrid.appserver.domain.events;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.data.EntityInstance;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.TreeNode;
 
 public interface EntityFormatter {
-    JsonNode format(Application application, EntityInstance entityInstance);
+    TreeNode format(Application application, EntityInstance entityInstance);
 }

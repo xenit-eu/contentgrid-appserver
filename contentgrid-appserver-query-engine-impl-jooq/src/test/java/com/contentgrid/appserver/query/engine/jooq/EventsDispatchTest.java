@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -37,6 +38,7 @@ import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
+import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
@@ -105,18 +107,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyCreate_happy() {
-        var created = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var created = createEntityA();
         Mockito.verify(createEventConsumer).onEntityCreate(
                 eq(APPLICATION),
                 assertArg(entityData -> {
@@ -135,18 +126,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyUpdate_happy() {
-        var created = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var created = createEntityA();
 
         queryEngine.update(
                 APPLICATION,
@@ -188,9 +168,8 @@ public class EventsDispatchTest {
         assertThat(updatedAttr.getValue()).isEqualTo(456L);
     }
 
-    @Test
-    void verifyDelete_happy() {
-        var created = queryEngine.create(
+    private EntityData createEntityA() {
+        return queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
                         .entityName(ENTITY_A.getName())
@@ -202,10 +181,15 @@ public class EventsDispatchTest {
                 PERMIT_ALWAYS,
                 createEventConsumer
         );
+    }
+
+    @Test
+    void verifyDelete_happy() {
+        var created = createEntityA();
 
         queryEngine.delete(
                 APPLICATION,
-                EntityRequest.forEntity(created.getName(), created.getId()),
+                created.getIdentity().toRequest(),
                 PERMIT_ALWAYS,
                 deleteEventConsumer
         );
@@ -295,18 +279,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyUpdate_eventThrows() {
-        var created = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var created = createEntityA();
 
         Mockito.doThrow(new SomeEventFailureException()).when(updateEventConsumer)
                 .onEntityUpdate(any(), any(), any());
@@ -394,18 +367,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyDelete_eventThrows() {
-        var created = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var created = createEntityA();
 
         Mockito.doThrow(new SomeEventFailureException()).when(deleteEventConsumer)
                 .onEntityDelete(any(), any());
@@ -423,19 +385,47 @@ public class EventsDispatchTest {
     }
 
     @Test
-    void verifySetLink_happy() {
-        var createdA = queryEngine.create(
+    void verifyDelete_dbThrows() {
+        var createdB = queryEngine.create(
                 APPLICATION,
                 EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
+                        .entityName(ENTITY_B.getName())
                         .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
+                                .name(ATTRIBUTE_C.getName())
+                                .value("test")
                                 .build())
                         .build(),
                 PERMIT_ALWAYS,
                 createEventConsumer
         );
+        queryEngine.create(
+                APPLICATION,
+                EntityCreateData.builder()
+                        .entityName(ENTITY_C.getName())
+                        .relation(XToOneRelationData.builder()
+                                .name(RELATION_C_TO_B.getSourceEndPoint().getName())
+                                .ref(createdB.getId())
+                                .build())
+                        .build(),
+                PERMIT_ALWAYS,
+                createEventConsumer
+        );
+
+        assertThatThrownBy(() -> queryEngine.delete(
+                APPLICATION,
+                createdB.getIdentity().toRequest(),
+                PERMIT_ALWAYS,
+                deleteEventConsumer
+        )).isInstanceOf(QueryEngineException.class);
+
+        // Failure to delete → no events sent
+        Mockito.verify(deleteEventConsumer, Mockito.never()).onEntityDelete(any(), any());
+    }
+
+
+    @Test
+    void verifySetLink_happy() {
+        var createdA = createEntityA();
 
         var createdB = queryEngine.create(
                 APPLICATION,
@@ -467,18 +457,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyUnsetLink_happy() {
-        var createdA = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA = createEntityA();
 
         var createdB = queryEngine.create(
                 APPLICATION,
@@ -511,18 +490,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyAddLinks_happy() {
-        var createdA1 = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA1 = createEntityA();
 
         var createdA2 = queryEngine.create(
                 APPLICATION,
@@ -553,18 +521,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyRemoveLinks_happy() {
-        var createdA1 = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA1 = createEntityA();
 
         var createdA2 = queryEngine.create(
                 APPLICATION,
@@ -597,18 +554,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifySetLink_eventThrows() {
-        var createdA = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA = createEntityA();
 
         var createdB = queryEngine.create(
                 APPLICATION,
@@ -637,18 +583,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifySetLink_dbThrows() {
-        var created = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var created = createEntityA();
 
         var missing = EntityId.of(UUID.randomUUID());
         var relation = RelationRequest.forRelation(ENTITY_A.getName(), created.getId(), RELATION_A_TO_B.getSourceEndPoint().getName());
@@ -660,18 +595,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyUnsetLink_eventThrows() {
-        var createdA = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA = createEntityA();
 
         var createdB = queryEngine.create(
                 APPLICATION,
@@ -703,18 +627,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyAddLinks_eventThrows() {
-        var createdA1 = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA1 = createEntityA();
 
         var createdA2 = queryEngine.create(
                 APPLICATION,
@@ -743,18 +656,7 @@ public class EventsDispatchTest {
 
     @Test
     void verifyRemoveLinks_eventThrows() {
-        var createdA1 = queryEngine.create(
-                APPLICATION,
-                EntityCreateData.builder()
-                        .entityName(ENTITY_A.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(ATTRIBUTE_A.getName())
-                                .value(123)
-                                .build())
-                        .build(),
-                PERMIT_ALWAYS,
-                createEventConsumer
-        );
+        var createdA1 = createEntityA();
 
         var createdA2 = queryEngine.create(
                 APPLICATION,
@@ -817,6 +719,12 @@ public class EventsDispatchTest {
             .table(TableName.of("entity_b"))
             .attribute(ATTRIBUTE_C)
             .build();
+    private static final Entity ENTITY_C = Entity.builder()
+            .name(EntityName.of("entityC"))
+            .pathSegment(PathSegmentName.of("entity-c"))
+            .linkName(LinkName.of("entity-c"))
+            .table(TableName.of("entity_c"))
+            .build();
     private static final ManyToOneRelation RELATION_A_TO_B = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(ENTITY_A.getName())
@@ -845,12 +753,27 @@ public class EventsDispatchTest {
             .sourceReference(ColumnName.of("source_id"))
             .targetReference(ColumnName.of("target_id"))
             .build();
+    private static final ManyToOneRelation RELATION_C_TO_B = ManyToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_C.getName())
+                    .flag(RequiredEndpointFlag.INSTANCE)
+                    .name(RelationName.of("entityB"))
+                    .linkName(LinkName.of("entity-b"))
+                    .pathSegment(PathSegmentName.of("b"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_B.getName())
+                    .build())
+            .targetReference(ColumnName.of("entity_b_id"))
+            .build();
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("test"))
             .entity(ENTITY_A)
             .entity(ENTITY_B)
+            .entity(ENTITY_C)
             .relation(RELATION_A_TO_B)
             .relation(RELATION_A_TO_A)
+            .relation(RELATION_C_TO_B)
             .build();
 
     @SpringBootApplication

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.events.EntityFormatter;
+import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,15 +29,17 @@ public class ContentGridRestFormatterConfiguration {
             MethodLinkBuilderFactory<?> linkBuilderFactory,
             HttpMessageConverters httpMessageConverters
     ) {
-        return new RestEntityFormatter(assembler, linkBuilderFactory, httpMessageConverters);
+        var mapper = selectObjectMapperFor(httpMessageConverters, EntityDataRepresentationModel.class)
+                    .orElseThrow(() -> new IllegalStateException("No Jackson HttpMessageConverter available"));
+        return new RestEntityFormatter(assembler, linkBuilderFactory, mapper);
     }
 
 
     @RequiredArgsConstructor
-    private static class RestEntityFormatter implements EntityFormatter {
+    static class RestEntityFormatter implements EntityFormatter {
         private final EntityDataRepresentationModelAssembler assembler;
         private final MethodLinkBuilderFactory<?> linkBuilderFactory;
-        private final HttpMessageConverters httpMessageConverters;
+        private final ObjectMapper mapper;
 
         @Override
         public JsonNode format(Application application, EntityInstance entityInstance) {
@@ -45,26 +48,21 @@ public class ContentGridRestFormatterConfiguration {
             var name = entityInstance.getIdentity().getEntityName();
             var model = assembler.withContext(application, name, locales, linkFactoryProvider).toModel(entityInstance);
 
-            // TODO: Should we
-            //  - fall back to a default ObjectMapper if we can't find one?
-            //  - cache this mapper for other models?
-            var mapper = selectObjectMapperFor(model.getClass())
-                    .orElseThrow(() -> new IllegalStateException("No Jackson HttpMessageConverter available"));
-
             return mapper.valueToTree(model);
         }
 
-        private Optional<ObjectMapper> selectObjectMapperFor(Class<?> type) {
-            return httpMessageConverters.getConverters().stream()
-                    .filter(AbstractJackson2HttpMessageConverter.class::isInstance)
-                    .map(AbstractJackson2HttpMessageConverter.class::cast)
-                    .filter(converter -> converter.canWrite(type, MediaTypes.HAL_JSON))
-                    .map(converter -> converter.getObjectMappersForType(type).get(MediaTypes.HAL_JSON))
-                    .filter(Objects::nonNull)
-                    .findFirst();
-        }
-
     }
+
+    private Optional<ObjectMapper> selectObjectMapperFor(HttpMessageConverters httpMessageConverters, Class<?> type) {
+        return httpMessageConverters.getConverters().stream()
+                .filter(AbstractJackson2HttpMessageConverter.class::isInstance)
+                .map(AbstractJackson2HttpMessageConverter.class::cast)
+                .filter(converter -> converter.canWrite(type, MediaTypes.HAL_JSON))
+                .map(converter -> converter.getObjectMappersForType(type).get(MediaTypes.HAL_JSON))
+                .filter(Objects::nonNull)
+                .findFirst();
+    }
+
 
     private static class DummyLocales implements UserLocales {
 

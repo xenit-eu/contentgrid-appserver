@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.query.engine;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -28,7 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class})
+@AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class, ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass(JOOQQueryEngine.class)
 public class JOOQQueryEngineAutoConfiguration {
 

@@ -48,6 +48,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
+        "contentgrid.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
 class PermissionsPropagationTest {

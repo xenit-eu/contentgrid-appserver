@@ -92,7 +92,7 @@ class RabbitMqEventHandlersTest {
         var created = datamodelApi.create(APPLICATION, PRODUCT.getName(), data, AuthorizationContext.allowAll()).getIdentity();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
-        verify(rabbitTemplate, timeout(1000)).send(any(), any(), messageCaptor.capture());
+        verify(rabbitTemplate, timeout(1000)).send(any(), messageCaptor.capture());
 
         var message = messageCaptor.getValue();
         var headers = message.getMessageProperties().getHeaders();
@@ -119,7 +119,7 @@ class RabbitMqEventHandlersTest {
         datamodelApi.deleteEntity(APPLICATION, created.toRequest(), AuthorizationContext.allowAll());
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
-        verify(rabbitTemplate, atLeast(2)).send(any(), any(), messageCaptor.capture());
+        verify(rabbitTemplate, atLeast(2)).send(any(), messageCaptor.capture());
 
         var messages = messageCaptor.getAllValues();
         assertThat(messages).anySatisfy(message -> {
@@ -149,7 +149,7 @@ class RabbitMqEventHandlersTest {
         datamodelApi.updatePartial(APPLICATION, created.toRequest(), updateData, AuthorizationContext.allowAll());
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
-        verify(rabbitTemplate, atLeast(2)).send(any(), any(), messageCaptor.capture());
+        verify(rabbitTemplate, atLeast(2)).send(any(), messageCaptor.capture());
 
         var messages = messageCaptor.getAllValues();
         assertThat(messages).anySatisfy(message -> {
