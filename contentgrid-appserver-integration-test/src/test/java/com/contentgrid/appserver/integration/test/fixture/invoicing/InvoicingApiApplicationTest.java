@@ -927,11 +927,14 @@ class InvoicingApiApplicationTest {
             class OneToMany {
 
                 @Test
-                void deleteToManyAssoc_shouldReturn_http405_methodNotAllowed() throws Exception {
+                void deleteToManyAssoc_shouldReturn_http204() throws Exception {
+                    var id = invoiceId(INVOICE_NUMBER_1);
 
-                    mockMvc.perform(delete("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/orders")
+                    mockMvc.perform(delete("/invoices/" + id + "/orders")
                                     .accept(MediaType.APPLICATION_JSON))
-                            .andExpect(status().isMethodNotAllowed());
+                            .andExpect(status().isNoContent());
+
+                    assertThat(invoicingApi.findInvoiceOrders(id)).isEmpty();
                 }
             }
 
@@ -954,10 +957,12 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
-                void deletePromos_fromOrder_shouldReturn_http405_methodNotAllowed() throws Exception {
+                void deletePromos_fromOrder_shouldReturn_http204() throws Exception {
                     mockMvc.perform(delete("/orders/{orderId}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON))
-                            .andExpect(status().isMethodNotAllowed());
+                            .andExpect(status().isNoContent());
+
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).isEmpty();
                 }
             }
         }
@@ -1193,13 +1198,29 @@ class InvoicingApiApplicationTest {
                     ;
                 }
 
+                @Test
+                void getInvoiceContent_unsatisfiableRangeRequest_http416() throws Exception {
+                    var filename = "💩 and 📝.txt";
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
+                    var start = 50; // start > length
+                    var end = 54;
+
+                    mockMvc.perform(get("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
+                                    .accept(MediaType.ALL_VALUE)
+                                    .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end)))
+                            .andExpect(status().isRequestedRangeNotSatisfiable())
+                    ;
+                }
+
                 @ParameterizedTest
                 @CsvSource({
-                        "50,54", // start > length
                         "10,9",  // start > end
                         "-1,9",  // start < 0
                 })
-                void getInvoiceContent_invalidRangeRequest_http416(int start, int end) throws Exception {
+                void getInvoiceContent_invalidRangeRequest_http400(int start, int end) throws Exception {
                     var filename = "💩 and 📝.txt";
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
@@ -1209,7 +1230,7 @@ class InvoicingApiApplicationTest {
                     mockMvc.perform(get("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .accept(MediaType.ALL_VALUE)
                                     .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end)))
-                            .andExpect(status().isRequestedRangeNotSatisfiable())
+                            .andExpect(status().isBadRequest())
                     ;
                 }
 
@@ -1233,12 +1254,12 @@ class InvoicingApiApplicationTest {
             class Post {
 
                 @Test
-                void postInvoiceContent_textPlainUtf8_http201() throws Exception {
+                void postInvoiceContent_textPlainUtf8_http204() throws Exception {
                     mockMvc.perform(post("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1252,12 +1273,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postInvoiceContent_textPlainLatin1_http201() throws Exception {
+                void postInvoiceContent_textPlainLatin1_http204() throws Exception {
                     mockMvc.perform(post("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.ISO_8859_1)
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1272,11 +1293,11 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postInvoiceContent_textPlainLatin1_noCharset_http201() throws Exception {
+                void postInvoiceContent_textPlainLatin1_noCharset_http204() throws Exception {
                     mockMvc.perform(post("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType("text/plain")
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1293,12 +1314,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postInvoiceAttachment_secondaryContentProperty_http201() throws Exception {
+                void postInvoiceAttachment_secondaryContentProperty_http204() throws Exception {
                     mockMvc.perform(post("/invoices/{id}/attachment", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1314,7 +1335,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postInvoiceContent_update_http200() throws Exception {
+                void postInvoiceContent_update_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
                     invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
@@ -1333,7 +1354,7 @@ class InvoicingApiApplicationTest {
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .content(EXT_ASCII_TEXT))
-                            .andExpect(status().isOk());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1366,7 +1387,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postMultipartContent_http201() throws Exception {
+                void postMultipartContent_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                     assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
@@ -1375,7 +1396,7 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1389,7 +1410,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postMultipartContent_updateDifferentContentType_http200() throws Exception {
+                void postMultipartContent_updateDifferentContentType_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
                     invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, new ByteArrayInputStream(bytes));
@@ -1400,7 +1421,7 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("file", "logo.png", MediaType.IMAGE_PNG_VALUE, content);
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
-                            .andExpect(status().isOk());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1428,7 +1449,7 @@ class InvoicingApiApplicationTest {
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                                     .param("number", INVOICE_NUMBER_3)
                                     .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
                     assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
@@ -1503,12 +1524,12 @@ class InvoicingApiApplicationTest {
             class Put {
 
                 @Test
-                void putInvoiceContent_textPlainUtf8_http201() throws Exception {
+                void putInvoiceContent_textPlainUtf8_http204() throws Exception {
                     mockMvc.perform(put("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1522,12 +1543,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putInvoiceContent_textPlainLatin1_http201() throws Exception {
+                void putInvoiceContent_textPlainLatin1_http204() throws Exception {
                     mockMvc.perform(put("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.ISO_8859_1)
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1542,11 +1563,11 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putInvoiceContent_textPlainLatin1_noCharset_http201() throws Exception {
+                void putInvoiceContent_textPlainLatin1_noCharset_http204() throws Exception {
                     mockMvc.perform(put("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1563,12 +1584,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putInvoiceAttachment_secondaryContentProperty_http201() throws Exception {
+                void putInvoiceAttachment_secondaryContentProperty_http204() throws Exception {
                     mockMvc.perform(put("/invoices/{id}/attachment", invoiceId(INVOICE_NUMBER_1))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1584,7 +1605,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putInvoiceContent_update_http200() throws Exception {
+                void putInvoiceContent_update_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
                     invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
@@ -1603,7 +1624,7 @@ class InvoicingApiApplicationTest {
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .content(EXT_ASCII_TEXT))
-                            .andExpect(status().isOk());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1635,7 +1656,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putMultipartContent_http201() throws Exception {
+                void putMultipartContent_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                     assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
@@ -1644,7 +1665,7 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
                     mockMvc.perform(multipart(HttpMethod.PUT, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1658,7 +1679,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putMultipartContent_updateDifferentContentType_http200() throws Exception {
+                void putMultipartContent_updateDifferentContentType_http204() throws Exception {
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
                     invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, new ByteArrayInputStream(bytes));
@@ -1669,7 +1690,7 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("file", "logo.png", MediaType.IMAGE_PNG_VALUE, content);
                     mockMvc.perform(multipart(HttpMethod.PUT, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
-                            .andExpect(status().isOk());
+                            .andExpect(status().isNoContent());
 
                     invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
@@ -1710,9 +1731,9 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void deleteContent_noContent_http404() throws Exception {
+                void deleteContent_noContent_http204() throws Exception {
                     mockMvc.perform(delete("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1)))
-                            .andExpect(status().isNotFound());
+                            .andExpect(status().isNoContent());
                 }
 
                 @Test
@@ -1841,13 +1862,29 @@ class InvoicingApiApplicationTest {
                     ;
                 }
 
+                @Test
+                void getInvoiceContent_unsatisfiableRangeRequest_http416() throws Exception {
+                    var filename = "💩 and 📝.txt";
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
+                    var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
+                    var start = 50; // start > length
+                    var end = 54;
+
+                    mockMvc.perform(get("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
+                                    .accept(MediaType.ALL_VALUE)
+                                    .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end)))
+                            .andExpect(status().isRequestedRangeNotSatisfiable())
+                    ;
+                }
+
                 @ParameterizedTest
                 @CsvSource({
-                        "50,54", // start > length
                         "10,9",  // start > end
                         "-1,9",  // start < 0
                 })
-                void getInvoiceContent_invalidRangeRequest_http416(int start, int end) throws Exception {
+                void getInvoiceContent_invalidRangeRequest_http400(int start, int end) throws Exception {
                     var filename = "💩 and 📝.txt";
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
@@ -1857,7 +1894,7 @@ class InvoicingApiApplicationTest {
                     mockMvc.perform(get("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .accept(MediaType.ALL_VALUE)
                                     .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end)))
-                            .andExpect(status().isRequestedRangeNotSatisfiable())
+                            .andExpect(status().isBadRequest())
                     ;
                 }
 
@@ -1881,12 +1918,12 @@ class InvoicingApiApplicationTest {
             class Post {
 
                 @Test
-                void postCustomerContent_textPlainUtf8_http201() throws Exception {
+                void postCustomerContent_textPlainUtf8_http204() throws Exception {
                     mockMvc.perform(post("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
@@ -1900,7 +1937,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postCustomerContent_update_http200() throws Exception {
+                void postCustomerContent_update_http204() throws Exception {
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
                     invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
@@ -1919,7 +1956,7 @@ class InvoicingApiApplicationTest {
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .content(EXT_ASCII_TEXT))
-                            .andExpect(status().isOk());
+                            .andExpect(status().isNoContent());
 
                     customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
@@ -1951,12 +1988,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postMultipartContent_http201() throws Exception {
+                void postMultipartContent_http204() throws Exception {
                     var bytes = UNICODE_TEXT.getBytes(StandardCharsets.UTF_8);
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
                     mockMvc.perform(multipart("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .file(file))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
@@ -2005,7 +2042,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postMultipartEntityAndContent_camelCaseFieldName_http201() throws Exception {
+                void postMultipartEntityAndContent_camelCaseFieldName_http204() throws Exception {
                     var file = new MockMultipartFile("barcodePicture", "barcode.jpg", MIMETYPE_PLAINTEXT_UTF8,
                             UNICODE_TEXT.getBytes(StandardCharsets.UTF_8));
 
@@ -2013,7 +2050,7 @@ class InvoicingApiApplicationTest {
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isCreated())
+                            .andExpect(status().isNoContent())
                             .andReturn();
 
                     var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
@@ -2033,7 +2070,7 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void postMultipartEntityAndContent_reservedFieldName_http201() throws Exception {
+                void postMultipartEntityAndContent_reservedFieldName_http204() throws Exception {
                     var file = new MockMultipartFile("_package", "package.bin", MIMETYPE_PLAINTEXT_UTF8,
                             UNICODE_TEXT.getBytes(StandardCharsets.UTF_8));
 
@@ -2041,7 +2078,7 @@ class InvoicingApiApplicationTest {
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isCreated())
+                            .andExpect(status().isNoContent())
                             .andReturn();
 
                     var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
@@ -2067,12 +2104,12 @@ class InvoicingApiApplicationTest {
             class Put {
 
                 @Test
-                void putCustomerContent_textPlainUtf8_http201() throws Exception {
+                void putCustomerContent_textPlainUtf8_http204() throws Exception {
                     mockMvc.perform(put("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .contentType(MediaType.TEXT_PLAIN)
                                     .characterEncoding(StandardCharsets.UTF_8)
                                     .content(UNICODE_TEXT))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
@@ -2086,12 +2123,12 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void putMultipartContent_http201() throws Exception {
+                void putMultipartContent_http204() throws Exception {
                     var bytes = UNICODE_TEXT.getBytes(StandardCharsets.UTF_8);
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
                     mockMvc.perform(multipart(HttpMethod.PUT, "/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .file(file))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isNoContent());
 
                     var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
@@ -2125,9 +2162,9 @@ class InvoicingApiApplicationTest {
                 }
 
                 @Test
-                void deleteContent_noContent_http404() throws Exception {
+                void deleteContent_noContent_http204() throws Exception {
                     mockMvc.perform(delete("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT)))
-                            .andExpect(status().isNotFound());
+                            .andExpect(status().isNoContent());
                 }
 
                 @Test
