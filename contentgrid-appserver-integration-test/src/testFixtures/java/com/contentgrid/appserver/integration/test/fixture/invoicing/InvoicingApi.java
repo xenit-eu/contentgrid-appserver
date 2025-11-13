@@ -41,7 +41,6 @@ public class InvoicingApi {
 
     // TODO: use MockMvc?
     private final DatamodelApi datamodelApi;
-
     private final ContentApi contentApi;
 
     private final ApplicationResolver applicationResolver;
@@ -203,6 +202,27 @@ public class InvoicingApi {
         datamodelApi.setRelation(application, RelationRequest.forRelation(
                 EntityName.of("shipping-label"), shippingLabelId, RelationName.of("parent")
                 ), parentId, AuthorizationContext.allowAll());
+    }
+
+    public void deleteAll() {
+        deleteAll(EntityName.of("refund"));
+        deleteAll(EntityName.of("order"));
+        deleteAll(EntityName.of("invoice"));
+        deleteAll(EntityName.of("shipping-address"));
+        deleteAll(EntityName.of("customer"));
+        deleteAll(EntityName.of("promotion-campaign"));
+        deleteAll(EntityName.of("shipping-label"));
+    }
+
+    private void deleteAll(EntityName entityName) {
+        var application = getApplication();
+        var entity = application.getRequiredEntityByName(entityName);
+        var pagination = new EncodedCursorPagination(null, 100, SortData.unsorted());
+        var items = datamodelApi.findAll(application, entity, Map.of(), pagination, AuthorizationContext.allowAll());
+        for (var item : items.getContent()) {
+            var entityId = item.getIdentity().getEntityId();
+            datamodelApi.deleteEntity(application, EntityRequest.forEntity(entityName, entityId), AuthorizationContext.allowAll());
+        }
     }
 
     private void storeContent(EntityName entityName, EntityId id, AttributeName attributeName, String filename, String mimetype, InputStream inputStream)
