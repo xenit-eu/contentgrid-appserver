@@ -916,23 +916,11 @@ class InvoicingApiApplicationTest {
             class ManyToOne {
 
                 @Test
-                void getInvoiceCustomerById_shouldReturn_http302() throws Exception {
+                void getInvoiceCustomerById_shouldReturn_http404() throws Exception {
                     var invoiceId = invoiceId(INVOICE_NUMBER_1);
                     var counterPartyId = invoicingApi.findInvoiceCounterparty(invoiceId).orElseThrow().getIdentity().getEntityId();
 
                     mockMvc.perform(get("/invoices/" + invoiceId + "/counterparty/" + counterPartyId)
-                                    .accept(MediaType.APPLICATION_JSON))
-                            .andExpect(status().isFound())
-                            .andExpect(header().string(HttpHeaders.LOCATION,
-                                    endsWith("/customers/%s".formatted(counterPartyId))));
-                }
-
-                @Test
-                void getInvoiceCustomerByWrongId_shouldReturn_http404() throws Exception {
-                    var invoiceId = invoiceId(INVOICE_NUMBER_1);
-                    var wrongCounterparty = customerIdByVat(ORG_INBEV_VAT);
-
-                    mockMvc.perform(get("/invoices/" + invoiceId + "/counterparty/" + wrongCounterparty)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNotFound());
                 }
@@ -988,30 +976,18 @@ class InvoicingApiApplicationTest {
             class OneToOne {
 
                 @Test
-                void deleteShippingAddressById_fromOrder_shouldReturn_http204() throws Exception {
+                void deleteShippingAddressById_fromOrder_shouldReturn_http404() throws Exception {
                     assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
                             assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)
                     );
 
-                    mockMvc.perform(
-                                    delete("/orders/{orderId}/shippingAddress/{addressId}", ORDER_1_ID, ADDRESS_ID_XENIT)
-                                            .accept(MediaType.APPLICATION_JSON))
-                            .andExpect(status().isNoContent());
-
-                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).isEmpty();
-                }
-
-                @Test
-                void deleteShippingAddressByWrongId_fromOrder_shouldReturn_http404() throws Exception {
-                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
-                            assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)
-                    );
-
-                    mockMvc.perform(
-                                    delete("/orders/{orderId}/shippingAddress/{addressId}", ORDER_1_ID, UUID.randomUUID())
-                                            .accept(MediaType.APPLICATION_JSON))
+                    mockMvc.perform(delete("/orders/{orderId}/shippingAddress/{addressId}", ORDER_1_ID, ADDRESS_ID_XENIT)
+                                    .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNotFound());
 
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
+                            assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)
+                    );
                 }
             }
         }
