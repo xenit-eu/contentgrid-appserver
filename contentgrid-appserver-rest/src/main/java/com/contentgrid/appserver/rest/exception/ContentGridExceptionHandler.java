@@ -38,14 +38,12 @@ public class ContentGridExceptionHandler {
     private final MessageSourceAccessor messageSourceAccessor;
 
 
-    @ExceptionHandler({InvalidEntityDataException.class, JsonParseException.class})
+    @ExceptionHandler({JsonParseException.class})
     ResponseEntity<Problem> handleHttpMessageReadException(@NonNull Exception exception) {
         Throwable currentException = exception;
 
         while (currentException != null) {
-            if (currentException instanceof InvalidEntityDataException invalidEntityDataException) {
-                return handleMappingException(invalidEntityDataException);
-            } else if (currentException instanceof JsonParseException parseException) {
+            if (currentException instanceof JsonParseException parseException) {
                 return handleJsonParseException(parseException);
             }
             currentException = currentException.getCause();
@@ -57,18 +55,6 @@ public class ContentGridExceptionHandler {
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
         );
-    }
-
-    ResponseEntity<Problem> handleMappingException(InvalidEntityDataException exception) {
-        var problem = problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_TYPE)
-                .withStatus(HttpStatus.BAD_REQUEST);
-        log.warn("Invalid request body type:", exception);
-
-        for (String attr : exception.getInvalidAttributes()) {
-            problem = problem.withProperties(new FieldViolationProblemProperties(attr));
-        }
-
-        return createResponse(problem);
     }
 
     ResponseEntity<Problem> handleJsonParseException(JsonParseException exception) {
