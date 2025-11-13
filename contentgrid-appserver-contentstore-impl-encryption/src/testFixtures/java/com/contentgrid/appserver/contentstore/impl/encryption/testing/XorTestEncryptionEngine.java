@@ -25,7 +25,9 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
     @Override
     public EncryptionParameters createNewParameters() {
         var xorByte = new byte[1];
-        secureRandom.nextBytes(xorByte);
+        while (xorByte[0] == 0) {
+            secureRandom.nextBytes(xorByte);
+        }
 
         return new EncryptionParameters(
                 ALGORITHM,
