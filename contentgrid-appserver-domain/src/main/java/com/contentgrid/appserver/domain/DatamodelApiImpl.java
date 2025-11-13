@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -65,9 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -402,30 +399,24 @@ public class DatamodelApiImpl implements DatamodelApi {
         );
     }
 
+    @RequiredArgsConstructor
     public static class ResponseOutputDataMapper {
-        private final Map<AttributeName, Attribute> attributes;
+        private final List<Attribute> attributes;
         private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
 
-        public ResponseOutputDataMapper(List<Attribute> attributes,
-                AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper) {
-            this.attributes = attributes.stream()
-                    .collect(Collectors.toMap( Attribute::getName, Function.identity()));
-            this.attributeMapper = attributeMapper;
-        }
-
         public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
-            var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(entityData.getAttributes().size());
-            for (var attributeData : entityData.getAttributes()) {
+            var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(attributes.size());
+            for (var attribute : attributes) {
                 try {
                     data.put(
-                            attributeData.getName().getValue(),
-                            attributeMapper.mapAttribute(attributes.get(attributeData.getName()), Optional.of(attributeData))
+                            attribute.getName().getValue(),
+                            attributeMapper.mapAttribute(attribute, entityData.getAttributeByName(attribute.getName()))
                     );
                 } catch (InvalidPropertyDataException e) {
                     throw new IllegalStateException(
                             "Invalid data from storage for %s (attribute %s)".formatted(
                                     entityData.getIdentity(),
-                                    attributeData.getName()
+                                    attribute.getName()
                             ),
                             e
                     );
