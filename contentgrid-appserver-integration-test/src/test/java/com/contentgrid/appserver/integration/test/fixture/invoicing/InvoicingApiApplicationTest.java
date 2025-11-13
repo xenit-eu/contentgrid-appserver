@@ -361,7 +361,7 @@ class InvoicingApiApplicationTest {
                                 .content("""
                                         {
                                             "number": "I-2022-0003",
-                                            "counterparty": "/customers/%s"
+                                            "counterparty": "http://localhost/customers/%s"
                                         }
                                         """.formatted(customerId))
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -376,10 +376,10 @@ class InvoicingApiApplicationTest {
                 var result = mockMvc.perform(post("/orders")
                                 .content("""
                                         {
-                                            "customer": "/customers/%s",
+                                            "customer": "http://localhost/customers/%s",
                                             "promos" : [
-                                                "/promotions/%s",
-                                                "/promotions/%s"
+                                                "http://localhost/promotions/%s",
+                                                "http://localhost/promotions/%s"
                                             ]
                                         }
                                         """.formatted(customerId, PROMO_XMAS_ID, PROMO_SHIPPING_ID))
@@ -403,7 +403,7 @@ class InvoicingApiApplicationTest {
                 var customerId = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
 
                 var result = mockMvc.perform(multipart(HttpMethod.POST, "/orders")
-                                .param("customer", "/customers/" + customerId)
+                                .param("customer", "http://localhost/customers/" + customerId)
                                 .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isCreated())
                         .andExpect(headers().location().path("/orders/{id}"))
@@ -626,7 +626,7 @@ class InvoicingApiApplicationTest {
                                     .contentType(URI_LIST_MIMETYPE)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content("""
-                                            /customers/%s
+                                            http://localhost/customers/%s
                                             """.formatted(correctCustomerId)))
                             .andExpect(status().isNoContent());
                 }
@@ -647,8 +647,8 @@ class InvoicingApiApplicationTest {
                             .contentType(URI_LIST_MIMETYPE)
                             .content(
                                     """
-                                    /orders/%s
-                                    /orders/%s
+                                    http://localhost/orders/%s
+                                    http://localhost/orders/%s
                                     """.formatted(ORDER_1_ID, newOrderId)
                             )
                     ).andExpect(status().isMethodNotAllowed());
@@ -673,7 +673,7 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            /shipping-addresses/%s
+                                            http://localhost/shipping-addresses/%s
                                             """.formatted(addressId)))
                             .andExpect(status().isNoContent());
 
@@ -706,8 +706,8 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            /promotions/%s
-                                            /promotions/%s
+                                            http://localhost/promotions/%s
+                                            http://localhost/promotions/%s
                                             """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
                             )
                             .andExpect(status().isMethodNotAllowed());
@@ -732,7 +732,7 @@ class InvoicingApiApplicationTest {
                                     .contentType(URI_LIST_MIMETYPE)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content("""
-                                            /customers/%s
+                                            http://localhost/customers/%s
                                             """.formatted(correctCustomerId)))
                             .andExpect(status().isMethodNotAllowed());
                 }
@@ -756,7 +756,7 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            /orders/%s
+                                            http://localhost/orders/%s
                                             """.formatted(newOrderId)))
                             .andExpect(status().isNoContent());
 
@@ -779,7 +779,7 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            /shipping-addresses/%s
+                                            http://localhost/shipping-addresses/%s
                                             """.formatted(addressId)))
                             .andExpect(status().isMethodNotAllowed());
                 }
@@ -797,8 +797,8 @@ class InvoicingApiApplicationTest {
                                             {
                                                 "_links": {
                                                     "promos" : [
-                                                        { "href": "/promotions/%s" },
-                                                        { "href": "/promotions/%s" }
+                                                        { "href": "http://localhost/promotions/%s" },
+                                                        { "href": "http://localhost/promotions/%s" }
                                                     ]
                                                 }
                                             }
@@ -816,8 +816,8 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            /promotions/%s
-                                            /promotions/%s
+                                            http://localhost/promotions/%s
+                                            http://localhost/promotions/%s
                                             """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
 
                             )
@@ -1371,7 +1371,7 @@ class InvoicingApiApplicationTest {
                 void postMultipartEntityAndContent_missingFile_http201() throws Exception {
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                                     .param("number", INVOICE_NUMBER_3)
-                                    .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
+                                    .param("counterparty", "http://localhost/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isNoContent());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
@@ -1386,7 +1386,7 @@ class InvoicingApiApplicationTest {
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                                     .file(file)
                                     .param("number", INVOICE_NUMBER_3)
-                                    .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
+                                    .param("counterparty", "http://localhost/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isCreated());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
@@ -1411,7 +1411,7 @@ class InvoicingApiApplicationTest {
                                     .file(contentFile)
                                     .file(attachmentFile)
                                     .param("number", INVOICE_NUMBER_3)
-                                    .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
+                                    .param("counterparty", "http://localhost/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isCreated());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
