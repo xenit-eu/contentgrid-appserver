@@ -255,7 +255,7 @@ class EntityRestControllerTest {
             mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
                             .accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isCreated())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.id", notNullValue()))
                     .andExpect(jsonPath("$.name", is("Test Product")))
                     .andExpect(jsonPath("$.price", is(29.99)))
@@ -273,7 +273,7 @@ class EntityRestControllerTest {
                             .param("name", "My product")
                             .param("price", "120")
                     ).andExpect(status().isCreated())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
                     .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
                     .andExpect(jsonPath("$.picture.length", is(0)))
@@ -331,7 +331,7 @@ class EntityRestControllerTest {
                             "price", 5
                     )))
                     .andExpect(status().isCreated())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andReturn()
                     .getResponse()
                     .getHeader("Location");
@@ -399,7 +399,7 @@ class EntityRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(product)))
                     .andExpect(status().isCreated())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andReturn().getResponse().getContentAsString();
 
             // Extract ID from created entity
@@ -408,7 +408,7 @@ class EntityRestControllerTest {
             // Then retrieve it with application/hal+json
             mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(content().contentType(MediaTypes.HAL_JSON))
                     .andExpect(jsonPath("$.id", is(id)))
                     .andExpect(jsonPath("$.name", is("Retrievable Product")))
@@ -422,12 +422,13 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$._links.cg:content[1]").doesNotExist())
                     .andExpect(jsonPath("$._links.cg:relation[1]").doesNotExist())
                     .andExpect(jsonPath("$._links.curies").isArray())
-                    .andExpect(jsonPath("$._templates").doesNotExist());
+                    .andExpect(jsonPath("$._templates").doesNotExist())
+                    .andExpect(jsonPath("$._version").doesNotHaveJsonPath());
 
             // Then retrieve it with application/prs.hal-forms+json
             mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_FORMS_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(content().contentType(MediaTypes.HAL_FORMS_JSON))
                     .andExpect(jsonPath("$.id", is(id)))
                     .andExpect(jsonPath("$.name", is("Retrievable Product")))

@@ -485,6 +485,13 @@ public class ModelTestFixtures {
             .lengthColumn(ColumnName.of("picture__length"))
             .build();
 
+    public static final Attribute PRODUCT_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("_version"))
+            .type(Type.LONG)
+            .column(ColumnName.of("_version"))
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
     public static final Entity PRODUCT = Entity.builder()
             .name(EntityName.of("product"))
             .table(TableName.of("product"))
@@ -497,6 +504,7 @@ public class ModelTestFixtures {
             .attribute(PRODUCT_RELEASE_DATE)
             .attribute(PRODUCT_IN_STOCK)
             .attribute(PRODUCT_PICTURE)
+            .attribute(PRODUCT_VERSION)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("code"))
