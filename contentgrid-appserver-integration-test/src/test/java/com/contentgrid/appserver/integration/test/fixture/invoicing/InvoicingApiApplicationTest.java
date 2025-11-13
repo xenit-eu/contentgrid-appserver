@@ -1348,7 +1348,7 @@ class InvoicingApiApplicationTest {
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                                     .param("number", INVOICE_NUMBER_3)
                                     .param("counterparty", "http://localhost/customers/" + customerIdByVat(ORG_XENIT_VAT)))
-                            .andExpect(status().isNoContent());
+                            .andExpect(status().isCreated());
 
                     var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
                     assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
@@ -1949,7 +1949,7 @@ class InvoicingApiApplicationTest {
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isNoContent())
+                            .andExpect(status().isCreated())
                             .andReturn();
 
                     var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
@@ -1959,13 +1959,8 @@ class InvoicingApiApplicationTest {
                             .map(EntityId::of)
                             .orElseThrow();
 
-                    assertThat(invoicingApi.findShippingLabelBarcodePicture(shippingLabelId))
-                            .hasValueSatisfying(barcodePicture -> {
-                                assertThat(readContent(barcodePicture)).hasContent(UNICODE_TEXT);
-                                assertThat(barcodePicture.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                                assertThat(barcodePicture.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                                assertThat(barcodePicture.getFilename()).isEqualTo(file.getOriginalFilename());
-                            });
+                    // assert that camelCase field names are no longer exposed
+                    assertThat(invoicingApi.findShippingLabelBarcodePicture(shippingLabelId)).isEmpty();
                 }
 
                 @Test
@@ -1977,7 +1972,7 @@ class InvoicingApiApplicationTest {
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isNoContent())
+                            .andExpect(status().isCreated())
                             .andReturn();
 
                     var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
@@ -1987,13 +1982,8 @@ class InvoicingApiApplicationTest {
                             .map(EntityId::of)
                             .orElseThrow();
 
-                    assertThat(invoicingApi.findShippingLabelPackage(shippingLabelId))
-                            .hasValueSatisfying(pkg -> {
-                                assertThat(readContent(pkg)).hasContent(UNICODE_TEXT);
-                                assertThat(pkg.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                                assertThat(pkg.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                                assertThat(pkg.getFilename()).isEqualTo(file.getOriginalFilename());
-                            });
+                    // assert that reserved field names are no longer exposed
+                    assertThat(invoicingApi.findShippingLabelPackage(shippingLabelId)).isEmpty();
                 }
 
             }
