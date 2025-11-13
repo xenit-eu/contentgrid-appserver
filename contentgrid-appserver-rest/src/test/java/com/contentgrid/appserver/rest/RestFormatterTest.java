@@ -40,7 +40,7 @@ import org.springframework.context.annotation.Primary;
 class RestFormatterTest {
 
     @Autowired
-    EntityFormatter entityFormatter;
+    RestEntityFormatter entityFormatter;
 
     @TestConfiguration
     static class TestConfig {

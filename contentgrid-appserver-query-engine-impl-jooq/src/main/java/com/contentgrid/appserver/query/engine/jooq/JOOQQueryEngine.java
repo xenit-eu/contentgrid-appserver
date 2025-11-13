@@ -283,7 +283,7 @@ public class JOOQQueryEngine implements QueryEngine {
                         relationRequest,
                         xToManyRelationData.getRefs(),
                         Scalar.of(true),
-                        (app, oldData, newData) -> {} // no-op: create event already dispatched
+                        (app, oldData, newData) -> {} // no-op: create event will be dispatched
                 );
             }
         }

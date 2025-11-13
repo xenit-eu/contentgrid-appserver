@@ -1,10 +1,13 @@
 package com.contentgrid.appserver.autoconfigure.domain;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
+import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
@@ -15,7 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
-@AutoConfiguration
+@AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
 public class ContentGridDomainAutoConfiguration {
 
@@ -23,6 +26,21 @@ public class ContentGridDomainAutoConfiguration {
     @ConditionalOnMissingBean
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    DomainEventDispatcher noopDomainEventDispatcher() {
+        return new DomainEventDispatcher() {
+            @Override
+            public void dispatchCreate(Application application, EntityInstance instance) {}
+
+            @Override
+            public void dispatchUpdate(Application application, EntityInstance oldInstance, EntityInstance newInstance) {}
+
+            @Override
+            public void dispatchDelete(Application application, EntityInstance instance) {}
+        };
     }
 
     @Bean

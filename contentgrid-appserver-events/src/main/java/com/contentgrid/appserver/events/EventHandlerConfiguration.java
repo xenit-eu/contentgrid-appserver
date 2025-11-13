@@ -1,12 +1,11 @@
 package com.contentgrid.appserver.events;
 
+import com.contentgrid.appserver.rest.RestEntityFormatter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,11 +21,13 @@ public class EventHandlerConfiguration {
 
     @Bean
     @ConditionalOnBooleanProperty(value = "contentgrid.events.rabbitmq.enabled", matchIfMissing = true)
-    RabbitMqEventHandlers rabbitEventHandlers(RabbitTemplate rabbitTemplate,
+    @ConditionalOnBean({RestEntityFormatter.class})
+    RabbitMqEventHandlers rabbitEventHandlers(
+            RabbitTemplate rabbitTemplate,
             ContentGridEventHandlerProperties contentGridProps,
+            RestEntityFormatter formatter,
             ObjectMapper objectMapper
     ) {
-        return new RabbitMqEventHandlers(rabbitTemplate, contentGridProps, objectMapper);
+        return new RabbitMqEventHandlers(rabbitTemplate, contentGridProps, formatter, objectMapper);
     }
-
 }
