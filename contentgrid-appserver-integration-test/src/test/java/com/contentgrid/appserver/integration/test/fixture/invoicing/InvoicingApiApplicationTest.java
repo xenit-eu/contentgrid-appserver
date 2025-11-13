@@ -107,6 +107,8 @@ class InvoicingApiApplicationTest {
 
     static boolean BUCKET_CREATED = false;
 
+    static final String URI_LIST_MIMETYPE = "text/uri-list";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -616,21 +618,15 @@ class InvoicingApiApplicationTest {
             class ManyToOne {
 
                 @Test
-                void putJson_shouldReturn_http204() throws Exception {
+                void putUriList_shouldReturn_http204() throws Exception {
                     // fictive example: fix the customer
                     var correctCustomerId = invoicingApi.findCustomerByVat(ORG_INBEV_VAT).orElseThrow()
                             .getIdentity().getEntityId();
                     mockMvc.perform(put("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/counterparty")
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content("""
-                                            {
-                                                "_links": {
-                                                    "customer" : {
-                                                        "href": "/customers/%s"
-                                                    }
-                                                }
-                                            }
+                                            /customers/%s
                                             """.formatted(correctCustomerId)))
                             .andExpect(status().isNoContent());
                 }
@@ -641,56 +637,27 @@ class InvoicingApiApplicationTest {
             class OneToMany {
 
                 @Test
-                void putJson_shouldReplaceLinksAndReturn_http204_noContent() throws Exception {
-                    AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
-                    doInTransaction(() -> {
-                        var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
-                        newOrderId.set(invoicingApi.createOrder(xenit).getIdentity().getEntityId());
-                    });
-                    var invoiceNumber = invoiceId(INVOICE_NUMBER_1);
-
-                    // set the orders using PUT, using single-link object syntax
-                    mockMvc.perform(put("/invoices/%s/orders".formatted(invoiceNumber))
-                                    .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content("""
-                                            {
-                                                "_links": {
-                                                    "orders" : {
-                                                        "href": "/orders/%s"
-                                                    }
-                                                }
-                                            }
-                                            """.formatted(newOrderId)))
-                            .andExpect(status().isNoContent());
-
-                    // assert orders collection has been replaced
-                    assertThat(invoicingApi.findInvoiceOrders(invoiceNumber)).singleElement().satisfies(order ->
-                            assertThat(order.getIdentity().getEntityId()).isEqualTo(newOrderId.get())
-                    );
-                }
-
-                @Test
-                void putUriList_shouldReplaceLinksAndReturn_http204_noContent() throws Exception {
+                void putUriList_shouldReturn_http405_methodNotAllowed() throws Exception {
                     AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
                     doInTransaction(() -> {
                         var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
                         newOrderId.set(invoicingApi.createOrder(xenit).getIdentity().getEntityId());
                     });
                     mockMvc.perform(put("/invoices/{id}/orders", INVOICE_1_ID)
-                            .contentType("text/uri-list")
+                            .contentType(URI_LIST_MIMETYPE)
                             .content(
                                     """
                                     /orders/%s
                                     /orders/%s
                                     """.formatted(ORDER_1_ID, newOrderId)
                             )
-                    ).andExpect(status().isNoContent());
+                    ).andExpect(status().isMethodNotAllowed());
 
+                    // assert orders collection is left unchanged
                     assertThat(invoicingApi.findInvoiceOrders(INVOICE_1_ID))
                             .map(EntityInstance::getIdentity)
                             .map(EntityIdentity::getEntityId)
-                            .containsExactlyInAnyOrder(ORDER_1_ID, newOrderId.get());
+                            .containsExactlyInAnyOrder(ORDER_1_ID, ORDER_2_ID);
                 }
             }
 
@@ -704,15 +671,9 @@ class InvoicingApiApplicationTest {
 
                     mockMvc.perform(put("/orders/{id}/shippingAddress", ORDER_2_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            {
-                                                "_links": {
-                                                    "shippingAddress" : {
-                                                        "href": "/shipping-addresses/%s"
-                                                    }
-                                                }
-                                            }
+                                            /shipping-addresses/%s
                                             """.formatted(addressId)))
                             .andExpect(status().isNoContent());
 
@@ -725,53 +686,33 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
-                void putJson_emptyPromos_forOrder_shouldReturn_http204_noContent() throws Exception {
+                void putUriList_emptyPromos_forOrder_shouldReturn_http405_methodNotAllowed() throws Exception {
                     assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
 
                     mockMvc.perform(put("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content(""))
-                            .andExpect(status().isNoContent());
+                            .andExpect(status().isMethodNotAllowed());
 
-                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(0);
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
                 }
 
                 @Test
-                void putJson_Promos_forOrder_shouldReturn_http204_noContent() throws Exception {
+                void putUriList_Promos_forOrder_shouldReturn_http405_methodNotAllowed() throws Exception {
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
+
                     mockMvc.perform(put("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content("""
-                                            {
-                                                "_links": {
-                                                    "promos" : [
-                                                        { "href": "/promotions/%s" },
-                                                        { "href": "/promotions/%s" }
-                                                    ]
-                                                }
-                                            }
-                                            """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
-
-                            )
-                            .andExpect(status().isNoContent());
-
-                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(2);
-                }
-
-                @Test
-                void putUriList_Promos_forOrder_shouldReturn_http204_noContent() throws Exception {
-                    mockMvc.perform(put("/orders/{id}/promos", ORDER_1_ID)
-                                    .accept(MediaType.APPLICATION_JSON)
-                                    .contentType("text/uri-list")
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content("""
                                             /promotions/%s
                                             /promotions/%s
                                             """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
                             )
-                            .andExpect(status().isNoContent());
+                            .andExpect(status().isMethodNotAllowed());
 
-                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(2);
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
                 }
             }
         }
@@ -784,20 +725,14 @@ class InvoicingApiApplicationTest {
             class ManyToOne {
 
                 @Test
-                void postJson_shouldReturn_http405_methodNotAllowed() throws Exception {
+                void postUriList_shouldReturn_http405_methodNotAllowed() throws Exception {
 
                     var correctCustomerId = invoicingApi.findCustomerByVat(ORG_INBEV_VAT).orElseThrow().getIdentity().getEntityId();
                     mockMvc.perform(post("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/counterparty")
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content("""
-                                            {
-                                                "_links": {
-                                                    "customer" : {
-                                                        "href": "/customers/%s"
-                                                    }
-                                                }
-                                            }
+                                            /customers/%s
                                             """.formatted(correctCustomerId)))
                             .andExpect(status().isMethodNotAllowed());
                 }
@@ -807,7 +742,7 @@ class InvoicingApiApplicationTest {
             class OneToMany {
 
                 @Test
-                void postJson_shouldAppend_http204_noContent() throws Exception {
+                void postUriList_shouldAppend_http204_noContent() throws Exception {
                     AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
                     doInTransaction(() -> {
                         var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
@@ -819,15 +754,9 @@ class InvoicingApiApplicationTest {
                     // add an order to an invoice
                     mockMvc.perform(post("/invoices/%s/orders".formatted(invoiceNumber))
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            {
-                                                "_links": {
-                                                    "orders" : {
-                                                        "href": "/orders/%s"
-                                                    }
-                                                }
-                                            }
+                                            /orders/%s
                                             """.formatted(newOrderId)))
                             .andExpect(status().isNoContent());
 
@@ -848,15 +777,9 @@ class InvoicingApiApplicationTest {
 
                     mockMvc.perform(post("/orders/{id}/shippingAddress", ORDER_2_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content("""
-                                            {
-                                                "_links": {
-                                                    "shippingAddress" : {
-                                                        "href": "/shipping-addresses/%s"
-                                                    }
-                                                }
-                                            }
+                                            /shipping-addresses/%s
                                             """.formatted(addressId)))
                             .andExpect(status().isMethodNotAllowed());
                 }
@@ -866,7 +789,7 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
-                void postJson_promos_forOrder_shouldAppendLinks_http204_noContent() throws Exception {
+                void postJson_promos_forOrder_shouldReturn_http415_unsupportedMediaType() throws Exception {
                     mockMvc.perform(post("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -882,16 +805,16 @@ class InvoicingApiApplicationTest {
                                             """.formatted(PROMO_XMAS_ID, PROMO_SHIPPING_ID))
 
                             )
-                            .andExpect(status().isNoContent());
+                            .andExpect(status().isUnsupportedMediaType());
 
-                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(3);
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
                 }
 
                 @Test
                 void postUriList_promos_forOrder_shouldAppendLinks_http204_noContent() throws Exception {
                     mockMvc.perform(post("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType("text/uri-list")
+                                    .contentType(URI_LIST_MIMETYPE)
                                     .content("""
                                             /promotions/%s
                                             /promotions/%s
