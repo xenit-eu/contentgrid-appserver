@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.problem;
 
-import com.contentgrid.appserver.rest.exception.ContentGridExceptionHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;

@@ -1,16 +1,16 @@
-package com.contentgrid.appserver.rest.exception;
+package com.contentgrid.appserver.rest.problem;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
+import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
-import com.contentgrid.appserver.rest.problem.ProblemFactory;
-import com.contentgrid.appserver.rest.problem.ProblemType;
-import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties.FieldViolationProblemProperties;
+import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Map;
@@ -38,27 +38,8 @@ public class ContentGridExceptionHandler {
     private final MessageSourceAccessor messageSourceAccessor;
 
 
-    @ExceptionHandler({JsonParseException.class})
-    ResponseEntity<Problem> handleHttpMessageReadException(@NonNull Exception exception) {
-        Throwable currentException = exception;
-
-        while (currentException != null) {
-            if (currentException instanceof JsonParseException parseException) {
-                return handleJsonParseException(parseException);
-            }
-            currentException = currentException.getCause();
-        }
-
-        // Fallback handler: just a generic bad request
-        return createResponse(
-                problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY)
-                        .withStatus(HttpStatus.BAD_REQUEST)
-                        .withDetail(exception.getMessage())
-        );
-    }
-
-    ResponseEntity<Problem> handleJsonParseException(JsonParseException exception) {
-        log.warn("Invalid request body json:", exception);
+    @ExceptionHandler
+    ResponseEntity<Problem> handleJsonParseException(@NonNull JsonParseException exception) {
         return createResponse(
                 problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_JSON)
                         .withStatus(HttpStatus.BAD_REQUEST)
@@ -76,10 +57,10 @@ public class ContentGridExceptionHandler {
         return message + " at " + location.offsetDescription();
     }
 
-    @ExceptionHandler(UnsatisfiedVersionException.class)
+    @ExceptionHandler
     ResponseEntity<Problem> handleUnsatisfiedVersionException(UnsatisfiedVersionException exception) {
         return createResponse(
-                problemFactory.createProblem(ProblemType.UNSATISFIED_VERSION)
+                problemFactory.createProblem(ProblemType.UNSATISFIED_VERSION, exception.getActualVersion(), exception.getRequestedVersion())
                         .withStatus(HttpStatus.PRECONDITION_FAILED)
                         .withDetail(exception.getMessage())
                         .withProperties(properties -> {
@@ -90,10 +71,10 @@ public class ContentGridExceptionHandler {
         );
     }
 
-    @ExceptionHandler(BlindRelationOverwriteException.class)
+    @ExceptionHandler
     ResponseEntity<Problem> handleBlindRelationOverwrite(BlindRelationOverwriteException exception, LinkFactoryProvider linkFactoryProvider) {
         return createResponse(
-                problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_OVERWRITE)
+                problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE, exception.getAffectedRelation())
                         .withStatus(HttpStatus.CONFLICT)
                         .withProperties(properties -> {
                             var affectedRelationLink = linkFactoryProvider.toRelation(exception.getAffectedRelation());
@@ -106,12 +87,12 @@ public class ContentGridExceptionHandler {
         );
     }
 
-    @ExceptionHandler(PermissionDeniedException.class)
+    @ExceptionHandler
     ResponseEntity<?> handlePermissionDeniedException(PermissionDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @ExceptionHandler(InvalidSortParameterException.class)
+    @ExceptionHandler
     ResponseEntity<Problem> handleInvalidSortParameterException(@NonNull InvalidSortParameterException exception) {
         return createResponse(
                 problemFactory.createProblem(ProblemType.INVALID_SORT_PARAMETER)
@@ -125,30 +106,58 @@ public class ContentGridExceptionHandler {
         );
     }
 
-    @ExceptionHandler(CursorDecodeException.class)
+    @ExceptionHandler
     ResponseEntity<Problem> handleInvalidCursor(@NonNull CursorDecodeException e) {
         return createResponse(problemFactory.createProblem(ProblemType.INVALID_PAGINATION_PARAMETER)
                 .withStatus(HttpStatus.BAD_REQUEST)
                 .withDetail(e.getMessage()));
     }
 
-    @ExceptionHandler(InvalidPropertyDataException.class)
+    @ExceptionHandler
+    // This includes handling for all subclasses of InvalidDataException, as those are always wrapped in InvalidPropertyDataException
+    // before they end up here
     ResponseEntity<Problem> handleInvalidPropertyDataException(@NonNull InvalidPropertyDataException exception) {
+        var allErrors = exception.allExceptions().toList();
+
+        var problem = problemFactory.createProblem(ProblemType.INPUT_VALIDATION, allErrors.size())
+                .withStatus(HttpStatus.BAD_REQUEST);
+
+        var propertiesBuilder = ConstraintViolationProblemProperties.builder();
+        for (var error : allErrors) {
+            propertiesBuilder.field(
+                    Problem.create()
+                            // TODO: localization of error message
+                            .withDetail(error.getMessage()),
+                    String.join(".", error.getPath().toList())
+            );
+        }
+
         return createResponse(
-                problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_TYPE)
-                        .withStatus(HttpStatus.BAD_REQUEST)
-                        .withDetail(exception.getMessage())
-                        .withProperties(Map.of(
-                                "property-path", exception.getPath().toList(),
-                                "all-errors", exception.allExceptions()
-                                        .map(ex -> Map.of(
-                                                "detail", ex.getMessage(),
-                                                "property-path", ex.getPath().toList()
-                                        ))
-                                        .toList()
-                        ))
+                problem.withProperties(propertiesBuilder.build())
         );
     }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleUniqueConstraintViolation(@NonNull UniqueConstraintViolationException exception, LinkFactoryProvider linkFactoryProvider) {
+        return createResponse(problemFactory.createProblem(ProblemType.INPUT_DUPLICATE_VALUE, String.join(".", exception.getPropertyPath().toList()))
+                .withStatus(HttpStatus.CONFLICT)
+                .withProperties(properties -> {
+                    var existingEntityLink = linkFactoryProvider.toItem(exception.getConflictingEntity());
+                    properties.put("conflicting-item", existingEntityLink.toUri().toString());
+                }));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleEntityLinkedByRequiredRelation(@NonNull EntityLinkedByRequiredRelationException exception, LinkFactoryProvider linkFactoryProvider) {
+        return createResponse(problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_REQUIRED, exception.getTargetRelationIdentity())
+                .withStatus(HttpStatus.CONFLICT)
+                .withProperties(properties -> {
+                    var affectedRelation = linkFactoryProvider.toRelation(exception.getTargetRelationIdentity()).orElseThrow().toUri();
+                    properties.put("affected-relation", affectedRelation.toString());
+                })
+        );
+    }
+
 
     static ResponseEntity<Problem> createResponse(Problem problem) {
         var responseBuilder = ResponseEntity.internalServerError();

@@ -2,6 +2,9 @@ package com.contentgrid.appserver.query.engine.api.exception;
 
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -27,4 +30,28 @@ public class EntityLinkedByRequiredRelationException extends QueryEngineExceptio
      */
     @NonNull
     private final EntityId targetId;
+
+    public EntityIdentity getSourceIdentity() {
+        return EntityIdentity.forEntity(relation.getSourceEndPoint().getEntity(), sourceId);
+    }
+
+    public EntityIdentity getTargetIdentity() {
+        return EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId);
+    }
+
+    public RelationIdentity getSourceRelationIdentity() {
+        return RelationIdentity.forRelation(getSourceIdentity(), relation.getSourceEndPoint().getName());
+    }
+
+    public RelationIdentity getTargetRelationIdentity() {
+        return RelationIdentity.forRelation(getTargetIdentity(), relation.getTargetEndPoint().getName());
+    }
+
+    @Override
+    public String getMessage() {
+        return "%s is required by %s".formatted(
+                getSourceIdentity(),
+                getTargetRelationIdentity()
+        );
+    }
 }

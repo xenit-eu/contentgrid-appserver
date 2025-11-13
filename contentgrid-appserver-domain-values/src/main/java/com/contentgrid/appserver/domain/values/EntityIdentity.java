@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.values;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import lombok.AccessLevel;
 import lombok.NonNull;
@@ -30,6 +31,9 @@ public class EntityIdentity {
     }
 
     public String toString() {
+        if(version instanceof UnspecifiedVersion) {
+            return "Entity '%s' %s".formatted(entityName, entityId);
+        }
         return "Entity '%s' %s (%s)".formatted(entityName, entityId, version);
     }
 
