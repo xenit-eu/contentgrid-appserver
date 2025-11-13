@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.integration.test.fixture.invoicing;
 
-import static com.contentgrid.spring.data.rest.problem.ProblemDetailsMockMvcMatchers.problemDetails;
-import static com.contentgrid.spring.test.matchers.ExtendedHeaderResultMatchers.headers;
+import static com.contentgrid.appserver.integration.test.matchers.ExtendedHeaderResultMatchers.headers;
+import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,24 +17,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.spring.boot.autoconfigure.integration.EventsAutoConfiguration;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.model.Order;
-import com.contentgrid.spring.test.fixture.invoicing.model.PromotionCampaign;
-import com.contentgrid.spring.test.fixture.invoicing.model.ShippingAddress;
-import com.contentgrid.spring.test.fixture.invoicing.model.ShippingLabel;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.OrderRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.PromotionCampaignRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.ShippingAddressRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.ShippingLabelRepository;
-import com.contentgrid.spring.test.fixture.invoicing.store.CustomerContentStore;
-import com.contentgrid.spring.test.fixture.invoicing.store.InvoiceContentStore;
-import com.contentgrid.spring.test.fixture.invoicing.store.ShippingLabelContentStore;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.domain.ContentApi.Content;
+import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioAsyncClient;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -50,6 +46,7 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -58,12 +55,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.content.commons.property.PropertyPath;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.rest.webmvc.RestMediaTypes;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Links;
 import org.springframework.hateoas.mediatype.hal.CurieProvider;
@@ -82,14 +76,13 @@ import org.springframework.web.util.UriUtils;
 import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import software.amazon.awssdk.services.s3.S3Client;
 
 @Slf4j
 @SpringBootTest(properties = {
-        "spring.content.storage.type.default=s3", // Use s3 storage type for storing content
-        "server.servlet.encoding.enabled=false" // disables mock-mvc enforcing charset in request
+        "contentgrid.appserver.content-store.type=s3", // Use s3 storage type for storing content
+        "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
+        "contentgrid.events.rabbitmq.enabled=false",
 })
-@EnableAutoConfiguration(exclude = EventsAutoConfiguration.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
 @Testcontainers
@@ -103,14 +96,16 @@ class InvoicingApiApplicationTest {
     static final String ORG_INBEV_VAT = "BE0417497106";
     static final String ORG_EXAMPLE_VAT = "BE0123456789";
 
-    static UUID XENIT_ID, INBEV_ID;
-    static UUID ORDER_1_ID, ORDER_2_ID;
-    static UUID INVOICE_1_ID, INVOICE_2_ID;
+    static EntityId XENIT_ID, INBEV_ID;
+    static EntityId ORDER_1_ID, ORDER_2_ID;
+    static EntityId INVOICE_1_ID, INVOICE_2_ID;
 
 
-    static String PROMO_XMAS, PROMO_SHIPPING, PROMO_CYBER;
+    static final String PROMO_XMAS = "XMAS-2022";
+    static final String PROMO_SHIPPING = "FREE-SHIP";
+    static final String PROMO_CYBER = "CYBER-MON";
 
-    static UUID ADDRESS_ID_XENIT;
+    static EntityId ADDRESS_ID_XENIT;
 
     static final String BUCKET_NAME = "test-bucket";
 
@@ -123,37 +118,13 @@ class InvoicingApiApplicationTest {
     private CurieProvider curieProvider;
 
     @Autowired
-    CustomerRepository customers;
-
-    @Autowired
-    InvoiceRepository invoices;
-
-    @Autowired
-    OrderRepository orders;
-
-    @Autowired
-    PromotionCampaignRepository promos;
-
-    @Autowired
-    ShippingAddressRepository shippingAddresses;
-
-    @Autowired
-    ShippingLabelRepository shippingLabels;
-
-    @Autowired
-    InvoiceContentStore invoicesContent;
-
-    @Autowired
-    CustomerContentStore customersContent;
-
-    @Autowired
-    ShippingLabelContentStore shippingLabelsContent;
+    private InvoicingApi invoicingApi;
 
     @Autowired
     PlatformTransactionManager transactionManager;
 
     @Autowired
-    S3Client client;
+    MinioAsyncClient client;
 
     @Container
     static MinIOContainer minIOContainer = new MinIOContainer("minio/minio")
@@ -164,10 +135,10 @@ class InvoicingApiApplicationTest {
 
     @DynamicPropertySource
     static void s3Properties(DynamicPropertyRegistry registry) {
-        registry.add("spring.content.s3.endpoint", () -> minIOContainer.getS3URL());
-        registry.add("spring.content.s3.accessKey", () -> minIOContainer.getUserName());
-        registry.add("spring.content.s3.secretKey", () -> minIOContainer.getPassword());
-        registry.add("spring.content.s3.bucket", () -> BUCKET_NAME);
+        registry.add("contentgrid.appserver.content.s3.url", () -> minIOContainer.getS3URL());
+        registry.add("contentgrid.appserver.content.s3.accessKey", () -> minIOContainer.getUserName());
+        registry.add("contentgrid.appserver.content.s3.secretKey", () -> minIOContainer.getPassword());
+        registry.add("contentgrid.appserver.content.s3.bucket", () -> BUCKET_NAME);
     }
 
     void doInTransaction(ThrowingCallable callable) {
@@ -182,47 +153,41 @@ class InvoicingApiApplicationTest {
     }
 
     @BeforeEach
-    void setupTestData() {
+    void setupTestData() throws Exception {
         if (!BUCKET_CREATED) {
             // Create the bucket if it doesn't exist yet
-            client.createBucket(request -> request.bucket(BUCKET_NAME));
+            client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
             BUCKET_CREATED = true;
         }
-        PROMO_XMAS = promos.save(new PromotionCampaign("XMAS-2022", "10% off ")).getPromoCode();
-        PROMO_SHIPPING = promos.save(new PromotionCampaign("FREE-SHIP", "Free Shipping")).getPromoCode();
-        var promoCyber = promos.save(new PromotionCampaign("CYBER-MON", "Cyber Monday"));
-        PROMO_CYBER = promoCyber.getPromoCode();
+        invoicingApi.createPromotionCampaign(PROMO_XMAS, "10% off ");
+        invoicingApi.createPromotionCampaign(PROMO_SHIPPING, "Free Shipping");
+        var promoCyber = invoicingApi.createPromotionCampaign(PROMO_CYBER, "Cyber Monday");
 
-        var xenit = customers.save(new Customer("XeniT", ORG_XENIT_VAT));
-        var inbev = customers.save(new Customer("AB InBev", ORG_INBEV_VAT));
+        var xenit = invoicingApi.createCustomer("XeniT", ORG_XENIT_VAT);
+        var inbev = invoicingApi.createCustomer("AB InBev", ORG_INBEV_VAT);
 
-        XENIT_ID = xenit.getId();
-        INBEV_ID = inbev.getId();
+        XENIT_ID = xenit.getIdentity().getEntityId();
+        INBEV_ID = inbev.getIdentity().getEntityId();
 
-        var address = shippingAddresses.save(new ShippingAddress("Diestsevest 32", "3000", "Leuven"));
-        ADDRESS_ID_XENIT = address.getId();
+        var address = invoicingApi.createShippingAddress("Diestsevest 32", "3000", "Leuven");
+        ADDRESS_ID_XENIT = address.getIdentity().getEntityId();
 
-        var order1 = orders.save(new Order(xenit, address, Set.of(promoCyber)));
-        var order2 = orders.save(new Order(xenit));
-        var order3 = orders.save(new Order(inbev));
+        var order1 = invoicingApi.createOrder(XENIT_ID, ADDRESS_ID_XENIT, Set.of(promoCyber.getIdentity().getEntityId()));
+        var order2 = invoicingApi.createOrder(XENIT_ID);
+        var order3 = invoicingApi.createOrder(INBEV_ID);
 
-        ORDER_1_ID = order1.getId();
-        ORDER_2_ID = order2.getId();
+        ORDER_1_ID = order1.getIdentity().getEntityId();
+        ORDER_2_ID = order2.getIdentity().getEntityId();
 
-        INVOICE_1_ID = invoices.save(
-                new Invoice(INVOICE_NUMBER_1, true, false, xenit, new HashSet<>(List.of(order1, order2)))).getId();
-        INVOICE_2_ID = invoices.save(new Invoice(INVOICE_NUMBER_2, false, true, inbev, new HashSet<>(List.of(order3))))
-                .getId();
+        INVOICE_1_ID = invoicingApi.createInvoice(INVOICE_NUMBER_1, true, false, XENIT_ID, new HashSet<>(List.of(order1.getIdentity().getEntityId(), order2.getIdentity().getEntityId())))
+                .getIdentity().getEntityId();
+        INVOICE_2_ID = invoicingApi.createInvoice(INVOICE_NUMBER_2, false, true, INBEV_ID, new HashSet<>(List.of(order3.getIdentity().getEntityId())))
+                .getIdentity().getEntityId();
     }
 
     @AfterEach
     void cleanupTestData() {
-        invoices.deleteAll();
-        orders.deleteAll();
-        shippingAddresses.deleteAll();
-        customers.deleteAll();
-        promos.deleteAll();
-        shippingLabels.deleteAll();
+        invoicingApi.deleteAll();
     }
 
     private Matcher<Object> curies() {
@@ -264,10 +229,9 @@ class InvoicingApiApplicationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.page.size").value(20))
                         .andExpect(jsonPath("$.page.total_items_exact").value(2))
-                        .andExpect(jsonPath("$.page.number").value(0))
                         .andExpect(jsonPath("$._embedded.['item'].length()").value(2))
                         .andExpect(jsonPath("$._embedded.['item'][0].number").exists())
-                        .andExpect(jsonPath("$._links.self.href").value("http://localhost/invoices?page=0"))
+                        .andExpect(jsonPath("$._links.self.href", containsString("_cursor=")))
                         .andExpect(jsonPath("$._links.curies").value(curies()));
             }
 
@@ -281,6 +245,7 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
+            @Disabled("case-insensitive filters no longer supported")
             void listInvoices_withFilter_ignoreCase_returns_http200_ok() throws Exception {
                 mockMvc.perform(get("/invoices?number={number}", INVOICE_NUMBER_1.toLowerCase(Locale.ROOT))
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -295,24 +260,20 @@ class InvoicingApiApplicationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.page.size").value(20))
                         .andExpect(jsonPath("$.page.total_items_exact").value(0))
-                        .andExpect(jsonPath("$.page.number").value(0))
                         .andExpect(jsonPath("$._embedded.['item'].length()").value(0))
-                        .andExpect(jsonPath("$._links.self.href").value("http://localhost/refunds?page=0"))
+                        .andExpect(jsonPath("$._links.self.href", containsString("_cursor=")))
                         .andExpect(jsonPath("$._links.curies").value(curies()));
             }
 
             @Test
             void listShippingLabels_withLabelsInLoop_http200_ok() throws Exception {
                 // set up the loop of shipping-labels
-                var label1 = shippingLabels.save(new ShippingLabel("a", "b"));
-                var label2 = shippingLabels.save(new ShippingLabel("b", "a"));
+                var label1Id = invoicingApi.createShippingLabel("a", "b").getIdentity().getEntityId();
+                var label2Id = invoicingApi.createShippingLabel("b", "a").getIdentity().getEntityId();
 
                 // Add relations
-                label1.setParent(label2);
-                label1 = shippingLabels.save(label1);
-
-                label2.setParent(label1);
-                shippingLabels.save(label2);
+                invoicingApi.setShippingLabelParent(label1Id, label2Id);
+                invoicingApi.setShippingLabelParent(label2Id, label1Id);
 
                 mockMvc.perform(get("/shipping-labels")
                                 .accept(MediaType.APPLICATION_JSON))
@@ -326,25 +287,23 @@ class InvoicingApiApplicationTest {
 
             @Test
             void sortInvoices_number_returns_http200_ok() throws Exception {
-                mockMvc.perform(get("/invoices?sort=number")
+                mockMvc.perform(get("/invoices?_sort=number")
                                 .accept(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$._embedded.item[0].number").value(INVOICE_NUMBER_1))
                         .andExpect(jsonPath("$._embedded.item[1].number").value(INVOICE_NUMBER_2))
-                        .andExpect(jsonPath("$._links.self.href").value(
-                                "http://localhost/invoices?page=0&sort=number,asc"));
-                mockMvc.perform(get("/invoices?sort=number,desc")
+                        .andExpect(jsonPath("$._links.self.href", containsString("_sort=number,asc")));
+                mockMvc.perform(get("/invoices?_sort=number,desc")
                                 .accept(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$._embedded.item[0].number").value(INVOICE_NUMBER_2))
                         .andExpect(jsonPath("$._embedded.item[1].number").value(INVOICE_NUMBER_1))
-                        .andExpect(jsonPath("$._links.self.href").value(
-                                "http://localhost/invoices?page=0&sort=number,desc"));
+                        .andExpect(jsonPath("$._links.self.href", containsString("_sort=number,desc")));
             }
 
             @Test
             void sortInvoices_draft_returns_http400_badRequest() throws Exception {
-                mockMvc.perform(get("/invoices?sort=draft"))
+                mockMvc.perform(get("/invoices?_sort=draft"))
                         .andExpect(problemDetails()
                                 .withStatusCode(HttpStatus.BAD_REQUEST)
                                 .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort")
@@ -353,7 +312,7 @@ class InvoicingApiApplicationTest {
 
             @Test
             void sortInvoices_counterpartyBirthday_returns_http400_badRequest() throws Exception {
-                mockMvc.perform(get("/invoices?sort=counterparty.birthday"))
+                mockMvc.perform(get("/invoices?_sort=counterparty.birthday"))
                         .andExpect(problemDetails()
                                 .withStatusCode(HttpStatus.BAD_REQUEST)
                                 .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort")
@@ -362,26 +321,19 @@ class InvoicingApiApplicationTest {
 
             @Test
             void sortCustomers_contentSize_returns_http200_ok() throws Exception {
-                var xenit = customers.findByVat(ORG_XENIT_VAT).orElseThrow();
+                var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                 var stream = new ByteArrayInputStream("short-value".getBytes(StandardCharsets.UTF_8));
-                customersContent.setContent(xenit, PropertyPath.from("content"), stream);
-                xenit.getContent().setMimetype("text/plain");
-                xenit.getContent().setFilename("test.txt");
-                customers.save(xenit);
+                invoicingApi.storeCustomerContent(xenit.getIdentity().getEntityId(), "test.txt", "text/plain", stream);
 
-                var inbev = customers.findByVat(ORG_INBEV_VAT).orElseThrow();
+                var inbev = invoicingApi.findCustomerByVat(ORG_INBEV_VAT).orElseThrow();
                 var longStream = new ByteArrayInputStream("a-longer-value".getBytes(StandardCharsets.UTF_8));
-                customersContent.setContent(inbev, PropertyPath.from("content"), longStream);
-                inbev.getContent().setMimetype("text/plain");
-                inbev.getContent().setFilename("test.txt");
-                customers.save(inbev);
+                invoicingApi.storeCustomerContent(inbev.getIdentity().getEntityId(), "test.txt", "text/plain", longStream);
 
-                mockMvc.perform(get("/customers?sort=content.size"))
+                mockMvc.perform(get("/customers?_sort=content.size"))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$._embedded.item[0].vat").value(ORG_XENIT_VAT))
                         .andExpect(jsonPath("$._embedded.item[1].vat").value(ORG_INBEV_VAT))
-                        .andExpect(jsonPath("$._links.self.href").value(
-                                "http://localhost/customers?page=0&sort=content.size,asc"));
+                        .andExpect(jsonPath("$._links.self.href", containsString("_sort=content.size,asc")));
 
             }
 
@@ -392,10 +344,10 @@ class InvoicingApiApplicationTest {
         class Head {
 
             @Test
-            void checkInvoiceCollection_shouldReturn_http204_noContent() throws Exception {
+            void checkInvoiceCollection_shouldReturn_http200_ok() throws Exception {
                 mockMvc.perform(head("/invoices")
                                 .contentType(MediaType.APPLICATION_JSON))
-                        .andExpect(status().isNoContent());
+                        .andExpect(status().isOk());
             }
         }
 
@@ -405,7 +357,7 @@ class InvoicingApiApplicationTest {
 
             @Test
             void createInvoice_shouldReturn_http201_created() throws Exception {
-                var customerId = customers.findByVat(ORG_XENIT_VAT).orElseThrow().getId();
+                var customerId = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
                 mockMvc.perform(post("/invoices")
                                 .content("""
                                         {
@@ -421,7 +373,7 @@ class InvoicingApiApplicationTest {
             @Test
             @Disabled("Providing multi-value associations during creation is not possible")
             void createOrder_withPromoCodes_shouldReturn_http201_created() throws Exception {
-                var customerId = customers.findByVat(ORG_XENIT_VAT).orElseThrow().getId();
+                var customerId = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
 
                 var result = mockMvc.perform(post("/orders")
                                 .content("""
@@ -444,18 +396,15 @@ class InvoicingApiApplicationTest {
                         .map(location -> new UriTemplate("{scheme}://{host}/orders/{id}").match(location))
                         .map(matches -> matches.get("id"))
                         .map(UUID::fromString)
+                        .map(EntityId::of)
                         .orElseThrow();
 
-                doInTransaction(() -> {
-                    assertThat(orders.findById(orderId)).hasValueSatisfying(order -> {
-                        assertThat(order.getPromos()).hasSize(2);
-                    });
-                });
+                assertThat(invoicingApi.findOrderPromos(orderId)).hasSize(2);
             }
 
             @Test
             void createOrder_withMultipartFormData_noContentProperty_http201_created() throws Exception {
-                var customerId = customers.findByVat(ORG_XENIT_VAT).orElseThrow().getId();
+                var customerId = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
 
                 var result = mockMvc.perform(multipart(HttpMethod.POST, "/orders")
                                 .param("customer", "/customers/" + customerId)
@@ -468,13 +417,12 @@ class InvoicingApiApplicationTest {
                         .map(location -> new UriTemplate("{scheme}://{host}/orders/{id}").match(location))
                         .map(matches -> matches.get("id"))
                         .map(UUID::fromString)
+                        .map(EntityId::of)
                         .orElseThrow();
 
-                doInTransaction(() -> {
-                    assertThat(orders.findById(orderId)).hasValueSatisfying(order -> {
-                        assertThat(order.getCustomer().getId()).isEqualTo(customerId);
-                    });
-                });
+                assertThat(invoicingApi.findOrderCustomer(orderId)).hasValueSatisfying(customer ->
+                        assertThat(customer.getIdentity().getEntityId()).isEqualTo(customerId)
+                );
             }
         }
     }
@@ -501,10 +449,10 @@ class InvoicingApiApplicationTest {
         class Head {
 
             @Test
-            void headInvoice_shouldReturn_http204_noContent() throws Exception {
+            void headInvoice_shouldReturn_http200_ok() throws Exception {
                 mockMvc.perform(head("/invoices/" + invoiceId(INVOICE_NUMBER_1))
                                 .accept(MediaType.APPLICATION_JSON))
-                        .andExpect(status().isNoContent());
+                        .andExpect(status().isOk());
             }
 
 
@@ -525,10 +473,10 @@ class InvoicingApiApplicationTest {
                                         }
                                         """.formatted(INVOICE_NUMBER_1)))
                         .andExpect(status().isNoContent());
-                var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                assertThat(invoice.isPaid()).isTrue();
-                assertThat(invoice.getNumber()).isEqualTo(INVOICE_NUMBER_1);
+                assertThat(invoice.getData().get("paid")).isEqualTo(new BooleanDataEntry(true));
+                assertThat(invoice.getData().get("number")).isEqualTo(new StringDataEntry(INVOICE_NUMBER_1));
             }
 
         }
@@ -547,10 +495,10 @@ class InvoicingApiApplicationTest {
                                         }
                                         """))
                         .andExpect(status().isNoContent());
-                var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                assertThat(invoice.isPaid()).isTrue();
-                assertThat(invoice.getNumber()).isEqualTo(INVOICE_NUMBER_1);
+                assertThat(invoice.getData().get("paid")).isEqualTo(new BooleanDataEntry(true));
+                assertThat(invoice.getData().get("number")).isEqualTo(new StringDataEntry(INVOICE_NUMBER_1));
             }
 
         }
@@ -564,15 +512,20 @@ class InvoicingApiApplicationTest {
                 mockMvc.perform(delete("/invoices/" + invoiceId(INVOICE_NUMBER_1)))
                         .andExpect(status().isNoContent());
 
-                assertThat(invoices.findByNumber(INVOICE_NUMBER_1)).isEmpty();
+                assertThat(invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1)).isEmpty();
             }
 
             @Test
             void deleteInvoice_withContent_shouldReturn_http204_ok() throws Exception {
-                mockMvc.perform(delete("/invoices/" + invoiceId(INVOICE_NUMBER_1)))
+                var id = invoiceId(INVOICE_NUMBER_1);
+                var stream = new ByteArrayInputStream("some-text".getBytes(StandardCharsets.UTF_8));
+                invoicingApi.storeInvoiceContent(id, "test.txt", "text/plain", stream);
+
+                mockMvc.perform(delete("/invoices/" + id))
                         .andExpect(status().isNoContent());
 
-                assertThat(invoices.findByNumber(INVOICE_NUMBER_1)).isEmpty();
+                assertThat(invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1)).isEmpty();
+                assertThat(invoicingApi.findInvoiceContent(id)).isEmpty();
             }
 
             @Test
@@ -671,7 +624,8 @@ class InvoicingApiApplicationTest {
                 @Test
                 void putJson_shouldReturn_http204() throws Exception {
                     // fictive example: fix the customer
-                    var correctCustomerId = customers.findByVat(ORG_INBEV_VAT).orElseThrow().getId();
+                    var correctCustomerId = invoicingApi.findCustomerByVat(ORG_INBEV_VAT).orElseThrow()
+                            .getIdentity().getEntityId();
                     mockMvc.perform(put("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/counterparty")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
@@ -694,10 +648,10 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void putJson_shouldReplaceLinksAndReturn_http204_noContent() throws Exception {
-                    AtomicReference<UUID> newOrderId = new AtomicReference<>(null);
+                    AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
                     doInTransaction(() -> {
-                        var xenit = customers.findByVat(ORG_XENIT_VAT).orElseThrow();
-                        newOrderId.set(orders.save(new Order(xenit)).getId());
+                        var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
+                        newOrderId.set(invoicingApi.createOrder(xenit).getIdentity().getEntityId());
                     });
                     var invoiceNumber = invoiceId(INVOICE_NUMBER_1);
 
@@ -717,24 +671,20 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isNoContent());
 
                     // assert orders collection has been replaced
-                    doInTransaction(() -> {
-                        assertThat(invoices.findById(invoiceNumber)).hasValueSatisfying(invoice -> {
-                            assertThat(invoice.getOrders()).singleElement().satisfies(order -> {
-                                assertThat(order.getId()).isEqualTo(newOrderId.get());
-                            });
-                        });
-                    });
+                    assertThat(invoicingApi.findInvoiceOrders(invoiceNumber)).singleElement().satisfies(order ->
+                            assertThat(order.getIdentity().getEntityId()).isEqualTo(newOrderId.get())
+                    );
                 }
 
                 @Test
                 void putUriList_shouldReplaceLinksAndReturn_http204_noContent() throws Exception {
-                    AtomicReference<UUID> newOrderId = new AtomicReference<>(null);
+                    AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
                     doInTransaction(() -> {
-                        var xenit = customers.findByVat(ORG_XENIT_VAT).orElseThrow();
-                        newOrderId.set(orders.save(new Order(xenit)).getId());
+                        var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
+                        newOrderId.set(invoicingApi.createOrder(xenit).getIdentity().getEntityId());
                     });
                     mockMvc.perform(put("/invoices/{id}/orders", INVOICE_1_ID)
-                            .contentType(RestMediaTypes.TEXT_URI_LIST)
+                            .contentType("text/uri-list")
                             .content(
                                     """
                                     /orders/%s
@@ -743,13 +693,10 @@ class InvoicingApiApplicationTest {
                             )
                     ).andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        assertThat(invoices.findById(INVOICE_1_ID)).hasValueSatisfying(invoice -> {
-                            assertThat(invoice.getOrders())
-                                    .map(Order::getId)
-                                    .containsExactlyInAnyOrder(ORDER_1_ID, newOrderId.get());
-                        });
-                    });
+                    assertThat(invoicingApi.findInvoiceOrders(INVOICE_1_ID))
+                            .map(EntityInstance::getIdentity)
+                            .map(EntityIdentity::getEntityId)
+                            .containsExactlyInAnyOrder(ORDER_1_ID, newOrderId.get());
                 }
             }
 
@@ -759,7 +706,7 @@ class InvoicingApiApplicationTest {
                 @Test
                 void putShippingAddress_forOrder_shouldReturn_http204_noContent() throws Exception {
 
-                    var addressId = shippingAddresses.save(new ShippingAddress()).getId();
+                    var addressId = invoicingApi.createShippingAddress().getIdentity().getEntityId();
 
                     mockMvc.perform(put("/orders/{id}/shippingAddress", ORDER_2_ID)
                                     .accept(MediaType.APPLICATION_JSON)
@@ -775,8 +722,7 @@ class InvoicingApiApplicationTest {
                                             """.formatted(addressId)))
                             .andExpect(status().isNoContent());
 
-                    var order = orders.findById(ORDER_2_ID).orElseThrow();
-                    assertThat(order.getShippingAddress()).isNotNull();
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_2_ID)).isNotEmpty();
 
                 }
             }
@@ -786,10 +732,7 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void putJson_emptyPromos_forOrder_shouldReturn_http204_noContent() throws Exception {
-                    doInTransaction(() -> {
-                        assertThat(orders.findById(ORDER_1_ID)).isNotNull()
-                                .hasValueSatisfying(order -> assertThat(order.getPromos()).hasSize(1));
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(1);
 
                     mockMvc.perform(put("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
@@ -797,10 +740,7 @@ class InvoicingApiApplicationTest {
                                     .content(""))
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        assertThat(orders.findById(ORDER_1_ID)).isNotNull()
-                                .hasValueSatisfying(order -> assertThat(order.getPromos()).hasSize(0));
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(0);
                 }
 
                 @Test
@@ -822,17 +762,14 @@ class InvoicingApiApplicationTest {
                             )
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        var order = orders.findById(ORDER_1_ID).orElseThrow();
-                        assertThat(order.getPromos()).hasSize(2);
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(2);
                 }
 
                 @Test
                 void putUriList_Promos_forOrder_shouldReturn_http204_noContent() throws Exception {
                     mockMvc.perform(put("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(RestMediaTypes.TEXT_URI_LIST_VALUE)
+                                    .contentType("text/uri-list")
                                     .content("""
                                             /promotions/XMAS-2022
                                             /promotions/FREE-SHIP
@@ -840,10 +777,7 @@ class InvoicingApiApplicationTest {
                             )
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        var order = orders.findById(ORDER_1_ID).orElseThrow();
-                        assertThat(order.getPromos()).hasSize(2);
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(2);
                 }
             }
         }
@@ -858,7 +792,7 @@ class InvoicingApiApplicationTest {
                 @Test
                 void postJson_shouldReturn_http405_methodNotAllowed() throws Exception {
 
-                    var correctCustomerId = customers.findByVat(ORG_INBEV_VAT).orElseThrow().getId();
+                    var correctCustomerId = invoicingApi.findCustomerByVat(ORG_INBEV_VAT).orElseThrow().getIdentity().getEntityId();
                     mockMvc.perform(post("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/counterparty")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
@@ -880,10 +814,10 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void postJson_shouldAppend_http204_noContent() throws Exception {
-                    AtomicReference<UUID> newOrderId = new AtomicReference<>(null);
+                    AtomicReference<EntityId> newOrderId = new AtomicReference<>(null);
                     doInTransaction(() -> {
-                        var xenit = customers.findByVat(ORG_XENIT_VAT).orElseThrow();
-                        newOrderId.set(orders.save(new Order(xenit)).getId());
+                        var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow().getIdentity().getEntityId();
+                        newOrderId.set(invoicingApi.createOrder(xenit).getIdentity().getEntityId());
                     });
 
                     var invoiceNumber = invoiceId(INVOICE_NUMBER_1);
@@ -904,13 +838,9 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isNoContent());
 
                     // assert orders collection has been augmented
-                    doInTransaction(() -> {
-                        assertThat(invoices.findById(invoiceNumber)).hasValueSatisfying(invoice -> {
-                            assertThat(invoice.getOrders())
-                                    .hasSize(3)
-                                    .anyMatch(order -> order.getId().equals(newOrderId.get()));
-                        });
-                    });
+                    assertThat(invoicingApi.findInvoiceOrders(invoiceNumber))
+                            .hasSize(3)
+                            .anyMatch(order -> order.getIdentity().getEntityId().equals(newOrderId.get()));
                 }
             }
 
@@ -920,7 +850,7 @@ class InvoicingApiApplicationTest {
                 @Test
                 void postShippingAddress_forOrder_shouldReturn_http405_methodNotAllowed() throws Exception {
 
-                    var addressId = shippingAddresses.save(new ShippingAddress()).getId();
+                    var addressId = invoicingApi.createShippingAddress().getIdentity().getEntityId();
 
                     mockMvc.perform(post("/orders/{id}/shippingAddress", ORDER_2_ID)
                                     .accept(MediaType.APPLICATION_JSON)
@@ -960,17 +890,14 @@ class InvoicingApiApplicationTest {
                             )
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        var order = orders.findById(ORDER_1_ID).orElseThrow();
-                        assertThat(order.getPromos()).hasSize(3);
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(3);
                 }
 
                 @Test
                 void postUriList_promos_forOrder_shouldAppendLinks_http204_noContent() throws Exception {
                     mockMvc.perform(post("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
-                                    .contentType(RestMediaTypes.TEXT_URI_LIST)
+                                    .contentType("text/uri-list")
                                     .content("""
                                             /promotions/XMAS-2022
                                             /promotions/FREE-SHIP
@@ -979,10 +906,7 @@ class InvoicingApiApplicationTest {
                             )
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        var order = orders.findById(ORDER_1_ID).orElseThrow();
-                        assertThat(order.getPromos()).hasSize(3);
-                    });
+                    assertThat(invoicingApi.findOrderPromos(ORDER_1_ID)).hasSize(3);
                 }
             }
         }
@@ -1001,8 +925,7 @@ class InvoicingApiApplicationTest {
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNoContent());
 
-                    assertThat(orders.findById(ORDER_1_ID))
-                            .hasValueSatisfying(order -> assertThat(order.getCustomer()).isNull());
+                    assertThat(invoicingApi.findOrderCustomer(ORDER_1_ID)).isEmpty();
                 }
             }
 
@@ -1023,16 +946,13 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteShippingAddress_fromOrder_shouldReturn_http204() throws Exception {
-                    assertThat(orders.findById(ORDER_1_ID)).hasValueSatisfying(order -> {
-                        assertThat(order.getShippingAddress()).isNotNull();
-                    });
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).isNotEmpty();
 
                     mockMvc.perform(delete("/orders/{orderId}/shippingAddress", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNoContent());
 
-                    assertThat(orders.findById(ORDER_1_ID))
-                            .hasValueSatisfying(order -> assertThat(order.getShippingAddress()).isNull());
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).isEmpty();
                 }
             }
 
@@ -1075,10 +995,10 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void getInvoiceCustomerById_shouldReturn_http302() throws Exception {
-                    var invoice = invoices.findByNumber(INVOICE_NUMBER_1).orElseThrow();
-                    var counterPartyId = invoice.getCounterparty().getId();
+                    var invoiceId = invoiceId(INVOICE_NUMBER_1);
+                    var counterPartyId = invoicingApi.findInvoiceCounterparty(invoiceId).orElseThrow().getIdentity().getEntityId();
 
-                    mockMvc.perform(get("/invoices/" + invoice.getId() + "/counterparty/" + counterPartyId)
+                    mockMvc.perform(get("/invoices/" + invoiceId + "/counterparty/" + counterPartyId)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isFound())
                             .andExpect(header().string(HttpHeaders.LOCATION,
@@ -1087,10 +1007,10 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void getInvoiceCustomerByWrongId_shouldReturn_http404() throws Exception {
-                    var invoice = invoices.findByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    var invoiceId = invoiceId(INVOICE_NUMBER_1);
                     var wrongCounterparty = customerIdByVat(ORG_INBEV_VAT);
 
-                    mockMvc.perform(get("/invoices/" + invoice.getId() + "/counterparty/" + wrongCounterparty)
+                    mockMvc.perform(get("/invoices/" + invoiceId + "/counterparty/" + wrongCounterparty)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNotFound());
                 }
@@ -1103,7 +1023,7 @@ class InvoicingApiApplicationTest {
                 @Disabled("See ACC-451")
                 void getPromoById_forOrder_shouldReturn_http302_redirect() throws Exception {
 
-                    promos.findByPromoCode(PROMO_CYBER).orElseThrow();
+                    invoicingApi.findPromotionCampaignByPromoCode(PROMO_CYBER).orElseThrow();
 
                     mockMvc.perform(get("/orders/{id}/promos/{promoCode}", ORDER_1_ID, PROMO_CYBER)
                                     .accept(MediaType.APPLICATION_JSON))
@@ -1131,19 +1051,15 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteOrderById_fromInvoice_shouldReturn_http204() throws Exception {
-                    doInTransaction(() -> {
-                        var invoice = invoices.findById(INVOICE_1_ID).orElseThrow();
-                        assertThat(invoice.getOrders()).contains(orders.findById(ORDER_1_ID).orElseThrow());
-                    });
+                    assertThat(invoicingApi.findInvoiceOrders(INVOICE_1_ID))
+                            .anyMatch(order -> order.getIdentity().getEntityId().equals(ORDER_1_ID));
 
                     mockMvc.perform(delete("/invoices/{invoice}/orders/{order}", INVOICE_1_ID, ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNoContent());
 
-                    doInTransaction(() -> {
-                        var invoice = invoices.findById(INVOICE_1_ID).orElseThrow();
-                        assertThat(invoice.getOrders()).doesNotContain(orders.findById(ORDER_1_ID).orElseThrow());
-                    });
+                    assertThat(invoicingApi.findInvoiceOrders(INVOICE_1_ID))
+                            .noneMatch(order -> order.getIdentity().getEntityId().equals(ORDER_1_ID));
 
                 }
             }
@@ -1153,27 +1069,24 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteShippingAddressById_fromOrder_shouldReturn_http204() throws Exception {
-                    assertThat(orders.findById(ORDER_1_ID)).hasValueSatisfying(order -> {
-                        assertThat(order.getShippingAddress()).isNotNull();
-                        assertThat(order.getShippingAddress().getId()).isEqualTo(ADDRESS_ID_XENIT);
-                    });
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
+                            assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)
+                    );
 
                     mockMvc.perform(
                                     delete("/orders/{orderId}/shippingAddress/{addressId}", ORDER_1_ID, ADDRESS_ID_XENIT)
                                             .accept(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNoContent());
 
-                    assertThat(orders.findById(ORDER_1_ID))
-                            .hasValueSatisfying(order -> assertThat(order.getShippingAddress()).isNull());
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).isEmpty();
                 }
 
                 @Test
                 @Disabled("ACC-453")
                 void deleteShippingAddressByWrongId_fromOrder_shouldReturn_http404() throws Exception {
-                    assertThat(orders.findById(ORDER_1_ID)).hasValueSatisfying(order -> {
-                        assertThat(order.getShippingAddress()).isNotNull();
-                        assertThat(order.getShippingAddress().getId()).isEqualTo(ADDRESS_ID_XENIT);
-                    });
+                    assertThat(invoicingApi.findOrderShippingAddress(ORDER_1_ID)).hasValueSatisfying(address ->
+                            assertThat(address.getIdentity().getEntityId()).isEqualTo(ADDRESS_ID_XENIT)
+                    );
 
                     mockMvc.perform(
                                     delete("/orders/{orderId}/shippingAddress/{addressId}", ORDER_1_ID, UUID.randomUUID())
@@ -1206,20 +1119,12 @@ class InvoicingApiApplicationTest {
             @DisplayName("GET /{repository}/{entityId}/{contentProperty}")
             class Get {
 
-                private Invoice storeContent(Invoice invoice, byte[] content, String filename, String mimetype) {
-                    var stream = new ByteArrayInputStream(content);
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), stream);
-                    invoice.setContentFilename(filename);
-                    invoice.setContentMimetype(mimetype);
-                    return invoices.save(invoice);
-                }
-
                 @Test
                 void getInvoiceContent() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(invoice, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8));
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8, stream);
 
                     var encodedFilename = UriUtils.encodeQuery(filename, StandardCharsets.UTF_8);
                     mockMvc.perform(get("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
@@ -1238,9 +1143,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(invoice, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var start = 5;
                     var end = 9;
 
@@ -1259,9 +1165,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_upToLastByte_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(invoice, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var start = 5;
                     var end = byteArray.length;
                     var expected = Arrays.copyOfRange(byteArray, start, end);
@@ -1278,9 +1185,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_lastNBytes_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(invoice, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var length = 5;
                     var end = byteArray.length;
                     var expected = Arrays.copyOfRange(byteArray, end - length, end);
@@ -1302,9 +1210,10 @@ class InvoicingApiApplicationTest {
                 })
                 void getInvoiceContent_invalidRangeRequest_http416(int start, int end) throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(invoice, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
 
                     mockMvc.perform(get("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .accept(MediaType.ALL_VALUE)
@@ -1340,14 +1249,15 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1358,14 +1268,16 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1375,16 +1287,18 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    // you have to "know" the charset encoding
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                // you have to "know" the charset encoding
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
 
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                                assertThat(content.getMimeType()).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1395,36 +1309,33 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("attachment")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getAttachmentId()).isNotBlank();
-                    assertThat(invoice.getAttachmentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getAttachmentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getAttachmentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
 
-                    assertThat(invoice.getContentId()).isNull();
-                    assertThat(invoice.getContentMimetype()).isNull();
-                    assertThat(invoice.getContentLength()).isNull();
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                 }
 
                 @Test
                 void postInvoiceContent_update_http200() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), stream);
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setContentFilename("content.txt");
-                    invoice = invoices.save(invoice);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
 
                     // update content, ONLY changing the charset
                     mockMvc.perform(post("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/content")
@@ -1433,15 +1344,18 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT))
                             .andExpect(status().isOk());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(EXT_ASCII_TEXT);
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasContent(EXT_ASCII_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
 
-                    // keeps original filename
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                                // keeps original filename
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
                 }
 
                 @Test
@@ -1462,8 +1376,9 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void postMultipartContent_http201() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getContent(invoice)).isNull();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
 
                     var bytes = UNICODE_TEXT.getBytes(StandardCharsets.UTF_8);
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
@@ -1471,46 +1386,47 @@ class InvoicingApiApplicationTest {
                                     .file(file))
                             .andExpect(status().isCreated());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
                 }
 
                 @Test
                 void postMultipartContent_updateDifferentContentType_http200() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), new ByteArrayInputStream(bytes));
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setContentFilename("content.txt");
-                    invoices.save(invoice);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, new ByteArrayInputStream(bytes));
 
                     var image = new ClassPathResource("contentgrid-logo.png");
                     var content = image.getInputStream().readAllBytes();
+                    var imageLength = image.contentLength();
                     var file = new MockMultipartFile("file", "logo.png", MediaType.IMAGE_PNG_VALUE, content);
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
                             .andExpect(status().isOk());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(content);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
-                    assertThat(invoice.getContentLength()).isEqualTo(image.contentLength());
-                    assertThat(invoice.getContentFilename()).isEqualTo("logo.png");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(invoiceContent -> {
+                                assertThat(readContent(invoiceContent))
+                                        .hasBinaryContent(content);
+                                assertThat(invoiceContent.getMimeType()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+                                assertThat(invoiceContent.getLength()).isEqualTo(imageLength);
+                                assertThat(invoiceContent.getFilename()).isEqualTo("logo.png");
+                            });
                 }
 
                 @Test
                 void postMultipartContent_noPayload_http400() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getContent(invoice)).isNull();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
 
                     mockMvc.perform(multipart(HttpMethod.POST, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1)))
                             .andExpect(status().isBadRequest());
@@ -1523,8 +1439,8 @@ class InvoicingApiApplicationTest {
                                     .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_3)).orElseThrow();
-                    assertThat(invoice.getContentId()).isNull();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                 }
 
                 @Test
@@ -1538,14 +1454,15 @@ class InvoicingApiApplicationTest {
                                     .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_3)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
                 @Test
@@ -1562,18 +1479,23 @@ class InvoicingApiApplicationTest {
                                     .param("counterparty", "/customers/" + customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_3)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_3).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo(contentFile.getOriginalFilename());
-                    assertThat(invoice.getAttachmentId()).isNotBlank();
-                    assertThat(invoice.getAttachmentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(invoice.getAttachmentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getAttachmentFilename()).isEqualTo(attachmentFile.getOriginalFilename());
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(contentFile.getOriginalFilename());
+                            });
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(attachmentFile.getOriginalFilename());
+                            });
                 }
 
                 @Test
@@ -1597,14 +1519,15 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1615,14 +1538,16 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1632,16 +1557,18 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1)))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    // you have to "know" the charset encoding
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                // you have to "know" the charset encoding
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
 
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isNull();
+                                assertThat(content.getMimeType()).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -1652,36 +1579,33 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("attachment")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getAttachmentId()).isNotBlank();
-                    assertThat(invoice.getAttachmentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getAttachmentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getAttachmentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
 
-                    assertThat(invoice.getContentId()).isNull();
-                    assertThat(invoice.getContentMimetype()).isNull();
-                    assertThat(invoice.getContentLength()).isNull();
-                    assertThat(invoice.getContentFilename()).isNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                 }
 
                 @Test
                 void putInvoiceContent_update_http200() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), stream);
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setContentFilename("content.txt");
-                    invoice = invoices.save(invoice);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
 
                     // update content, ONLY changing the charset
                     mockMvc.perform(put("/invoices/" + invoiceId(INVOICE_NUMBER_1) + "/content")
@@ -1690,15 +1614,17 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT))
                             .andExpect(status().isOk());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(EXT_ASCII_TEXT);
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(EXT_ASCII_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
 
-                    // keeps original filename
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                                // keeps original filename
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
                 }
 
                 @Test
@@ -1719,8 +1645,9 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void putMultipartContent_http201() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getContent(invoice)).isNull();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
 
                     var bytes = UNICODE_TEXT.getBytes(StandardCharsets.UTF_8);
                     var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_UTF8, bytes);
@@ -1728,46 +1655,46 @@ class InvoicingApiApplicationTest {
                                     .file(file))
                             .andExpect(status().isCreated());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(invoice.getContentLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(invoice.getContentFilename()).isEqualTo("content.txt");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
                 }
 
                 @Test
                 void putMultipartContent_updateDifferentContentType_http200() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), new ByteArrayInputStream(bytes));
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setContentFilename("content.txt");
-                    invoices.save(invoice);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, new ByteArrayInputStream(bytes));
 
                     var image = new ClassPathResource("contentgrid-logo.png");
                     var content = image.getInputStream().readAllBytes();
+                    var imageLength = image.contentLength();
                     var file = new MockMultipartFile("file", "logo.png", MediaType.IMAGE_PNG_VALUE, content);
                     mockMvc.perform(multipart(HttpMethod.PUT, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1))
                                     .file(file))
                             .andExpect(status().isOk());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                    assertThat(invoicesContent.getContent(invoice, PropertyPath.from("content")))
-                            .hasBinaryContent(content);
-                    assertThat(invoice.getContentId()).isNotBlank();
-                    assertThat(invoice.getContentMimetype()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
-                    assertThat(invoice.getContentLength()).isEqualTo(image.contentLength());
-                    assertThat(invoice.getContentFilename()).isEqualTo("logo.png");
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId()))
+                            .hasValueSatisfying(invoiceContent -> {
+                                assertThat(readContent(invoiceContent)).hasBinaryContent(content);
+                                assertThat(invoiceContent.getMimeType()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+                                assertThat(invoiceContent.getLength()).isEqualTo(imageLength);
+                                assertThat(invoiceContent.getFilename()).isEqualTo("logo.png");
+                            });
                 }
 
                 @Test
                 void putMultipartContent_noPayload_http400() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getContent(invoice)).isNull();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
 
                     mockMvc.perform(multipart(HttpMethod.PUT, "/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1)))
                             .andExpect(status().isBadRequest());
@@ -1780,24 +1707,15 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteContent_http204() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"), new ByteArrayInputStream(bytes));
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setContentFilename("content.txt");
-                    invoices.save(invoice);
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, new ByteArrayInputStream(bytes));
 
                     mockMvc.perform(delete("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1)))
                             .andExpect(status().isNoContent());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    var content = invoicesContent.getResource(invoice, PropertyPath.from("content"));
-                    assertThat(content).isNull();
-
-                    assertThat(invoice.getContentId()).isNull();
-                    assertThat(invoice.getContentLength()).isNull();
-                    assertThat(invoice.getContentMimetype()).isNull();
-                    assertThat(invoice.getContentFilename()).isNull();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
                 }
 
                 @Test
@@ -1814,36 +1732,31 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteMultipleContentProperties() throws Exception {
-                    var invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
+                    var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
                     var contentBytes = UNICODE_TEXT.getBytes(StandardCharsets.UTF_8);
-                    invoicesContent.setContent(invoice, PropertyPath.from("content"),
+                    invoicingApi.storeInvoiceContent(invoice.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_UTF8,
                             new ByteArrayInputStream(contentBytes));
-                    invoice.setContentMimetype(MIMETYPE_PLAINTEXT_UTF8);
-                    invoice.setContentFilename("content.txt");
 
                     var attachmentBytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
-                    invoicesContent.setContent(invoice, PropertyPath.from("attachment"),
+                    invoicingApi.storeInvoiceAttachment(invoice.getIdentity().getEntityId(), "attachment.txt", MIMETYPE_PLAINTEXT_LATIN1,
                             new ByteArrayInputStream(attachmentBytes));
-                    invoice.setAttachmentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    invoice.setAttachmentFilename("attachment.txt");
-                    invoice = invoices.save(invoice);
 
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("content"))).isNotNull();
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("attachment"))).isNotNull();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isNotEmpty();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isNotEmpty();
 
                     mockMvc.perform(delete("/invoices/{id}/attachment", invoiceId(INVOICE_NUMBER_1)))
                             .andExpect(status().isNoContent());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("content"))).isNotNull();
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("attachment"))).isNull();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isNotEmpty();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
 
                     mockMvc.perform(delete("/invoices/{id}/content", invoiceId(INVOICE_NUMBER_1)))
                             .andExpect(status().isNoContent());
 
-                    invoice = invoices.findById(invoiceId(INVOICE_NUMBER_1)).orElseThrow();
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("content"))).isNull();
-                    assertThat(invoicesContent.getResource(invoice, PropertyPath.from("attachment"))).isNull();
+                    invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+                    assertThat(invoicingApi.findInvoiceContent(invoice.getIdentity().getEntityId())).isEmpty();
+                    assertThat(invoicingApi.findInvoiceAttachment(invoice.getIdentity().getEntityId())).isEmpty();
                 }
             }
         }
@@ -1855,20 +1768,12 @@ class InvoicingApiApplicationTest {
             @DisplayName("GET /{repository}/{entityId}/{contentProperty}")
             class Get {
 
-                private Customer storeContent(Customer customer, byte[] content, String filename, String mimetype) {
-                    var stream = new ByteArrayInputStream(content);
-                    customersContent.setContent(customer, PropertyPath.from("content"), stream);
-                    customer.getContent().setFilename(filename);
-                    customer.getContent().setMimetype(mimetype);
-                    return customers.save(customer);
-                }
-
                 @Test
                 void getCustomerContent() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
-                    var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(customer, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
+                    var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8));
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8, stream);
 
                     var encodedFilename = UriUtils.encodeQuery(filename, StandardCharsets.UTF_8);
                     mockMvc.perform(get("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
@@ -1887,9 +1792,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(customer, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var start = 5;
                     var end = 9;
 
@@ -1907,9 +1813,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_upToLastByte_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(customer, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var start = 5;
                     var end = byteArray.length;
                     var expected = Arrays.copyOfRange(byteArray, start, end);
@@ -1926,9 +1833,10 @@ class InvoicingApiApplicationTest {
                 @Test
                 void getInvoiceContent_rangeRequest_lastNBytes_http206() throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(customer, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
                     var length = 5;
                     var end = byteArray.length;
                     var expected = Arrays.copyOfRange(byteArray, end - length, end);
@@ -1950,9 +1858,10 @@ class InvoicingApiApplicationTest {
                 })
                 void getInvoiceContent_invalidRangeRequest_http416(int start, int end) throws Exception {
                     var filename = "💩 and 📝.txt";
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var byteArray = EXT_ASCII_TEXT.getBytes(StandardCharsets.UTF_8);
-                    storeContent(customer, byteArray, filename, MIMETYPE_PLAINTEXT_UTF8);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), filename, MIMETYPE_PLAINTEXT_UTF8,
+                            new ByteArrayInputStream(byteArray));
 
                     mockMvc.perform(get("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
                                     .accept(MediaType.ALL_VALUE)
@@ -1988,33 +1897,31 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(customer.getContent()).isNotNull();
-                    assertThat(customer.getContent().getId()).isNotBlank();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isNull();
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
                 void postCustomerContent_update_http200() throws Exception {
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    customersContent.setContent(customer, PropertyPath.from("content"), stream);
-                    customer.getContent().setMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    customer.getContent().setFilename("content.txt");
-                    customer = customers.save(customer);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-                    assertThat(customer.getContent()).isNotNull();
-                    assertThat(customer.getContent().getId()).isNotBlank();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
-                    assertThat(customer.getContent().getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isEqualTo("content.txt");
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasBinaryContent(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_LATIN1);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_LATIN1_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
 
                     // update content, ONLY changing the charset
                     mockMvc.perform(post("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT))
@@ -2023,14 +1930,17 @@ class InvoicingApiApplicationTest {
                                     .content(EXT_ASCII_TEXT))
                             .andExpect(status().isOk());
 
-                    customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(EXT_ASCII_TEXT);
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
+                    customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content))
+                                        .hasContent(EXT_ASCII_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(EXT_ASCII_TEXT_UTF8_LENGTH);
 
-                    // keeps original filename
-                    assertThat(customer.getContent().getFilename()).isEqualTo("content.txt");
+                                // keeps original filename
+                                assertThat(content.getFilename()).isEqualTo("content.txt");
+                            });
                 }
 
                 @Test
@@ -2057,14 +1967,15 @@ class InvoicingApiApplicationTest {
                                     .file(file))
                             .andExpect(status().isCreated());
 
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(customer.getContent()).isNotNull();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
                 @Test
@@ -2074,9 +1985,9 @@ class InvoicingApiApplicationTest {
                                     .param("vat", ORG_EXAMPLE_VAT))
                             .andExpect(status().isCreated());
 
-                    var customer = customers.findById(customerIdByVat(ORG_EXAMPLE_VAT)).orElseThrow();
-                    assertThat(customer.getName()).isEqualTo("Example");
-                    assertThat(customer.getContent()).isNull();
+                    var customer = invoicingApi.findCustomerByVat(ORG_EXAMPLE_VAT).orElseThrow();
+                    assertThat(customer.getData().get("name")).isEqualTo(new StringDataEntry("Example"));
+                    assertThat(customer.getData().get("content")).isEqualTo(NullDataEntry.INSTANCE);
                 }
 
                 @Test
@@ -2091,15 +2002,15 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isCreated());
 
                     // Check whether customer exists
-                    var customer = customers.findById(customerIdByVat(ORG_EXAMPLE_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_EXAMPLE_VAT).orElseThrow();
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(customer.getContent()).isNotNull();
-                    assertThat(customer.getContent().getId()).isNotBlank();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
                 @Test
@@ -2107,21 +2018,27 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("barcodePicture", "barcode.jpg", MIMETYPE_PLAINTEXT_UTF8,
                             UNICODE_TEXT.getBytes(StandardCharsets.UTF_8));
 
-                    mockMvc.perform(multipart(HttpMethod.POST, "/shipping-labels")
+                    var result = mockMvc.perform(multipart(HttpMethod.POST, "/shipping-labels")
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isCreated())
+                            .andReturn();
 
-                    var shippingLabel = shippingLabels.findAll().get(0);
+                    var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
+                            .map(location -> new UriTemplate("{scheme}://{host}/shipping-labels/{id}").match(location))
+                            .map(matches -> matches.get("id"))
+                            .map(UUID::fromString)
+                            .map(EntityId::of)
+                            .orElseThrow();
 
-                    assertThat(shippingLabelsContent.getContent(shippingLabel, PropertyPath.from("barcodePicture")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(shippingLabel.getBarcodePicture()).isNotNull();
-                    assertThat(shippingLabel.getBarcodePicture().getId()).isNotBlank();
-                    assertThat(shippingLabel.getBarcodePicture().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(shippingLabel.getBarcodePicture().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(shippingLabel.getBarcodePicture().getFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findShippingLabelBarcodePicture(shippingLabelId))
+                            .hasValueSatisfying(barcodePicture -> {
+                                assertThat(readContent(barcodePicture)).hasContent(UNICODE_TEXT);
+                                assertThat(barcodePicture.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(barcodePicture.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(barcodePicture.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
                 @Test
@@ -2129,21 +2046,27 @@ class InvoicingApiApplicationTest {
                     var file = new MockMultipartFile("_package", "package.bin", MIMETYPE_PLAINTEXT_UTF8,
                             UNICODE_TEXT.getBytes(StandardCharsets.UTF_8));
 
-                    mockMvc.perform(multipart(HttpMethod.POST, "/shipping-labels")
+                    var result = mockMvc.perform(multipart(HttpMethod.POST, "/shipping-labels")
                                     .file(file)
                                     .param("from", "here")
                                     .param("to", "there"))
-                            .andExpect(status().isCreated());
+                            .andExpect(status().isCreated())
+                            .andReturn();
 
-                    var shippingLabel = shippingLabels.findAll().get(0);
+                    var shippingLabelId = Optional.ofNullable(result.getResponse().getHeader(HttpHeaders.LOCATION))
+                            .map(location -> new UriTemplate("{scheme}://{host}/shipping-labels/{id}").match(location))
+                            .map(matches -> matches.get("id"))
+                            .map(UUID::fromString)
+                            .map(EntityId::of)
+                            .orElseThrow();
 
-                    assertThat(shippingLabelsContent.getContent(shippingLabel, PropertyPath.from("_package")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(shippingLabel.get_package()).isNotNull();
-                    assertThat(shippingLabel.get_package().getId()).isNotBlank();
-                    assertThat(shippingLabel.get_package().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(shippingLabel.get_package().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(shippingLabel.get_package().getFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findShippingLabelPackage(shippingLabelId))
+                            .hasValueSatisfying(pkg -> {
+                                assertThat(readContent(pkg)).hasContent(UNICODE_TEXT);
+                                assertThat(pkg.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(pkg.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(pkg.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
             }
@@ -2160,15 +2083,15 @@ class InvoicingApiApplicationTest {
                                     .content(UNICODE_TEXT))
                             .andExpect(status().isCreated());
 
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(customer.getContent()).isNotNull();
-                    assertThat(customer.getContent().getId()).isNotBlank();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isNull();
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isNull();
+                            });
                 }
 
                 @Test
@@ -2179,14 +2102,15 @@ class InvoicingApiApplicationTest {
                                     .file(file))
                             .andExpect(status().isCreated());
 
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
-                    assertThat(customersContent.getContent(customer, PropertyPath.from("content")))
-                            .hasContent(UNICODE_TEXT);
-                    assertThat(customer.getContent().getId()).isNotBlank();
-                    assertThat(customer.getContent().getMimetype()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
-                    assertThat(customer.getContent().getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
-                    assertThat(customer.getContent().getFilename()).isEqualTo(file.getOriginalFilename());
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId()))
+                            .hasValueSatisfying(content -> {
+                                assertThat(readContent(content)).hasContent(UNICODE_TEXT);
+                                assertThat(content.getMimeType()).isEqualTo(MIMETYPE_PLAINTEXT_UTF8);
+                                assertThat(content.getLength()).isEqualTo(UNICODE_TEXT_UTF8_LENGTH);
+                                assertThat(content.getFilename()).isEqualTo(file.getOriginalFilename());
+                            });
                 }
 
             }
@@ -2197,19 +2121,16 @@ class InvoicingApiApplicationTest {
 
                 @Test
                 void deleteContent_http204() throws Exception {
-                    var customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
+                    var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                     var bytes = EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1);
-                    customersContent.setContent(customer, PropertyPath.from("content"), new ByteArrayInputStream(bytes));
-                    customer.getContent().setMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-                    customer.getContent().setFilename("content.txt");
-                    customers.save(customer);
+                    invoicingApi.storeCustomerContent(customer.getIdentity().getEntityId(), "content.txt", MIMETYPE_PLAINTEXT_LATIN1,
+                            new ByteArrayInputStream(bytes));
 
                     mockMvc.perform(delete("/customers/{id}/content", customerIdByVat(ORG_XENIT_VAT)))
                             .andExpect(status().isNoContent());
 
-                    customer = customers.findById(customerIdByVat(ORG_XENIT_VAT)).orElseThrow();
-                    var content = customersContent.getResource(customer, PropertyPath.from("content"));
-                    assertThat(content).isNull();
+                    customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
+                    assertThat(invoicingApi.findCustomerContent(customer.getIdentity().getEntityId())).isEmpty();
                 }
 
                 @Test
@@ -2228,12 +2149,28 @@ class InvoicingApiApplicationTest {
         }
     }
 
-    private UUID invoiceId(String number) {
-        return invoices.findByNumber(number).map(Invoice::getId).orElseThrow();
+    private EntityId invoiceId(String number) {
+        return invoicingApi.findInvoiceByNumber(number)
+                .map(EntityInstance::getIdentity)
+                .map(EntityIdentity::getEntityId)
+                .orElseThrow();
     }
 
-    private UUID customerIdByVat(String vat) {
-        return customers.findByVat(vat).map(Customer::getId).orElseThrow();
+    private EntityId customerIdByVat(String vat) {
+        return invoicingApi.findCustomerByVat(vat)
+                .map(EntityInstance::getIdentity)
+                .map(EntityIdentity::getEntityId)
+                .orElseThrow();
+    }
+
+    private InputStream readContent(Content content) {
+        // Retrieve the InputStream, to be used inside a lambda function
+        try {
+            return content.getInputStream();
+        } catch (IOException e) {
+            Assertions.fail(e);
+            throw new RuntimeException(e);
+        }
     }
 
 
