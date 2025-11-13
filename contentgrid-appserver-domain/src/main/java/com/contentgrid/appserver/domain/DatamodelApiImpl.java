@@ -400,7 +400,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @RequiredArgsConstructor
-    public static class ResponseOutputDataMapper {
+    private static class ResponseOutputDataMapper {
         private final List<Attribute> attributes;
         private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
 
@@ -408,10 +408,12 @@ public class DatamodelApiImpl implements DatamodelApi {
             var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(attributes.size());
             for (var attribute : attributes) {
                 try {
-                    data.put(
-                            attribute.getName().getValue(),
-                            attributeMapper.mapAttribute(attribute, entityData.getAttributeByName(attribute.getName()))
-                    );
+                    if (!attribute.isIgnored()) {
+                        data.put(
+                                attribute.getName().getValue(),
+                                attributeMapper.mapAttribute(attribute, entityData.getAttributeByName(attribute.getName()))
+                        );
+                    }
                 } catch (InvalidPropertyDataException e) {
                     throw new IllegalStateException(
                             "Invalid data from storage for %s (attribute %s)".formatted(
