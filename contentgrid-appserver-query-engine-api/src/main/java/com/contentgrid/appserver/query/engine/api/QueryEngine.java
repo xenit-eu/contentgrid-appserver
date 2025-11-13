@@ -97,15 +97,6 @@ public interface QueryEngine {
             throws QueryEngineException;
 
     /**
-     * Deletes all entities of the specified type.
-     *
-     * @param application the application context
-     * @param entity the entity type for which all records should be deleted
-     * @throws QueryEngineException if an error occurs during the delete operation
-     */
-    void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException;
-
-    /**
      * Determines whether the given source and target entities are linked by the specified relation.
      *
      * @param application the application context

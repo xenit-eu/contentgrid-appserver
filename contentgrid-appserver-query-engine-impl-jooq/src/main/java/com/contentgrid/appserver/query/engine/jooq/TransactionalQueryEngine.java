@@ -99,14 +99,6 @@ public class TransactionalQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
-        runInWriteTransaction(() -> {
-            delegate.deleteAll(application, entity);
-            return null;
-        });
-    }
-
-    @Override
     public boolean isLinked(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitReadPredicate)
             throws QueryEngineException {

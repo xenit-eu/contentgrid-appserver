@@ -434,18 +434,6 @@ public class JOOQQueryEngine implements QueryEngine {
         }
     }
 
-    @Override
-    public void deleteAll(@NonNull Application application, @NonNull Entity entity) throws QueryEngineException {
-        var dslContext = resolver.resolve(application);
-        var table = JOOQUtils.resolveTable(entity);
-
-        try {
-            dslContext.deleteFrom(table).execute();
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e);
-        }
-    }
-
     /**
      * Converts the entity that a relation points to into a version.
      * <p>
