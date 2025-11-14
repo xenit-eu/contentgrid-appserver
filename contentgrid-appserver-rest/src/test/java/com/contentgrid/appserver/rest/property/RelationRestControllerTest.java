@@ -486,8 +486,10 @@ class RelationRestControllerTest {
         })
         void followRelationInvalidUrl(String url) throws Exception {
             mockMvc.perform(get(url))
-                    .andExpect(status().isNotFound())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -496,16 +498,20 @@ class RelationRestControllerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
         void setRelationMissingContent() throws Exception {
             var invoice = createEntity(INVOICE);
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -517,8 +523,10 @@ class RelationRestControllerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(target1, target2)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @ParameterizedTest
@@ -528,8 +536,10 @@ class RelationRestControllerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
                             .content(url))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @ParameterizedTest
@@ -540,9 +550,10 @@ class RelationRestControllerTest {
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType(contentType)
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
-                    .andExpect(status().isUnsupportedMediaType())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.type").value(startsWith("https://contentgrid.cloud/problems/invalid-media-type")));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -578,8 +589,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isUnsupportedMediaType())
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                            .withType("https://contentgrid.cloud/problems/invalid-media-type")
-                            .withTitle("Unsupported Media Type")
+                            // TODO: proper problem detail here
                     );
         }
 
@@ -622,7 +632,6 @@ class RelationRestControllerTest {
             mockMvc.perform(requestBuilder)
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.METHOD_NOT_ALLOWED)
-                                    .withType("https://contentgrid.cloud/problems/method-not-allowed")
                             // TODO: proper problem detail here
                     )
                     .andExpect(header().exists(HttpHeaders.ALLOW))

@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
@@ -722,7 +724,10 @@ class ProfileRestControllerTest {
     @Test
     void getProfileEntity_notFound() throws Exception {
         mockMvc.perform(get("/profile/not-found").accept(MediaTypes.HAL_FORMS_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.NOT_FOUND)
+                        // TODO: proper problem detail here
+                );
     }
 
     @Test
