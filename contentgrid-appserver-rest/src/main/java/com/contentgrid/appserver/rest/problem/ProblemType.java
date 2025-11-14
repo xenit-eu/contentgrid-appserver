@@ -7,7 +7,12 @@ import org.springframework.context.MessageSourceResolvable;
 
 public enum ProblemType implements ProblemTypeResolvable {
     INPUT_VALIDATION("input", "validation"),
-    INPUT_DUPLICATE_VALUE("input", "duplicate-value"),
+    INPUT_VALIDATION_DUPLICATE_VALUE("input", "validation", "duplicate"),
+    INPUT_VALIDATION_INVALID_TYPE("input", "validation", "type"),
+    INPUT_VALIDATION_INVALID_TYPE_FORMAT("input", "validation", "type", "format"),
+    INPUT_VALIDATION_REQUIRED_VALUE("input", "validation", "required"),
+    INPUT_VALIDATION_ALLOWED_VALUES("input", "validation", "allowed-values"),
+    INPUT_VALIDATION_NO_CONTENT("input", "validation", "no-content"),
 
     INVALID_FILTER_PARAMETER("invalid-filter-parameter"),
     INVALID_FILTER_PARAMETER_FORMAT("invalid-filter-parameter", "format"),
@@ -21,7 +26,7 @@ public enum ProblemType implements ProblemTypeResolvable {
     UNSATISFIED_VERSION("unsatisfied-version"),
 
     INTEGRITY_RELATION_BLIND_OVERWRITE("integrity", "blind-relation-overwrite"),
-    INTEGRITY_RELATION_REQUIRED("integrity", "relation-required")
+    INTEGRITY_RELATION_REQUIRED("integrity", "relation-required"),
     ;
 
     ProblemType(String... params) {

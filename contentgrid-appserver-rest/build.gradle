@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
     id 'maven-publish'
     id 'io.freefair.lombok'
 }
@@ -26,6 +27,12 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testFixturesImplementation 'org.springframework:spring-web'
+    testFixturesImplementation 'jakarta.servlet:jakarta.servlet-api'
+    testFixturesImplementation 'org.springframework:spring-test'
+    testFixturesImplementation 'org.assertj:assertj-core'
 }
 
 // Required for resolution of variable-name-based controller method parameters

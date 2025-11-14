@@ -25,6 +25,7 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.EntityRestControllerTest.TestConfig;
+import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -288,8 +289,15 @@ class EntityRestControllerTest {
                             .param("name", "My product")
                             .param("price", "120")
                     ).andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.detail",
-                            is("Invalid property data at picture: Invalid format for type CONTENT: Content-Type is required")))
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail("Expected value of type content, but the format is incorrect: Content-Type is required")
+                                    .withField("expected-type", "content")
+                                    .withField("format-error", "Content-Type is required")
+                                    .withProperty("picture")
+                            )
+                    )
             ;
         }
 
@@ -320,6 +328,16 @@ class EntityRestControllerTest {
                                     "age", 12.3
                             ))
                     ).andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type long, but the format is incorrect:"))
+                                    .withField("expected-type", "long")
+                                    .withField("format-error", f -> assertThat(f).isNotNull())
+                                    .withProperty("age")
+                            )
+
+                    )
                     .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
                     .andExpect(jsonPath("$.property-path", is(List.of("age"))));
         }
@@ -379,6 +397,18 @@ class EntityRestControllerTest {
             mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
                             .accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("'filename' can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("'mimetype' can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                    )
                     .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
                     .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
         }
@@ -1217,10 +1247,12 @@ class EntityRestControllerTest {
                               }
                             }
                             """))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.detail", containsString("Field is required")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("picture", "mimetype"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withProperty("picture.mimetype")
+                            ));
         }
 
         @Test
@@ -1248,8 +1280,18 @@ class EntityRestControllerTest {
                             }
                             """))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("'filename' can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("'mimetype' can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                    );
         }
 
     }

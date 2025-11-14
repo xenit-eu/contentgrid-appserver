@@ -1,6 +1,12 @@
 package com.contentgrid.appserver.rest.problem;
 
+import com.contentgrid.appserver.domain.data.InvalidDataException;
+import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
+import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintViolationInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
@@ -119,27 +125,51 @@ public class ContentGridExceptionHandler {
     ResponseEntity<Problem> handleInvalidPropertyDataException(@NonNull InvalidPropertyDataException exception) {
         var allErrors = exception.allExceptions().toList();
 
-        var problem = problemFactory.createProblem(ProblemType.INPUT_VALIDATION, allErrors.size())
-                .withStatus(HttpStatus.BAD_REQUEST);
-
         var propertiesBuilder = ConstraintViolationProblemProperties.builder();
         for (var error : allErrors) {
             propertiesBuilder.field(
-                    Problem.create()
-                            // TODO: localization of error message
-                            .withDetail(error.getMessage()),
+                    handleInvalidDataException(error.getCause()),
                     String.join(".", error.getPath().toList())
             );
         }
 
+        var validationProblemProperties = propertiesBuilder.build();
+
         return createResponse(
-                problem.withProperties(propertiesBuilder.build())
+                problemFactory.createProblem(ProblemType.INPUT_VALIDATION, allErrors.size())
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withProperties(validationProblemProperties)
         );
+    }
+
+
+    private Problem handleInvalidDataException(InvalidDataException exception) {
+        return switch (exception) {
+            case InvalidDataTypeException invalidDataType -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_INVALID_TYPE, invalidDataType.getExpectedType().getHumanDescription(), invalidDataType.getActualType().getHumanDescription())
+                    .withProperties(properties -> {
+                        properties.put("expected-type", invalidDataType.getExpectedType().getTechnicalName());
+                        properties.put("actual-type", invalidDataType.getActualType().getTechnicalName());
+                    });
+            case InvalidDataFormatException invalidDataFormat -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_INVALID_TYPE_FORMAT, invalidDataFormat.getExpectedType().getHumanDescription(),
+                            exception.getCause().getMessage())
+                    .withProperties(properties -> {
+                        properties.put("expected-type", invalidDataFormat.getExpectedType().getTechnicalName());
+                        properties.put("format-error", invalidDataFormat.getCause().getMessage());
+                    });
+            case ContentMissingInvalidDataException contentMissing -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_NO_CONTENT, contentMissing.getSubfield());
+            case RequiredConstraintViolationInvalidDataException requiredConstraintViolation -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_REQUIRED_VALUE);
+            case AllowedValuesConstraintViolationInvalidDataException allowedValuesConstraintViolation -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_ALLOWED_VALUES, allowedValuesConstraintViolation.getAllowedValues());
+            case InvalidPropertyDataException invalidPropertyDataException -> handleInvalidPropertyDataException(invalidPropertyDataException).getBody();
+            // All exception types should be covered above, this is a fallback for when there are additional
+            // exceptions added without adding a case.
+            default -> Problem.create()
+                    .withDetail(exception.getMessage());
+        };
     }
 
     @ExceptionHandler
     ResponseEntity<Problem> handleUniqueConstraintViolation(@NonNull UniqueConstraintViolationException exception, LinkFactoryProvider linkFactoryProvider) {
-        return createResponse(problemFactory.createProblem(ProblemType.INPUT_DUPLICATE_VALUE, String.join(".", exception.getPropertyPath().toList()))
+        return createResponse(problemFactory.createProblem(ProblemType.INPUT_VALIDATION_DUPLICATE_VALUE, String.join(".", exception.getPropertyPath().toList()))
                 .withStatus(HttpStatus.CONFLICT)
                 .withProperties(properties -> {
                     var existingEntityLink = linkFactoryProvider.toItem(exception.getConflictingEntity());

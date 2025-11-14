@@ -26,6 +26,7 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.InternalInverseRelationBlindOverwriteTest.TestConfig;
+import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -38,6 +39,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -133,9 +135,11 @@ class InternalInverseRelationBlindOverwriteTest {
         mockMvc.perform(post(departmentManagementUrl + "/members")
                         .contentType("text/uri-list")
                         .content(employeeUrl))
-                .andExpect(status().isConflict())
-                // existing-item should point to the place where you can fix it (i.e. remove alice from this dept first)
-                .andExpect(jsonPath("$.existing-item").value(departmentEngineeringUrl))
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withStatusCode(HttpStatus.CONFLICT)
+                        // existing-item should point to the place where you can fix it (i.e. remove alice from this dept first)
+                        .withField("existing-item", departmentEngineeringUrl)
+                )
                 .andExpect(jsonPath("$.affected-relation").doesNotExist());
     }
 

@@ -49,7 +49,7 @@ public class MergedProblemProperties {
     }
 
     public MergedProblemProperties extendedWith(Object extension) {
-        if (extension == null) {
+        if (this.extension == null) {
             return new MergedProblemProperties(original, extension);
         } else {
             return new MergedProblemProperties(this, extension);
