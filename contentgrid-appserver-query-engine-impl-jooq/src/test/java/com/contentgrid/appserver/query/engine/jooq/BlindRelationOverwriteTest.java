@@ -19,8 +19,12 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
@@ -47,6 +51,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest(properties = {
@@ -57,6 +62,19 @@ import org.springframework.transaction.PlatformTransactionManager;
 class BlindRelationOverwriteTest {
 
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
+
+    @MockitoBean
+    private CreateEventConsumer createEventConsumer;
+
+    @MockitoBean
+    private UpdateEventConsumer updateEventConsumer;
+
+    @MockitoBean
+    private DeleteEventConsumer deleteEventConsumer;
+
+    @MockitoBean
+    private LinkEventConsumer linkEventConsumer;
+
     @Autowired
     private QueryEngine queryEngine;
 
@@ -157,7 +175,8 @@ class BlindRelationOverwriteTest {
                 EntityCreateData.builder()
                         .entityName(entityName)
                         .build(),
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                createEventConsumer
         ).getIdentity();
     }
 
@@ -169,10 +188,11 @@ class BlindRelationOverwriteTest {
                     APPLICATION,
                     relationRequest,
                     Set.of(target.getEntityId()),
-                    PERMIT_ALWAYS
+                    PERMIT_ALWAYS,
+                    linkEventConsumer
             );
         } else {
-            queryEngine.setLink(APPLICATION, relationRequest, target.getEntityId(), PERMIT_ALWAYS);
+            queryEngine.setLink(APPLICATION, relationRequest, target.getEntityId(), PERMIT_ALWAYS, linkEventConsumer);
         }
     }
 
@@ -288,7 +308,8 @@ class BlindRelationOverwriteTest {
                 APPLICATION,
                 originalSourceRelationRequest,
                 targetIds,
-                PERMIT_ALWAYS
+                PERMIT_ALWAYS,
+                linkEventConsumer
         );
 
         var newSource = createEntity(relation.getSourceEndPoint().getEntity());
@@ -302,7 +323,8 @@ class BlindRelationOverwriteTest {
                     APPLICATION,
                     newSourceRelationRequest,
                     Stream.concat(Stream.of(succeedingTarget.getEntityId()), targetIds.stream()).collect(Collectors.toSet()),
-                    PERMIT_ALWAYS
+                    PERMIT_ALWAYS,
+                    linkEventConsumer
             );
         }).isInstanceOfSatisfying(BlindRelationOverwriteException.class, ex -> {
             var allExceptions = Stream.concat(Stream.of(ex), Arrays.stream(ex.getSuppressed()));
@@ -336,7 +358,8 @@ class BlindRelationOverwriteTest {
         }
 
         @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver, PlatformTransactionManager transactionManager) {
+        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
+                PlatformTransactionManager transactionManager) {
             return new TransactionalQueryEngine(
                     new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
                     transactionManager

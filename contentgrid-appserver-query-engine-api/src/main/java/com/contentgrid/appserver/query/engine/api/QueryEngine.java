@@ -69,7 +69,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the create operation
      */
     EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
-            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException;
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate,
+            @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException;
 
     /**
      * Updates an entity with the given data.
@@ -81,7 +82,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the update operation
      */
     UpdateResult update(@NonNull Application application, @NonNull EntityData data,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException;
 
     /**
      * Deletes the entity that matches the given identity
@@ -93,7 +95,8 @@ public interface QueryEngine {
      * @throws QueryEngineException if an error occurs during the delete operation
      */
     Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull ThunkExpression<Boolean> permitDeletePredicate)
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate,
+            @NonNull DeleteEventConsumer deleteEventConsumer)
             throws QueryEngineException;
 
     /**
@@ -128,9 +131,10 @@ public interface QueryEngine {
      * @param relationRequest the *-to-one relation for which to set the link
      * @param targetId the primary key of the target entity
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
+     * @param linkEventConsumer consumer that will be called after the link is set
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.
@@ -138,9 +142,10 @@ public interface QueryEngine {
      * @param application the application context
      * @param relationRequest the relation type for which to remove links
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
+     * @param unlinkEventConsumer consumer that will be called after the link is unset
      * @throws QueryEngineException if an error occurs during the unset operation
      */
-    void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull UnlinkEventConsumer unlinkEventConsumer) throws QueryEngineException;
 
     /**
      * Adds the links provided in data to the entity with the given id.
@@ -150,9 +155,10 @@ public interface QueryEngine {
      * @param relationRequest the *-to-many relation to add links to
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
+     * @param linkEventConsumer consumer that will be called after the links are added
      * @throws QueryEngineException if an error occurs during the add operation
      */
-    void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException;
 
     /**
      * Removes the links provided in data from the entity with the given id.
@@ -162,9 +168,10 @@ public interface QueryEngine {
      * @param relationRequest the *-to-many relation to remove links from
      * @param targetIds the primary keys of the target entities
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
+     * @param unlinkEventConsumer consumer that will be called after the links are removed
      * @throws QueryEngineException if an error occurs during the remove operation
      */
-    void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException;
+    void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull UnlinkEventConsumer unlinkEventConsumer) throws QueryEngineException;
 
     /**
      * Counts how many entities exist that match the given expression.

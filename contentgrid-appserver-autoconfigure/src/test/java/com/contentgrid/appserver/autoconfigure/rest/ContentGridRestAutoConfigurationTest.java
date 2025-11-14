@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -13,6 +14,7 @@ import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
@@ -42,7 +44,10 @@ class ContentGridRestAutoConfigurationTest {
                     FilesystemContentStoreAutoConfiguration.class,
                     // autoconfiguration for domain
                     ContentGridDomainAutoConfiguration.class,
+                    ContentGridEventsAutoConfiguration.class,
+                    ContentGridRestFormatterAutoConfiguration.class,
                     // autoconfigurations for rest
+                    HttpMessageConvertersAutoConfiguration.class,
                     WebMvcAutoConfiguration.class,
                     AbacContextAutoConfiguration.class,
                     ContentGridRestAutoConfiguration.class
@@ -50,7 +55,8 @@ class ContentGridRestAutoConfigurationTest {
             .withUserConfiguration(TestConfiguration.class)
             .withPropertyValues(
                     "spring.datasource.url=jdbc:tc:postgresql:15:///",
-                    "contentgrid.appserver.content-store.type=ephemeral"
+                    "contentgrid.appserver.content-store.type=ephemeral",
+                    "contentgrid.events.rabbitmq.enabled=false"
             );
 
     @Test

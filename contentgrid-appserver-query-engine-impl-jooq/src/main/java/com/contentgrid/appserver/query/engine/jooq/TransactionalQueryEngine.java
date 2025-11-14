@@ -6,8 +6,12 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -76,25 +80,28 @@ public class TransactionalQueryEngine implements QueryEngine {
 
     @Override
     public EntityData create(@NonNull Application application, @NonNull EntityCreateData data,
-            @NonNull ThunkExpression<Boolean> permitCreatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitCreatePredicate,
+            @NonNull CreateEventConsumer createEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.create(application, data, permitCreatePredicate)
+                delegate.create(application, data, permitCreatePredicate, createEventConsumer)
         );
     }
 
     @Override
     public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull com.contentgrid.appserver.query.engine.api.UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.update(application, data, permitUpdatePredicate)
+                delegate.update(application, data, permitUpdatePredicate, updateEventConsumer)
         );
     }
 
     @Override
     public Optional<EntityData> delete(@NonNull Application application, @NonNull EntityRequest entityRequest,
-            @NonNull ThunkExpression<Boolean> permitDeletePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitDeletePredicate,
+            @NonNull DeleteEventConsumer deleteEventConsumer) throws QueryEngineException {
         return runInWriteTransaction(() ->
-                delegate.delete(application, entityRequest, permitDeletePredicate)
+                delegate.delete(application, entityRequest, permitDeletePredicate, deleteEventConsumer)
         );
     }
 
@@ -118,19 +125,20 @@ public class TransactionalQueryEngine implements QueryEngine {
 
     @Override
     public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
+            @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull LinkEventConsumer linkEventConsumer)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.setLink(application, relationRequest, targetId, permitUpdatePredicate);
+            delegate.setLink(application, relationRequest, targetId, permitUpdatePredicate, linkEventConsumer);
             return null;
         });
     }
 
     @Override
     public void unsetLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull ThunkExpression<Boolean> permitUpdatePredicate) throws QueryEngineException {
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull UnlinkEventConsumer unlinkEventConsumer) throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.unsetLink(application, relationRequest, permitUpdatePredicate);
+            delegate.unsetLink(application, relationRequest, permitUpdatePredicate, unlinkEventConsumer);
             return null;
         });
 
@@ -138,10 +146,11 @@ public class TransactionalQueryEngine implements QueryEngine {
 
     @Override
     public void addLinks(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
+            @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull LinkEventConsumer linkEventConsumer)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.addLinks(application, relationRequest, targetIds, permitUpdatePredicate);
+            delegate.addLinks(application, relationRequest, targetIds, permitUpdatePredicate, linkEventConsumer);
             return null;
         });
 
@@ -149,10 +158,11 @@ public class TransactionalQueryEngine implements QueryEngine {
 
     @Override
     public void removeLinks(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate)
+            @NonNull Set<EntityId> targetIds, @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull UnlinkEventConsumer unlinkEventConsumer)
             throws QueryEngineException {
         runInWriteTransaction(() -> {
-            delegate.removeLinks(application, relationRequest, targetIds, permitUpdatePredicate);
+            delegate.removeLinks(application, relationRequest, targetIds, permitUpdatePredicate, unlinkEventConsumer);
             return null;
         });
     }

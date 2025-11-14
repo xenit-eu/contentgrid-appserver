@@ -44,7 +44,12 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
@@ -64,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -75,6 +81,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     private final QueryEngine queryEngine;
     private final ContentStore contentStore;
+    private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
@@ -258,7 +265,8 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var outputMapper = createOutputDataMapper(application, entityName);
 
-        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate()));
+        CreateEventConsumer onCreate = new EventConsumerImpl(outputMapper);
+        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
     }
 
 
@@ -293,9 +301,11 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate());
-
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
+
+        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
@@ -330,9 +340,11 @@ public class DatamodelApiImpl implements DatamodelApi {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate());
-
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
+
+        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
@@ -341,7 +353,8 @@ public class DatamodelApiImpl implements DatamodelApi {
             throws EntityIdNotFoundException {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
 
-        var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate())
+        DeleteEventConsumer onDelete = new EventConsumerImpl(outputMapper);
+        var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate(), onDelete)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
         return outputMapper.mapAttributes(deleted);
@@ -368,34 +381,52 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate());
+        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
+
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
+
+        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
     }
 
     @Override
     public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
-        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate());
+        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
+
+        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
+
+        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate(), onUnlink);
     }
 
     @Override
     public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
+
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
+
         queryEngine.addLinks(
                 application,
                 relation,
                 targetIds,
-                authorizationContext.predicate()
+                authorizationContext.predicate(),
+                onLink
         );
     }
 
     @Override
     public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
+
+        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
+
         queryEngine.removeLinks(
                 application,
                 relation,
                 targetIds,
-                authorizationContext.predicate()
+                authorizationContext.predicate(),
+                onUnlink
         );
     }
 
@@ -432,4 +463,31 @@ public class DatamodelApiImpl implements DatamodelApi {
             );
         }
     }
+
+    @RequiredArgsConstructor
+    private final class EventConsumerImpl implements CreateEventConsumer, UpdateEventConsumer, DeleteEventConsumer,
+            LinkEventConsumer, UnlinkEventConsumer {
+        private final ResponseOutputDataMapper outputMapper;
+
+        public void onEntityCreate(Application app, EntityData data) {
+            domainEventDispatcher.dispatchCreate(app, outputMapper.mapAttributes(data));
+        }
+
+        public void onEntityUpdate(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+
+        public void onEntityDelete(Application app, EntityData data) {
+            domainEventDispatcher.dispatchDelete(app, outputMapper.mapAttributes(data));
+        }
+
+        public void onLink(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+
+        public void onUnlink(Application app, EntityData oldData, EntityData newData) {
+            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        }
+    }
+
 }

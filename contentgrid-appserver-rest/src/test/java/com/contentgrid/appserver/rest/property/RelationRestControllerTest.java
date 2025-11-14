@@ -70,6 +70,7 @@ import org.springframework.util.LinkedMultiValueMap;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
+        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
@@ -98,7 +99,7 @@ class RelationRestControllerTest {
             return new SingleApplicationResolver(APPLICATION);
         }
 
-                }
+    }
 
     @BeforeEach
     void setup() {

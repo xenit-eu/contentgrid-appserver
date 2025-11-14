@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "contentgrid.system.policyPackage=xfb0e9318f3894300a64edba3532e6ac0",
+                "contentgrid.system.deploymentId=fb0e9318-f389-4300-a64e-dba3532e6ac0",
+                "contentgrid.system.applicationId=336d61a5-94cd-4b7a-b90b-369fbe2ef78c",
                 "management.endpoints.web.exposure.include=*",
                 "management.server.port=0" // random, different port from main port
         }
@@ -46,8 +48,19 @@ public class ContentgridActuatorConfigurationTest {
     void policyEndpointIsPublic() {
         ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/policy", String.class);
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(resp.getHeaders().getContentType().toString())
-                .isEqualTo("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8");
+        assertThat(resp.getHeaders().getContentType())
+                .hasToString("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8");
         assertThat(resp.getBody()).contains("xfb0"); // templating works
+    }
+
+    @Test
+    void webhooksEndpointIsPublic() {
+        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/webhooks", String.class);
+        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(resp.getHeaders().getContentType())
+                .hasToString("application/vnd.contentgrid.webhooks.v1+json");
+        // Check application id/deployment id templating
+        assertThat(resp.getBody()).contains("18-f3");
+        assertThat(resp.getBody()).contains("a5-94");
     }
 }

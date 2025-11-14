@@ -2,6 +2,8 @@ package com.contentgrid.appserver.actuator;
 
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
+import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
+import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -39,6 +41,20 @@ public class ActuatorConfiguration {
     @Bean
     PolicyActuator policyActuator(PolicyVariables policyVariables) {
         return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
+    }
+
+    @Bean
+    WebhookVariables webhookVariables(ContentgridApplicationProperties applicationProperties) {
+        return WebhookVariables.builder()
+                .systemProperties(applicationProperties.getSystem())
+                .userVariables(applicationProperties.getVariables())
+                .build();
+    }
+
+    @Bean
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables) {
+        return new WebhookConfigActuator(applicationContext.getResource("classpath:eventhandler/webhooks.json"),
+                webhookVariables);
     }
 
     @Bean
