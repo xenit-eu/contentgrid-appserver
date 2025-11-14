@@ -3,6 +3,7 @@ package com.contentgrid.appserver.integration.test.matchers;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,8 @@ public class ETagHeaderMatcher {
         }
     }
 
-    public static ETag toETag(long version) {
-        return new ETag(String.valueOf(version));
+    public static ETag toETag(ExactlyVersion version) {
+        return new ETag(version.getVersion());
     }
 
     public ResultMatcher exists() {
