@@ -1,6 +1,4 @@
 spring:
-  datasource:
-    url: jdbc:tc:postgresql:15:///
   servlet:
     multipart:
       max-file-size: -1
