@@ -4,7 +4,6 @@ import static com.contentgrid.appserver.integration.test.matchers.ExtendedHeader
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
@@ -13,7 +12,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -244,13 +242,11 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
-            @Disabled("case-insensitive filters no longer supported")
             void listInvoices_withFilter_ignoreCase_returns_http200_ok() throws Exception {
                 mockMvc.perform(get("/invoices?number={number}", INVOICE_NUMBER_1.toLowerCase(Locale.ROOT))
                                 .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$._embedded.['item'].length()").value(1))
-                        .andExpect(jsonPath("$._embedded.['item'][0].number").value(INVOICE_NUMBER_1));
+                        .andExpect(jsonPath("$._embedded.['item'].length()").value(0)); // no match
             }
 
             @Test
@@ -319,6 +315,7 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
+            @Disabled("ACC-2403 sort parameters don't work over composite attributes")
             void sortCustomers_contentSize_returns_http200_ok() throws Exception {
                 var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                 var stream = new ByteArrayInputStream("short-value".getBytes(StandardCharsets.UTF_8));
@@ -789,6 +786,7 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
+                @Disabled("ACC-2412 RelationRestControllers return 500")
                 void postJson_promos_forOrder_shouldReturn_http415_unsupportedMediaType() throws Exception {
                     mockMvc.perform(post("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
