@@ -26,6 +26,7 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import java.io.InputStream;
@@ -123,8 +124,10 @@ public class InvoicingApi {
         return this.create(EntityName.of("promotion-campaign"), properties);
     }
 
-    public EntityInstance createRefund() throws QueryEngineException, InvalidPropertyDataException {
-        return this.create(EntityName.of("refund"), Map.of());
+    public EntityInstance createRefund(EntityId invoice) throws QueryEngineException, InvalidPropertyDataException {
+        var properties = new HashMap<String, Object>();
+        properties.put("invoice", convertRelation(EntityName.of("invoice"), invoice));
+        return this.create(EntityName.of("refund"), properties);
     }
 
     public EntityInstance createShippingAddress() throws QueryEngineException, InvalidPropertyDataException {
@@ -249,6 +252,25 @@ public class InvoicingApi {
                     .collect(Collectors.toSet());
             datamodelApi.removeRelationItems(application, RelationRequest.forRelation(entityName, sourceId, relationName), targetIds, AuthorizationContext.allowAll());
         }
+    }
+
+    private boolean deleteById(EntityName entityName, EntityId id) {
+        var application = getApplication();
+        try {
+            datamodelApi.deleteEntity(application, EntityRequest.forEntity(entityName, id),
+                    AuthorizationContext.allowAll());
+            return true;
+        } catch (EntityIdNotFoundException e) {
+            return false;
+        }
+    }
+
+    public boolean deleteCustomer(EntityId customer) {
+        return deleteById(EntityName.of("customer"), customer);
+    }
+
+    public boolean deleteInvoice(EntityId invoice) {
+        return deleteById(EntityName.of("invoice"), invoice);
     }
 
     private void storeContent(EntityName entityName, EntityId id, AttributeName attributeName, String filename, String mimetype, InputStream inputStream)
