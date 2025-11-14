@@ -1,5 +1,6 @@
-package com.contentgrid.appserver.integration.test.hal;
+package com.contentgrid.appserver.rest.links.curie;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;

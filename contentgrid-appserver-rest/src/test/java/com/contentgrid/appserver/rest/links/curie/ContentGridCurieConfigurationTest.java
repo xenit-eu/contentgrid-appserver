@@ -1,8 +1,8 @@
-package com.contentgrid.appserver.integration.test.hal;
+package com.contentgrid.appserver.rest.links.curie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.integration.test.hal.ContentGridCurieConfigurationTest.CurieProviderCustomizers;
+import com.contentgrid.appserver.rest.links.curie.ContentGridCurieConfigurationTest.CurieProviderCustomizers;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
