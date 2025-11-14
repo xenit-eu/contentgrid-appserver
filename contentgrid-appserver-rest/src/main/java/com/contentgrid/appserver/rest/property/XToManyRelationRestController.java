@@ -49,6 +49,7 @@ public class XToManyRelationRestController {
     private Relation getRequiredRelation(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         return application.getRelationForPath(entityName, propertyName)
                 .filter(relation -> relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation)
+                // TODO: throw specific exception to support problem details
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
@@ -64,12 +65,14 @@ public class XToManyRelationRestController {
         var relation = getRequiredRelation(application, entityName, propertyName);
         datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), instanceId),
                         authorizationContext)
+                // TODO: throw specific exception to support problem details
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
         var targetEntity = application.getRelationTargetEntity(relation);
         var sourceEntity = application.getRelationSourceEntity(relation);
 
         if(relation.getTargetEndPoint().getName() == null) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
         }
 
@@ -87,6 +90,7 @@ public class XToManyRelationRestController {
                     return false;
                 })
                 .findFirst()
+                // TODO: throw specific exception to support problem details
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
 
         var redirectUrl = linkFactoryProvider.toCollection(targetEntity.getName(), CollectionParameters.defaults()
@@ -107,6 +111,7 @@ public class XToManyRelationRestController {
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
         var relation = getRequiredRelation(application, entityName, propertyName);
@@ -121,6 +126,7 @@ public class XToManyRelationRestController {
         for (var element : uris) {
             var maybeId = matcher.tryMatch(element.toString());
             if (maybeId.isEmpty()) {
+                // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
             }
             targetIds.add(maybeId.get());
@@ -129,12 +135,12 @@ public class XToManyRelationRestController {
             datamodelApi.addRelationItems(application, relationRequest, targetIds, authorizationContext);
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
+                // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
             } else {
+                // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
             }
-        } catch (ConstraintViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
     }
@@ -156,9 +162,8 @@ public class XToManyRelationRestController {
             );
             datamodelApi.deleteRelation(application, request, authorizationContext);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (ConstraintViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
     }
@@ -200,9 +205,8 @@ public class XToManyRelationRestController {
             );
             datamodelApi.removeRelationItem(application, relationRequest, itemId, authorizationContext);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (ConstraintViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
     }

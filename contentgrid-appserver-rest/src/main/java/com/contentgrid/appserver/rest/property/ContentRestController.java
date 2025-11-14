@@ -260,6 +260,7 @@ public class ContentRestController {
         var fileData = new FileDataEntry(
                 file.getOriginalFilename(),
                 Optional.ofNullable(file.getContentType())
+                        // TODO: throw a dedicated exception to support problem details
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST)),
                 file::getInputStream
         );

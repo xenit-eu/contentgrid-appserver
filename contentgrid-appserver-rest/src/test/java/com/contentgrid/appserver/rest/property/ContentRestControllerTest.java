@@ -269,7 +269,15 @@ class ContentRestControllerTest {
                 )
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                 .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                        // TODO: proper problem detail here
+                                .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                .withTitle("Object has changed")
+                                .withSatisfy(pd -> {
+                                    assertThat(pd.getDetail()).isEqualTo(
+                                            "Requested version constraint 'is any of [exactly 'my-value']' can not be satisfied (actual version exactly '%s')"
+                                                    .formatted(pd.getProperties().get("actual-version"))
+                                    );
+                                })
+                                .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                 );
     }
 
@@ -550,10 +558,7 @@ class ContentRestControllerTest {
                                 INVOICE_CONTENT_FILE.getInputStream()
                         ))
                 )
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -570,10 +575,7 @@ class ContentRestControllerTest {
         Mockito.verifyNoInteractions(contentStoreSpy);
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -592,10 +594,7 @@ class ContentRestControllerTest {
 
         // No upload has happened
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
 
     }
 
@@ -660,7 +659,10 @@ class ContentRestControllerTest {
                         .header(header, headerValue))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                 .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                        // TODO: proper problem detail here
+                                .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                .withTitle("Object has changed")
+                                // details is different for If-Match/If-None-Match, so not asserted here
+                                .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
@@ -703,10 +705,7 @@ class ContentRestControllerTest {
         Mockito.verifyNoInteractions(contentStoreSpy);
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
     }
 
 
@@ -723,10 +722,7 @@ class ContentRestControllerTest {
         Mockito.verifyNoInteractions(contentStoreSpy);
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -743,10 +739,7 @@ class ContentRestControllerTest {
 
         // Verify content is gone
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
-                );
+                .andExpect(status().isNotFound());
     }
 
     @ParameterizedTest

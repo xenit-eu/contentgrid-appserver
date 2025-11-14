@@ -101,15 +101,18 @@ public class XToOneRelationRestController {
     ) {
         var uris = body.uris();
         if (uris.isEmpty()) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
         }
         if (uris.size() > 1) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
         }
         var relation = getRequiredRelation(application, entityName, propertyName);
         var element = uris.getFirst();
         var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
         }
         try {
@@ -121,12 +124,12 @@ public class XToOneRelationRestController {
             datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
+                // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
             } else {
+                // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
             }
-        } catch (ConstraintViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
     }
@@ -149,9 +152,8 @@ public class XToOneRelationRestController {
             ).withVersionConstraint(versionConstraint);
             datamodelApi.deleteRelation(application, relationRequest, authorizationContext);
         } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
+            // TODO: throw specific exception to support problem details
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (ConstraintViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
         return ResponseEntity.noContent().build();
     }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,10 +53,13 @@ public final class ProblemDetailsMockMvcMatchers {
         private final HttpStatusCode statusCode;
 
         @With(AccessLevel.PRIVATE)
+        private final List<ThrowingConsumer<ProblemDetail>> satisfies;
+
+        @With(AccessLevel.PRIVATE)
         private final Map<String, ThrowingConsumer<Object>> fields;
 
         public ProblemDetailsMatcher() {
-            this(SENTINEL, SENTINEL, SENTINEL, null, Map.of());
+            this(SENTINEL, SENTINEL, SENTINEL, null, List.of(), Map.of());
         }
 
         ProblemDetail readProblemDetail(MvcResult result) throws IOException {
@@ -96,6 +100,10 @@ public final class ProblemDetailsMockMvcMatchers {
                         .isEqualTo(detail);
             }
 
+            for (var satisfy : satisfies) {
+                assertThat(problemDetails).satisfies(satisfy);
+            }
+
             for (var field : fields.entrySet()) {
                 assertThat(problemDetails.getProperties())
                         .extractingByKey(field.getKey())
@@ -103,6 +111,12 @@ public final class ProblemDetailsMockMvcMatchers {
             }
 
             return problemDetails;
+        }
+
+        public ProblemDetailsMatcher withSatisfy(ThrowingConsumer<ProblemDetail> matcher) {
+            var copy = new ArrayList<>(satisfies);
+            copy.add(matcher);
+            return withSatisfies(copy);
         }
 
         public ProblemDetailsMatcher withField(String field, Object fieldValue) {
