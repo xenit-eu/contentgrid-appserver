@@ -32,31 +32,31 @@ class SpringDataProfileLinksResourceProcessorTest {
                             _links: {
                                 "cg:entity": [
                                     {
-                                        name: "customers",
+                                        name: "customer",
                                         href: "http://localhost/profile/customers"
                                     },
                                     {
-                                        name: "invoices",
+                                        name: "invoice",
                                         href: "http://localhost/profile/invoices"
                                     },
                                     {
-                                        name: "orders",
+                                        name: "order",
                                         href: "http://localhost/profile/orders"
                                     },
                                     {
-                                        name: "promotions",
+                                        name: "promotion",
                                         href: "http://localhost/profile/promotions"
                                     },
                                     {
-                                        name: "shipping-addresses",
+                                        name: "shipping-address",
                                         href: "http://localhost/profile/shipping-addresses"
                                     },
                                     {
-                                        name: "shipping-labels",
+                                        name: "shipping-label",
                                         href: "http://localhost/profile/shipping-labels"
                                     },
                                     {
-                                        name: "refunds",
+                                        name: "refund",
                                         href: "http://localhost/profile/refunds"
                                     }
                                 ]

@@ -79,7 +79,7 @@ class HalLinkTitlesAndFormPromptsTest {
                                         { name: "content.size", type: "number" }, { name: "content.mimetype", type: "text" }, { name: "content.filename", type: "text" },
                                         { name: "invoices.number", type: "text" }, { name: "invoices.paid", type: "checkbox" }, { name: "invoices.orders.id" }, { name: "invoices.content.length", type: "number" },
                                         {
-                                            name: "sort",
+                                            name: "_sort",
                                             options: {
                                                 promptField: "prompt",
                                                 valueField: "value",
@@ -160,13 +160,13 @@ class HalLinkTitlesAndFormPromptsTest {
                                         },
                                         {
                                             name: "gender",
-                                            type: "radio",
+                                            type: "text",
                                             options: {
                                                 inline: [ "female", "male" ]
                                             }
                                         },
                                         {
-                                            prompt: "Spending Total",
+                                            prompt: "Total Amount Spent",
                                             name : "total_spend",
                                             type : "number"
                                         },
@@ -206,11 +206,11 @@ class HalLinkTitlesAndFormPromptsTest {
                                             type: "url"
                                         },
                                         {
-                                            name: "barcodePicture",
+                                            name: "barcode_picture",
                                             type: "file"
                                         },
                                         {
-                                            name: "_package",
+                                            name: "package",
                                             type: "file"
                                         }
                                     ]
@@ -230,11 +230,11 @@ class HalLinkTitlesAndFormPromptsTest {
                             _links: {
                                 "cg:entity": [
                                     {
-                                        name: "customers",
+                                        name: "customer",
                                         title: "Client"
                                     },
-                                    { name: "invoices" }, { name: "refunds" }, { name: "promotions" },
-                                    { name: "shipping-addresses" }, { name: "shipping-labels" }, { name: "orders" }
+                                    { name: "invoice" }, { name: "refund" }, { name: "promotion" },
+                                    { name: "shipping-address" }, { name: "shipping-label" }, { name: "order" }
                                 ]
                             }
                         }
@@ -293,13 +293,13 @@ class HalLinkTitlesAndFormPromptsTest {
                                 "default": {
                                     properties: [
                                         {
-                                            prompt: "Attached File Filename",
-                                            name: "attachment_filename",
+                                            prompt: "Attached File: filename",
+                                            name: "attachment.filename",
                                             type: "text"
                                         },
                                         {
-                                            prompt: "Attached File Mimetype",
-                                            name: "attachment_mimetype",
+                                            prompt: "Attached File: mimetype",
+                                            name: "attachment.mimetype",
                                             type: "text"
                                         },
                                         {},{},{},{},{}

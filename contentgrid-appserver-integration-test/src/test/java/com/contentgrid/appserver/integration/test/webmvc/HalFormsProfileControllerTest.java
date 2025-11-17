@@ -104,7 +104,7 @@ class HalFormsProfileControllerTest {
                                             name: "invoices.orders.id"
                                         },
                                         {
-                                            name: "sort"
+                                            name: "_sort"
                                         }
                                     ]
                                 }
@@ -155,7 +155,7 @@ class HalFormsProfileControllerTest {
                                             name: "orders.id"
                                         },
                                         {
-                                            name: "sort",
+                                            name: "_sort",
                                             options: {
                                                 minItems: 0,
                                                 inline: [
@@ -262,7 +262,7 @@ class HalFormsProfileControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$._templates.search.properties[9].name",
                         Matchers.is("invoices.orders.id")))
                 .andExpect(MockMvcResultMatchers.jsonPath("$._templates.search.properties[10].name",
-                        Matchers.is("sort")));
+                        Matchers.is("_sort")));
     }
 
     @Test
@@ -279,14 +279,12 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "id",
                                         type: "string",
-                                        description: "",
                                         readOnly: true,
                                         required: false
                                     },
                                     {
                                         name: "audit_metadata",
                                         type: "object",
-                                        description: "",
                                         readOnly: true,
                                         required: false,
                                         _embedded: {
@@ -294,29 +292,25 @@ class HalFormsProfileControllerTest {
                                                 {
                                                     name: "created_by",
                                                     type: "string",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "created_date",
                                                     type: "datetime",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "last_modified_by",
                                                     type: "string",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "last_modified_date",
                                                     type: "datetime",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 }
                                             ]
@@ -350,7 +344,7 @@ class HalFormsProfileControllerTest {
                                                 {
                                                     name: "vat",
                                                     title: "VAT number",
-                                                    type: "case-insensitive-match"
+                                                    type: "exact-match"
                                                 }
                                             ]
                                         }
@@ -358,7 +352,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "content",
                                         type: "object",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -419,7 +412,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "birthday",
                                         type: "datetime",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -434,7 +426,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "gender",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -464,7 +455,6 @@ class HalFormsProfileControllerTest {
                                 "blueprint:relation": [
                                     {
                                         name: "orders",
-                                        description: "",
                                         many_source_per_target: false,
                                         many_target_per_source: true,
                                         required: false,
@@ -476,7 +466,6 @@ class HalFormsProfileControllerTest {
                                     },
                                     {
                                         name: "invoices",
-                                        description: "",
                                         many_source_per_target: false,
                                         many_target_per_source: true,
                                         required: false,
@@ -505,14 +494,12 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "id",
                                         type: "string",
-                                        description: "",
                                         readOnly: true,
                                         required: false
                                     },
                                     {
                                         name: "audit_metadata",
                                         type: "object",
-                                        description: "",
                                         readOnly: true,
                                         required: false,
                                         _embedded: {
@@ -520,29 +507,25 @@ class HalFormsProfileControllerTest {
                                                 {
                                                     name: "created_by",
                                                     type: "string",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "created_date",
                                                     type: "datetime",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "last_modified_by",
                                                     type: "string",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 },
                                                 {
                                                     name: "last_modified_date",
                                                     type: "datetime",
-                                                    description: "",
-                                                    readOnly: false,
+                                                    readOnly: true,
                                                     required: false
                                                 }
                                             ]
@@ -563,7 +546,7 @@ class HalFormsProfileControllerTest {
                                             "blueprint:search-param": [
                                                 {
                                                     name: "number",
-                                                    type: "case-insensitive-match"
+                                                    type: "exact-match"
                                                 }
                                             ]
                                         }
@@ -571,14 +554,12 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "draft",
                                         type: "boolean",
-                                        description: "",
                                         readOnly: false,
                                         required: false
                                     },
                                     {
                                         name: "paid",
                                         type: "boolean",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -593,7 +574,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "content_length",
                                         type: "long",
-                                        description: "",
                                         readOnly: true,
                                         required: false,
                                         _embedded: {
@@ -608,35 +588,30 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "content_mimetype",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: false
                                     },
                                     {
                                         name: "content_filename",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: false
                                     },
                                     {
                                         name: "attachment_length",
                                         type: "long",
-                                        description: "",
                                         readOnly: true,
                                         required: false
                                     },
                                     {
                                         name: "attachment_mimetype",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: false
                                     },
                                     {
                                         name: "attachment_filename",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: false
                                     }
@@ -668,7 +643,6 @@ class HalFormsProfileControllerTest {
                                     },
                                     {
                                         name: "refund",
-                                        description: "",
                                         many_source_per_target: false,
                                         many_target_per_source: false,
                                         required: false,
@@ -691,20 +665,17 @@ class HalFormsProfileControllerTest {
                 .andExpect(MockMvcResultMatchers.content().json("""
                         {
                             name: "shipping-label",
-                            description: "",
                             _embedded: {
                                 "blueprint:attribute": [
                                     {
                                         name: "id",
                                         type: "string",
-                                        description: "",
                                         readOnly: true,
                                         required: false
                                     },
                                     {
                                         name: "from",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: true,
                                         _embedded: {
@@ -716,7 +687,7 @@ class HalFormsProfileControllerTest {
                                             "blueprint:search-param": [
                                                 {
                                                     name: "from",
-                                                    type: "case-insensitive-match"
+                                                    type: "exact-match"
                                                 }
                                             ]
                                         }
@@ -724,7 +695,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "to",
                                         type: "string",
-                                        description: "",
                                         readOnly: false,
                                         required: true,
                                         _embedded: {
@@ -736,7 +706,7 @@ class HalFormsProfileControllerTest {
                                             "blueprint:search-param": [
                                                 {
                                                     name: "to",
-                                                    type: "case-insensitive-match"
+                                                    type: "exact-match"
                                                 }
                                             ]
                                         }
@@ -744,7 +714,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "barcode_picture",
                                         type: "object",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -788,7 +757,6 @@ class HalFormsProfileControllerTest {
                                     {
                                         name: "package",
                                         type: "object",
-                                        description: "",
                                         readOnly: false,
                                         required: false,
                                         _embedded: {
@@ -833,7 +801,6 @@ class HalFormsProfileControllerTest {
                                 "blueprint:relation": [
                                     {
                                         name: "parent",
-                                        description: "",
                                         many_source_per_target: true,
                                         many_target_per_source: false,
                                         required: false,
@@ -894,7 +861,7 @@ class HalFormsProfileControllerTest {
                                         },
                                         {
                                             name: "gender",
-                                            type: "radio",
+                                            type: "text",
                                             options: {
                                                 inline: [ "female", "male" ]
                                             }
