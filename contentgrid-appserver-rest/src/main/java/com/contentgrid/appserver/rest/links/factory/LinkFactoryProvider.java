@@ -19,6 +19,7 @@ import com.contentgrid.appserver.rest.property.ContentRestController;
 import com.contentgrid.appserver.rest.property.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -156,13 +157,18 @@ public class LinkFactoryProvider {
      * @param relationIdentity The identity of the relation to link to
      * @return A link to an entity relation
      */
-    public LinkFactory toRelation(@NonNull RelationIdentity relationIdentity) {
+    public Optional<LinkFactory> toRelation(@NonNull RelationIdentity relationIdentity) {
         var entity = application.getRequiredEntityByName(relationIdentity.getEntityName());
         var relation = application.getRequiredRelationForEntity(entity, relationIdentity.getRelationName());
 
+        if (relation.getSourceEndPoint().getPathSegment() == null) {
+            // No pathSegment/linkName, this is an internal inverse relation like _internal_department__employees
+            // We can't construct a working link to this relation
+            return Optional.empty();
+        }
         // Links for *-to-many relations are the same as links for *-to-one relations,
         // no need to switch based on relation type
-        return linkTo(methodOn(XToOneRelationRestController.class)
+        return Optional.of(linkTo(methodOn(XToOneRelationRestController.class)
                 .getRelation(
                         application,
                         entity.getPathSegment(),
@@ -172,7 +178,7 @@ public class LinkFactoryProvider {
                         this
                 ))
                 .withTitle(relation.getSourceEndPoint().getTranslations(userLocales).getName())
-                .withName(relation.getSourceEndPoint().getLinkName().getValue());
+                .withName(relation.getSourceEndPoint().getLinkName().getValue()));
     }
 
     /**

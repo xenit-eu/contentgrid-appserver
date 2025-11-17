@@ -169,7 +169,7 @@ public class HalFormsTemplateGenerator {
             return List.of();
         }
 
-        var relationLink = linkFactoryProvider.toRelation(relationIdentity).toUri().toString();
+        var relationLink = linkFactoryProvider.toRelation(relationIdentity).orElseThrow().toUri().toString();
 
         var result = new ArrayList<HalFormsTemplate>();
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {

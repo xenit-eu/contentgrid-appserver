@@ -110,9 +110,11 @@ public class ContentGridExceptionHandler {
                 problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_OVERWRITE)
                         .withStatus(HttpStatus.CONFLICT)
                         .withProperties(properties -> {
-                            var affectedRelationLink = linkFactoryProvider.toRelation(exception.getAffectedRelation()).toUri();
+                            var affectedRelationLink = linkFactoryProvider.toRelation(exception.getAffectedRelation());
                             var originalEntityLink = linkFactoryProvider.toItem(exception.getOriginalValue()).toUri();
-                            properties.put("affected-relation", affectedRelationLink.toString());
+                            affectedRelationLink.ifPresent(relationLink ->
+                                    properties.put("affected-relation", relationLink.toUri().toString())
+                            );
                             properties.put("existing-item", originalEntityLink.toString());
                         })
         );

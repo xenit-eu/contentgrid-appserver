@@ -53,7 +53,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
                 var relationIdentity = RelationIdentity.forRelation(entity.getName(), id, relation.getSourceEndPoint().getName());
-                model.add(context.linkFactoryProvider().toRelation(relationIdentity).withRel(ContentGridLinkRelations.RELATION))
+                model.add(context.linkFactoryProvider().toRelation(relationIdentity).orElseThrow().withRel(ContentGridLinkRelations.RELATION))
                         .addTemplates(context.templateGenerator().generateRelationTemplates(relationIdentity));
             }
         }

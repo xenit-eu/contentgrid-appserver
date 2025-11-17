@@ -137,6 +137,7 @@ public abstract sealed class Relation permits ManyToManyRelation, ManyToOneRelat
                 return t;
             });
             this.flags = new HashSet<>(flags);
+            // TODO Double-check this logic: we auto-add a hidden-endpoint flag if name==null, but HiddenEndpointFlag checks all fields BUT name
             if(name == null) {
                 this.flags.add(HiddenEndpointFlag.INSTANCE);
             }
