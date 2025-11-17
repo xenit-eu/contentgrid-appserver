@@ -206,7 +206,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .content("""
                                     {
                                         "number": "123",
-                                        "counterparty": "/invoices/%s"
+                                        "counterparty": "http://localhost/invoices/%s"
                                     }
                                     """.formatted(INVOICE_ID_UPDATE))
                     )
@@ -272,7 +272,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
                                     {
-                                        "counterparty": "/customers/%s"
+                                        "counterparty": "http://localhost/customers/%s"
                                     }
                                     """.formatted(customerId))
                     )
@@ -284,7 +284,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
-                            .param("counterparty", "/customers/%s".formatted(customerId))
+                            .param("counterparty", "http://localhost/customers/%s".formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("number"))
@@ -356,7 +356,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
                                     {
-                                        "counterparty": "/customers/%s"
+                                        "counterparty": "http://localhost/customers/%s"
                                     }
                                     """.formatted(customerId))
                     )

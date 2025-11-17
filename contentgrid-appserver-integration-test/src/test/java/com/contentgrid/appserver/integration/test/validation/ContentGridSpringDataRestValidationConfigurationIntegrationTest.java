@@ -131,7 +131,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
                     .content("""
                             {
                                 "number": "123",
-                                "counterparty": "/customers/%s"
+                                "counterparty": "http://localhost/customers/%s"
                             }
                             """.formatted(customerId))
             ).andExpect(status().isCreated());
@@ -169,7 +169,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
                     .content("""
                             {
                                 "number": "123",
-                                "counterparty": "/customers/01bb4210-523b-11ee-9553-e76392218fe8"
+                                "counterparty": "http://localhost/customers/01bb4210-523b-11ee-9553-e76392218fe8"
                             }
                             """)
             ).andExpect(status().isBadRequest());
@@ -204,7 +204,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
             mockMvc.perform(put("/invoices/{id}/counterparty", invoiceId)
                             .contentType(URI_LIST_MIMETYPE)
-                            .content("/customers/" + customer2Id)
+                            .content("http://localhost/customers/" + customer2Id)
                     )
                     .andExpect(status().is2xxSuccessful());
         }

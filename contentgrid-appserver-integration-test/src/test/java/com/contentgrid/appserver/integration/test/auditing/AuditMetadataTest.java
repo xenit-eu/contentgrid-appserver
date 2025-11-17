@@ -246,7 +246,7 @@ public class AuditMetadataTest {
                             .content("""
                                     {
                                         "number": "I-2022-0003",
-                                        "counterparty": "/customers/%s"
+                                        "counterparty": "http://localhost/customers/%s"
                                     }
                                     """.formatted(XENIT_ID)))
                     .andExpect(status().isCreated())
@@ -357,7 +357,7 @@ public class AuditMetadataTest {
                             .file(file)
                             .with(jwtWithClaims("user-id-2", "Bob"))
                             .param("number", "I-2022-0003")
-                            .param("counterparty", "/customers/" + XENIT_ID))
+                            .param("counterparty", "http://localhost/customers/" + XENIT_ID))
                     .andExpect(status().isCreated())
                     .andReturn();
 
