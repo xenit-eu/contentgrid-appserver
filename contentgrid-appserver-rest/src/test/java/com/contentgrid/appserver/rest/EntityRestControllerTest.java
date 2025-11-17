@@ -1120,7 +1120,8 @@ class EntityRestControllerTest {
                             .content("""
                                     { "number": "456", "amount": "123" }
                                     """)
-                            .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")))
+                            .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")
+                                    .claim("name", "Alice")))
                     )
                     .andExpect(status().isOk());
 
@@ -1129,7 +1130,7 @@ class EntityRestControllerTest {
                     ).andExpect(status().isOk())
                     .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
                     .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("2009-02-13")))
-                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("alice@example.com")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("Alice")))
                     .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("2009-02-13")))
             ;
         }
