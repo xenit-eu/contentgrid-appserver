@@ -39,7 +39,7 @@ import org.springframework.web.reactive.function.BodyInserters;
         properties = {
                 "contentgrid.security.unauthenticated.allow = true",
                 "contentgrid.security.csrf.disabled = true",
-                "spring.content.storage.type.default = fs",
+                "contentgrid.appserver.content-store.type = ephemeral",
                 "contentgrid.thunx.abac.source = none",
                 "contentgrid.events.rabbitmq.enabled=false",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
@@ -147,18 +147,28 @@ public class RangeRequestTest {
                 .expectBody(byte[].class).isEqualTo(expected);
     }
 
-    @ParameterizedTest
-    @CsvSource({
-            "50,54", // start > length
-            "10,9",  // start > end
-            "-1,9",  // start < 0
-    })
-    void invalidRangeRequest_http416(int start, int end) {
+    @Test
+    void unsatisfiableRangeRequest_http416() {
+        var start = 50;
+        var end = 54;
         client.get().uri(contentUrl)
                 .accept(MediaType.ALL)
                 .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "10,9",  // start > end
+            "-1,9",  // start < 0
+    })
+    void invalidRangeRequest_http400(int start, int end) {
+        client.get().uri(contentUrl)
+                .accept(MediaType.ALL)
+                .header(HttpHeaders.RANGE, "bytes=%s-%s".formatted(start, end))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @SpringBootApplication

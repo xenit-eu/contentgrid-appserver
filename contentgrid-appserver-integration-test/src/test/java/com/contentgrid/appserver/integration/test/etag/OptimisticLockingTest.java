@@ -174,7 +174,7 @@ public class OptimisticLockingTest {
         }
 
         @Test
-        void putInvoice_withMatchingIfMatch_http200() throws Exception {
+        void putInvoice_withMatchingIfMatch_http204() throws Exception {
             mockMvc.perform(put("/invoices/{id}", INVOICE_1_ID)
                             .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_VERSION))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -213,13 +213,13 @@ public class OptimisticLockingTest {
     class InlineContentProperty {
 
         @Test
-        void postInvoiceContent_withMatchingIfMatch_http201() throws Exception {
+        void postInvoiceContent_withMatchingIfMatch_http204() throws Exception {
             mockMvc.perform(post("/invoices/{id}/content", INVOICE_1_ID)
                             .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_VERSION))
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isNoContent());
 
             checkETagChanged("/invoices/" + INVOICE_1_ID, toETag(INVOICE_1_VERSION));
         }
@@ -256,7 +256,7 @@ public class OptimisticLockingTest {
         }
 
         @Test
-        void putInvoiceContent_withMatchingIfMatch_http200() throws Exception {
+        void putInvoiceContent_withMatchingIfMatch_http204() throws Exception {
             setupContentProperties();
 
             // update content, ONLY changing the charset
@@ -265,7 +265,7 @@ public class OptimisticLockingTest {
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             checkETagChanged("/invoices/" + INVOICE_1_ID, toETag(INVOICE_1_VERSION));
         }
@@ -286,7 +286,7 @@ public class OptimisticLockingTest {
         }
 
         @Test
-        void deleteInvoiceContent_withMatchingIfMatch_http200() throws Exception {
+        void deleteInvoiceContent_withMatchingIfMatch_http204() throws Exception {
             setupContentProperties();
 
             mockMvc.perform(delete("/invoices/{id}/content", INVOICE_1_ID)
@@ -312,13 +312,13 @@ public class OptimisticLockingTest {
     class EmbeddedContentProperty {
 
         @Test
-        void postCustomerContent_withMatchingIfMatch_http201() throws Exception {
+        void postCustomerContent_withMatchingIfMatch_http204() throws Exception {
             mockMvc.perform(post("/customers/{id}/content", XENIT_ID)
                             .header(HttpHeaders.IF_MATCH, toETag(XENIT_VERSION))
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isNoContent());
 
             checkETagChanged("/customers/" + XENIT_ID, toETag(XENIT_VERSION));
         }
@@ -355,7 +355,7 @@ public class OptimisticLockingTest {
         }
 
         @Test
-        void putCustomerContent_withMatchingIfMatch_http200() throws Exception {
+        void putCustomerContent_withMatchingIfMatch_http204() throws Exception {
             setupContentProperties();
 
             // update content, ONLY changing the charset
@@ -364,7 +364,7 @@ public class OptimisticLockingTest {
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             checkETagChanged("/customers/" + XENIT_ID, toETag(XENIT_VERSION));
         }
@@ -385,7 +385,7 @@ public class OptimisticLockingTest {
         }
 
         @Test
-        void deleteCustomerContent_withMatchingIfMatch_http200() throws Exception {
+        void deleteCustomerContent_withMatchingIfMatch_http204() throws Exception {
             setupContentProperties();
 
             mockMvc.perform(delete("/customers/{id}/content", XENIT_ID)

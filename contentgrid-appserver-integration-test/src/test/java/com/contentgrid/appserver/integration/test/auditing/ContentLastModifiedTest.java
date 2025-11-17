@@ -123,7 +123,7 @@ public class ContentLastModifiedTest {
         }
 
         @Test
-        void putInvoiceContent_withRecentIfUnmodifiedSince_http200() throws Exception {
+        void putInvoiceContent_withRecentIfUnmodifiedSince_http204() throws Exception {
             var headerDate = INVOICE_TIMESTAMP.plus(1, ChronoUnit.MINUTES);
 
             // update content, ONLY changing the charset
@@ -132,7 +132,7 @@ public class ContentLastModifiedTest {
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT)
                             .header(HttpHeaders.IF_UNMODIFIED_SINCE, formatInstant(headerDate)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             assertThat(getLastModified(INVOICE_CONTENT_URL)).isAfterOrEqualTo(INVOICE_TIMESTAMP);
         }
@@ -197,7 +197,7 @@ public class ContentLastModifiedTest {
         }
 
         @Test
-        void putCustomerContent_withRecentIfUnmodifiedSince_http200() throws Exception {
+        void putCustomerContent_withRecentIfUnmodifiedSince_http204() throws Exception {
             var headerDate = CUSTOMER_TIMESTAMP.plus(1, ChronoUnit.MINUTES);
 
             // update content, ONLY changing the charset
@@ -206,7 +206,7 @@ public class ContentLastModifiedTest {
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT)
                             .header(HttpHeaders.IF_UNMODIFIED_SINCE, formatInstant(headerDate)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             assertThat(getLastModified(CUSTOMER_CONTENT_URL)).isAfterOrEqualTo(CUSTOMER_TIMESTAMP);
         }
@@ -227,7 +227,7 @@ public class ContentLastModifiedTest {
         }
 
         @Test
-        void deleteCustomerContent_withRecentIfUnmodifiedSince_http200() throws Exception {
+        void deleteCustomerContent_withRecentIfUnmodifiedSince_http204() throws Exception {
             var headerDate = CUSTOMER_TIMESTAMP.plus(1, ChronoUnit.MINUTES);
 
             mockMvc.perform(delete(CUSTOMER_CONTENT_URL)

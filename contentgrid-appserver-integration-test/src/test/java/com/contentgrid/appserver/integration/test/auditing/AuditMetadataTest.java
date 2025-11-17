@@ -283,7 +283,7 @@ public class AuditMetadataTest {
         }
 
         @Test
-        void putInvoice_withRecentIfUnmodifiedSince_http200() throws Exception {
+        void putInvoice_withRecentIfUnmodifiedSince_http204() throws Exception {
             var modifiedDate = TIMESTAMP.plus(1, ChronoUnit.HOURS);
             testClock.setTimestamp(modifiedDate);
 
@@ -332,7 +332,7 @@ public class AuditMetadataTest {
     class InlinedContentProperty {
 
         @Test
-        void postInvoiceContent_shouldUpdateAuditMetadataFields_http201() throws Exception {
+        void postInvoiceContent_shouldUpdateAuditMetadataFields_http204() throws Exception {
             var modifiedDate = TIMESTAMP.plus(1, ChronoUnit.HOURS);
             testClock.setTimestamp(modifiedDate);
 
@@ -341,7 +341,7 @@ public class AuditMetadataTest {
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isNoContent());
 
             checkInvoiceAuditMetadataFields(INVOICE_1_ID, "John", TIMESTAMP, "Bob", modifiedDate);
         }
@@ -369,7 +369,7 @@ public class AuditMetadataTest {
         }
 
         @Test
-        void putInvoiceContent_shouldUpdateAuditMetadataFields_http200() throws Exception {
+        void putInvoiceContent_shouldUpdateAuditMetadataFields_http204() throws Exception {
             setupContentProperties();
             var modifiedDate = CONTENT_TIMESTAMP.plus(1, ChronoUnit.HOURS);
             testClock.setTimestamp(modifiedDate);
@@ -380,7 +380,7 @@ public class AuditMetadataTest {
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             checkInvoiceAuditMetadataFields(INVOICE_1_ID, "John", TIMESTAMP, "Bob", modifiedDate);
         }
@@ -403,7 +403,7 @@ public class AuditMetadataTest {
     class EmbeddedContentProperty {
 
         @Test
-        void postCustomerContent_shouldUpdateAuditMetadataFields_http201() throws Exception {
+        void postCustomerContent_shouldUpdateAuditMetadataFields_http204() throws Exception {
             var modifiedDate = TIMESTAMP.plus(1, ChronoUnit.HOURS);
             testClock.setTimestamp(modifiedDate);
 
@@ -412,7 +412,7 @@ public class AuditMetadataTest {
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isNoContent());
 
             checkCustomerAuditMetadataFields(XENIT_ID, "John", TIMESTAMP, "Bob", modifiedDate);
         }
@@ -440,7 +440,7 @@ public class AuditMetadataTest {
         }
 
         @Test
-        void putCustomerContent_shouldUpdateAuditMetadataFields_http200() throws Exception {
+        void putCustomerContent_shouldUpdateAuditMetadataFields_http204() throws Exception {
             setupContentProperties();
             var modifiedDate = CONTENT_TIMESTAMP.plus(1, ChronoUnit.HOURS);
             testClock.setTimestamp(modifiedDate);
@@ -451,7 +451,7 @@ public class AuditMetadataTest {
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             checkCustomerAuditMetadataFields(XENIT_ID, "John", TIMESTAMP, "Bob", modifiedDate);
         }
