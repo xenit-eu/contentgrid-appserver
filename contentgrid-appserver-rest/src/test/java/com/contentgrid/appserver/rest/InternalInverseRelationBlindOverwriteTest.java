@@ -1,8 +1,8 @@
 package com.contentgrid.appserver.rest;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -133,7 +133,9 @@ class InternalInverseRelationBlindOverwriteTest {
         mockMvc.perform(post(departmentManagementUrl + "/members")
                         .contentType("text/uri-list")
                         .content(employeeUrl))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.existing-item").exists())
+                .andExpect(jsonPath("$.affected-relation").doesNotExist());
     }
 
     // Application model:
