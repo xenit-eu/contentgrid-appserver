@@ -6,15 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.spring.boot.autoconfigure.integration.EventsAutoConfiguration;
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.store.CustomerContentStore;
-import com.contentgrid.spring.test.fixture.invoicing.store.InvoiceContentStore;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -22,26 +17,24 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.content.commons.property.PropertyPath;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@ContextConfiguration(classes = {
-        InvoicingApplication.class,
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
 })
-@EnableAutoConfiguration(exclude = EventsAutoConfiguration.class)
+@ContextConfiguration(classes = {
+        InvoicingApiApplication.class,
+})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
 public class ContentLastModifiedTest {
@@ -49,8 +42,8 @@ public class ContentLastModifiedTest {
     static final String INVOICE_NUMBER_1 = "I-2022-0001";
     static final String ORG_XENIT_VAT = "BE0887582365";
 
-    static UUID XENIT_ID;
-    static UUID INVOICE_1_ID;
+    static EntityId XENIT_ID;
+    static EntityId INVOICE_1_ID;
 
     static String CUSTOMER_CONTENT_URL;
     static String INVOICE_CONTENT_URL;
@@ -65,16 +58,7 @@ public class ContentLastModifiedTest {
     private MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customers;
-
-    @Autowired
-    InvoiceRepository invoices;
-
-    @Autowired
-    InvoiceContentStore invoicesContent;
-
-    @Autowired
-    CustomerContentStore customersContent;
+    InvoicingApi invoicingApi;
 
     String formatInstant(Instant date) {
         DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME
@@ -84,28 +68,19 @@ public class ContentLastModifiedTest {
 
     @BeforeEach
     void setupTestData() throws Exception {
-        var xenit = customers.save(new Customer("XeniT", ORG_XENIT_VAT));
+        var xenit = invoicingApi.createCustomer("XeniT", ORG_XENIT_VAT);
 
-        XENIT_ID = xenit.getId();
+        XENIT_ID = xenit.getIdentity().getEntityId();
         CUSTOMER_CONTENT_URL = "/customers/%s/content".formatted(XENIT_ID);
 
-        INVOICE_1_ID = invoices.save(
-                new Invoice(INVOICE_NUMBER_1, true, false, xenit, new HashSet<>())).getId();
+        INVOICE_1_ID = invoicingApi.createInvoice(INVOICE_NUMBER_1, true, false, XENIT_ID, new HashSet<>())
+                .getIdentity().getEntityId();
         INVOICE_CONTENT_URL = "/invoices/%s/content".formatted(INVOICE_1_ID);
 
         var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
 
-        var customer = customers.findById(XENIT_ID).orElseThrow();
-        customersContent.setContent(customer, PropertyPath.from("content"), stream);
-        customer.getContent().setMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-        customer.getContent().setFilename("content.txt");
-        customers.save(customer);
-
-        var invoice = invoices.findById(INVOICE_1_ID).orElseThrow();
-        invoicesContent.setContent(invoice, PropertyPath.from("content"), stream);
-        invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-        invoice.setContentFilename("content.txt");
-        invoices.save(invoice);
+        invoicingApi.storeCustomerContent(XENIT_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+        invoicingApi.storeInvoiceContent(INVOICE_1_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
 
         INVOICE_TIMESTAMP = getLastModified(INVOICE_CONTENT_URL);
         CUSTOMER_TIMESTAMP = getLastModified(CUSTOMER_CONTENT_URL);
@@ -113,8 +88,7 @@ public class ContentLastModifiedTest {
 
     @AfterEach
     void cleanupTestData() {
-        invoices.deleteAll();
-        customers.deleteAll();
+        invoicingApi.deleteAll();
     }
 
     private Instant getLastModified(String url) throws Exception {

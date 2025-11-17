@@ -6,9 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +19,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
 @ContextConfiguration(classes = {
-        InvoicingApplication.class,
+        InvoicingApiApplication.class,
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
@@ -31,11 +33,11 @@ class ContentGridHalFormsConfigurationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private CustomerRepository customers;
+    private InvoicingApi invoicingApi;
 
     @AfterEach
     void cleanUp() {
-        customers.deleteAll();
+        invoicingApi.deleteAll();
     }
 
     @Test

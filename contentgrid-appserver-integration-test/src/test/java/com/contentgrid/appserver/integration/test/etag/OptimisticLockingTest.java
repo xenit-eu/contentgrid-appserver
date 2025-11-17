@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.integration.test.etag;
 
-import static com.contentgrid.spring.test.matchers.ETagHeaderMatcher.toETag;
-import static com.contentgrid.spring.test.matchers.ExtendedHeaderResultMatchers.headers;
+import static com.contentgrid.appserver.integration.test.matchers.ETagHeaderMatcher.toETag;
+import static com.contentgrid.appserver.integration.test.matchers.ExtendedHeaderResultMatchers.headers;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -9,57 +9,52 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.spring.boot.autoconfigure.integration.EventsAutoConfiguration;
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.store.CustomerContentStore;
-import com.contentgrid.spring.test.fixture.invoicing.store.InvoiceContentStore;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.integration.test.matchers.ETagHeaderMatcher.ETag;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.content.commons.property.PropertyPath;
-import org.springframework.data.rest.webmvc.support.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.util.UriTemplate;
 
 @Slf4j
-@SpringBootTest
-@ContextConfiguration(classes = {
-        InvoicingApplication.class,
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
 })
-@EnableAutoConfiguration(exclude = EventsAutoConfiguration.class)
+@ContextConfiguration(classes = {
+        InvoicingApiApplication.class,
+})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
 public class OptimisticLockingTest {
 
     static final String INVOICE_NUMBER_1 = "I-2022-0001";
     static final String ORG_XENIT_VAT = "BE0887582365";
-    static UUID INVOICE_1_ID;
-    static UUID XENIT_ID;
+    static EntityId INVOICE_1_ID;
+    static EntityId XENIT_ID;
 
-    static Long INVOICE_1_VERSION;
-    static Long XENIT_VERSION;
-    static final ETag INVALID_VERSION = ETag.from("INVALID");
+    static ExactlyVersion INVOICE_1_VERSION;
+    static ExactlyVersion XENIT_VERSION;
+    static final ETag INVALID_VERSION = new ETag("INVALID");
 
     private static final String EXT_ASCII_TEXT = "L'éducation doit être gratuite.";
     private static final String UNICODE_TEXT = "Some unicode text 💩";
@@ -70,49 +65,33 @@ public class OptimisticLockingTest {
     private MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customers;
-
-    @Autowired
-    InvoiceRepository invoices;
-
-    @Autowired
-    InvoiceContentStore invoicesContent;
-
-    @Autowired
-    CustomerContentStore customersContent;
+    InvoicingApi invoicingApi;
 
     @BeforeEach
-    void setupTestData() {
-        var xenit = customers.save(new Customer("XeniT", ORG_XENIT_VAT));
+    void setupTestData() throws InvalidPropertyDataException {
+        var xenit = invoicingApi.createCustomer("XeniT", ORG_XENIT_VAT);
 
-        XENIT_ID = xenit.getId();
-        XENIT_VERSION = xenit.getVersion();
+        XENIT_ID = xenit.getIdentity().getEntityId();
+        XENIT_VERSION = (ExactlyVersion) xenit.getIdentity().getVersion();
 
-        var invoice = invoices.save(
-                new Invoice(INVOICE_NUMBER_1, true, false, xenit, new HashSet<>()));
+        var invoice = invoicingApi.createInvoice(INVOICE_NUMBER_1, true, false, XENIT_ID, new HashSet<>());
 
-        INVOICE_1_ID = invoice.getId();
-        INVOICE_1_VERSION = invoice.getVersion();
+        INVOICE_1_ID = invoice.getIdentity().getEntityId();
+        INVOICE_1_VERSION = (ExactlyVersion) invoice.getIdentity().getVersion();
     }
 
-    void setupContentProperties() {
+    void setupContentProperties() throws InvalidPropertyDataException {
         var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
 
-        var customer = customers.findById(XENIT_ID).orElseThrow();
-        customersContent.setContent(customer, PropertyPath.from("content"), stream);
-        customer.getContent().setMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-        customer.getContent().setFilename("content.txt");
-        customer = customers.save(customer);
+        invoicingApi.storeCustomerContent(XENIT_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+        var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
-        XENIT_VERSION = customer.getVersion();
+        XENIT_VERSION = (ExactlyVersion) customer.getIdentity().getVersion();
 
-        var invoice = invoices.findById(INVOICE_1_ID).orElseThrow();
-        invoicesContent.setContent(invoice, PropertyPath.from("content"), stream);
-        invoice.setContentMimetype(MIMETYPE_PLAINTEXT_LATIN1);
-        invoice.setContentFilename("content.txt");
-        invoice = invoices.save(invoice);
+        invoicingApi.storeInvoiceContent(INVOICE_1_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+        var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-        INVOICE_1_VERSION = invoice.getVersion();
+        INVOICE_1_VERSION = (ExactlyVersion) invoice.getIdentity().getVersion();
     }
 
     void checkETagExists(String url) throws Exception {
@@ -135,8 +114,7 @@ public class OptimisticLockingTest {
 
     @AfterEach
     void cleanupTestData() {
-        invoices.deleteAll();
-        customers.deleteAll();
+        invoicingApi.deleteAll();
     }
 
     @Nested
@@ -173,7 +151,8 @@ public class OptimisticLockingTest {
                     .andReturn();
 
             var location = Objects.requireNonNull(response.getResponse().getHeader(HttpHeaders.LOCATION));
-            var invoiceId = StringUtils.substringAfterLast(location, "/");
+            var matches = new UriTemplate("{scheme}://{host}/invoices/{id}").match(location);
+            var invoiceId = matches.get("id");
 
             checkETagExists("/invoices/" + invoiceId);
         }
@@ -270,7 +249,8 @@ public class OptimisticLockingTest {
                     .andReturn();
 
             var location = Objects.requireNonNull(response.getResponse().getHeader(HttpHeaders.LOCATION));
-            var invoiceId = StringUtils.substringAfterLast(location, "/");
+            var matches = new UriTemplate("{scheme}://{host}/invoices/{id}").match(location);
+            var invoiceId = matches.get("id");
 
             checkETagExists("/invoices/" + invoiceId);
         }
@@ -368,7 +348,8 @@ public class OptimisticLockingTest {
                     .andReturn();
 
             var location = Objects.requireNonNull(response.getResponse().getHeader(HttpHeaders.LOCATION));
-            var customerId = StringUtils.substringAfterLast(location, "/");
+            var matches = new UriTemplate("{scheme}://{host}/customers/{id}").match(location);
+            var customerId = matches.get("id");
 
             checkETagExists("/customers/" + customerId);
         }

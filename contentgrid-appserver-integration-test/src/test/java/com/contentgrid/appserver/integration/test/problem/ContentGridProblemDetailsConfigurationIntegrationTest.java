@@ -1,29 +1,21 @@
 package com.contentgrid.appserver.integration.test.problem;
 
-import static com.contentgrid.spring.data.rest.problem.ProblemDetailsMockMvcMatchers.problemDetails;
-import static com.contentgrid.spring.data.rest.problem.ProblemDetailsMockMvcMatchers.validationConstraintViolation;
+import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
+import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.validationConstraintViolation;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import com.contentgrid.appserver.integration.test.problem.ContentGridProblemDetailsConfigurationIntegrationTest.LocalConfiguration;
-import com.contentgrid.spring.boot.autoconfigure.integration.EventsAutoConfiguration;
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.model.Refund;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.RefundRepository;
-import com.contentgrid.spring.test.security.WithMockJwt;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -35,15 +27,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -58,11 +43,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
  * constructed; required attribute/relation missing) - Deletion violations (on delete object is still referenced by
  * required relation) - Database constraint errors (non-validation covered constraints)
  */
-@SpringBootTest(classes = {
-        InvoicingApplication.class,
-        LocalConfiguration.class
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+}, classes = {
+        InvoicingApiApplication.class,
 })
-@EnableAutoConfiguration(exclude = EventsAutoConfiguration.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 @WithMockJwt
@@ -77,28 +62,21 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customerRepository;
+    InvoicingApi invoicingApi;
 
-    @Autowired
-    InvoiceRepository invoiceRepository;
-
-    private Customer createCustomer() {
-        var customer = new Customer();
-        customer.setVat("vat-" + UUID.randomUUID());
-        return customerRepository.save(customer);
+    private EntityId createCustomer() throws InvalidPropertyDataException {
+        return invoicingApi.createCustomer(null, "vat-" + UUID.randomUUID()).getIdentity().getEntityId();
     }
 
-    private Invoice createInvoice() {
-        var invoice = new Invoice();
-        invoice.setNumber("invoice-" + UUID.randomUUID());
-        invoice.setCounterparty(createCustomer());
-        return invoiceRepository.save(invoice);
+    private EntityId createInvoice() throws InvalidPropertyDataException {
+        return invoicingApi.createInvoice("invoice-" + UUID.randomUUID(), false, false, createCustomer(), null)
+                .getIdentity().getEntityId();
     }
 
     @AfterEach
-    void cleanup(@Autowired CustomerRepository customerRepository, @Autowired InvoiceRepository invoiceRepository) {
-        invoiceRepository.deleteById(UUID.fromString(INVOICE_ID_CREATE));
-        customerRepository.deleteById(UUID.fromString(CUSTOMER_ID_CREATE));
+    void cleanup() {
+        invoicingApi.deleteInvoice(EntityId.of(UUID.fromString(INVOICE_ID_CREATE)));
+        invoicingApi.deleteCustomer(EntityId.of(UUID.fromString(CUSTOMER_ID_CREATE)));
     }
 
     /**
@@ -120,18 +98,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         public static String INVOICE_ID_UPDATE;
 
         @BeforeAll
-        static void setup(@Autowired CustomerRepository customerRepository,
-                @Autowired InvoiceRepository invoiceRepository) {
-            var customer = new Customer();
-            customer.setVat("vat-" + UUID.randomUUID());
-            customer = customerRepository.save(customer);
-            CUSTOMER_ID_UPDATE = customer.getId().toString();
+        static void setup(@Autowired InvoicingApi invoicingApi) throws InvalidPropertyDataException {
+            var customerId = invoicingApi.createCustomer(null, "vat-" + UUID.randomUUID()).getIdentity().getEntityId();
+            CUSTOMER_ID_UPDATE = customerId.toString();
 
-            var invoice = new Invoice();
-            invoice.setNumber("invoice-" + UUID.randomUUID());
-            invoice.setCounterparty(customer);
-            invoice = invoiceRepository.save(invoice);
-            INVOICE_ID_UPDATE = invoice.getId().toString();
+            var invoiceId = invoicingApi.createInvoice("invoice-" + UUID.randomUUID(), false, false, customerId, null)
+                    .getIdentity().getEntityId();
+            INVOICE_ID_UPDATE = invoiceId.toString();
         }
 
         @ParameterizedTest
@@ -292,7 +265,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void createEntityWithoutRequiredAttribute() throws Exception {
-            var customer = createCustomer();
+            var customerId = createCustomer();
             // application/json
             mockMvc.perform(post("/invoices")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -301,7 +274,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     {
                                         "counterparty": "/customers/%s"
                                     }
-                                    """.formatted(customer.getId()))
+                                    """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("number"))
@@ -311,7 +284,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(multipart(HttpMethod.POST, "/invoices")
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
-                            .param("counterparty", "/customers/%s".formatted(customer.getId()))
+                            .param("counterparty", "/customers/%s".formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("number"))
@@ -376,22 +349,22 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void updateEntityRemoveRequiredAttribute() throws Exception {
-            var invoice = createInvoice();
-            var customer = createCustomer();
-            mockMvc.perform(put("/invoices/{id}", invoice.getId())
+            var invoiceId = createInvoice();
+            var customerId = createCustomer();
+            mockMvc.perform(put("/invoices/{id}", invoiceId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
                                     {
                                         "counterparty": "/customers/%s"
                                     }
-                                    """.formatted(customer.getId()))
+                                    """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("number"))
                     );
 
-            mockMvc.perform(patch("/invoices/{id}", invoice.getId())
+            mockMvc.perform(patch("/invoices/{id}", invoiceId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -420,8 +393,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     .andExpect(MockMvcResultMatchers.status().isBadRequest());
              */
 
-            var invoice = createInvoice();
-            mockMvc.perform(patch("/invoices/{id}", invoice.getId())
+            var invoiceId = createInvoice();
+            mockMvc.perform(patch("/invoices/{id}", invoiceId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -437,22 +410,22 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void updateEntityWithAttributeValueNotInAllowedValues() throws Exception {
-            var customer = createCustomer();
-            mockMvc.perform(put("/customers/{id}", customer.getId())
+            var customerId = createCustomer();
+            mockMvc.perform(put("/customers/{id}", customerId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
                                     {
-                                        "vat": "%s",
+                                        "vat": "new-vat",
                                         "gender": "illegal"
                                     }
-                                    """.formatted(customer.getVat()))
+                                    """)
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("gender"))
                     );
 
-            mockMvc.perform(patch("/customers/{id}", customer.getId())
+            mockMvc.perform(patch("/customers/{id}", customerId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -468,23 +441,20 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void removeRequiredEntityRelation_thisSide() throws Exception {
-            var invoice = createInvoice();
-            mockMvc.perform(delete("/invoices/{id}/counterparty", invoice.getId()))
+            var invoiceId = createInvoice();
+            mockMvc.perform(delete("/invoices/{id}/counterparty", invoiceId))
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("counterparty"))
                     );
         }
 
         @Test
-        @Disabled("Currently inverse-side updates are not persisted anyways")
-        void removeRequiredEntityRelation_otherSide(@Autowired RefundRepository refundRepository) throws Exception {
-            var invoice = createInvoice();
-            var refund = new Refund();
-            refund.setInvoice(createInvoice());
-            refundRepository.save(refund);
+        void removeRequiredEntityRelation_otherSide() throws Exception {
+            var invoiceId = createInvoice();
+            invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
-            mockMvc.perform(delete("/invoices/{id}/refund", invoice.getId()))
+            mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
                     .andExpect(validationConstraintViolation());
         }
     }
@@ -501,26 +471,22 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void deleteEntity_targetOfRequiredManyToOneRelation() throws Exception {
-            var invoice = createInvoice();
+            var invoiceId = createInvoice();
+            var counterparty = invoicingApi.findInvoiceCounterparty(invoiceId).orElseThrow();
             // This customer is linked to the invoice
-            mockMvc.perform(delete("/customers/{id}", invoice.getCounterparty().getId()))
+            mockMvc.perform(delete("/customers/{id}", counterparty.getIdentity().getEntityId()))
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("invoices"))
                     );
         }
 
         @Test
-        void deleteEntity_targetOfRequiredOneToOneRelation(@Autowired CustomerRepository customerRepository,
-                @Autowired InvoiceRepository invoiceRepository, @Autowired RefundRepository refundRepository)
-                throws Exception {
-            var invoice = createInvoice();
-
-            var refund = new Refund();
-            refund.setInvoice(invoice);
-            refundRepository.save(refund);
+        void deleteEntity_targetOfRequiredOneToOneRelation() throws Exception {
+            var invoiceId = createInvoice();
+            invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
-            mockMvc.perform(delete("/invoices/{id}", invoice.getId()))
+            mockMvc.perform(delete("/invoices/{id}", invoiceId))
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("refund"))
                     );
@@ -572,7 +538,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void uniqueConstraintViolation_update() throws Exception {
-            var customer = createCustomer();
+            var customerId = createCustomer();
             var customerVat = UUID.randomUUID();
 
             // Create goes through
@@ -588,7 +554,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     .andExpect(MockMvcResultMatchers.status().isCreated());
 
             // Update to same id fails
-            mockMvc.perform(patch("/customers/{id}", customer.getId())
+            mockMvc.perform(patch("/customers/{id}", customerId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -704,35 +670,5 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     .andExpect(jsonPath("$.query_parameter").value("page"))
                     .andExpect(jsonPath("$.invalid_value").value("abc"));
         }
-    }
-
-
-    @Configuration(proxyBeanMethods = false)
-    @EntityScan(basePackageClasses = {ContentGridProblemDetailsConfigurationIntegrationTest.class,
-            InvoicingApplication.class})
-    @EnableJpaRepositories(basePackageClasses = {InvoicingApplication.class,
-            ContentGridProblemDetailsConfigurationIntegrationTest.class}, considerNestedRepositories = true)
-    static class LocalConfiguration {
-
-
-    }
-
-    @Entity
-    public static class BrokenEntity {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
-        @JsonProperty(access = Access.READ_ONLY)
-        private UUID id;
-
-        private String sort;
-    }
-
-    @RepositoryRestResource(path = "broken-entity")
-    // Note: this is intentionally not supplying the resourceRel parameters
-    public interface BrokenEntityRepository extends
-            JpaRepository<BrokenEntity, UUID>,
-            QuerydslPredicateExecutor<BrokenEntity> {
-
     }
 }

@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.integration.test.webmvc;
 
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,9 +12,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-@SpringBootTest(properties = { "contentgrid.rest.use-multipart-hal-forms=true" })
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
 @ContextConfiguration(classes = {
-        InvoicingApplication.class,
+        InvoicingApiApplication.class,
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt

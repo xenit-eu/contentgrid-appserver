@@ -1,44 +1,39 @@
 package com.contentgrid.appserver.integration.test.validation;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.RefundRepository;
-import com.contentgrid.spring.test.security.WithMockJwt;
-import org.junit.jupiter.api.Disabled;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.rest.webmvc.RestMediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = InvoicingApplication.class)
+@SpringBootTest(classes = InvoicingApiApplication.class, properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 @WithMockJwt
 class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
+    private static final String URI_LIST_MIMETYPE = "text/uri-list";
+
     @Autowired
     MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customerRepository;
-
-    @Autowired
-    InvoiceRepository invoiceRepository;
-
-    @Autowired
-    RefundRepository refundRepository;
+    InvoicingApi invoicingApi;
 
     @Nested
     class PropertyValidation {
@@ -56,12 +51,9 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void allowsValidCustomerUpdate() throws Exception {
-            var customer = new Customer();
-            customer.setVat("ABC-123");
+            var customerId = invoicingApi.createCustomer(null, "ABC-123").getIdentity().getEntityId();
 
-            customer = customerRepository.save(customer);
-
-            mockMvc.perform(put("/customers/{id}", customer.getId())
+            mockMvc.perform(put("/customers/{id}", customerId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                         {
@@ -73,12 +65,9 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void allowsValidCustomerPatch() throws Exception {
-            var customer = new Customer();
-            customer.setVat("ABC-124");
+            var customerId = invoicingApi.createCustomer(null, "ABC-124").getIdentity().getEntityId();
 
-            customer = customerRepository.save(customer);
-
-            mockMvc.perform(patch("/customers/{id}", customer.getId())
+            mockMvc.perform(patch("/customers/{id}", customerId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                         {
@@ -102,12 +91,9 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void rejectsInvalidCustomerUpdate() throws Exception {
-            var customer = new Customer();
-            customer.setVat("ABC-125");
+            var customerId = invoicingApi.createCustomer(null, "ABC-125").getIdentity().getEntityId();
 
-            customer = customerRepository.save(customer);
-
-            mockMvc.perform(put("/customers/{id}", customer.getId())
+            mockMvc.perform(put("/customers/{id}", customerId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                         {
@@ -119,12 +105,9 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void rejectsInvalidCustomerPatch() throws Exception {
-            var customer = new Customer();
-            customer.setVat("ABC-126");
+            var customerId = invoicingApi.createCustomer(null, "ABC-126").getIdentity().getEntityId();
 
-            customer = customerRepository.save(customer);
-
-            mockMvc.perform(put("/customers/{id}", customer.getId())
+            mockMvc.perform(put("/customers/{id}", customerId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                         {
@@ -141,9 +124,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void allowsValidInvoiceCreate_withRelation() throws Exception {
-            var customer = new Customer();
-            customer.setVat("XYZ-1");
-            customer = customerRepository.save(customer);
+            var customerId = invoicingApi.createCustomer(null, "XYZ-1").getIdentity().getEntityId();
 
             mockMvc.perform(post("/invoices")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +133,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
                                 "number": "123",
                                 "counterparty": "/customers/%s"
                             }
-                            """.formatted(customer.getId()))
+                            """.formatted(customerId))
             ).andExpect(status().isCreated());
         }
 
@@ -196,33 +177,20 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void rejectsInvalidInvoiceRelationDelete_requiredRelation() throws Exception {
-            var customer = new Customer();
-            customer.setVat("XYZ-4");
-            customer = customerRepository.save(customer);
+            var customerId = invoicingApi.createCustomer(null, "XYZ-4").getIdentity().getEntityId();
+            var invoiceId = invoicingApi.createInvoice("XYZ-4", false, false, customerId, null).getIdentity().getEntityId();
 
-            var invoice = new Invoice();
-            invoice.setNumber("XYZ-4");
-            invoice.setCounterparty(customer);
-            invoice = invoiceRepository.save(invoice);
-
-            mockMvc.perform(delete("/invoices/{id}/counterparty", invoice.getId()))
+            mockMvc.perform(delete("/invoices/{id}/counterparty", invoiceId))
                     .andExpect(status().isBadRequest());
         }
 
         @Test
-        @Disabled("spring-data-rest throws an IllegalArgumentException here, which we can't handle")
         void rejectsInvalidInvoiceRelationPut_requiredRelation() throws Exception {
-            var customer = new Customer();
-            customer.setVat("XYZ-5");
-            customer = customerRepository.save(customer);
+            var customerId = invoicingApi.createCustomer(null, "XYZ-5").getIdentity().getEntityId();
+            var invoiceId = invoicingApi.createInvoice("XYZ-5", false, false, customerId, null).getIdentity().getEntityId();
 
-            var invoice = new Invoice();
-            invoice.setNumber("XYZ-5");
-            invoice.setCounterparty(customer);
-            invoice = invoiceRepository.save(invoice);
-
-            mockMvc.perform(put("/invoices/{id}/counterparty", invoice.getId())
-                            .contentType(RestMediaTypes.TEXT_URI_LIST)
+            mockMvc.perform(put("/invoices/{id}/counterparty", invoiceId)
+                            .contentType(URI_LIST_MIMETYPE)
                             .content("")
                     )
                     .andExpect(status().isBadRequest());
@@ -230,22 +198,13 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
 
         @Test
         void allowsValidInvoiceRelationPut_requiredRelation() throws Exception {
-            var customer = new Customer();
-            customer.setVat("XYZ-6");
-            customer = customerRepository.save(customer);
+            var customerId = invoicingApi.createCustomer(null, "XYZ-6").getIdentity().getEntityId();
+            var invoiceId = invoicingApi.createInvoice("XYZ-6", false, false, customerId, null).getIdentity().getEntityId();
+            var customer2Id = invoicingApi.createCustomer(null, "XYZ-7").getIdentity().getEntityId();
 
-            var invoice = new Invoice();
-            invoice.setNumber("XYZ-6");
-            invoice.setCounterparty(customer);
-            invoice = invoiceRepository.save(invoice);
-
-            var customer2 = new Customer();
-            customer2.setVat("XYZ-7");
-            customer2 = customerRepository.save(customer2);
-
-            mockMvc.perform(put("/invoices/{id}/counterparty", invoice.getId())
-                            .contentType(RestMediaTypes.TEXT_URI_LIST)
-                            .content("/customers/" + customer2.getId())
+            mockMvc.perform(put("/invoices/{id}/counterparty", invoiceId)
+                            .contentType(URI_LIST_MIMETYPE)
+                            .content("/customers/" + customer2Id)
                     )
                     .andExpect(status().is2xxSuccessful());
         }

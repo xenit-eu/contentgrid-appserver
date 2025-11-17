@@ -1,9 +1,10 @@
 package com.contentgrid.appserver.integration.test.affordances;
 
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.security.WithMockJwt;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,9 +18,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
 @ContextConfiguration(classes = {
-        InvoicingApplication.class,
+        InvoicingApiApplication.class,
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
@@ -28,24 +31,24 @@ class AffordanceInjectingSelfLinkProviderTest {
     MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customerRepository;
+    InvoicingApi invoicingApi;
 
-    Customer customer;
+    EntityId customerId;
 
     @BeforeEach
-    void setup() {
-        customer = customerRepository.save(new Customer("Abc", "ABC"));
+    void setup() throws InvalidPropertyDataException {
+        customerId = invoicingApi.createCustomer("Abc", "ABC").getIdentity().getEntityId();
     }
 
     @AfterEach
     void cleanup() {
-        customerRepository.delete(customer);
-        customer = null;
+        invoicingApi.deleteCustomer(customerId);
+        customerId = null;
     }
 
     @Test
     void templatesAddedOnEntityInstance() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/customers/{id}", customer.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get("/customers/{id}", customerId)
                 .accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json("""
@@ -98,7 +101,7 @@ class AffordanceInjectingSelfLinkProviderTest {
                                 }
                             }
                         }
-                        """.formatted(customer.getId())))
+                        """.formatted(customerId)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$._templates.keys()", Matchers.containsInAnyOrder("default", "delete", "add-invoices", "add-orders")));
     }
 
@@ -163,7 +166,7 @@ class AffordanceInjectingSelfLinkProviderTest {
                                 ]
                             }
                         }
-                        """.formatted(customer.getId())))
+                        """.formatted(customerId)))
                 // No top-level _templates are present
                 .andExpect(MockMvcResultMatchers.jsonPath("$.keys()", Matchers.not(Matchers.contains("_templates"))))
                 // The templates of the embedded object only contain a default and a delete template

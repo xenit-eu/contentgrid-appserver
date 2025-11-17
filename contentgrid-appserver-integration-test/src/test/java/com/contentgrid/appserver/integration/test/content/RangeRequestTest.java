@@ -1,23 +1,22 @@
 package com.contentgrid.appserver.integration.test.content;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.UUID;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,28 +25,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.content.commons.annotations.ContentId;
-import org.springframework.content.commons.annotations.ContentLength;
-import org.springframework.content.commons.annotations.MimeType;
-import org.springframework.content.commons.annotations.OriginalFileName;
-import org.springframework.content.commons.store.ContentStore;
-import org.springframework.content.rest.RestResource;
-import org.springframework.content.rest.StoreRestResource;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-import org.springframework.data.rest.core.config.RepositoryRestConfiguration;
-import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
 @SpringBootTest(
         webEnvironment = WebEnvironment.RANDOM_PORT,
@@ -56,8 +41,34 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
                 "contentgrid.security.csrf.disabled = true",
                 "spring.content.storage.type.default = fs",
                 "contentgrid.thunx.abac.source = none",
+                "contentgrid.events.rabbitmq.enabled=false",
+                "spring.datasource.url=jdbc:tc:postgresql:15:///",
         })
 public class RangeRequestTest {
+
+    private static final Application APPLICATION = Application.builder()
+            .name(ApplicationName.of("default"))
+            .entity(Entity.builder()
+                    .name(EntityName.of("person"))
+                    .table(TableName.of("person"))
+                    .pathSegment(PathSegmentName.of("persons"))
+                    .linkName(LinkName.of("person"))
+                    .attribute(SimpleAttribute.builder()
+                            .name(AttributeName.of("name"))
+                            .column(ColumnName.of("name"))
+                            .type(Type.TEXT)
+                            .build())
+                    .attribute(ContentAttribute.builder()
+                            .name(AttributeName.of("file"))
+                            .pathSegment(PathSegmentName.of("file"))
+                            .linkName(LinkName.of("file"))
+                            .idColumn(ColumnName.of("file__id"))
+                            .filenameColumn(ColumnName.of("file__filename"))
+                            .mimetypeColumn(ColumnName.of("file__mimetype"))
+                            .lengthColumn(ColumnName.of("file__length"))
+                            .build())
+                    .build())
+            .build();
 
     private static final String TEXT = "Hello world!";
     private static final byte[] CONTENT = TEXT.getBytes(StandardCharsets.UTF_8);
@@ -151,70 +162,12 @@ public class RangeRequestTest {
     }
 
     @SpringBootApplication
-    @EnableJpaRepositories(considerNestedRepositories = true)
     static class TestApp {
 
-    }
-
-    @Entity
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    static class Person {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
-        @JsonProperty(access = Access.READ_ONLY)
-        private UUID id;
-
-        private String name;
-
-        @Embedded
-        @AttributeOverride(name = "id", column = @Column(name = "file__id"))
-        @AttributeOverride(name = "length", column = @Column(name = "file__length"))
-        @AttributeOverride(name = "mimetype", column = @Column(name = "file__mimetype"))
-        @AttributeOverride(name = "filename", column = @Column(name = "file__filename"))
-        @RestResource(linkRel = "d:file", path = "file")
-        private Content file;
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    static class Content {
-
-        @ContentId
-        @JsonIgnore
-        private String id;
-
-        @ContentLength
-        @JsonProperty(access = Access.READ_ONLY)
-        private Long length;
-
-        @MimeType
-        private String mimetype;
-
-        @OriginalFileName
-        private String filename;
-    }
-
-    @RepositoryRestResource(collectionResourceRel = "d:persons", itemResourceRel = "d:person")
-    interface PersonRepository extends JpaRepository<Person, UUID>, QuerydslPredicateExecutor<Person> {
-
-    }
-
-    @StoreRestResource
-    interface PersonContentStore extends ContentStore<Person, String> {
-
-    }
-
-    @Configuration
-    static class RestConfiguration implements RepositoryRestConfigurer {
-
-        @Override
-        public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config,
-                CorsRegistry cors) {
-            config.exposeIdsFor(Person.class);
+        @Bean
+        ApplicationResolver applicationResolver() {
+            return new SingleApplicationResolver(APPLICATION);
         }
+
     }
 }

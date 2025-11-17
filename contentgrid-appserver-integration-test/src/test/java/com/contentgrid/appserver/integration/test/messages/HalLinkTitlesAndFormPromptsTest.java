@@ -1,44 +1,45 @@
 package com.contentgrid.appserver.integration.test.messages;
 
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
+import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.values.SortableName;
+import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.integration.test.messages.HalLinkTitlesAndFormPromptsTest.LocalConfiguration;
-import com.contentgrid.spring.querydsl.annotation.CollectionFilterParam;
-import com.contentgrid.spring.test.fixture.invoicing.InvoicingApplication;
-import com.contentgrid.spring.test.fixture.invoicing.model.Customer;
-import com.contentgrid.spring.test.fixture.invoicing.model.Invoice;
-import com.contentgrid.spring.test.fixture.invoicing.model.ShippingLabel;
-import com.contentgrid.spring.test.fixture.invoicing.repository.CustomerRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.InvoiceRepository;
-import com.contentgrid.spring.test.fixture.invoicing.repository.ShippingLabelRepository;
-import com.contentgrid.spring.test.security.WithMockJwt;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-@SpringBootTest(properties = { "contentgrid.rest.use-multipart-hal-forms=true" })
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
 @ContextConfiguration(classes = {
-        InvoicingApplication.class,
+        InvoicingApiApplication.class,
         LocalConfiguration.class
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
@@ -48,30 +49,25 @@ class HalLinkTitlesAndFormPromptsTest {
     MockMvc mockMvc;
 
     @Autowired
-    CustomerRepository customerRepository;
-    @Autowired
-    InvoiceRepository invoiceRepository;
-    @Autowired
-    ShippingLabelRepository shippingLabelRepository;
+    InvoicingApi invoicingApi;
 
-    Customer customer;
-    Invoice invoice;
-    ShippingLabel shippingLabel;
+    EntityId customerId;
+    EntityId invoiceId;
+    EntityId shippingLabelId;
 
     @BeforeEach
-    void setup() {
-        customer = customerRepository.save(new Customer("Abc", "ABC"));
-        invoice = invoiceRepository.save(new Invoice("12345678", true, true, customer, Set.of()));
-        shippingLabel = shippingLabelRepository.save(new ShippingLabel("here", "there"));
+    void setup() throws InvalidPropertyDataException {
+        customerId = invoicingApi.createCustomer("Abc", "ABC").getIdentity().getEntityId();
+        invoiceId = invoicingApi.createInvoice("12345678", true, true, customerId, Set.of()).getIdentity().getEntityId();
+        shippingLabelId = invoicingApi.createShippingLabel("here", "there").getIdentity().getEntityId();
     }
 
     @AfterEach
     void cleanup() {
-        invoiceRepository.delete(invoice);
-        // We delete by id because the object is no longer valid after the invoice it references has been deleted
-        customerRepository.deleteById(customer.getId());
-        invoice = null;
-        customer = null;
+        invoicingApi.deleteInvoice(invoiceId);
+        invoicingApi.deleteCustomer(customerId);
+        invoiceId = null;
+        customerId = null;
     }
 
     @Test
@@ -355,7 +351,7 @@ class HalLinkTitlesAndFormPromptsTest {
 
     @Test
     void titleOnCgRelationInHalForms() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoice.getId()).accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoiceId).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json("""
                         {
@@ -375,7 +371,7 @@ class HalLinkTitlesAndFormPromptsTest {
 
     @Test
     void titleOnCgContentInHalForms() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoice.getId()).accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoiceId).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content().json("""
                         {
@@ -395,7 +391,7 @@ class HalLinkTitlesAndFormPromptsTest {
 
     @Test
     void promptOnCgContentPropertiesInHalForms() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoice.getId()).accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoiceId).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(res -> System.out.println(res.getResponse().getContentAsString()))
                 .andExpect(MockMvcResultMatchers.content().json("""
@@ -459,49 +455,44 @@ class HalLinkTitlesAndFormPromptsTest {
     }
 
 
+    private static final Entity ENTITY_WITH_SORT = Entity.builder()
+            .name(EntityName.of("entity-with-sort"))
+            .table(TableName.of("entity_with_sort"))
+            .pathSegment(PathSegmentName.of("entity-with-sort"))
+            .linkName(LinkName.of("entity-with-sort"))
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("sort"))
+                    .column(ColumnName.of("sort"))
+                    .type(Type.TEXT)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .attributePath(PropertyPath.of(AttributeName.of("id")))
+                    .name(FilterName.of("id"))
+                    .operation(Operation.EXACT)
+                    .build())
+            .sortableField(SortableField.builder()
+                    .propertyPath(PropertyPath.of(AttributeName.of("id")))
+                    .name(SortableName.of("id"))
+                    .build())
+            .build();
+
+    private static final Entity ENTITY_WITHOUT_FILTERS = Entity.builder()
+            .name(EntityName.of("entity-without-filters"))
+            .table(TableName.of("entity_without_filters"))
+            .pathSegment(PathSegmentName.of("entity-without-filters"))
+            .linkName(LinkName.of("entity-without-filters"))
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("name"))
+                    .column(ColumnName.of("name"))
+                    .type(Type.TEXT)
+                    .build())
+            .build();
+
+
     @Configuration(proxyBeanMethods = false)
-    @EntityScan(basePackageClasses = {HalLinkTitlesAndFormPromptsTest.class, InvoicingApplication.class})
-    @EnableJpaRepositories(basePackageClasses = {InvoicingApplication.class,
-            HalLinkTitlesAndFormPromptsTest.class}, considerNestedRepositories = true)
     static class LocalConfiguration {
 
-
-    }
-
-    @Entity
-    public static class EntityWithSort {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
-        @JsonProperty(access = Access.READ_ONLY)
-        @CollectionFilterParam
-        private UUID id;
-
-        private String sort;
-    }
-
-    @RepositoryRestResource(path = "entity-with-sort", collectionResourceRel = "d:entity-with-sort", itemResourceRel = "d:entity-with-sort")
-    public interface EntityWithSortRepository extends
-            JpaRepository<EntityWithSort, UUID>,
-            QuerydslPredicateExecutor<EntityWithSort> {
-
-    }
-
-    @Entity
-    public static class EntityWithoutFilters {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
-        @JsonProperty(access = Access.READ_ONLY)
-        private UUID id;
-
-        private String name;
-    }
-
-    @RepositoryRestResource(path = "entity-without-filters", collectionResourceRel = "d:entity-without-filters", itemResourceRel = "d:entity-without-filters")
-    public interface EntityWithoutCollectionFilterParamRepository extends
-            JpaRepository<EntityWithoutFilters, UUID>,
-            QuerydslPredicateExecutor<EntityWithoutFilters> {
+        // TODO: add ENTITY_WITH_SORT and ENTITY_WITHOUT_FILTERS to application
 
     }
 }
