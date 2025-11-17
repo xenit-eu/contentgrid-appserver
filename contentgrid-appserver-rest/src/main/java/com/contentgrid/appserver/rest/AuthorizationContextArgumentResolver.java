@@ -9,7 +9,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -42,7 +42,7 @@ public class AuthorizationContextArgumentResolver implements HandlerMethodArgume
         return Optional.ofNullable(SecurityContextHolder.getContext())
                 .map(SecurityContext::getAuthentication)
                 .filter(Authentication::isAuthenticated)
-                .map(authentication -> authentication instanceof Jwt jwt
+                .map(authentication -> authentication.getPrincipal() instanceof JwtClaimAccessor jwt
                         ? new User(jwt.getSubject(), jwt.getClaimAsString("iss"),
                                 jwt.getClaimAsString("name") != null ? jwt.getClaimAsString("name") : jwt.getSubject())
                         : new User(authentication.getName(), null, authentication.getName()));
