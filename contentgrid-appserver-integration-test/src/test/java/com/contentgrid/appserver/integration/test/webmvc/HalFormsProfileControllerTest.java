@@ -572,48 +572,68 @@ class HalFormsProfileControllerTest {
                                         }
                                     },
                                     {
-                                        name: "content_length",
-                                        type: "long",
-                                        readOnly: true,
+                                        name: "content",
+                                        type: "object",
+                                        readOnly: false,
                                         required: false,
                                         _embedded: {
-                                            "blueprint:search-param": [
+                                            "blueprint:attribute": [
                                                 {
-                                                    name: "content.length",
-                                                    type: "exact-match"
+                                                    name: "length",
+                                                    type: "long",
+                                                    readOnly: true,
+                                                    required: false,
+                                                    _embedded: {
+                                                        "blueprint:search-param": [
+                                                            {
+                                                                name: "content.length",
+                                                                type: "exact-match"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    name: "mimetype",
+                                                    type: "string",
+                                                    readOnly: false,
+                                                    required: false
+                                                },
+                                                {
+                                                    name: "filename",
+                                                    type: "string",
+                                                    readOnly: false,
+                                                    required: false
                                                 }
                                             ]
                                         }
                                     },
                                     {
-                                        name: "content_mimetype",
-                                        type: "string",
+                                        name: "attachment",
+                                        type: "object",
                                         readOnly: false,
-                                        required: false
-                                    },
-                                    {
-                                        name: "content_filename",
-                                        type: "string",
-                                        readOnly: false,
-                                        required: false
-                                    },
-                                    {
-                                        name: "attachment_length",
-                                        type: "long",
-                                        readOnly: true,
-                                        required: false
-                                    },
-                                    {
-                                        name: "attachment_mimetype",
-                                        type: "string",
-                                        readOnly: false,
-                                        required: false
-                                    },
-                                    {
-                                        name: "attachment_filename",
-                                        type: "string",
-                                        readOnly: false,
-                                        required: false
+                                        required: false,
+                                        _embedded: {
+                                            "blueprint:attribute": [
+                                                {
+                                                    name: "length",
+                                                    type: "long",
+                                                    readOnly: true,
+                                                    required: false
+                                                },
+                                                {
+                                                    name: "mimetype",
+                                                    type: "string",
+                                                    readOnly: false,
+                                                    required: false
+                                                },
+                                                {
+                                                    name: "filename",
+                                                    type: "string",
+                                                    readOnly: false,
+                                                    required: false
+                                                }
+                                            ]
+                                        }
                                     }
                                 ],
                                 "blueprint:relation": [
