@@ -172,7 +172,7 @@ public class EntityRestController {
     }
 
     @PutMapping("/{entityName}/{id}")
-    public ResponseEntity<EntityDataRepresentationModel> update(
+    public ResponseEntity<?> update(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
@@ -192,16 +192,16 @@ public class EntityRestController {
                     data,
                     authorizationContext
             );
-            return ResponseEntity.ok()
+            return ResponseEntity.noContent()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(updateResult));
+                    .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }
 
     @PatchMapping("/{entityName}/{id}")
-    public ResponseEntity<EntityDataRepresentationModel> updatePartial(
+    public ResponseEntity<?> updatePartial(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
@@ -222,31 +222,28 @@ public class EntityRestController {
                     authorizationContext
             );
 
-            return ResponseEntity.ok()
+            return ResponseEntity.noContent()
                     .eTag(calculateETag(updateResult))
-                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(updateResult));
+                    .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
     }
 
     @DeleteMapping("/{entityName}/{id}")
-    public ResponseEntity<EntityDataRepresentationModel> deleteEntity(
+    public ResponseEntity<?> deleteEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint requestedVersion,
-            AuthorizationContext authorizationContext,
-            UserLocales userLocales,
-            LinkFactoryProvider linkFactoryProvider
+            AuthorizationContext authorizationContext
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
         try {
             var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
-            var deleted = datamodelApi.deleteEntity(application, request, authorizationContext);
-            return ResponseEntity.ok()
-                    .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(deleted));
+            datamodelApi.deleteEntity(application, request, authorizationContext);
+            return ResponseEntity.noContent().build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
         }
