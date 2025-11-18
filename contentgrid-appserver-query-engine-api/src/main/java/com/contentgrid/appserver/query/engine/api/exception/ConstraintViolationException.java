@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.api.exception;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -20,5 +21,9 @@ public abstract class ConstraintViolationException extends QueryEngineException 
 
     @NonNull
     private final PropertyPath propertyPath;
+
+    public EntityIdentity getEntityIdentity() {
+        return EntityIdentity.forEntity(entityName, entityId);
+    }
 
 }

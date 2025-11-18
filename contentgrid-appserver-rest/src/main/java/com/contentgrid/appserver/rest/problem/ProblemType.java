@@ -27,6 +27,7 @@ public enum ProblemType implements ProblemTypeResolvable {
 
     INTEGRITY_RELATION_BLIND_OVERWRITE("integrity", "blind-relation-overwrite"),
     INTEGRITY_RELATION_REQUIRED("integrity", "relation-required"),
+    INTEGRITY_REQUIRED("integrity", "required")
     ;
 
     ProblemType(String... params) {

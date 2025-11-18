@@ -13,6 +13,7 @@ import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
+import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
@@ -175,6 +176,16 @@ public class ContentGridExceptionHandler {
                     var existingEntityLink = linkFactoryProvider.toItem(exception.getConflictingEntity());
                     properties.put("conflicting-item", existingEntityLink.toUri().toString());
                 }));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleRequiredConstraintViolation(@NonNull RequiredConstraintViolationException exception, LinkFactoryProvider linkFactoryProvider) {
+        return createResponse(problemFactory.createProblem(ProblemType.INTEGRITY_REQUIRED, exception.getEntityIdentity(), String.join(".", exception.getPropertyPath().toList()))
+                .withStatus(HttpStatus.BAD_REQUEST)
+                .withProperties(properties -> {
+                    properties.put("property", String.join(".", exception.getPropertyPath().toList()));
+                })
+        );
     }
 
     @ExceptionHandler

@@ -799,8 +799,11 @@ class RelationRestControllerTest {
 
             mockMvc.perform(delete("/invoices/{sourceId}/customer", invoice.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/integrity/required")
+                            .withTitle("Property is required")
+                            .withDetail("Property 'customer' on Entity 'invoice' %s is required".formatted(invoice.getEntityId()))
+                            .withField("property", "customer")
                     );
         }
 
