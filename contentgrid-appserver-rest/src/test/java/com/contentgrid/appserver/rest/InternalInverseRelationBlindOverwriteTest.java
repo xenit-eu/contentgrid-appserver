@@ -134,7 +134,8 @@ class InternalInverseRelationBlindOverwriteTest {
                         .contentType("text/uri-list")
                         .content(employeeUrl))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.existing-item").exists())
+                // existing-item should point to the place where you can fix it (i.e. remove alice from this dept first)
+                .andExpect(jsonPath("$.existing-item").value(departmentEngineeringUrl))
                 .andExpect(jsonPath("$.affected-relation").doesNotExist());
     }
 
