@@ -227,7 +227,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsBytes(content))
-        ).andExpect(isAllowed ? status().isOk():status().isForbidden());
+        ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -250,7 +250,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsBytes(content))
-        ).andExpect(isAllowed ? status().isOk():status().isForbidden());
+        ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
     @ParameterizedTest
@@ -261,7 +261,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(delete(invoice)
                         .header("X-ABAC-Context", abacContext)
                 )
-                .andExpect(isAllowed?status().isOk():status().isForbidden());
+                .andExpect(isAllowed?status().is2xxSuccessful():status().isForbidden());
     }
 
     @ParameterizedTest

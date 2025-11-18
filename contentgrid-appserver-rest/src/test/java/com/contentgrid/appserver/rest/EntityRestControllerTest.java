@@ -941,13 +941,7 @@ class EntityRestControllerTest {
             mockMvc.perform(put("/products/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(updated)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id", is(id)))
-                    .andExpect(jsonPath("$.name", is("Updated Product")))
-                    .andExpect(jsonPath("$.price", is(999.00)))
-                    .andExpect(jsonPath("$.release_date").doesNotExist())
-                    .andExpect(jsonPath("$.in_stock", is(true)))
-                    .andExpect(jsonPath("$._links.self.href", notNullValue()));
+                    .andExpect(status().isNoContent());
         }
 
         @ParameterizedTest
@@ -1019,7 +1013,7 @@ class EntityRestControllerTest {
                                     }
                                     """)
                     )
-                    .andExpect(status().isOk())
+                    .andExpect(status().isNoContent())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andReturn()
                     .getResponse();
@@ -1123,7 +1117,7 @@ class EntityRestControllerTest {
                             .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")
                                     .claim("name", "Alice")))
                     )
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             mockMvc.perform(get(createResponse.getRedirectedUrl())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -1163,9 +1157,7 @@ class EntityRestControllerTest {
                               }
                             }
                             """))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.picture.filename", is("IMG_789.png")))
-                    .andExpect(jsonPath("$.picture.mimetype", is("application/png")));
+                    .andExpect(status().isNoContent());
         }
 
         @Test
@@ -1195,9 +1187,7 @@ class EntityRestControllerTest {
                               }
                             }
                             """))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.picture.filename", nullValue()))
-                    .andExpect(jsonPath("$.picture.mimetype", is("application/png")));
+                    .andExpect(status().isNoContent());
         }
 
         @Test
@@ -1287,8 +1277,7 @@ class EntityRestControllerTest {
 
             // Delete the entity
             mockMvc.perform(delete("/products/" + id))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("Product to Delete"));
+                    .andExpect(status().isNoContent());
 
             // Verify entity no longer exists
             mockMvc.perform(get("/products/" + id))
@@ -1317,7 +1306,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(delete(createResponse.getRedirectedUrl())
                             .header("If-Match", createResponse.getHeader(HttpHeaders.ETAG)))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isNoContent())
                     .andReturn()
                     .getResponse();
 
