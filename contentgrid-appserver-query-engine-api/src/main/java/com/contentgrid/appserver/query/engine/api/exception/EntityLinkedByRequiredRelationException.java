@@ -13,38 +13,34 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 public class EntityLinkedByRequiredRelationException extends QueryEngineException {
-    /**
-     * The relation (where the target side is required)
-     */
-    @NonNull
-    private final Relation relation;
 
     /**
      * The entity that is being deleted/unlinked
      */
     @NonNull
-    private final EntityId sourceId;
+    @Getter
+    private final EntityIdentity sourceIdentity;
 
     /**
-     * The entity that holds the required side of the relation
+     * The relation that holds the required side of the relation
      */
     @NonNull
-    private final EntityId targetId;
+    @Getter
+    private final RelationIdentity targetRelationIdentity;
 
-    public EntityIdentity getSourceIdentity() {
-        return EntityIdentity.forEntity(relation.getSourceEndPoint().getEntity(), sourceId);
-    }
+    /**
+     *
+     * @param relation The relation (where the target side is required)
+     * @param sourceId The entity that is being deleted/unlinked
+     * @param targetId The entity that holds the required side of the relation
+     */
+    public EntityLinkedByRequiredRelationException(@NonNull Relation relation, @NonNull EntityId sourceId, @NonNull EntityId targetId) {
+        this(
+                EntityIdentity.forEntity(relation.getSourceEndPoint().getEntity(), sourceId),
+                RelationIdentity.forRelation(relation.getTargetEndPoint().getEntity(), targetId, relation.getTargetEndPoint()
+                        .getName())
+        );
 
-    public EntityIdentity getTargetIdentity() {
-        return EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId);
-    }
-
-    public RelationIdentity getSourceRelationIdentity() {
-        return RelationIdentity.forRelation(getSourceIdentity(), relation.getSourceEndPoint().getName());
-    }
-
-    public RelationIdentity getTargetRelationIdentity() {
-        return RelationIdentity.forRelation(getTargetIdentity(), relation.getTargetEndPoint().getName());
     }
 
     @Override

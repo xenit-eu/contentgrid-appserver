@@ -109,8 +109,8 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
     @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     public static final class ConstrainedVersion implements VersionConstraint {
 
-        private final Iterable<VersionConstraint> acceptableVersions;
-        private final Iterable<VersionConstraint> forbiddenVersions;
+        private final List<VersionConstraint> acceptableVersions;
+        private final List<VersionConstraint> forbiddenVersions;
 
         @Override
         public boolean isSatisfiedBy(@NonNull Version otherVersion) {

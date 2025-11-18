@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.domain.values.version;
 
+import java.io.Serializable;
 import lombok.NonNull;
 
-public interface VersionConstraint {
+public interface VersionConstraint extends Serializable {
 
     VersionConstraint ANY = new VersionConstraint() {
         @Override

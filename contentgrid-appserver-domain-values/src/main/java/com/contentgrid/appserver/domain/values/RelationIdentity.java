@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import java.io.Serializable;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import lombok.With;
  */
 @Value
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class RelationIdentity {
+public class RelationIdentity implements Serializable {
     @NonNull
     EntityName entityName;
 

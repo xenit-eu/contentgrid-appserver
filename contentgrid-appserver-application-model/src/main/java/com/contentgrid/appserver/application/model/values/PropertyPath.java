@@ -1,10 +1,11 @@
 package com.contentgrid.appserver.application.model.values;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;
 
-public sealed interface PropertyPath permits AttributePath, RelationPath {
+public sealed interface PropertyPath extends Serializable permits AttributePath, RelationPath {
     @NonNull PropertyName getFirst();
     PropertyPath getRest();
 
