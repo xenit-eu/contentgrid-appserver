@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.rest.problem.ext;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
@@ -12,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import lombok.experimental.Delegate;
 import org.springframework.hateoas.mediatype.problem.Problem;
 import org.springframework.hateoas.mediatype.problem.Problem.ExtendedProblem;
 

@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.rest;
 
-import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import java.util.Arrays;
 import java.util.List;

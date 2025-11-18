@@ -1,10 +1,8 @@
 package com.contentgrid.appserver.rest.mapping;
 
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.rest.EntityRestController;
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;

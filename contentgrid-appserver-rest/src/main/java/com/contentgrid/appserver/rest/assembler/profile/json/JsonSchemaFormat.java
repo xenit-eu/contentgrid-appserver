@@ -15,9 +15,8 @@
  */
 package com.contentgrid.appserver.rest.assembler.profile.json;
 
-import java.util.Locale;
-
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
 
 /**
  * An enum to represent JSON Schema pre-defined formats.

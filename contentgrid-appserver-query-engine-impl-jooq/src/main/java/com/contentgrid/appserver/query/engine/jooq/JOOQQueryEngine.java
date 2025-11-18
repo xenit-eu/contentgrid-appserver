@@ -14,25 +14,25 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
-import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
+import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
+import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
-import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
@@ -216,14 +216,14 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = generateId(entity);
 
-        var record = dslContext.newRecord(JOOQUtils.resolveAttributeAndRelationFields(application, entity));
-        record.set(primaryKey, id.getValue());
+        var createFields = dslContext.newRecord(JOOQUtils.resolveAttributeAndRelationFields(application, entity));
+        createFields.set(primaryKey, id.getValue());
 
         var maybeVersionField = JOOQUtils.resolveVersionField(entity);
 
         if(maybeVersionField.isPresent()) {
             // Set version field to initial, random value
-            record.set(maybeVersionField.get(), secureRandom.nextLong(1, VERSION_MODULUS));
+            createFields.set(maybeVersionField.get(), secureRandom.nextLong(1, VERSION_MODULUS));
         }
 
         var entityData = EntityData.builder()
@@ -235,7 +235,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var list = EntityDataConverter.convert(entityData, entity);
 
         for (var entry : list) {
-            record.set(entry.field(), entry.value());
+            createFields.set(entry.field(), entry.value());
         }
 
         // add owning relations to step and keep track of relations owned by other entities
@@ -253,7 +253,7 @@ public class JOOQQueryEngine implements QueryEngine {
             if(relationData instanceof XToOneRelationData toOneRelationData) {
                 var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
                 if(strategy instanceof HasSourceTableColumnRef hasSourceTableColumnRef) {
-                    record.set(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation), toOneRelationData.getRef().getValue());
+                    createFields.set(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation), toOneRelationData.getRef().getValue());
                 } else {
                     nonOwningRelations.add(relationData);
                 }
@@ -266,16 +266,16 @@ public class JOOQQueryEngine implements QueryEngine {
         try {
             var insertedRecord = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext
                     .insertInto(JOOQUtils.resolveTable(entity))
-                    .set(record)
+                    .set(createFields)
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchSingleMap());
             insertedData = EntityDataMapper.from(entity, insertedRecord);
         } catch (DataAccessException e) {
             throw ExceptionUtils.handleException(e, () -> switch (PostgresqlErrorType.from(e)) {
-                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData.getIdentity(), record,
+                case UNIQUE_CONSTRAINT_VIOLATION -> handleUniqueConstraintViolation(application, entityData.getIdentity(), createFields,
                         dslContext);
-                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData.getIdentity(), record);
-                case FOREIGN_KEY_CONSTRAINT_VIOLATION -> handleForeignKeyViolation(application, entityData.getIdentity(), record,
+                case NOT_NULL_CONSTRAINT_VIOLATION -> handleNotNullConstraintViolation(application, entityData.getIdentity(), createFields);
+                case FOREIGN_KEY_CONSTRAINT_VIOLATION -> handleForeignKeyViolation(application, entityData.getIdentity(), createFields,
                         dslContext);
                 default -> null;
             });
