@@ -1,10 +1,12 @@
 package com.contentgrid.appserver.domain.data.validation;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
 public class ValidationExceptionCollector<X extends Exception> {
+    @NonNull
     private final Class<X> exceptionType;
 
     private X firstException;
