@@ -54,6 +54,8 @@ public class OptimisticLockingTest {
 
     static ExactlyVersion INVOICE_1_VERSION;
     static ExactlyVersion XENIT_VERSION;
+    static ExactlyVersion INVOICE_1_CONTENT_VERSION;
+    static ExactlyVersion XENIT_CONTENT_VERSION;
     static final ETag INVALID_VERSION = new ETag("INVALID");
 
     private static final String EXT_ASCII_TEXT = "L'éducation doit être gratuite.";
@@ -82,16 +84,22 @@ public class OptimisticLockingTest {
 
     void setupContentProperties() throws InvalidPropertyDataException {
         var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-
         invoicingApi.storeCustomerContent(XENIT_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
-        var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
 
+        var customer = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
         XENIT_VERSION = (ExactlyVersion) customer.getIdentity().getVersion();
 
-        invoicingApi.storeInvoiceContent(INVOICE_1_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
-        var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
+        var customerContent = invoicingApi.findCustomerContent(XENIT_ID).orElseThrow();
+        XENIT_CONTENT_VERSION = (ExactlyVersion) customerContent.getVersion();
 
+        stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+        invoicingApi.storeInvoiceContent(INVOICE_1_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+
+        var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
         INVOICE_1_VERSION = (ExactlyVersion) invoice.getIdentity().getVersion();
+
+        var invoiceContent = invoicingApi.findInvoiceContent(INVOICE_1_ID).orElseThrow();
+        INVOICE_1_CONTENT_VERSION = (ExactlyVersion) invoiceContent.getVersion();
     }
 
     void checkETagExists(String url) throws Exception {
@@ -214,8 +222,10 @@ public class OptimisticLockingTest {
 
         @Test
         void postInvoiceContent_withMatchingIfMatch_http204() throws Exception {
+            setupContentProperties();
+
             mockMvc.perform(post("/invoices/{id}/content", INVOICE_1_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_VERSION))
+                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_CONTENT_VERSION))
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
@@ -226,6 +236,8 @@ public class OptimisticLockingTest {
 
         @Test
         void postInvoiceContent_withInvalidIfMatch_http412() throws Exception {
+            setupContentProperties();
+
             mockMvc.perform(post("/invoices/{id}/content", INVOICE_1_ID)
                             .header(HttpHeaders.IF_MATCH, INVALID_VERSION)
                             .contentType(MediaType.TEXT_PLAIN)
@@ -261,7 +273,7 @@ public class OptimisticLockingTest {
 
             // update content, ONLY changing the charset
             mockMvc.perform(put("/invoices/{id}/content", INVOICE_1_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_VERSION))
+                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_CONTENT_VERSION))
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
@@ -290,7 +302,7 @@ public class OptimisticLockingTest {
             setupContentProperties();
 
             mockMvc.perform(delete("/invoices/{id}/content", INVOICE_1_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_VERSION)))
+                            .header(HttpHeaders.IF_MATCH, toETag(INVOICE_1_CONTENT_VERSION)))
                     .andExpect(status().isNoContent());
 
             checkETagChanged("/invoices/" + INVOICE_1_ID, toETag(INVOICE_1_VERSION));
@@ -313,8 +325,10 @@ public class OptimisticLockingTest {
 
         @Test
         void postCustomerContent_withMatchingIfMatch_http204() throws Exception {
+            setupContentProperties();
+
             mockMvc.perform(post("/customers/{id}/content", XENIT_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_VERSION))
+                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_CONTENT_VERSION))
                             .contentType(MediaType.TEXT_PLAIN)
                             .characterEncoding(StandardCharsets.UTF_8)
                             .content(UNICODE_TEXT))
@@ -325,6 +339,8 @@ public class OptimisticLockingTest {
 
         @Test
         void postCustomerContent_withInvalidIfMatch_http412() throws Exception {
+            setupContentProperties();
+
             mockMvc.perform(post("/customers/{id}/content", XENIT_ID)
                             .header(HttpHeaders.IF_MATCH, INVALID_VERSION)
                             .contentType(MediaType.TEXT_PLAIN)
@@ -360,7 +376,7 @@ public class OptimisticLockingTest {
 
             // update content, ONLY changing the charset
             mockMvc.perform(put("/customers/{id}/content", XENIT_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_VERSION))
+                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_CONTENT_VERSION))
                             .characterEncoding(StandardCharsets.UTF_8)
                             .contentType(MediaType.TEXT_PLAIN)
                             .content(EXT_ASCII_TEXT))
@@ -389,7 +405,7 @@ public class OptimisticLockingTest {
             setupContentProperties();
 
             mockMvc.perform(delete("/customers/{id}/content", XENIT_ID)
-                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_VERSION)))
+                            .header(HttpHeaders.IF_MATCH, toETag(XENIT_CONTENT_VERSION)))
                     .andExpect(status().isNoContent());
 
             checkETagChanged("/customers/" + XENIT_ID, toETag(XENIT_VERSION));
