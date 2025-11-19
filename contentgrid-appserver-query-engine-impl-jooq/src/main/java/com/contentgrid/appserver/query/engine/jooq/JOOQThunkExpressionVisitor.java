@@ -36,7 +36,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -346,7 +345,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return getArray(context, setValue.getValue().stream());
     }
 
-    private @NotNull Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
+    private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
         var values = stream.map(thunkExpression -> {
             if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                 Field<?> field = visit(scalar, context);
