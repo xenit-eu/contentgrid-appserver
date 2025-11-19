@@ -351,7 +351,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
     private @NotNull Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
         var values = stream.map(thunkExpression -> {
-            if (Objects.requireNonNull(thunkExpression) instanceof Scalar scalar) {
+            if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                 Field<?> field = visit(scalar, context);
                 if (field.getType().equals(String.class)) {
                     field = normalize(field);
