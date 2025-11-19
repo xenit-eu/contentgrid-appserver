@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -39,13 +38,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.Allow;
-import org.jooq.Allow.PlainSQL;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
 import org.jooq.impl.QOM.Array;
-import org.jooq.impl.SQLDataType;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQContext> {
@@ -227,12 +224,12 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    @PlainSQL
+    @Allow.PlainSQL
     private static Field<String> normalize(Field<?> field) {
         return DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
     }
 
-    @PlainSQL
+    @Allow.PlainSQL
     private static Field<String> prefixSearchNormalize(Field<?> field) {
         return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
     }
