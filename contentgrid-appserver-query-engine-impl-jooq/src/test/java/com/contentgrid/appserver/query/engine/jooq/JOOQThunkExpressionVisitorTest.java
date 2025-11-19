@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -34,21 +35,26 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.thunx.predicates.model.CollectionValue;
 import com.contentgrid.thunx.predicates.model.Comparison;
+import com.contentgrid.thunx.predicates.model.ListValue;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.NumericFunction;
 import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.jooq.Allow;
@@ -58,6 +64,7 @@ import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -563,6 +570,107 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(INVOICE1_ID, result.get("id"));
     }
 
+
+
+    static Stream<Arguments> inOperatorValues() {
+        return Stream.of(
+                Arguments.of(
+                        "single set",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1")))),
+                        Set.of(INVOICE1_ID)
+                ),
+                Arguments.of(
+                        "single list",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1")))),
+                        Set.of(INVOICE1_ID)
+                ),
+                Arguments.of(
+                        "empty set",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new SetValue(Set.of())),
+                        Set.of()
+                ),
+                Arguments.of(
+                        "empty list",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new ListValue(java.util.List.of())),
+                        Set.of()
+                ),
+                Arguments.of(
+                        "multiple set",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
+                        Set.of(INVOICE1_ID, INVOICE2_ID)
+                ),
+                Arguments.of(
+                        "multiple list",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
+                        Set.of(INVOICE1_ID, INVOICE2_ID)
+                ),
+                Arguments.of(
+                        "nfkc normalized match",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_¹")))),
+                        Set.of(INVOICE1_ID)
+                ),
+                Arguments.of(
+                        "double match",
+                        INVOICE,
+                        invoiceInThunxExpression("amount", new SetValue(Set.of(Scalar.of(10.0)))),
+                        Set.of(INVOICE1_ID)
+                ),
+                Arguments.of(
+                        "normalization match with non-normalized data",
+                        PERSON,
+                        Comparison.in(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                                new SetValue(Set.of(Scalar.of("Thijs"))) // contains ij instead of ĳ
+                        ),
+                        Set.of(THIJS_ID)
+                ),
+                Arguments.of(
+                        "over relation",
+                        INVOICE,
+                        Comparison.in(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat") ),
+                                new SetValue(Set.of(Scalar.of("vat_1")))
+                        ),
+                        Set.of(INVOICE1_ID)
+                )
+        );
+    }
+
+    static ThunkExpression<?> invoiceNumberInThunxExpression(CollectionValue<?> value) {
+        return invoiceInThunxExpression("number", value);
+    }
+
+    static ThunkExpression<?> invoiceInThunxExpression(String field, CollectionValue<?> value) {
+        return Comparison.in(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path(field)),
+                value
+        );
+    }
+
+    @ParameterizedTest(name = "inOperator {0}")
+    @MethodSource("inOperatorValues")
+    void inOperator(String description, Entity entity, ThunkExpression<?> expression, Set<UUID> expectedUUids) {
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, entity);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoMaps();
+        assertEquals(expectedUUids.size(), results.size());
+        var uuids = results.stream()
+                .map(row -> (UUID) row.get("id"))
+                .toList();
+        expectedUUids.forEach(uuid -> assertTrue(uuids.contains(uuid), "Expected UUID " + uuid + " to be in results"));
+    }
+
     static Stream<ThunkExpression<Boolean>> allFunctions() {
         return Stream.of(
                 // equals (double)
@@ -777,3 +885,4 @@ class JOOQThunkExpressionVisitorTest {
         }
     }
 }
+
