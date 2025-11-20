@@ -131,25 +131,64 @@ public class AuditMetadataTest {
         );
     }
 
-    @BeforeEach
-    void setupTestData() throws InvalidPropertyDataException {
-        testClock.setTimestamp(TIMESTAMP);
-        var xenit = invoicingApi.createCustomer("XeniT", ORG_XENIT_VAT);
+    private EntityId createCustomer() throws Exception {
+        var response = mockMvc.perform(post("/customers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "name": "XeniT",
+                            "vat": "%s"
+                        }
+                        """.formatted(ORG_XENIT_VAT)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
 
-        XENIT_ID = xenit.getIdentity().getEntityId();
-
-        INVOICE_1_ID = invoicingApi.createInvoice(INVOICE_NUMBER_1, true, false, XENIT_ID, new HashSet<>())
-                .getIdentity().getEntityId();
+        var location = Objects.requireNonNull(response.getHeader(HttpHeaders.LOCATION));
+        var matches = new UriTemplate("{scheme}://{host}/customers/{id}").match(location);
+        return EntityId.of(UUID.fromString(matches.get("id")));
     }
 
-    void setupContentProperties() throws InvalidPropertyDataException {
+    private EntityId createInvoice(EntityId counterparty) throws Exception {
+        var response = mockMvc.perform(post("/invoices")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "number": "%s",
+                            "draft": true,
+                            "counterparty": "http://localhost/customers/%s"
+                        }
+                        """.formatted(INVOICE_NUMBER_1, counterparty)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+
+        var location = Objects.requireNonNull(response.getHeader(HttpHeaders.LOCATION));
+        var matches = new UriTemplate("{scheme}://{host}/invoices/{id}").match(location);
+        return EntityId.of(UUID.fromString(matches.get("id")));
+    }
+
+    private void storeContent(String url) throws Exception {
+        var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
+        var file = new MockMultipartFile("file", "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+
+        mockMvc.perform(multipart(url).file(file))
+                .andExpect(status().isNoContent());
+    }
+
+    @BeforeEach
+    void setupTestData() throws Exception {
+        testClock.setTimestamp(TIMESTAMP);
+
+        XENIT_ID = createCustomer();
+        INVOICE_1_ID = createInvoice(XENIT_ID);
+    }
+
+    void setupContentProperties() throws Exception {
         testClock.setTimestamp(CONTENT_TIMESTAMP);
 
-        var stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-        invoicingApi.storeCustomerContent(XENIT_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
-
-        stream = new ByteArrayInputStream(EXT_ASCII_TEXT.getBytes(StandardCharsets.ISO_8859_1));
-        invoicingApi.storeInvoiceContent(INVOICE_1_ID, "content.txt", MIMETYPE_PLAINTEXT_LATIN1, stream);
+        storeContent("/customers/%s/content".formatted(XENIT_ID));
+        storeContent("/invoices/%s/content".formatted(INVOICE_1_ID));
     }
 
     @AfterEach
