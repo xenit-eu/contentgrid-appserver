@@ -574,55 +574,55 @@ class JOOQThunkExpressionVisitorTest {
 
     static Stream<Arguments> inOperatorValues() {
         return Stream.of(
-                Arguments.of(
+                Arguments.argumentSet(
                         "single set",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1")))),
                         Set.of(INVOICE1_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "single list",
                         INVOICE,
                         invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1")))),
                         Set.of(INVOICE1_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "empty set",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of())),
                         Set.of()
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "empty list",
                         INVOICE,
                         invoiceNumberInThunxExpression(new ListValue(java.util.List.of())),
                         Set.of()
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "multiple set",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
                         Set.of(INVOICE1_ID, INVOICE2_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "multiple list",
                         INVOICE,
                         invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
                         Set.of(INVOICE1_ID, INVOICE2_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "nfkc normalized match",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_¹")))),
                         Set.of(INVOICE1_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "double match",
                         INVOICE,
                         invoiceInThunxExpression("amount", new SetValue(Set.of(Scalar.of(10.0)))),
                         Set.of(INVOICE1_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "normalization match with non-normalized data",
                         PERSON,
                         Comparison.in(
@@ -631,7 +631,7 @@ class JOOQThunkExpressionVisitorTest {
                         ),
                         Set.of(THIJS_ID)
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "over relation",
                         INVOICE,
                         Comparison.in(
@@ -654,9 +654,9 @@ class JOOQThunkExpressionVisitorTest {
         );
     }
 
-    @ParameterizedTest(name = "inOperator {0}")
+    @ParameterizedTest
     @MethodSource("inOperatorValues")
-    void inOperator(String description, Entity entity, ThunkExpression<?> expression, Set<UUID> expectedUUids) {
+    void inOperator(Entity entity, ThunkExpression<?> expression, Set<UUID> expectedUUids) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, entity);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
