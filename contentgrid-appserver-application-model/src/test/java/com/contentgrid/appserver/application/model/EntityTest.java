@@ -69,6 +69,8 @@ class EntityTest {
             .attribute(ATTRIBUTE2)
             .build();
     private static final SortableField SORTABLE1 = SortableField.builder().name(SortableName.of("sortable1")).propertyPath(PropertyPath.of(ATTRIBUTE1.getName())).build();
+    private static final SortableField SORTABLE3 = SortableField.builder().name(SortableName.of("sortable3"))
+            .propertyPath(PropertyPath.of(CONTENT1.getName(), AttributeName.of("length"))).build();
 
     @Test
     void entityTest() {
@@ -86,6 +88,7 @@ class EntityTest {
                 .searchFilter(FILTER1)
                 .searchFilter(FILTER2)
                 .sortableField(SORTABLE1)
+                .sortableField(SORTABLE3)
                 .build();
 
         assertEquals(EntityName.of("entity"), entity.getName());
@@ -470,23 +473,6 @@ class EntityTest {
                 .searchFilter(FILTER1)
                 .sortableField(SORTABLE1)
                 .sortableField(sortable2);
-        assertThrows(InvalidArgumentModelException.class, builder::build);
-    }
-
-    @Test
-    void entity_sortableOnCompositeAttribute() {
-        var sortableComposite = SortableField.builder().name(SortableName.of("sortable2"))
-                .propertyPath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName())).build();
-        var builder = Entity.builder()
-                .name(EntityName.of("entity"))
-                .pathSegment(PathSegmentName.of("segment"))
-                .linkName(LinkName.of("link"))
-                .table(TableName.of("table"))
-                .attribute(ATTRIBUTE1)
-                .attribute(COMPOSITE)
-                .searchFilter(FILTER1)
-                .sortableField(SORTABLE1)
-                .sortableField(sortableComposite);
         assertThrows(InvalidArgumentModelException.class, builder::build);
     }
 

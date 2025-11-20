@@ -281,6 +281,10 @@ class JOOQQueryEngineTest {
                     .name(SortableName.of("amount"))
                     .propertyPath(PropertyPath.of(INVOICE_AMOUNT.getName()))
                     .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("content_length"))
+                    .propertyPath(PropertyPath.of(INVOICE_CONTENT.getName(), AttributeName.of("length")))
+                    .build())
             .build();
 
     private static final SimpleAttribute PRODUCT_CODE = SimpleAttribute.builder()
@@ -422,6 +426,7 @@ class JOOQQueryEngineTest {
     private static final EntityId JOHN_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId INVOICE1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId INVOICE2_ID = EntityId.of(UUID_GENERATOR.generate());
+    private static final EntityId INVOICE3_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT1_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT2_ID = EntityId.of(UUID_GENERATOR.generate());
     private static final EntityId PRODUCT3_ID = EntityId.of(UUID_GENERATOR.generate());
@@ -2495,6 +2500,56 @@ class JOOQQueryEngineTest {
         )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+    }
+
+    @Test
+    void testSortingByContentLength() {
+
+        //
+        // Note: Due to postgresql defaults, null values sort as if larger than any non-null value. This can be adjusted
+        //       by including ORDER BY … NULLS { FIRST | LAST } in the query. However, due to paging logic, we should
+        //       make sure that switching asc/desc always fully inverts the sequence (otherwise we can't properly go to
+        //       the previous page). So the only other option would be to treat null content as file size = 0.
+        //
+
+        // Additional invoice
+        var now = Instant.now();
+        dslContext.insertInto(DSL.table("invoice"))
+                .set(DSL.field("id", UUID.class), INVOICE3_ID.getValue())
+                .set(DSL.field("version", Long.class), 1L)
+                .set(DSL.field("number", String.class), "invoice_3")
+                .set(DSL.field("amount", Double.class), 29.99)
+                .set(DSL.field("received", Instant.class), Instant.parse("2025-06-01T00:00:00Z"))
+                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-12-31T23:59:59Z"))
+                .set(DSL.field("is_paid", Boolean.class), false)
+                .set(DSL.field("content__id", String.class), "content_3")
+                .set(DSL.field("content__filename", String.class), "invoice.doc")
+                .set(DSL.field("content__mimetype", String.class), "application/msword")
+                .set(DSL.field("content__length", Long.class), 1048576L)
+                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
+                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
+                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
+                .execute();
+
+        // Ascending by filesize
+        var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.ASC, SortableName.of("content_length"))
+        )), DEFAULT_PAGE_DATA);
+
+        assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(2).getId()); // <-- invoice with null content is last due to pg defaults
+
+        // Descending by filesize
+        slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
+                new SortData.FieldSort(Direction.DESC, SortableName.of("content_length"))
+        )), DEFAULT_PAGE_DATA);
+
+        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(2).getId());
     }
 
     @Test
