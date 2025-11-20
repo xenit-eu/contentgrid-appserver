@@ -107,31 +107,31 @@ class HalLinkTitlesAndFormPromptsTest {
                                                     {
                                                         value: "gender,desc",
                                                         prompt: "Gender Z→A"
-                                                    } #, TODO: re-enable in ACC-2403
-                                                    #{
-                                                    #    value: "content.size,asc",
-                                                    #    prompt: "content.size 0→9"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.size,desc",
-                                                    #    prompt: "content.size 9→0"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.mimetype,asc",
-                                                    #    prompt: "Customer Document Mimetype A→Z"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.mimetype,desc",
-                                                    #    prompt: "Customer Document Mimetype Z→A"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.filename,asc",
-                                                    #    prompt: "Customer Document Filename A→Z"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.filename,desc",
-                                                    #    prompt: "Customer Document Filename Z→A"
-                                                    #}
+                                                    },
+                                                    {
+                                                        value: "content.size,asc",
+                                                        prompt: "length 0→9"
+                                                    },
+                                                    {
+                                                        value: "content.size,desc",
+                                                        prompt: "length 9→0"
+                                                    },
+                                                    {
+                                                        value: "content.mimetype,asc",
+                                                        prompt: "mimetype A→Z"
+                                                    },
+                                                    {
+                                                        value: "content.mimetype,desc",
+                                                        prompt: "mimetype Z→A"
+                                                    },
+                                                    {
+                                                        value: "content.filename,asc",
+                                                        prompt: "filename A→Z"
+                                                    },
+                                                    {
+                                                        value: "content.filename,desc",
+                                                        prompt: "filename Z→A"
+                                                    }
                                                 ]
                                             }
                                         }

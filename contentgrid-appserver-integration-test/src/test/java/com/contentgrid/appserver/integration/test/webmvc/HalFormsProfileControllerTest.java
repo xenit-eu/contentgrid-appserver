@@ -178,17 +178,17 @@ class HalFormsProfileControllerTest {
                                                         value: "paid,desc",
                                                         property: "paid",
                                                         direction: "desc"
-                                                    } #, TODO: re-enable in ACC-2403
-                                                    #{
-                                                    #    value: "content.length,asc",
-                                                    #    property: "content.length",
-                                                    #    direction: "asc"
-                                                    #},
-                                                    #{
-                                                    #    value: "content.length,desc",
-                                                    #    property: "content.length",
-                                                    #    direction: "desc"
-                                                    #}
+                                                    },
+                                                    {
+                                                        value: "content.length,asc",
+                                                        property: "content.length",
+                                                        direction: "asc"
+                                                    },
+                                                    {
+                                                        value: "content.length,desc",
+                                                        property: "content.length",
+                                                        direction: "desc"
+                                                    }
                                                 ]
                                             }
                                         }

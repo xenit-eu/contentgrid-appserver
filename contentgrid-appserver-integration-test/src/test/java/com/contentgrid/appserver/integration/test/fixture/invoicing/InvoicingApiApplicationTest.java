@@ -316,7 +316,6 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
-            @Disabled("ACC-2403 sort parameters don't work over composite attributes")
             void sortCustomers_contentSize_returns_http200_ok() throws Exception {
                 var xenit = invoicingApi.findCustomerByVat(ORG_XENIT_VAT).orElseThrow();
                 var stream = new ByteArrayInputStream("short-value".getBytes(StandardCharsets.UTF_8));
