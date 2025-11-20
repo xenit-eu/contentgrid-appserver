@@ -541,14 +541,14 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void invalidSortParameter() throws Exception {
-            mockMvc.perform(get("/customers?sort=xyz")
+            mockMvc.perform(get("/customers?_sort=xyz")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort")
                     )
                     .andExpect(jsonPath("$.property").value("xyz"))
-                    .andExpect(jsonPath("$.query_parameter").value("sort"))
+                    .andExpect(jsonPath("$.query_parameter").value("_sort"))
                     .andExpect(jsonPath("$.invalid_value").value("xyz,asc"))
             ;
         }
@@ -577,53 +577,53 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         @Test
         void invalidSizeParameter_zero() throws Exception {
-            mockMvc.perform(get("/customers?size=0")
+            mockMvc.perform(get("/customers?_size=0")
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("size"))
+                    .andExpect(jsonPath("$.query_parameter").value("_size"))
                     .andExpect(jsonPath("$.invalid_value").value("0"));
         }
 
         @Test
         void invalidSizeParameter_negative() throws Exception {
-            mockMvc.perform(get("/customers?size=-10")
+            mockMvc.perform(get("/customers?_size=-10")
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("size"))
+                    .andExpect(jsonPath("$.query_parameter").value("_size"))
                     .andExpect(jsonPath("$.invalid_value").value("-10"));
         }
 
         @Test
         void invalidSizeParameter_nonnumber() throws Exception {
-            mockMvc.perform(get("/customers?size=abc")
+            mockMvc.perform(get("/customers?_size=abc")
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("size"))
+                    .andExpect(jsonPath("$.query_parameter").value("_size"))
                     .andExpect(jsonPath("$.invalid_value").value("abc"));
         }
 
         @Test
         void invalidPageParameter() throws Exception {
-            mockMvc.perform(get("/customers?page=abc")
+            mockMvc.perform(get("/customers?_cursor=abc")
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("page"))
+                    .andExpect(jsonPath("$.query_parameter").value("_cursor"))
                     .andExpect(jsonPath("$.invalid_value").value("abc"));
         }
     }
