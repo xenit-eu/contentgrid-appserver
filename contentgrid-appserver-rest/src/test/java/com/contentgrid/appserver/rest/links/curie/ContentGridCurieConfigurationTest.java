@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Links;
 import org.springframework.hateoas.UriTemplate;
+import org.springframework.hateoas.config.HateoasConfiguration;
 import org.springframework.hateoas.mediatype.hal.CurieProvider;
 import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
 import org.springframework.test.context.ContextConfiguration;
@@ -19,7 +20,8 @@ import org.springframework.test.context.ContextConfiguration;
 @SpringBootTest
 @ContextConfiguration(classes = {
         ContentGridCurieConfiguration.class,
-        CurieProviderCustomizers.class
+        CurieProviderCustomizers.class,
+        HateoasConfiguration.class,
 })
 class ContentGridCurieConfigurationTest {
 
