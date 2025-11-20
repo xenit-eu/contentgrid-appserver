@@ -180,11 +180,14 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 "Duplicate sortable field named %s".formatted(sortableField.getName()));
                     }
 
-                    if (sortableField.getPropertyPath() instanceof  SimpleAttributePath simpleAttributePath) {
+                    if (sortableField.getPropertyPath() instanceof SimpleAttributePath simpleAttributePath) {
                         getAttributeByName(simpleAttributePath.getAttribute()).orElseThrow(() ->
                                 new InvalidArgumentModelException(("Sorting across a relation is not implemented."
                                         + " SortableField %s must reference a single attribute on this entity")
                                         .formatted(sortableField.getName())));
+                    } else if (sortableField.getPropertyPath() instanceof CompositeAttributePath compositeAttributePath) {
+                        // throws if invalid
+                        resolveAttributePath(compositeAttributePath);
                     } else {
                         throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
                                 .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));

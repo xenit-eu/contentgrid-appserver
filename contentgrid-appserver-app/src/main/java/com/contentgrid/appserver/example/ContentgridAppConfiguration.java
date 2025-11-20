@@ -210,6 +210,11 @@ public class ContentgridAppConfiguration {
                         .name(SortableName.of("amount"))
                         .propertyPath(PropertyPath.of(AttributeName.of("amount")))
                         .build())
+                .sortableField(SortableField.builder()
+                        .name(SortableName.of("content.length"))
+                        .propertyPath(PropertyPath.of(AttributeName.of("content"), AttributeName.of("length")))
+                        .build()
+                )
                 .build();
         var shipmentToInvoice = ManyToOneRelation.builder()
                 .sourceEndPoint(RelationEndPoint.builder()
