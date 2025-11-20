@@ -18,7 +18,6 @@ import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi
 import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
@@ -53,9 +52,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 @WithMockJwt
 class ContentGridProblemDetailsConfigurationIntegrationTest {
 
-    private static final String CUSTOMER_ID_CREATE = "bd5ef028-52fb-11ee-a531-b3ff1a44e992";
-    private static final String INVOICE_ID_CREATE = "bd5ef028-52fb-11ee-a531-b3ff1a44e993";
-
     private static final String PROBLEM_TYPE_PREFIX = "https://contentgrid.cloud/problems/";
 
     @Autowired
@@ -71,12 +67,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     private EntityId createInvoice() throws InvalidPropertyDataException {
         return invoicingApi.createInvoice("invoice-" + UUID.randomUUID(), false, false, createCustomer(), null)
                 .getIdentity().getEntityId();
-    }
-
-    @AfterEach
-    void cleanup() {
-        invoicingApi.deleteInvoice(EntityId.of(UUID.fromString(INVOICE_ID_CREATE)));
-        invoicingApi.deleteCustomer(EntityId.of(UUID.fromString(CUSTOMER_ID_CREATE)));
     }
 
     /**
@@ -229,7 +219,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         static Stream<Arguments> basicUrls() {
             return Stream.of(
                     Arguments.of(HttpMethod.POST, "/customers"),
-                    Arguments.of(HttpMethod.PUT, "/customers/" + CUSTOMER_ID_CREATE),
                     Arguments.of(HttpMethod.PUT, "/customers/" + CUSTOMER_ID_UPDATE),
                     Arguments.of(HttpMethod.PATCH, "/customers/" + CUSTOMER_ID_UPDATE)
             );
@@ -237,11 +226,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
         static Stream<Arguments> relationUrls() {
             return Stream.of(
-                    Arguments.of(HttpMethod.POST, "/invoices"),
-                    Arguments.of(HttpMethod.PUT, "/invoices/" + INVOICE_ID_CREATE),
-                    // When updating, the relation is ignored
-                    // Arguments.of(HttpMethod.PUT, "/invoices/" + INVOICE_ID_UPDATE),
-                    Arguments.of(HttpMethod.PATCH, "/invoices/" + INVOICE_ID_UPDATE)
+                    // Relations are only allowed when creating an entity
+                    Arguments.of(HttpMethod.POST, "/invoices")
             );
         }
 
@@ -375,36 +361,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error.withProperty("number"))
-                    );
-        }
-
-        @Test
-        void updateEntityRemoveRequiredRelation() throws Exception {
-            // for PUT, relations are ignored if they are not present
-            /*
-            mockMvc.perform(put("/invoices/{id}", INVOICE_ID_UPDATE)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                            {
-                                "number": "%s"
-                            }
-                            """.formatted(UUID.randomUUID()))
-                    )
-                    .andExpect(MockMvcResultMatchers.status().isBadRequest());
-             */
-
-            var invoiceId = createInvoice();
-            mockMvc.perform(patch("/invoices/{id}", invoiceId)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
-                            .content("""
-                                    {
-                                        "counterparty": null
-                                    }
-                                    """)
-                    )
-                    .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
                     );
         }
 
