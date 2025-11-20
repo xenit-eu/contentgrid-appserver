@@ -4,6 +4,7 @@ import static com.contentgrid.appserver.integration.test.matchers.ExtendedHeader
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
@@ -468,8 +469,8 @@ class InvoicingApiApplicationTest {
                         .andExpect(status().isNoContent());
                 var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                assertThat(invoice.getData().get("paid")).isEqualTo(new BooleanDataEntry(true));
-                assertThat(invoice.getData().get("number")).isEqualTo(new StringDataEntry(INVOICE_NUMBER_1));
+                assertThat(invoice.getData()).containsEntry("paid", new BooleanDataEntry(true));
+                assertThat(invoice.getData()).containsEntry("number", new StringDataEntry(INVOICE_NUMBER_1));
             }
 
         }
@@ -490,8 +491,8 @@ class InvoicingApiApplicationTest {
                         .andExpect(status().isNoContent());
                 var invoice = invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1).orElseThrow();
 
-                assertThat(invoice.getData().get("paid")).isEqualTo(new BooleanDataEntry(true));
-                assertThat(invoice.getData().get("number")).isEqualTo(new StringDataEntry(INVOICE_NUMBER_1));
+                assertThat(invoice.getData()).containsEntry("paid", new BooleanDataEntry(true));
+                assertThat(invoice.getData()).containsEntry("number", new StringDataEntry(INVOICE_NUMBER_1));
             }
 
         }
@@ -1025,11 +1026,9 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isOk())
                             .andExpect(content().contentType(MIMETYPE_PLAINTEXT_UTF8))
                             .andExpect(content().string(EXT_ASCII_TEXT))
-                    ;
-                            /* This assertion is changed in SB3; and is technically incorrect
-                            (it should be `Content-Disposition: attachment` or `Content-Disposition: inline` with a filename, never `form-data`)
-                            .andExpect(headers().string("Content-Disposition",
-                                    is("form-data; name=\"attachment\"; filename*=UTF-8''%s".formatted(encodedFilename)))) */
+                            .andExpect(headers().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment;")))
+                            .andExpect(headers().string(HttpHeaders.CONTENT_DISPOSITION,
+                                    containsString("filename*=UTF-8''%s".formatted(encodedFilename))))
                     ;
                 }
 
@@ -1690,11 +1689,9 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isOk())
                             .andExpect(content().contentType(MIMETYPE_PLAINTEXT_UTF8))
                             .andExpect(content().string(EXT_ASCII_TEXT))
-                    ;
-                            /* This assertion is changed in SB3; and is technically incorrect
-                            (it should be `Content-Disposition: attachment` or `Content-Disposition: inline` with a filename, never `form-data`)
-                            .andExpect(headers().string("Content-Disposition",
-                                    is("form-data; name=\"attachment\"; filename*=UTF-8''%s".formatted(encodedFilename)))) */
+                            .andExpect(headers().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment;")))
+                            .andExpect(headers().string(HttpHeaders.CONTENT_DISPOSITION,
+                                    containsString("filename*=UTF-8''%s".formatted(encodedFilename))))
                     ;
                 }
 
@@ -1911,8 +1908,8 @@ class InvoicingApiApplicationTest {
                             .andExpect(status().isCreated());
 
                     var customer = invoicingApi.findCustomerByVat(ORG_EXAMPLE_VAT).orElseThrow();
-                    assertThat(customer.getData().get("name")).isEqualTo(new StringDataEntry("Example"));
-                    assertThat(customer.getData().get("content")).isEqualTo(NullDataEntry.INSTANCE);
+                    assertThat(customer.getData()).containsEntry("name", new StringDataEntry("Example"));
+                    assertThat(customer.getData()).containsEntry("content", NullDataEntry.INSTANCE);
                 }
 
                 @Test

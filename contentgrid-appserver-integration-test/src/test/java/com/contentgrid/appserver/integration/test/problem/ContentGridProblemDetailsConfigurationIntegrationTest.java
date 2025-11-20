@@ -184,7 +184,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     .andExpect(problemDetails()
                             .withType(PROBLEM_TYPE_PREFIX+"invalid-request-body/type")
                     );
-            ;
         }
 
         @ParameterizedTest

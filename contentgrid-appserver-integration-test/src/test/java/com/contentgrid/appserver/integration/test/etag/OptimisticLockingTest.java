@@ -45,7 +45,7 @@ import org.springframework.web.util.UriTemplate;
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
-public class OptimisticLockingTest {
+class OptimisticLockingTest {
 
     static final String INVOICE_NUMBER_1 = "I-2022-0001";
     static final String ORG_XENIT_VAT = "BE0887582365";

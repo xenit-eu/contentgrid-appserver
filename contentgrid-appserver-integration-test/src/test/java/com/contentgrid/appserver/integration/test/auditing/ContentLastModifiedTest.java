@@ -39,7 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
 @Disabled("ACC-2419 Last-Modified, If-Modified-Since and If-Unmodified-since not supported")
-public class ContentLastModifiedTest {
+class ContentLastModifiedTest {
 
     static final String INVOICE_NUMBER_1 = "I-2022-0001";
     static final String ORG_XENIT_VAT = "BE0887582365";

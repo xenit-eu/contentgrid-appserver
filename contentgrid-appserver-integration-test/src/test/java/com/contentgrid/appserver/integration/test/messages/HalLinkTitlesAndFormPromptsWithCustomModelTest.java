@@ -43,7 +43,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 })
 @AutoConfigureMockMvc
 @WithMockJwt
-public class HalLinkTitlesAndFormPromptsWithCustomModelTest {
+class HalLinkTitlesAndFormPromptsWithCustomModelTest {
 
     @Autowired
     MockMvc mockMvc;

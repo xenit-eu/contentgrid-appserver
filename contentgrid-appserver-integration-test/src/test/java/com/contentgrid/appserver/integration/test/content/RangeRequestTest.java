@@ -44,7 +44,7 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.events.rabbitmq.enabled=false",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
         })
-public class RangeRequestTest {
+class RangeRequestTest {
 
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))

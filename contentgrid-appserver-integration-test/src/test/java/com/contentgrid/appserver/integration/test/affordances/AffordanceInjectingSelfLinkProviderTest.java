@@ -175,7 +175,6 @@ class AffordanceInjectingSelfLinkProviderTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$._embedded.['item'][0]._templates.keys()", Matchers.containsInAnyOrder(
                         "default", "delete", "add-invoices", "add-orders", "clear-orders" // no 'clear-invoices' because inverse relation is required
                 )));
-        ;
     }
 
 }
