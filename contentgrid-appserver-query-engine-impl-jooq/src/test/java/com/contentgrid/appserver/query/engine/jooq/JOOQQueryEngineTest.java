@@ -543,6 +543,24 @@ class JOOQQueryEngineTest {
                 .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
                 .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID.getValue())
                 .execute();
+        dslContext.insertInto(DSL.table("invoice"))
+                .set(DSL.field("id", UUID.class), INVOICE3_ID.getValue())
+                .set(DSL.field("version", Long.class), 9999L)
+                .set(DSL.field("number", String.class), "invoice_3")
+                .set(DSL.field("amount", Double.class), 1.0)
+                .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
+                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field("is_paid", Boolean.class), false)
+                .set(DSL.field("content__id", String.class), "content_3")
+                .set(DSL.field("content__filename", String.class), "invoice.doc")
+                .set(DSL.field("content__mimetype", String.class), "application/msword")
+                .set(DSL.field("content__length", Long.class), 1048576L)
+                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
+                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
+                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
+                .execute();
         dslContext.insertInto(DSL.table("person__friends"))
                 .set(DSL.field("person_src_id", UUID.class), BOB_ID.getValue())
                 .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID.getValue())
@@ -573,7 +591,7 @@ class JOOQQueryEngineTest {
 
     void assertNothingChanged() {
         assertEntitiesUnchanged(PERSON, List.of(ALICE_ID, BOB_ID, JOHN_ID));
-        assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID));
+        assertEntitiesUnchanged(INVOICE, List.of(INVOICE1_ID, INVOICE2_ID, INVOICE3_ID));
         assertEntitiesUnchanged(PRODUCT, List.of(PRODUCT1_ID, PRODUCT2_ID, PRODUCT3_ID));
 
         assertTrue(queryEngine.isLinked(
@@ -784,18 +802,19 @@ class JOOQQueryEngineTest {
         var slice = queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA);
         var results = slice.getEntities();
 
-        assertEquals(1, results.size());
-        var result = results.getFirst();
-        var primaryKey = result.getId();
-        assertEquals(INVOICE1_ID, primaryKey);
+        assertThat(results).extracting(EntityData::getId)
+                .contains(INVOICE1_ID)
+                .doesNotContain(INVOICE2_ID);
+                // Don't care about invoice_3, sometimes it matches, sometimes it doesn't
     }
 
 
     @ParameterizedTest
     @MethodSource("validExpressions")
     void findByIdValidPermissionExpression(ThunkExpression<Boolean> expression) {
-        var result = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE1_ID), expression);
-        assertThat(result).isPresent();
+        assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE1_ID), expression))
+                .isPresent();
+        assertThrows(PermissionDeniedException.class, () -> queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), expression));
     }
 
     static Stream<ThunkExpression<Boolean>> invalidExpressions() {
@@ -2490,20 +2509,23 @@ class JOOQQueryEngineTest {
         )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(2).getId());
 
         // Descending by invoice number
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.DESC, SortableName.of("invoice_num"))
         )), DEFAULT_PAGE_DATA);
-        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
-        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(2).getId());
 
         // Ascending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
                 new SortData.FieldSort(Direction.ASC, SortableName.of("amount"))
         )), DEFAULT_PAGE_DATA);
-        assertEquals(INVOICE2_ID, slice.getEntities().get(0).getId());
-        assertEquals(INVOICE1_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(0).getId());
+        assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE1_ID, slice.getEntities().get(2).getId());
 
         // Descending by amount
         slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
@@ -2511,6 +2533,7 @@ class JOOQQueryEngineTest {
         )), DEFAULT_PAGE_DATA);
         assertEquals(INVOICE1_ID, slice.getEntities().get(0).getId());
         assertEquals(INVOICE2_ID, slice.getEntities().get(1).getId());
+        assertEquals(INVOICE3_ID, slice.getEntities().get(2).getId());
     }
 
     @Test
@@ -2522,27 +2545,6 @@ class JOOQQueryEngineTest {
         //       make sure that switching asc/desc always fully inverts the sequence (otherwise we can't properly go to
         //       the previous page). So the only other option would be to treat null content as file size = 0.
         //
-
-        // Additional invoice
-        var now = Instant.now();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE3_ID.getValue())
-                .set(DSL.field("version", Long.class), 1L)
-                .set(DSL.field("number", String.class), "invoice_3")
-                .set(DSL.field("amount", Double.class), 29.99)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-06-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-12-31T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), false)
-                .set(DSL.field("content__id", String.class), "content_3")
-                .set(DSL.field("content__filename", String.class), "invoice.doc")
-                .set(DSL.field("content__mimetype", String.class), "application/msword")
-                .set(DSL.field("content__length", Long.class), 1048576L)
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
-                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
-                .execute();
 
         // Ascending by filesize
         var slice = queryEngine.findAll(APPLICATION, INVOICE, Scalar.of(true), new SortData(List.of(
