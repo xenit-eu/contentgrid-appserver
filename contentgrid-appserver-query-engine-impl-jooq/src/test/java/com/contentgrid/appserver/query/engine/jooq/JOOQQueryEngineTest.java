@@ -1948,11 +1948,17 @@ class JOOQQueryEngineTest {
                 Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_CUSTOMER, nonExisting, new EntityIdNotFoundException(PERSON.getName(), nonExisting)),
                 Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), nonExisting, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
                 Arguments.argumentSet("duplicate value for owning one-to-one relation", INVOICE3_ID, INVOICE_PREVIOUS,
-                        INVOICE1_ID, new BlindRelationOverwriteException(RelationIdentity.forRelation(INVOICE.getName(), INVOICE1_ID, INVOICE_PREVIOUS.getTargetEndPoint()
-                                .getName()), EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)) /* TODO: this should probably not be a blind overwrite exception? */), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                        INVOICE1_ID, new BlindRelationOverwriteException(
+                                RelationIdentity.forRelation(INVOICE.getName(), INVOICE3_ID, INVOICE_PREVIOUS.getSourceEndPoint().getName()),
+                                EntityIdentity.forEntity(INVOICE.getName(), INVOICE1_ID),
+                                EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)
+                        )), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
                 Arguments.argumentSet("duplicate value for non-owning one-to-one relation", INVOICE3_ID, INVOICE_PREVIOUS.inverse(),
-                        INVOICE2_ID, new BlindRelationOverwriteException(RelationIdentity.forRelation(INVOICE.getName(), INVOICE2_ID, INVOICE_PREVIOUS.getSourceEndPoint()
-                                .getName()), EntityIdentity.forEntity(INVOICE.getName(), INVOICE1_ID)) /* TODO: this should probably not be a blind overwrite exception? */), // next_invoice of INVOICE1_ID already contains INVOICE2_ID
+                        INVOICE2_ID, new BlindRelationOverwriteException(
+                                RelationIdentity.forRelation(INVOICE.getName(), INVOICE3_ID, INVOICE_PREVIOUS.getTargetEndPoint().getName()),
+                                EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID),
+                                EntityIdentity.forEntity(INVOICE.getName(), INVOICE1_ID)
+                        )), // next_invoice of INVOICE1_ID already contains INVOICE2_ID
                 Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID, new IllegalInputDataException("Relation 'products' is not a one-to-one or many-to-one relation"))
         );
     }

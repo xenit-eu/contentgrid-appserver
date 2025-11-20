@@ -139,8 +139,13 @@ class InternalInverseRelationBlindOverwriteTest {
                         .withStatusCode(HttpStatus.CONFLICT)
                         // existing-item should point to the place where you can fix it (i.e. remove alice from this dept first)
                         .withField("existing-item", departmentEngineeringUrl)
-                )
-                .andExpect(jsonPath("$.affected-relation").doesNotExist());
+                        .withField("existing-relation", departmentEngineeringUrl+"/members")
+                        // target-item points to the item that was the problem
+                        .withField("target-item", employeeUrl)
+                        // new-item points to the place where you tried to add it to
+                        .withField("new-item", departmentManagementUrl)
+                        .withField("new-relation", departmentManagementUrl+"/members")
+                ).andExpect(jsonPath("$.target-relation").doesNotExist());
     }
 
     // Application model:

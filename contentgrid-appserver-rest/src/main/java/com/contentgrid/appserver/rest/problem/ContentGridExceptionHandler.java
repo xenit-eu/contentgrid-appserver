@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.problem;
 
+import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
@@ -8,6 +9,8 @@ import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintV
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
@@ -16,12 +19,15 @@ import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedExce
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.rest.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,17 +85,32 @@ public class ContentGridExceptionHandler {
     }
 
     @ExceptionHandler
-    ResponseEntity<Problem> handleBlindRelationOverwrite(BlindRelationOverwriteException exception, LinkFactoryProvider linkFactoryProvider) {
+    ResponseEntity<Problem> handleBlindRelationOverwrite(BlindRelationOverwriteException exception, Application application, LinkFactoryProvider linkFactoryProvider) {
+        var relation = application.getRelationForEntity(exception.getExistingRelation().getEntityName(), exception.getExistingRelation().getRelationName()).orElseThrow();
+
         return createResponse(
-                problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE, exception.getAffectedRelation())
+                problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE, exception.getNewRelation(), exception.getTargetEntity(), exception.getExistingRelation())
                         .withStatus(HttpStatus.CONFLICT)
                         .withProperties(properties -> {
-                            var affectedRelationLink = linkFactoryProvider.toRelation(exception.getAffectedRelation());
-                            var originalEntityLink = linkFactoryProvider.toItem(exception.getOriginalValue()).toUri();
-                            affectedRelationLink.ifPresent(relationLink ->
-                                    properties.put("affected-relation", relationLink.toUri().toString())
-                            );
-                            properties.put("existing-item", originalEntityLink.toString());
+                            var newItemLink = linkFactoryProvider.toItem(EntityIdentity.forEntity(exception.getNewRelation().getEntityName(), exception.getNewRelation().getEntityId())).toUri();
+                            var newRelationLink = linkFactoryProvider.toRelation(exception.getNewRelation()).orElseThrow().toUri();
+                            properties.put("new-item", newItemLink.toString());
+                            properties.put("new-relation", newRelationLink.toString());
+
+                            var existingItemLink = linkFactoryProvider.toItem(exception.getExistingValue()).toUri();
+                            var existingRelationLink = linkFactoryProvider.toRelation(exception.getExistingRelation()).orElseThrow().toUri();
+                            properties.put("existing-item", existingItemLink.toString());
+                            properties.put("existing-relation", existingRelationLink.toString());
+
+                            var targetItemLink = linkFactoryProvider.toItem(exception.getTargetEntity()).toUri();
+                            var targetRelationLink = Optional.<URI>empty();
+                            if(relation.getTargetEndPoint().getName() != null) {
+                                targetRelationLink = linkFactoryProvider.toRelation(RelationIdentity.forRelation(exception.getTargetEntity(), relation.getTargetEndPoint()
+                                        .getName()))
+                                        .map(LinkFactory::toUri);
+                            }
+                            properties.put("target-item", targetItemLink.toString());
+                            targetRelationLink.ifPresent(uri -> properties.put("target-relation", uri.toString()));
                         })
         );
     }

@@ -743,9 +743,17 @@ class RelationRestControllerTest {
                             .withStatusCode(HttpStatus.CONFLICT)
                             .withType("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite")
                             .withTitle("Relation already has a value that would be overwritten")
-                            .withDetail("Relation 'next_invoice' on Entity 'invoice' %s already references an item, it can not be overwritten from this side".formatted(invoice2.getEntityId().getValue()))
-                            .withField("affected-relation", "http://localhost/invoices/%s/next-invoice".formatted(invoice2.getEntityId()))
+                            .withDetail("Entity 'invoice' %s is already referenced by Relation 'previous_invoice' on Entity 'invoice' %s, it can not be referenced from Relation 'previous_invoice' on Entity 'invoice' %s as well".formatted(
+                                    invoice2.getEntityId().getValue(),
+                                    invoice1.getEntityId().getValue(),
+                                    invoice3.getEntityId().getValue()
+                            ))
+                            .withField("target-item", "http://localhost/invoices/%s".formatted(invoice2.getEntityId()))
+                            .withField("target-relation", "http://localhost/invoices/%s/next-invoice".formatted(invoice2.getEntityId()))
                             .withField("existing-item", "http://localhost/invoices/%s".formatted(invoice1.getEntityId()))
+                            .withField("existing-relation", "http://localhost/invoices/%s/previous-invoice".formatted(invoice1.getEntityId()))
+                            .withField("new-item", "http://localhost/invoices/%s".formatted(invoice3.getEntityId()))
+                            .withField("new-relation", "http://localhost/invoices/%s/previous-invoice".formatted(invoice3.getEntityId()))
                     );
         }
 

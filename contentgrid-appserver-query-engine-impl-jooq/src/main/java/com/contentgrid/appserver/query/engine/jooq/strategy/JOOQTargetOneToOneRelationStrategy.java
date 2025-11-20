@@ -122,9 +122,13 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         } else if(newRecord.get(sourceRef) != null) {
             throw new BlindRelationOverwriteException(
                     RelationIdentity.forRelation(
+                            relation.getSourceEndPoint().getEntity(),
+                            id,
+                            relation.getSourceEndPoint().getName()
+                    ),
+                    EntityIdentity.forEntity(
                             relation.getTargetEndPoint().getEntity(),
-                            EntityId.of(newRecord.get(targetRef)),
-                            relation.getTargetEndPoint().getName()
+                            EntityId.of(newRecord.get(targetRef))
                     ),
                     EntityIdentity.forEntity(
                             relation.getSourceEndPoint().getEntity(),

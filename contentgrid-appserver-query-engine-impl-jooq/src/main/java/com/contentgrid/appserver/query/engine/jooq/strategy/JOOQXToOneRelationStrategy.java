@@ -126,9 +126,13 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
 
                     return new BlindRelationOverwriteException(
                             RelationIdentity.forRelation(
+                                    relation.getSourceEndPoint().getEntity(),
+                                    id,
+                                    relation.getSourceEndPoint().getName()
+                            ),
+                            EntityIdentity.forEntity(
                                     relation.getTargetEndPoint().getEntity(),
-                                    EntityId.of(targetValue),
-                                    relation.getTargetEndPoint().getName()
+                                    EntityId.of(targetValue)
                             ),
                             EntityIdentity.forEntity(
                                     relation.getSourceEndPoint().getEntity(),

@@ -85,9 +85,13 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                             .filter(updatedItem -> !Objects.equals(updatedItem.get(sourceRef), id.getValue())),
                     item -> new BlindRelationOverwriteException(
                             RelationIdentity.forRelation(
+                                    relation.getSourceEndPoint().getEntity(),
+                                    id,
+                                    relation.getSourceEndPoint().getName()
+                            ),
+                            EntityIdentity.forEntity(
                                     relation.getTargetEndPoint().getEntity(),
-                                    EntityId.of(item.get(targetRef)),
-                                    relation.getTargetEndPoint().getName()
+                                    EntityId.of(item.get(targetRef))
                             ),
                             EntityIdentity.forEntity(
                                     relation.getSourceEndPoint().getEntity(),

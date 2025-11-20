@@ -2,9 +2,11 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
@@ -18,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -42,7 +45,6 @@ import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -111,6 +113,19 @@ class BlindRelationOverwriteTest {
             .targetReference(ColumnName.of("soto_entity_b"))
             .build();
 
+    private static final Relation SOURCE_ONE_TO_ONE_UNI = SourceOneToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(RelationName.of("soto_entity_b_uni"))
+                    .pathSegment(PathSegmentName.of("soto-entity_b-uni"))
+                    .linkName(LinkName.of("soto-entity_b-uni"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_B.getName())
+                    .build())
+            .targetReference(ColumnName.of("soto_entity_b_uni"))
+            .build();
+
     private static final Relation TARGET_ONE_TO_ONE = TargetOneToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(ENTITY_A.getName())
@@ -125,6 +140,19 @@ class BlindRelationOverwriteTest {
                     .linkName(LinkName.of("toto-entity_a"))
                     .build())
             .sourceReference(ColumnName.of("toto_entity_a"))
+            .build();
+
+    private static final Relation TARGET_ONE_TO_ONE_UNI = TargetOneToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(RelationName.of("toto_entity_b_uni"))
+                    .pathSegment(PathSegmentName.of("toto-entity_b-uni"))
+                    .linkName(LinkName.of("toto-entity_b-uni"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_B.getName())
+                    .build())
+            .sourceReference(ColumnName.of("toto_entity_a_uni"))
             .build();
 
     private static final Relation ONE_TO_MANY = OneToManyRelation.builder()
@@ -143,13 +171,29 @@ class BlindRelationOverwriteTest {
             .sourceReference(ColumnName.of("otm_entity_a"))
             .build();
 
+    private static final Relation ONE_TO_MANY_UNI = OneToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_A.getName())
+                    .name(RelationName.of("otm_entity_b_uni"))
+                    .pathSegment(PathSegmentName.of("otm-entity-b-uni"))
+                    .linkName(LinkName.of("otm-entity-b-uni"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ENTITY_B.getName())
+                    .build())
+            .sourceReference(ColumnName.of("otm_entity_a_uni"))
+            .build();
+
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("test"))
             .entity(ENTITY_A)
             .entity(ENTITY_B)
             .relation(SOURCE_ONE_TO_ONE)
+            .relation(SOURCE_ONE_TO_ONE_UNI)
             .relation(TARGET_ONE_TO_ONE)
+            .relation(TARGET_ONE_TO_ONE_UNI)
             .relation(ONE_TO_MANY)
+            .relation(ONE_TO_MANY_UNI)
             .build();
 
     @BeforeEach
@@ -167,6 +211,14 @@ class BlindRelationOverwriteTest {
                 Arguments.argumentSet("one-to-one (source)", SOURCE_ONE_TO_ONE),
                 Arguments.argumentSet("one-to-one (target)", TARGET_ONE_TO_ONE),
                 Arguments.argumentSet("one-to-many", ONE_TO_MANY)
+        );
+    }
+
+    static Stream<Arguments> unidirectionalRelations() {
+        return Stream.of(
+                Arguments.argumentSet("unidirectional one-to-one (source)", SOURCE_ONE_TO_ONE_UNI),
+                Arguments.argumentSet("unidirectional one-to-one (target)", TARGET_ONE_TO_ONE_UNI),
+                Arguments.argumentSet("unidirectional one-to-many", ONE_TO_MANY_UNI)
         );
     }
 
@@ -233,19 +285,16 @@ class BlindRelationOverwriteTest {
      * There is no way to check or lock the relation from this side, but setting an initial value is safe, as we don't overwrite existing data
      */
     @ParameterizedTest
-    @MethodSource("relations")
+    @MethodSource({"relations", "unidirectionalRelations"})
     void overwriteEmptyValueOnOtherSide_succeeds(Relation relation) {
         var target = createEntity(relation.getTargetEndPoint().getEntity());
         var newSource = createEntity(relation.getSourceEndPoint().getEntity());
 
-        createLink(relation.inverse(), target, newSource);
+        createLink(relation, newSource, target);
 
-        var targetRelationRequest = createRelationRequest(relation.inverse(), target);
         var newSourceRelationRequest = createRelationRequest(relation, newSource);
 
         assertThat(queryEngine.isLinked(APPLICATION, newSourceRelationRequest, target.getEntityId(), PERMIT_ALWAYS)).isTrue();
-        assertThat(queryEngine.isLinked(APPLICATION, targetRelationRequest, newSource.getEntityId(), PERMIT_ALWAYS)).isTrue();
-
     }
 
     /**
@@ -254,7 +303,7 @@ class BlindRelationOverwriteTest {
      * There is no way to lock the relation from this side, and we don't want to accidentally and blindly overwrite a value of the other side
      */
     @ParameterizedTest
-    @MethodSource("relations")
+    @MethodSource({"relations", "unidirectionalRelations"})
     void overwriteExistingValueOnOtherSide_fails(Relation relation) {
         var target = createEntity(relation.getTargetEndPoint().getEntity());
         assert target.getEntityName() == ENTITY_B.getName();
@@ -266,31 +315,32 @@ class BlindRelationOverwriteTest {
         // Ensure that the target is linked to the original source (this is not visible from newSource)
         createLink(relation, originalSource, target);
 
-        var targetRelationRequest = createRelationRequest(relation.inverse(), target);
+        var originalSourceRelationRequest = createRelationRequest(relation, originalSource);
 
-        assertThat(queryEngine.isLinked(APPLICATION, targetRelationRequest, originalSource.getEntityId(), PERMIT_ALWAYS)).isTrue();
+        assertThat(queryEngine.isLinked(APPLICATION, originalSourceRelationRequest, target.getEntityId(), PERMIT_ALWAYS)).isTrue();
 
 
         assertThatThrownBy(() ->
                 // Now try to link the new source to target. This would overwrite the original source that was linked to target
                 createLink(relation, newSource, target)
         ).isInstanceOfSatisfying(BlindRelationOverwriteException.class, ex -> {
-            assertThat(ex.getAffectedRelation().getEntityName()).isEqualTo(target.getEntityName());
-            assertThat(ex.getAffectedRelation().getRelationName()).isEqualTo(relation.getTargetEndPoint().getName());
-            assertThat(ex.getAffectedRelation().getEntityId()).isEqualTo(target.getEntityId());
-            assertThat(ex.getOriginalValue()).isEqualTo(originalSource);
+            assertThat(ex.getNewRelation()).isEqualTo(RelationIdentity.forRelation(newSource, relation.getSourceEndPoint().getName()));
+            assertThat(ex.getTargetEntity().getEntityName()).isEqualTo(target.getEntityName());
+            assertThat(ex.getTargetEntity().getEntityId()).isEqualTo(target.getEntityId());
+            assertThat(ex.getExistingValue()).isEqualTo(originalSource);
         });
 
         var newSourceRelationRequest = createRelationRequest(relation, newSource);
 
-        assertThat(queryEngine.isLinked(APPLICATION, targetRelationRequest, originalSource.getEntityId(), PERMIT_ALWAYS)).isTrue();
-        assertThat(queryEngine.isLinked(APPLICATION, targetRelationRequest, newSource.getEntityId(), PERMIT_ALWAYS)).isFalse();
+        assertThat(queryEngine.isLinked(APPLICATION, originalSourceRelationRequest, target.getEntityId(), PERMIT_ALWAYS)).isTrue();
         assertThat(queryEngine.isLinked(APPLICATION, newSourceRelationRequest, target.getEntityId(), PERMIT_ALWAYS)).isFalse();
     }
 
-    @Test
-    void overwriteMultipleValuesOnOtherSide_fails() {
-        var relation = ONE_TO_MANY;
+    @ParameterizedTest
+    @MethodSource({"relations", "unidirectionalRelations"})
+    void overwriteMultipleValuesOnOtherSide_fails(Relation relation) {
+        assumeThat(relation).isOfAnyClassIn(OneToManyRelation.class, ManyToManyRelation.class);
+
         var originalSource = createEntity(relation.getSourceEndPoint().getEntity());
 
         var targets = List.of(
@@ -333,10 +383,10 @@ class BlindRelationOverwriteTest {
                     .hasSize(targets.size())
                     .allSatisfy(exception -> {
                         assertThat(exception).isInstanceOfSatisfying(BlindRelationOverwriteException.class, e -> {
-                            assertThat(ex.getAffectedRelation().getEntityName()).isEqualTo(ENTITY_B.getName());
-                            assertThat(ex.getAffectedRelation().getRelationName()).isEqualTo(relation.getTargetEndPoint().getName());
-                            assertThat(ex.getAffectedRelation().getEntityId()).isIn(targetIds);
-                            assertThat(ex.getOriginalValue()).isEqualTo(originalSource);
+                            assertThat(ex.getNewRelation()).isEqualTo(RelationIdentity.forRelation(newSource, relation.getSourceEndPoint().getName()));
+                            assertThat(ex.getTargetEntity().getEntityName()).isEqualTo(ENTITY_B.getName());
+                            assertThat(ex.getTargetEntity().getEntityId()).isIn(targetIds);
+                            assertThat(ex.getExistingValue()).isEqualTo(originalSource);
                         });
                     });
         });

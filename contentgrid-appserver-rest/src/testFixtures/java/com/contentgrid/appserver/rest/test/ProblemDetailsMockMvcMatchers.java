@@ -107,6 +107,7 @@ public final class ProblemDetailsMockMvcMatchers {
             for (var field : fields.entrySet()) {
                 assertThat(problemDetails.getProperties())
                         .extractingByKey(field.getKey())
+                        .as("problem field %s", field.getKey())
                         .satisfies(field.getValue());
             }
 
