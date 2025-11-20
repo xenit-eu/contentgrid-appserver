@@ -94,19 +94,19 @@ class HalLinkTitlesAndFormPromptsTest {
                                                     },
                                                     {
                                                         value: "birthday,asc",
-                                                        prompt: "birthday oldest first"
+                                                        prompt: "Birthday oldest first"
                                                     },
                                                     {
                                                         value: "birthday,desc",
-                                                        prompt: "birthday newest first"
+                                                        prompt: "Birthday newest first"
                                                     },
                                                     {
                                                         value: "gender,asc",
-                                                        prompt: "gender A→Z"
+                                                        prompt: "Gender A→Z"
                                                     },
                                                     {
                                                         value: "gender,desc",
-                                                        prompt: "gender Z→A"
+                                                        prompt: "Gender Z→A"
                                                     } #, TODO: re-enable in ACC-2403
                                                     #{
                                                     #    value: "content.size,asc",
