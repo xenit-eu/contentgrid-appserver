@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,6 +164,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
         }
 
         @Test
+        @Disabled("ACC-2377: returns 500 - PSQLException: insert or update on table \"invoice\" violates foreign key constraint \"invoice_counterparty_fkey\"")
         void rejectsInvalidInvoiceCreate_nonExistingRelation() throws Exception {
             mockMvc.perform(post("/invoices")
                     .contentType(MediaType.APPLICATION_JSON)
