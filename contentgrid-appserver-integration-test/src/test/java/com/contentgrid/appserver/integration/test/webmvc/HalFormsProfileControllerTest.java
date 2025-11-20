@@ -358,9 +358,8 @@ class HalFormsProfileControllerTest {
                                             "blueprint:attribute": [
                                                 {
                                                     name: "length",
-                                                    title: "Content Length",
+                                                    title: "length",
                                                     type: "long",
-                                                    description: "Length of the content",
                                                     readOnly: true,
                                                     required: false,
                                                     _embedded: {
@@ -374,9 +373,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "mimetype",
-                                                    title: "Content Mimetype",
+                                                    title: "mimetype",
                                                     type: "string",
-                                                    description: "Mimetype of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
@@ -391,9 +389,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "filename",
-                                                    title: "Content Filename",
+                                                    title: "filename",
                                                     type: "string",
-                                                    description: "Filename of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
@@ -740,9 +737,8 @@ class HalFormsProfileControllerTest {
                                             "blueprint:attribute": [
                                                 {
                                                     name: "length",
-                                                    title: "Content Length",
+                                                    title: "length",
                                                     type: "long",
-                                                    description: "Length of the content",
                                                     readOnly: true,
                                                     required: false,
                                                     _embedded: {
@@ -751,9 +747,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "mimetype",
-                                                    title: "Content Mimetype",
+                                                    title: "mimetype",
                                                     type: "string",
-                                                    description: "Mimetype of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
@@ -762,9 +757,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "filename",
-                                                    title: "Content Filename",
+                                                    title: "filename",
                                                     type: "string",
-                                                    description: "Filename of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
@@ -783,9 +777,8 @@ class HalFormsProfileControllerTest {
                                             "blueprint:attribute": [
                                                 {
                                                     name: "length",
-                                                    title: "Content Length",
+                                                    title: "length",
                                                     type: "long",
-                                                    description: "Length of the content",
                                                     readOnly: true,
                                                     required: false,
                                                     _embedded: {
@@ -794,9 +787,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "mimetype",
-                                                    title: "Content Mimetype",
+                                                    title: "mimetype",
                                                     type: "string",
-                                                    description: "Mimetype of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
@@ -805,9 +797,8 @@ class HalFormsProfileControllerTest {
                                                 },
                                                 {
                                                     name: "filename",
-                                                    title: "Content Filename",
+                                                    title: "filename",
                                                     type: "string",
-                                                    description: "Filename of the content",
                                                     readOnly: false,
                                                     required: false,
                                                     _embedded: {
