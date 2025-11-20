@@ -41,7 +41,7 @@ class HalFormsProfileControllerTest {
                                     },
                                     {
                                         name: "item",
-                                        href: "http://localhost/customers/{id}",
+                                        href: "http://localhost/customers/{instanceId}",
                                         templated: true
                                     }
                                 ]
@@ -851,7 +851,7 @@ class HalFormsProfileControllerTest {
                                     },
                                     {
                                         name: "item",
-                                        href: "http://localhost/customers/{id}",
+                                        href: "http://localhost/customers/{instanceId}",
                                         templated: true
                                     }
                                 ]
