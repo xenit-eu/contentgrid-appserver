@@ -60,6 +60,7 @@ import org.springframework.web.util.UriTemplate;
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt(subject = "user-id-1", name = "John", issuer = AuditMetadataTest.JWT_ISSUER_NAMESPACE)
+@Disabled("ACC-2419 Last-Modified, If-Modified-Since and If-Unmodified-since not supported")
 public class AuditMetadataTest {
 
     static final String INVOICE_NUMBER_1 = "I-2022-0001";

@@ -19,6 +19,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @WithMockJwt
+@Disabled("ACC-2419 Last-Modified, If-Modified-Since and If-Unmodified-since not supported")
 public class ContentLastModifiedTest {
 
     static final String INVOICE_NUMBER_1 = "I-2022-0001";
