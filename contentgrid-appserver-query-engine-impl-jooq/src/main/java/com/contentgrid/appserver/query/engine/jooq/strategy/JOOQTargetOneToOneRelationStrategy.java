@@ -116,8 +116,8 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         // A new record must be present, otherwise we are trying to write to an entity that does not exist
         if(newRecord == null) {
             throw new EntityIdNotFoundException(
-                    relation.getSourceEndPoint().getEntity(),
-                    id
+                    relation.getTargetEndPoint().getEntity(),
+                    targetId
             );
         } else if(newRecord.get(sourceRef) != null) {
             throw new BlindRelationOverwriteException(

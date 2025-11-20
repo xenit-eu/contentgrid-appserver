@@ -48,7 +48,9 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
@@ -1939,20 +1941,26 @@ class JOOQQueryEngineTest {
     }
 
     static Stream<Arguments> invalidSetRelationData() {
+        var nonExisting = EntityId.of(new UUID(0, 0));
         return Stream.of(
-                Arguments.argumentSet("non-existing relation", ALICE_ID, INVOICE_CUSTOMER, INVOICE1_ID, EntityIdNotFoundException.class),
-                Arguments.argumentSet("non-existing source", ALICE_ID, INVOICE_PREVIOUS, INVOICE1_ID, EntityIdNotFoundException.class), // alice is not an invoice
-                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, ALICE_ID, EntityIdNotFoundException.class), // alice is not an invoice
-                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), ALICE_ID, EntityIdNotFoundException.class), // alice is not an invoice
-                Arguments.argumentSet("duplicate value for one-to-one relation", INVOICE1_ID, INVOICE_PREVIOUS, INVOICE1_ID, QueryEngineException.class /* TODO: specific type for unique constraint violation */), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
-                Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID, IllegalInputDataException.class)
+                Arguments.argumentSet("non-existing source in owning -to-one relation", nonExisting, INVOICE_CUSTOMER, ALICE_ID, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
+                Arguments.argumentSet("non-existing source in non-owning -to-one relation", nonExisting, INVOICE_PREVIOUS.inverse(), INVOICE1_ID, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
+                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_CUSTOMER, nonExisting, new EntityIdNotFoundException(PERSON.getName(), nonExisting)),
+                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), nonExisting, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
+                Arguments.argumentSet("duplicate value for owning one-to-one relation", INVOICE3_ID, INVOICE_PREVIOUS,
+                        INVOICE1_ID, new BlindRelationOverwriteException(RelationIdentity.forRelation(INVOICE.getName(), INVOICE1_ID, INVOICE_PREVIOUS.getTargetEndPoint()
+                                .getName()), EntityIdentity.forEntity(INVOICE.getName(), INVOICE2_ID)) /* TODO: this should probably not be a blind overwrite exception? */), // previous_invoice of INVOICE2_ID already contains INVOICE1_ID,
+                Arguments.argumentSet("duplicate value for non-owning one-to-one relation", INVOICE3_ID, INVOICE_PREVIOUS.inverse(),
+                        INVOICE2_ID, new BlindRelationOverwriteException(RelationIdentity.forRelation(INVOICE.getName(), INVOICE2_ID, INVOICE_PREVIOUS.getSourceEndPoint()
+                                .getName()), EntityIdentity.forEntity(INVOICE.getName(), INVOICE1_ID)) /* TODO: this should probably not be a blind overwrite exception? */), // next_invoice of INVOICE1_ID already contains INVOICE2_ID
+                Arguments.argumentSet("-to-many relation", INVOICE1_ID, INVOICE_PRODUCTS, PRODUCT3_ID, new IllegalInputDataException("Relation 'products' is not a one-to-one or many-to-one relation"))
         );
     }
 
     @ParameterizedTest
     @MethodSource("invalidSetRelationData")
-    void setRelationInvalidData(EntityId id, Relation relation, EntityId targetId, Class<? extends Throwable> exceptionType) {
-        assertThrows(exceptionType, () -> queryEngine.setLink(
+    void setRelationInvalidData(EntityId id, Relation relation, EntityId targetId, Throwable exception) {
+        var thrown = assertThrows(exception.getClass(), () -> queryEngine.setLink(
                 APPLICATION,
                 RelationRequest.forRelation(
                         relation.getSourceEndPoint().getEntity(),
@@ -1962,6 +1970,7 @@ class JOOQQueryEngineTest {
                 targetId,
                 TRUE_EXPRESSION, linkEventConsumer
         ));
+        assertEquals(thrown.getMessage(), exception.getMessage());
         assertNothingChanged();
     }
 
