@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
@@ -50,7 +51,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequir
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
-import com.contentgrid.appserver.query.engine.jooq.StructuredJOOQQueryEngineTest.RelationArgumentFactory.UnbuildableException;
+import com.contentgrid.appserver.query.engine.jooq.StructuredRelationsJOOQQueryEngineTest.RelationArgumentFactory.UnbuildableException;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -69,10 +70,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.assertj.core.api.Assertions;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -90,7 +89,7 @@ import org.springframework.transaction.PlatformTransactionManager;
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
-class StructuredJOOQQueryEngineTest {
+class StructuredRelationsJOOQQueryEngineTest {
 
     private static final ThunkExpression<Boolean> PERMIT_ALWAYS = Scalar.of(true);
 
@@ -749,6 +748,49 @@ class StructuredJOOQQueryEngineTest {
                         .getName()));
             });
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("relations")
+    void deleteEntityWithRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var source = createItem(app, relation.getSourceEndPoint().getEntity());
+        var target = createItem(app, relation.getTargetEndPoint().getEntity());
+
+        if(relation.getTargetEndPoint().isRequired()) {
+            var targetRelReq = RelationRequest.forRelation(target.getIdentity(), relation.getTargetEndPoint().getName());
+            // If the target endpoint is required, a link was already set up during create.
+            // We have to set the link from the target side, otherwise it will be a BlindRelationOverwriteException
+            queryEngine.setLink(app, targetRelReq, source.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+        } else {
+            var relationRequest = RelationRequest.forRelation(source.getIdentity(),
+                    relation.getSourceEndPoint().getName());
+            switch (targetPlurality(relation)) {
+                case ONE -> queryEngine.setLink(app, relationRequest, target.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+                case MANY ->
+                        queryEngine.addLinks(app, relationRequest, Set.of(target.getId()), PERMIT_ALWAYS, NONE_EVENTS);
+            }
+        }
+
+        var thrown = assertThatCode(() -> queryEngine.delete(app, source.getIdentity().toRequest(), PERMIT_ALWAYS, NONE_EVENTS));
+
+        if(relation.getTargetEndPoint().isRequired()) {
+            // if target is required relation, the source that references it can't be deleted
+            thrown.isInstanceOfSatisfying(EntityLinkedByRequiredRelationException.class, ex -> {
+                assertThat(ex.getSourceIdentity()).isEqualTo(source.getIdentity());
+                assertThat(ex.getTargetRelationIdentity())
+                        .isEqualTo(RelationIdentity.forRelation(target.getIdentity(), relation.getTargetEndPoint().getName()));
+            });
+
+            // entity has not been deleted and is still linked
+            assertThat(queryEngine.findById(app, source.getIdentity().toRequest(), PERMIT_ALWAYS)).isPresent();
+            assertThatLinked(app, relation, source.getIdentity(), target.getIdentity());
+        } else {
+            thrown.doesNotThrowAnyException();
+            assertThat(queryEngine.findById(app, source.getIdentity().toRequest(), PERMIT_ALWAYS)).isEmpty();
+        }
+
     }
 
     private void assertThatLinked(Application app, Relation relation, EntityIdentity source, EntityIdentity target) {
