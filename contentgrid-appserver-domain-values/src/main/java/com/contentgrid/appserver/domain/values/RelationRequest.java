@@ -29,6 +29,9 @@ public class RelationRequest {
     @With
     VersionConstraint versionConstraint;
 
+    public static RelationRequest forRelation(EntityIdentity entityIdentity, RelationName relationName) {
+        return forRelation(entityIdentity.getEntityName(), entityIdentity.getEntityId(), relationName);
+    }
     public static RelationRequest forRelation(EntityName entityName, EntityId entityId, RelationName relationName) {
         return new RelationRequest(entityName, entityId, relationName, VersionConstraint.ANY);
     }
