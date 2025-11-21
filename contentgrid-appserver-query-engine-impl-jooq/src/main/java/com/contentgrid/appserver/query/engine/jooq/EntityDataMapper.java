@@ -5,12 +5,12 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -52,13 +52,7 @@ public class EntityDataMapper {
         return JOOQUtils.resolveVersionField(entity)
                 .map(versionField -> {
                     var versionFieldData = (Long)data.get(versionField.getName());
-
-                    if(versionFieldData == null) {
-                        // No data of the version field is returned, or the version field is null
-                        return Version.unspecified();
-                    }
-
-                    return Version.exactly(Long.toString(versionFieldData, Character.MAX_RADIX));
+                    return EntityVersionUtils.getVersion(versionFieldData);
                 })
                 .orElse(Version.unspecified());
     }

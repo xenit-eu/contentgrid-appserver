@@ -25,6 +25,7 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.EntityRestControllerTest.TestConfig;
+import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.spring.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -54,6 +55,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
@@ -288,8 +290,15 @@ class EntityRestControllerTest {
                             .param("name", "My product")
                             .param("price", "120")
                     ).andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.detail",
-                            is("Invalid property data at picture: Invalid format for type CONTENT: Content-Type is required")))
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail("Expected value of type content, but the format is incorrect: Content-Type is required")
+                                    .withField("expected-type", "content")
+                                    .withField("format-error", "Content-Type is required")
+                                    .withProperty("picture")
+                            )
+                    )
             ;
         }
 
@@ -305,10 +314,14 @@ class EntityRestControllerTest {
             invalidProduct.put("in_stock", true);
 
             mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), invalidProduct))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", notNullValue()))
-                    .andExpect(jsonPath("$.title", notNullValue()))
-                    .andExpect(jsonPath("$.status", is(400)));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type decimal, but the format is incorrect:"))
+                                    .withProperty("price")
+                                    .withField("expected-type", "decimal")
+                                    .withField("format-error", f -> assertThat(f).isNotNull())
+                            ));
         }
 
         @ParameterizedTest
@@ -320,8 +333,15 @@ class EntityRestControllerTest {
                                     "age", 12.3
                             ))
                     ).andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("age"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type long, but the format is incorrect:"))
+                                    .withField("expected-type", "long")
+                                    .withField("format-error", f -> assertThat(f).isNotNull())
+                                    .withProperty("age")
+                            )
+                    );
         }
 
         @ParameterizedTest
@@ -349,10 +369,11 @@ class EntityRestControllerTest {
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(invalidJson))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", notNullValue()))
-                    .andExpect(jsonPath("$.title", notNullValue()))
-                    .andExpect(jsonPath("$.status", is(400)));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body/json")
+                            .withTitle("Request body is invalid JSON")
+                    );
         }
 
         @ParameterizedTest
@@ -363,7 +384,10 @@ class EntityRestControllerTest {
             payload.put("value", 123);
 
             mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @ParameterizedTest
@@ -378,9 +402,13 @@ class EntityRestControllerTest {
 
             mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
                             .accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("Content attributes can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                    );
         }
     }
 
@@ -600,7 +628,10 @@ class EntityRestControllerTest {
             String nonExistentId = UUID.randomUUID().toString();
 
             mockMvc.perform(get("/products/" + nonExistentId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -608,9 +639,15 @@ class EntityRestControllerTest {
             String nonExistentId = UUID.randomUUID().toString();
 
             mockMvc.perform(get("/foobars/" + nonExistentId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
             mockMvc.perform(get("/foobars"))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
     }
 
@@ -781,10 +818,12 @@ class EntityRestControllerTest {
 
             // Invalid sort field
             mockMvc.perform(get("/products?_sort=foo,desc").accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
-                    .andExpect(jsonPath("$.detail").value(containsString("not found")));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort")
+                            .withTitle("Sort query parameter is invalid")
+                            .withDetail("Sortable field 'foo' not found on entity 'product'")
+                    );
         }
 
         @Test
@@ -970,7 +1009,10 @@ class EntityRestControllerTest {
             mockMvc.perform(put("/foobars/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(updated)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @ParameterizedTest
@@ -996,7 +1038,10 @@ class EntityRestControllerTest {
             mockMvc.perform(put("/products/" + nonExistentId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(updatedProduct)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -1045,7 +1090,10 @@ class EntityRestControllerTest {
                                     }
                                     """)
                     )
-                    .andExpect(status().isPreconditionFailed());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                            // TODO: proper problem detail here
+                    );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -1072,7 +1120,10 @@ class EntityRestControllerTest {
                                     }
                                     """)
                     )
-                    .andExpect(status().isBadRequest());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -1097,7 +1148,10 @@ class EntityRestControllerTest {
                                     }
                                     """)
                     )
-                    .andExpect(status().isPreconditionFailed());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                            // TODO: proper problem detail here
+                    );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl()))
                     .andExpect(status().isOk())
@@ -1217,10 +1271,12 @@ class EntityRestControllerTest {
                               }
                             }
                             """))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.detail", containsString("Field is required")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("picture", "mimetype"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withProperty("picture.mimetype")
+                            ));
         }
 
         @Test
@@ -1247,9 +1303,13 @@ class EntityRestControllerTest {
                               }
                             }
                             """))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.type", is("https://contentgrid.cloud/problems/invalid-request-body/type")))
-                    .andExpect(jsonPath("$.property-path", is(List.of("picture"))));
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
+                                    .withTitle("No content present")
+                                    .withDetail("Content attributes can not be set when there is no content present")
+                                    .withProperty("picture")
+                            )
+                    );
         }
 
     }
@@ -1281,7 +1341,10 @@ class EntityRestControllerTest {
 
             // Verify entity no longer exists
             mockMvc.perform(get("/products/" + id))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -1289,7 +1352,10 @@ class EntityRestControllerTest {
             String nonExistentId = UUID.randomUUID().toString();
 
             mockMvc.perform(delete("/products/" + nonExistentId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -1297,7 +1363,10 @@ class EntityRestControllerTest {
             String someId = UUID.randomUUID().toString();
 
             mockMvc.perform(delete("/foobars/" + someId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -1312,7 +1381,10 @@ class EntityRestControllerTest {
 
             // Verify entity was deleted
             mockMvc.perform(get(createResponse.getRedirectedUrl()))
-                    .andExpect(status().isNotFound());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.NOT_FOUND)
+                            // TODO: proper problem detail here
+                    );
         }
 
         @Test
@@ -1322,7 +1394,10 @@ class EntityRestControllerTest {
             mockMvc.perform(delete(createResponse.getRedirectedUrl())
                             .header("If-Match", "\"some-other-etag\"")
                     )
-                    .andExpect(status().isPreconditionFailed());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                            // TODO: proper problem detail here
+                    );
 
             // Verify entity still exists
             mockMvc.perform(get(createResponse.getRedirectedUrl())
@@ -1342,7 +1417,10 @@ class EntityRestControllerTest {
                                     // Emulate accidentally-invalid etag where quotes are omitted
                                     .replace('"', ' '))
                     )
-                    .andExpect(status().isBadRequest());
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                    .withStatusCode(HttpStatus.BAD_REQUEST)
+                            // TODO: proper problem detail here
+                    );
 
             // Verify entity still exists
             mockMvc.perform(get(createResponse.getRedirectedUrl())

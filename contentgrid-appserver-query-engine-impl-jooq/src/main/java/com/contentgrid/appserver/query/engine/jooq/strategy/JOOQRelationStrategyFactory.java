@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
-import com.contentgrid.appserver.query.engine.api.exception.InvalidDataException;
+import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -17,7 +17,7 @@ public class JOOQRelationStrategyFactory {
             case SourceOneToOneRelation ignored -> new JOOQSourceOneToOneRelationStrategy();
             case ManyToOneRelation ignored -> new JOOQManyToOneRelationStrategy();
             case TargetOneToOneRelation ignored -> new JOOQTargetOneToOneRelationStrategy();
-            default -> throw new InvalidDataException("Relation '%s' is not a one-to-one or many-to-one relation".formatted(relation.getSourceEndPoint().getName()));
+            default -> throw new IllegalInputDataException("Relation '%s' is not a one-to-one or many-to-one relation".formatted(relation.getSourceEndPoint().getName()));
         };
     }
 
@@ -25,7 +25,7 @@ public class JOOQRelationStrategyFactory {
         return (JOOQXToManyRelationStrategy<R>) switch (relation) {
             case OneToManyRelation ignored -> new JOOQOneToManyRelationStrategy();
             case ManyToManyRelation ignored -> new JOOQManyToManyRelationStrategy();
-            default -> throw new InvalidDataException("Relation '%s' is not a one-to-many or many-to-many relation".formatted(relation.getSourceEndPoint().getName()));
+            default -> throw new IllegalInputDataException("Relation '%s' is not a one-to-many or many-to-many relation".formatted(relation.getSourceEndPoint().getName()));
         };
     }
 

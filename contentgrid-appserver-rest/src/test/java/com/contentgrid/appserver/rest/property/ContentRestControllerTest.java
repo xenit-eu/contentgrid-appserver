@@ -18,6 +18,7 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.property.ContentRestControllerTest.TestConfig;
+import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +42,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -135,7 +137,10 @@ class ContentRestControllerTest {
         String invoiceId = createInvoice(null);
 
         mockMvc.perform(get(pathTemplate, invoiceId))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.NOT_FOUND)
+                        // TODO: proper problem detail here
+                );
     }
 
     static Stream<Arguments> nonExistentPaths() {
@@ -261,7 +266,19 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, "bytes=0-4")
                         .header(HttpHeaders.IF_MATCH, "\"my-value\"")
-                ).andExpect(status().isPreconditionFailed());
+                )
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                                .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                .withTitle("Object has changed")
+                                .withSatisfy(pd -> {
+                                    assertThat(pd.getDetail()).isEqualTo(
+                                            "Requested version constraint 'is any of [exactly 'my-value']' can not be satisfied (actual version exactly '%s')"
+                                                    .formatted(pd.getProperties().get("actual-version"))
+                                    );
+                                })
+                                .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                );
     }
 
     public static Stream<Arguments> multi_range_requests() {
@@ -380,7 +397,10 @@ class ContentRestControllerTest {
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, rangeHeader))
-                .andExpect(status().isBadRequest());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.BAD_REQUEST)
+                        // TODO: proper problem detail here
+                );
         Mockito.verifyNoInteractions(contentStoreSpy);
     }
 
@@ -519,7 +539,10 @@ class ContentRestControllerTest {
         mockMvc.perform(post(pathTemplate, instanceId)
                         .contentType(INVOICE_CONTENT_FILE.getContentType())
                         .content(INVOICE_CONTENT_FILE.getBytes()))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.NOT_FOUND)
+                        // TODO: proper problem detail here
+                );
     }
 
     @ParameterizedTest
@@ -544,7 +567,10 @@ class ContentRestControllerTest {
 
         mockMvc.perform(post("/invoices/{instanceId}/content", invoiceId)
                         .content(INVOICE_CONTENT_FILE.getBytes()))
-                .andExpect(status().isBadRequest());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.BAD_REQUEST)
+                        // TODO: proper problem detail here
+                );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
@@ -559,7 +585,10 @@ class ContentRestControllerTest {
         mockMvc.perform(post("/invoices/{instanceId}/content", invoiceId)
                         .contentType("")
                         .content(INVOICE_CONTENT_FILE.getBytes()))
-                .andExpect(status().isBadRequest());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.BAD_REQUEST)
+                        // TODO: proper problem detail here
+                );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
@@ -628,7 +657,13 @@ class ContentRestControllerTest {
                         .contentType(INVOICE_CONTENT_FILE.getContentType())
                         .content(INVOICE_CONTENT_FILE.getBytes())
                         .header(header, headerValue))
-                .andExpect(status().isPreconditionFailed());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                                .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                .withTitle("Object has changed")
+                                // details is different for If-Match/If-None-Match, so not asserted here
+                                .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
     }
@@ -662,7 +697,10 @@ class ContentRestControllerTest {
 
         mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
                         .file(file))
-                .andExpect(status().isBadRequest());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.BAD_REQUEST)
+                        // TODO: proper problem detail here
+                );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
@@ -676,7 +714,10 @@ class ContentRestControllerTest {
         String invoiceId = createInvoice(null);
 
         mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(status().isBadRequest());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.BAD_REQUEST)
+                        // TODO: proper problem detail here
+                );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
@@ -707,7 +748,10 @@ class ContentRestControllerTest {
         String instanceId = createInvoice(null);
 
         mockMvc.perform(delete(pathTemplate, instanceId))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                                .withStatusCode(HttpStatus.NOT_FOUND)
+                        // TODO: proper problem detail here
+                );
     }
 
     @Test

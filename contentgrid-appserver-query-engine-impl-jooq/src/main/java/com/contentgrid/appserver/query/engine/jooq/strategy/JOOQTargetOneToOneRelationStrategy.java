@@ -7,20 +7,20 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
-import com.contentgrid.appserver.query.engine.api.exception.ConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.IdSpecified;
-import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId.UnspecifiedExpectedId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
-import org.jooq.exception.IntegrityConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.springframework.dao.DataIntegrityViolationException;
 
 final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrategy<TargetOneToOneRelation> {
 
@@ -116,20 +116,34 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         // A new record must be present, otherwise we are trying to write to an entity that does not exist
         if(newRecord == null) {
             throw new EntityIdNotFoundException(
-                    relation.getSourceEndPoint().getEntity(),
-                    id
+                    relation.getTargetEndPoint().getEntity(),
+                    targetId
             );
         } else if(newRecord.get(sourceRef) != null) {
             throw new BlindRelationOverwriteException(
                     RelationIdentity.forRelation(
+                            relation.getSourceEndPoint().getEntity(),
+                            id,
+                            relation.getSourceEndPoint().getName()
+                    ),
+                    EntityIdentity.forEntity(
                             relation.getTargetEndPoint().getEntity(),
-                            EntityId.of(newRecord.get(targetRef)),
-                            relation.getTargetEndPoint().getName()
+                            EntityId.of(newRecord.get(targetRef))
                     ),
                     EntityIdentity.forEntity(
                             relation.getSourceEndPoint().getEntity(),
                             EntityId.of(newRecord.get(sourceRef))
                     )
+            );
+        }
+
+        if(maybeOldId.isPresent() && relation.getTargetEndPoint().isRequired()) {
+            // Relation is required, but because there is an old record (and it's a one-to-one relation),
+            // we have to wipe out the old value. We can't do that
+            throw new EntityLinkedByRequiredRelationException(
+                    relation,
+                    id,
+                    EntityId.of(maybeOldId.orElseThrow())
             );
         }
 
@@ -149,9 +163,14 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                     .where(newRowCondition)
                     .execute();
 
-
-        } catch (DataIntegrityViolationException | IntegrityConstraintViolationException e) {
-            throw new ConstraintViolationException(e.getMessage(), e); // also thrown when foreign key was not found
+        } catch (DataAccessException e) {
+            // Unique constraint violation can not happen, because the query above ensures that the unique is wiped out first
+            // Not null violation can not happen, because it is already checked above that when there is an old row, the side is not required
+            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
+                throw ExceptionUtils.handleException(e,
+                        () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+            }
+            throw e;
         }
     }
 

@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.data;
 
 import com.contentgrid.appserver.domain.data.type.DataType;
+import lombok.Getter;
 import lombok.NonNull;
 
 /**
@@ -13,6 +14,7 @@ import lombok.NonNull;
 public class InvalidDataFormatException extends InvalidDataException {
 
     @NonNull
+    @Getter
     private final DataType expectedType;
 
     public InvalidDataFormatException(@NonNull DataType expectedType, @NonNull Throwable cause) {

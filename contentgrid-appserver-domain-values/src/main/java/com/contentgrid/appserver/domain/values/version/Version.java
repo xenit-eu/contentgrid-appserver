@@ -1,11 +1,12 @@
 package com.contentgrid.appserver.domain.values.version;
 
+import java.io.Serializable;
 import lombok.NonNull;
 
 /**
  * Version specification for an object
  */
-public sealed interface Version extends VersionConstraint permits ExactlyVersion, NonExistingVersion, UnspecifiedVersion {
+public sealed interface Version extends VersionConstraint, Serializable permits ExactlyVersion, NonExistingVersion, UnspecifiedVersion {
 
     static Version unspecified() {
         return UnspecifiedVersion.INSTANCE;

@@ -37,7 +37,10 @@ public class ContentAttributeModificationValidator implements Validator {
             } else {
                 // When a content attribute is present, mimetype is required to be filled in
                 var mimeType = contentAttribute.getMimetype().getName();
-                if(isEmpty(mapDataEntry.get(mimeType.getValue()))) {
+                // At the point that this validator runs, MissingDataEntry is already converted to null for create/update
+                // And has been set to missing only for partialUpdate. We don't have to require a mimetype input for partial update,
+                // as the mimetype will just not be set at all
+                if((mapDataEntry.get(mimeType.getValue()) instanceof NullDataEntry)) {
                     throw new RequiredConstraintViolationInvalidDataException().withinProperty(mimeType);
                 }
             }
@@ -48,10 +51,7 @@ public class ContentAttributeModificationValidator implements Validator {
     private boolean isEmpty(DataEntry dataEntry) {
         return switch (dataEntry) {
             case NullDataEntry nullDataEntry-> true;
-            // At the point that this validator runs, MissingDataEntry is already converted to null for create/update
-            // And has been set to missing only for partialUpdate. We don't have to require a mimetype input for partial update,
-            // as the mimetype will just not be set at all
-            case MissingDataEntry missingDataEntry -> false;
+            case MissingDataEntry missingDataEntry -> true;
             default -> false;
         };
     }

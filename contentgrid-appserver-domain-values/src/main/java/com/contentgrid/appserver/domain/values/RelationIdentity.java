@@ -2,7 +2,9 @@ package com.contentgrid.appserver.domain.values;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import java.io.Serializable;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +16,7 @@ import lombok.With;
  */
 @Value
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class RelationIdentity {
+public class RelationIdentity implements Serializable {
     @NonNull
     EntityName entityName;
 
@@ -32,12 +34,23 @@ public class RelationIdentity {
         return new RelationIdentity(entityName, entityId, relationName, Version.unspecified());
     }
 
+    public static RelationIdentity forRelation(@NonNull EntityIdentity entityIdentity, @NonNull RelationName relationName) {
+        return forRelation(entityIdentity.getEntityName(), entityIdentity.getEntityId(), relationName);
+    }
+
+    private EntityIdentity getEntityIdentity() {
+        return EntityIdentity.forEntity(entityName, entityId);
+    }
+
     public RelationRequest toRequest() {
         return RelationRequest.forRelation(entityName, entityId, relationName).withVersionConstraint(version);
     }
 
     public String toString() {
-        return "Relation '%s' on entity '%s' %s (%s)".formatted(relationName, entityName, entityId, version);
+        if(version instanceof UnspecifiedVersion) {
+            return "Relation '%s' on %s".formatted(relationName, getEntityIdentity());
+        }
+        return "Relation '%s' on %s (%s)".formatted(relationName, getEntityIdentity(), version);
     }
 
 }
