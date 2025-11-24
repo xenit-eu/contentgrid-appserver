@@ -126,8 +126,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """)
                     )
-                    .andExpect(problemDetails()
-                            .withType(PROBLEM_TYPE_PREFIX+"invalid-request-body/type")
+                    .andExpect(validationConstraintViolation()
+                            .withError(error -> error.withProperty("total_spend"))
                     );
 
         }
@@ -145,8 +145,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """)
                     )
-                    .andExpect(problemDetails()
-                            .withType(PROBLEM_TYPE_PREFIX+"invalid-request-body/type")
+                    .andExpect(validationConstraintViolation()
+                            .withError(error -> error.withProperty("content"))
                     );
         }
 
@@ -163,8 +163,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """)
                     )
-                    .andExpect(problemDetails()
-                            .withType(PROBLEM_TYPE_PREFIX+"invalid-request-body/type")
+                    .andExpect(validationConstraintViolation()
+                            .withError(error -> error.withProperty("birthday"))
                     );
         }
 
@@ -181,8 +181,8 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """)
                     )
-                    .andExpect(problemDetails()
-                            .withType(PROBLEM_TYPE_PREFIX+"invalid-request-body/type")
+                    .andExpect(validationConstraintViolation()
+                            .withError(error -> error.withProperty("counterparty"))
                     );
         }
 
@@ -410,7 +410,9 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             // Now there is a refund that references our invoice
 
             mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
-                    .andExpect(validationConstraintViolation());
+                    .andExpect(validationConstraintViolation()
+                            .withError(error -> error.withProperty("refund"))
+                    );
         }
     }
 
@@ -431,6 +433,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             // This customer is linked to the invoice
             mockMvc.perform(delete("/customers/{id}", counterparty.getIdentity().getEntityId()))
                     .andExpect(validationConstraintViolation()
+                            .withStatusCode(HttpStatus.CONFLICT)
                             .withError(error -> error.withProperty("invoices"))
                     );
         }
@@ -443,6 +446,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
             mockMvc.perform(delete("/invoices/{id}", invoiceId))
                     .andExpect(validationConstraintViolation()
+                            .withStatusCode(HttpStatus.CONFLICT)
                             .withError(error -> error.withProperty("refund"))
                     );
         }
@@ -485,9 +489,9 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(problemDetails()
+                    .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withType(PROBLEM_TYPE_PREFIX + "input/duplicate-value")
+                            .withError(error -> error.withProperty("vat"))
                     );
         }
 
@@ -518,9 +522,9 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(problemDetails()
+                    .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withType(PROBLEM_TYPE_PREFIX + "input/duplicate-value")
+                            .withError(error -> error.withProperty("vat"))
                     );
         }
 

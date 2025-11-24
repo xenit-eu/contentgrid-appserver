@@ -39,7 +39,7 @@ public final class ProblemDetailsMockMvcMatchers {
     }
 
     public static ValidationConstraintViolationMatcher validationConstraintViolation() {
-        return new ValidationConstraintViolationMatcher(List.of());
+        return new ValidationConstraintViolationMatcher(HttpStatus.BAD_REQUEST, List.of());
     }
 
     @With
@@ -140,8 +140,10 @@ public final class ProblemDetailsMockMvcMatchers {
     public static class ValidationConstraintViolationMatcher implements ResultMatcher {
 
         private static final ProblemDetailsMatcher PROBLEM_DETAILS_MATCHER = new ProblemDetailsMatcher()
-                .withStatusCode(HttpStatus.BAD_REQUEST)
                 .withType("https://contentgrid.cloud/problems/input/validation");
+
+        @With
+        private final HttpStatusCode statusCode;
 
         @With(AccessLevel.PRIVATE)
         private final List<ErrorDescription> errors;
@@ -159,7 +161,9 @@ public final class ProblemDetailsMockMvcMatchers {
 
         @Override
         public void match(MvcResult result) throws Exception {
-            var details = PROBLEM_DETAILS_MATCHER.readProblemDetail(result);
+            var details = PROBLEM_DETAILS_MATCHER
+                    .withStatusCode(statusCode)
+                    .readProblemDetail(result);
             var properties = details.getProperties();
             assertThat(properties).containsKey("errors")
                     .extractingByKey("errors")
