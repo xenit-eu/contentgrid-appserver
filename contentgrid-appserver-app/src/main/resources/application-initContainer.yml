@@ -1,6 +1,8 @@
 spring:
   main:
     web-application-type: none
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 contentgrid:
   appserver:
     content-store.type: ephemeral
