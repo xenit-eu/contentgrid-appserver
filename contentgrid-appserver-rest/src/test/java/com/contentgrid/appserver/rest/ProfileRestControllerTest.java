@@ -703,6 +703,18 @@ class ProfileRestControllerTest {
                                             prompt: "gender"
                                         },
                                         {
+                                            name: "invoices",
+                                            prompt: "invoices"
+                                        },
+                                        {
+                                            name: "friends",
+                                            prompt: "friends"
+                                        },
+                                        {
+                                            name: "children",
+                                            prompt: "children"
+                                        },
+                                        {
                                             name: "parent",
                                             prompt: "Parent(e)"
                                         }
