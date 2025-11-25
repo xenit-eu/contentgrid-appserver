@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
@@ -137,16 +138,6 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             );
         }
 
-        if(maybeOldId.isPresent() && relation.getTargetEndPoint().isRequired()) {
-            // Relation is required, but because there is an old record (and it's a one-to-one relation),
-            // we have to wipe out the old value. We can't do that
-            throw new EntityLinkedByRequiredRelationException(
-                    relation,
-                    id,
-                    EntityId.of(maybeOldId.orElseThrow())
-            );
-        }
-
         try {
 
             // When there is an old record, we need to clear it out *before* setting the new record,
@@ -165,7 +156,8 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
         } catch (DataAccessException e) {
             // Unique constraint violation can not happen, because the query above ensures that the unique is wiped out first
-            // Not null violation can not happen, because it is already checked above that when there is an old row, the side is not required
+            // Not null violation can not happen, because when he sourceRef is NOT NULL, a BlindRelationOverwriteException would have been thrown
+            // (because newRecord.get(sourceRef) also would not be null
             if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
                 throw ExceptionUtils.handleException(e,
                         () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
@@ -181,28 +173,42 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
-        var maybeResult = dslContext.update(table)
-                .set(sourceRef, expectedTargetId.mapToNewValue(targetRef, sourceRef, null))
-                .where(sourceRef.eq(id.getValue()))
-                .returning(sourceRef, targetRef)
-                .fetchOptional();
+        try {
+            var maybeResult = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext.update(table)
+                    .set(sourceRef, expectedTargetId.mapToNewValue(targetRef, sourceRef, null))
+                    .where(sourceRef.eq(id.getValue()))
+                    .returning(sourceRef, targetRef)
+                    .fetchOptional());
 
-        if(maybeResult.isEmpty()) {
-            // Nothing links to the entity.
-            // This is fine for a delete, as the database is already in the expected state.
-            // However, we still need to check that this matches the expected state, to properly signal failure when
-            // it was expected that something was pointing to the entity
-            if(expectedTargetId instanceof ExpectedId.ExactlyExpectedId exactlyExpectedId) {
-                throw new ExpectedIdMismatchException(exactlyExpectedId, null);
+            if (maybeResult.isEmpty()) {
+                // Nothing links to the entity.
+                // This is fine for a delete, as the database is already in the expected state.
+                // However, we still need to check that this matches the expected state, to properly signal failure when
+                // it was expected that something was pointing to the entity
+                if (expectedTargetId instanceof ExpectedId.ExactlyExpectedId exactlyExpectedId) {
+                    throw new ExpectedIdMismatchException(exactlyExpectedId, null);
+                }
+                return;
             }
-            return;
-        }
 
-        var result = maybeResult.get();
+            var result = maybeResult.get();
 
-        if(result.get(sourceRef) != null) {
-            // Optimistic locking failure, sourceRef was not cleared, because it was not pointed to by the original target
-            throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, result.get(targetRef));
+            if (result.get(sourceRef) != null) {
+                // Optimistic locking failure, sourceRef was not cleared, because it was not pointed to by the original target
+                throw new ExpectedIdMismatchException((IdSpecified) expectedTargetId, result.get(targetRef));
+            }
+        } catch(DataAccessException e) {
+            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.NOT_NULL_CONSTRAINT_VIOLATION)) {
+                // Can happen when deleting a relation where the target endpoint is marked as required
+                throw ExceptionUtils.handleException(e, () -> {
+                    var targetId = dslContext.select(targetRef)
+                            .from(table)
+                            .where(sourceRef.eq(id.getValue()))
+                            .fetchSingle(targetRef);
+                    assert targetId != null;
+                    return new EntityLinkedByRequiredRelationException(relation, id, EntityId.of(targetId));
+                });
+            }
         }
 
     }
