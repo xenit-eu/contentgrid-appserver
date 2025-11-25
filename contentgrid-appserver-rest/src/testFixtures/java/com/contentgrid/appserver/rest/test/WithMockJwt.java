@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.spring.test;
+package com.contentgrid.appserver.rest.test;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

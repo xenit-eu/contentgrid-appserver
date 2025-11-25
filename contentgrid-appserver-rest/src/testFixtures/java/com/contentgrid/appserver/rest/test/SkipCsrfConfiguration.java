@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.spring.test;
+package com.contentgrid.appserver.rest.test;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcBuilderCustomizer;

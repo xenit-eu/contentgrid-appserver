@@ -1,0 +1,180 @@
+package com.contentgrid.appserver.integration.test.affordances;
+
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
+import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.rest.test.WithMockJwt;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+@SpringBootTest(properties = {
+        "contentgrid.events.rabbitmq.enabled=false",
+})
+@ContextConfiguration(classes = {
+        InvoicingApiApplication.class,
+})
+@AutoConfigureMockMvc(printOnlyOnFailure = false)
+@WithMockJwt
+class AffordanceInjectingSelfLinkProviderTest {
+    @Autowired
+    MockMvc mockMvc;
+
+    @Autowired
+    InvoicingApi invoicingApi;
+
+    EntityId customerId;
+
+    @BeforeEach
+    void setup() throws InvalidPropertyDataException {
+        customerId = invoicingApi.createCustomer("Abc", "ABC").getIdentity().getEntityId();
+    }
+
+    @AfterEach
+    void cleanup() {
+        invoicingApi.deleteCustomer(customerId);
+        customerId = null;
+    }
+
+    @Test
+    void templatesAddedOnEntityInstance() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/customers/{id}", customerId)
+                .accept(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                        {
+                            _links: {
+                                self: {
+                                    href: "http://localhost/customers/%s"
+                                }
+                            },
+                            _templates: {
+                                default: {
+                                    method: "PUT",
+                                    properties: [
+                                        {
+                                            name: "name",
+                                            type: "text"
+                                        },
+                                        {
+                                            name: "vat",
+                                            type: "text"
+                                        },
+                                        {
+                                            name: "content.mimetype",
+                                            type: "text"
+                                        },
+                                        {
+                                            name: "content.filename",
+                                            type: "text"
+                                        },
+                                        {
+                                            name: "birthday",
+                                            type: "datetime"
+                                        },
+                                        {
+                                            name: "gender",
+                                            type: "text",
+                                            options: {
+                                                inline: [ "female", "male" ]
+                                            }
+                                        },
+                                        {
+                                            name: "total_spend",
+                                            type: "number"
+                                        }
+                                        # Note: no relations present, those are only for the create form
+                                    ]
+                                },
+                                delete: {
+                                    method: "DELETE"
+                                }
+                            }
+                        }
+                        """.formatted(customerId)))
+                .andExpect(MockMvcResultMatchers.jsonPath("$._templates.keys()", Matchers.containsInAnyOrder(
+                        "default", "delete", "add-invoices", "add-orders", "clear-orders" // no clear-invoices because inverse relation is required
+                )));
+    }
+
+    @Test
+    void templatesAddedOnCollectionResource() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/customers")
+                        .accept(MediaTypes.HAL_FORMS_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().json("""
+                        {
+                            _embedded: {
+                                "item": [
+                                    {
+                                        _links: {
+                                            self: {
+                                                href: "http://localhost/customers/%s"
+                                            }
+                                        },
+                                        _templates: {
+                                            default: {
+                                                method: "PUT",
+                                                properties: [
+                                                    {
+                                                        name: "name",
+                                                        type: "text"
+                                                    },
+                                                    {
+                                                        name: "vat",
+                                                        type: "text"
+                                                    },
+                                                    {
+                                                        name: "content.mimetype",
+                                                        type: "text"
+                                                    },
+                                                    {
+                                                        name: "content.filename",
+                                                        type: "text"
+                                                    },
+                                                    {
+                                                        name: "birthday",
+                                                        type: "datetime"
+                                                    },
+                                                    {
+                                                        name: "gender",
+                                                        type: "text",
+                                                        options: {
+                                                            inline: [ "female", "male" ]
+                                                        }
+                                                    },
+                                                    {
+                                                        name: "total_spend",
+                                                        type: "number"
+                                                    }
+                                                    # Note: no relations present, those are only for the create form
+                                                ]
+                                            },
+                                            delete: {
+                                                method: "DELETE"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                        """.formatted(customerId)))
+                // No top-level _templates are present
+                .andExpect(MockMvcResultMatchers.jsonPath("$.keys()", Matchers.not(Matchers.contains("_templates"))))
+                // The templates of the embedded object contain default, delete and relation templates
+                .andExpect(MockMvcResultMatchers.jsonPath("$._embedded.['item'][0]._templates.keys()", Matchers.containsInAnyOrder(
+                        "default", "delete", "add-invoices", "add-orders", "clear-orders" // no 'clear-invoices' because inverse relation is required
+                )));
+    }
+
+}

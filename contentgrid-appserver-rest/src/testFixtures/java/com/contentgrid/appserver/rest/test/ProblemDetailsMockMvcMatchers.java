@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemDetailsMockMvcMatchers {
 
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     static {
         objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);
@@ -39,7 +39,7 @@ public final class ProblemDetailsMockMvcMatchers {
     }
 
     public static ValidationConstraintViolationMatcher validationConstraintViolation() {
-        return new ValidationConstraintViolationMatcher(List.of());
+        return new ValidationConstraintViolationMatcher(HttpStatus.BAD_REQUEST, List.of());
     }
 
     @With
@@ -139,9 +139,11 @@ public final class ProblemDetailsMockMvcMatchers {
     @AllArgsConstructor
     public static class ValidationConstraintViolationMatcher implements ResultMatcher {
 
-        private final static ProblemDetailsMatcher PROBLEM_DETAILS_MATCHER = new ProblemDetailsMatcher()
-                .withStatusCode(HttpStatus.BAD_REQUEST)
+        private static final ProblemDetailsMatcher PROBLEM_DETAILS_MATCHER = new ProblemDetailsMatcher()
                 .withType("https://contentgrid.cloud/problems/input/validation");
+
+        @With
+        private final HttpStatusCode statusCode;
 
         @With(AccessLevel.PRIVATE)
         private final List<ErrorDescription> errors;
@@ -159,15 +161,17 @@ public final class ProblemDetailsMockMvcMatchers {
 
         @Override
         public void match(MvcResult result) throws Exception {
-            var details = PROBLEM_DETAILS_MATCHER.readProblemDetail(result);
+            var details = PROBLEM_DETAILS_MATCHER
+                    .withStatusCode(statusCode)
+                    .readProblemDetail(result);
             var properties = details.getProperties();
             assertThat(properties).containsKey("errors")
                     .extractingByKey("errors")
                     .isInstanceOf(List.class);
 
-            var errors = (List) properties.get("errors");
+            var actualErrors = (List<?>) properties.get("errors");
 
-            assertThat(errors)
+            assertThat(actualErrors)
                     .satisfiesExactlyInAnyOrder(
                             this.errors.stream().map(ErrorDescription::toSatisfies).toArray(ThrowingConsumer[]::new));
 
@@ -222,7 +226,7 @@ public final class ProblemDetailsMockMvcMatchers {
             }
 
             ThrowingConsumer<Map<String, Object>> toSatisfies() {
-                return (data) -> {
+                return data -> {
                     for (var field : fields.entrySet()) {
                         assertThat(data)
                                 .extractingByKey(field.getKey())
