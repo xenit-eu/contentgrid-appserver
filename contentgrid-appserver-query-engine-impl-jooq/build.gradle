@@ -14,8 +14,8 @@ dependencies {
     api 'com.contentgrid.thunx:thunx-model'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
 
-    annotationProcessor "org.jooq:jooq-checker:3.20.8"
-    testAnnotationProcessor "org.jooq:jooq-checker:3.20.8"
+    annotationProcessor "org.jooq:jooq-checker:3.20.9"
+    testAnnotationProcessor "org.jooq:jooq-checker:3.20.9"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
