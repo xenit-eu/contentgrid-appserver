@@ -219,16 +219,16 @@ class HalFormsProfileControllerTest {
                                         {
                                             name: "shipping_address",
                                             type: "url"
-                                        } #, TODO: re-enable in ACC-2311
+                                        },
                                         ## These many-to-many are still present because they are not ignored
-                                        #{
-                                        #    name: "promos",
-                                        #    type: "url"
-                                        #},
-                                        #{
-                                        #    name: "manualPromos",
-                                        #    type: "url"
-                                        #}
+                                        {
+                                            name: "promos",
+                                            type: "url"
+                                        },
+                                        {
+                                            name: "manualPromos",
+                                            type: "url"
+                                        }
                                     ]
                                 }
                             }
@@ -880,29 +880,29 @@ class HalFormsProfileControllerTest {
                                         {
                                             name: "total_spend",
                                             type: "number"
-                                        } #, TODO: re-enable in ACC-2311
-                                        #{
-                                        #    name: "orders",
-                                        #    type: "url",
-                                        #    options: {
-                                        #        valueField: "/_links/self/href",
-                                        #        minItems: 0,
-                                        #        link: {
-                                        #            href: "http://localhost/orders"
-                                        #        }
-                                        #    }
-                                        #},
-                                        #{
-                                        #    name: "invoices",
-                                        #    type: "url",
-                                        #    options: {
-                                        #        valueField: "/_links/self/href",
-                                        #        minItems: 0,
-                                        #        link: {
-                                        #            href: "http://localhost/invoices"
-                                        #        }
-                                        #    }
-                                        #}
+                                        },
+                                        {
+                                            name: "orders",
+                                            type: "url",
+                                            options: {
+                                                valueField: "/_links/self/href",
+                                                minItems: 0,
+                                                link: {
+                                                    href: "http://localhost/orders"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            name: "invoices",
+                                            type: "url",
+                                            options: {
+                                                valueField: "/_links/self/href",
+                                                minItems: 0,
+                                                link: {
+                                                    href: "http://localhost/invoices"
+                                                }
+                                            }
+                                        }
                                     ]
                                 },
                                 search: {} # tested in other tests
@@ -969,18 +969,18 @@ class HalFormsProfileControllerTest {
                                                     href: "http://localhost/refunds"
                                                 }
                                             }
-                                        } #, TODO: re-enable in ACC-2311
-                                        #{
-                                        #    name: "orders",
-                                        #    type: "url",
-                                        #    options: {
-                                        #        valueField: "/_links/self/href",
-                                        #        minItems: 0,
-                                        #        link: {
-                                        #            href: "http://localhost/orders"
-                                        #        }
-                                        #    }
-                                        #}
+                                        },
+                                        {
+                                            name: "orders",
+                                            type: "url",
+                                            options: {
+                                                valueField: "/_links/self/href",
+                                                minItems: 0,
+                                                link: {
+                                                    href: "http://localhost/orders"
+                                                }
+                                            }
+                                        }
                                     ]
                                 },
                                 search: {} # tested in other tests
