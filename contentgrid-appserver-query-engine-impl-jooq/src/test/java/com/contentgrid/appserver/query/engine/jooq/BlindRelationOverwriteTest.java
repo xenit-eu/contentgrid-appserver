@@ -37,38 +37,23 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
-import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.PlatformTransactionManager;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
-})
-@ContextConfiguration(classes = {TestApplication.class})
+@JooqTest
 class BlindRelationOverwriteTest {
 
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
@@ -414,34 +399,5 @@ class BlindRelationOverwriteTest {
 
         // Also the succeeding target is not actually linked due to the exception throw earlier
         assertThat(queryEngine.isLinked(APPLICATION, newSourceRelationRequest, succeedingTarget.getEntityId(), PERMIT_ALWAYS)).isFalse();
-    }
-
-    @SpringBootApplication
-    static class TestApplication {
-
-        @Bean
-        public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
-            return new AutowiredDSLContextResolver(dslContext);
-        }
-
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-
-        @Bean
-        public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
-            return new JOOQTableCreator(dslContextResolver);
-        }
-
-        @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager) {
-            return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
-                    transactionManager
-            );
-        }
     }
 }

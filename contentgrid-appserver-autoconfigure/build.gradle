@@ -27,6 +27,7 @@ dependencies {
     compileOnly 'io.minio:minio'
     compileOnly 'org.flywaydb:flyway-core'
     compileOnly 'org.flywaydb:flyway-database-postgresql'
+    compileOnly 'org.jooq:jooq'
     compileOnly 'org.springframework:spring-tx'
     compileOnly 'org.springframework.hateoas:spring-hateoas'
     compileOnly 'org.springframework.security:spring-security-web'
