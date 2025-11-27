@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -81,7 +80,6 @@ import org.springframework.transaction.annotation.Transactional;
 })
 @ContextConfiguration(classes = {TestApplication.class})
 @Transactional
-@Allow.PlainSQL
 class JOOQThunkExpressionVisitorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -295,61 +293,61 @@ class JOOQThunkExpressionVisitorTest {
 
     void insertData() {
         var now = Instant.now();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), ALICE_ID)
-                .set(DSL.field("name", String.class), "alice")
-                .set(DSL.field("vat", String.class), "vat_1")
+        dslContext.insertInto(DSL.table(DSL.name("person")))
+                .set(DSL.field(DSL.name("id"), UUID.class), ALICE_ID)
+                .set(DSL.field(DSL.name("name"), String.class), "alice")
+                .set(DSL.field(DSL.name("vat"), String.class), "vat_1")
                 .execute();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), BOB_ID)
-                .set(DSL.field("name", String.class), "bob")
-                .set(DSL.field("vat", String.class), "vat_2")
+        dslContext.insertInto(DSL.table(DSL.name("person")))
+                .set(DSL.field(DSL.name("id"), UUID.class), BOB_ID)
+                .set(DSL.field(DSL.name("name"), String.class), "bob")
+                .set(DSL.field(DSL.name("vat"), String.class), "vat_2")
                 .execute();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), JOHN_ID)
-                .set(DSL.field("name", String.class), "john")
-                .set(DSL.field("vat", String.class), "vat_3")
+        dslContext.insertInto(DSL.table(DSL.name("person")))
+                .set(DSL.field(DSL.name("id"), UUID.class), JOHN_ID)
+                .set(DSL.field(DSL.name("name"), String.class), "john")
+                .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
                 .execute();
-        dslContext.insertInto(DSL.table("person"))
-                .set(DSL.field("id", UUID.class), THIJS_ID)
-                .set(DSL.field("name", String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
-                .set(DSL.field("vat", String.class), "Thijs")
+        dslContext.insertInto(DSL.table(DSL.name("person")))
+                .set(DSL.field(DSL.name("id"), UUID.class), THIJS_ID)
+                .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
+                .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
                 .execute();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE1_ID)
-                .set(DSL.field("number", String.class), "invoice_1")
-                .set(DSL.field("amount", Double.class), 10.0)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), true)
-                .set(DSL.field("content__id", String.class), "content_1")
-                .set(DSL.field("content__filename", String.class), "file.pdf")
-                .set(DSL.field("content__mimetype", String.class), "application/pdf")
-                .set(DSL.field("content__length", Long.class), 100L)
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "bob")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
-                .set(DSL.field("customer", UUID.class), ALICE_ID)
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_1")
+                .set(DSL.field(DSL.name("amount"), Double.class), 10.0)
+                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
+                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), true)
+                .set(DSL.field(DSL.name("content__id"), String.class), "content_1")
+                .set(DSL.field(DSL.name("content__filename"), String.class), "file.pdf")
+                .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/pdf")
+                .set(DSL.field(DSL.name("content__length"), Long.class), 100L)
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "bob")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "bob")
+                .set(DSL.field(DSL.name("customer"), UUID.class), ALICE_ID)
                 .execute();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE2_ID)
-                .set(DSL.field("number", String.class), "invoice_2")
-                .set(DSL.field("amount", Double.class), 20.0)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), false)
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE2_ID)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_2")
+                .set(DSL.field(DSL.name("amount"), Double.class), 20.0)
+                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
+                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
                 // no content
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
-                .set(DSL.field("customer", UUID.class), BOB_ID)
-                .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID)
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID)
+                .set(DSL.field(DSL.name("previous_invoice"), UUID.class), INVOICE1_ID)
                 .execute();
-        dslContext.insertInto(DSL.table("person__friends"))
-                .set(DSL.field("person_src_id", UUID.class), BOB_ID)
-                .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID)
+        dslContext.insertInto(DSL.table(DSL.name("person__friends")))
+                .set(DSL.field(DSL.name("person_src_id"), UUID.class), BOB_ID)
+                .set(DSL.field(DSL.name("person_tgt_id"), UUID.class), ALICE_ID)
                 .execute();
     }
 

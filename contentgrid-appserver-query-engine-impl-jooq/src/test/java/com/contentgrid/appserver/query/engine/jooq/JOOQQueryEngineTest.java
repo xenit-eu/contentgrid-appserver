@@ -106,7 +106,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.jooq.Allow;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
@@ -131,7 +130,6 @@ import org.springframework.transaction.PlatformTransactionManager;
         "logging.level.org.jooq.tools.LoggerListener=DEBUG"
 })
 @ContextConfiguration(classes = {TestApplication.class})
-@Allow.PlainSQL
 class JOOQQueryEngineTest {
 
     private static final OffsetData DEFAULT_PAGE_DATA = new OffsetData(20, 0);
@@ -484,80 +482,80 @@ class JOOQQueryEngineTest {
 
     void insertData() {
         var now = Instant.now();
-        dslContext.insertInto(DSL.table("person"),
-                        DSL.field("id", UUID.class), DSL.field("name", String.class), DSL.field("vat", String.class))
+        dslContext.insertInto(DSL.table(DSL.name("person")),
+                        DSL.field(DSL.name("id"), UUID.class), DSL.field(DSL.name("name"), String.class), DSL.field(DSL.name("vat"), String.class))
                 .values(ALICE_ID.getValue(), "alice", "vat_1")
                 .values(BOB_ID.getValue(), "bob", "vat_2")
                 .values(JOHN_ID.getValue(), "john", "vat_3")
                 .execute();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE1_ID.getValue())
-                .set(DSL.field("version", Long.class), 150L)
-                .set(DSL.field("number", String.class), "invoice_1")
-                .set(DSL.field("amount", Double.class), 10.0)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), true)
-                .set(DSL.field("content__id", String.class), "content_1")
-                .set(DSL.field("content__filename", String.class), "file.pdf")
-                .set(DSL.field("content__mimetype", String.class), "application/pdf")
-                .set(DSL.field("content__length", Long.class), 100L)
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "bob")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
-                .set(DSL.field("customer", UUID.class), ALICE_ID.getValue())
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID.getValue())
+                .set(DSL.field(DSL.name("version"), Long.class), 150L)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_1")
+                .set(DSL.field(DSL.name("amount"), Double.class), 10.0)
+                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
+                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), true)
+                .set(DSL.field(DSL.name("content__id"), String.class), "content_1")
+                .set(DSL.field(DSL.name("content__filename"), String.class), "file.pdf")
+                .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/pdf")
+                .set(DSL.field(DSL.name("content__length"), Long.class), 100L)
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "bob")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "bob")
+                .set(DSL.field(DSL.name("customer"), UUID.class), ALICE_ID.getValue())
                 .execute();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE2_ID.getValue())
-                .set(DSL.field("version", Long.class), 9999L)
-                .set(DSL.field("number", String.class), "invoice_2")
-                .set(DSL.field("amount", Double.class), 5.0)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), false)
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE2_ID.getValue())
+                .set(DSL.field(DSL.name("version"), Long.class), 9999L)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_2")
+                .set(DSL.field(DSL.name("amount"), Double.class), 5.0)
+                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
+                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
                 // no content
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
-                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
-                .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID.getValue())
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID.getValue())
+                .set(DSL.field(DSL.name("previous_invoice"), UUID.class), INVOICE1_ID.getValue())
                 .execute();
-        dslContext.insertInto(DSL.table("invoice"))
-                .set(DSL.field("id", UUID.class), INVOICE3_ID.getValue())
-                .set(DSL.field("version", Long.class), 9999L)
-                .set(DSL.field("number", String.class), "invoice_3")
-                .set(DSL.field("amount", Double.class), 1.0)
-                .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
-                .set(DSL.field("is_paid", Boolean.class), false)
-                .set(DSL.field("content__id", String.class), "content_3")
-                .set(DSL.field("content__filename", String.class), "invoice.doc")
-                .set(DSL.field("content__mimetype", String.class), "application/msword")
-                .set(DSL.field("content__length", Long.class), 1048576L)
-                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
-                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
-                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
-                .set(DSL.field("customer", UUID.class), BOB_ID.getValue())
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE3_ID.getValue())
+                .set(DSL.field(DSL.name("version"), Long.class), 9999L)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_3")
+                .set(DSL.field(DSL.name("amount"), Double.class), 1.0)
+                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
+                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
+                .set(DSL.field(DSL.name("content__id"), String.class), "content_3")
+                .set(DSL.field(DSL.name("content__filename"), String.class), "invoice.doc")
+                .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/msword")
+                .set(DSL.field(DSL.name("content__length"), Long.class), 1048576L)
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID.getValue())
                 .execute();
-        dslContext.insertInto(DSL.table("person__friends"))
-                .set(DSL.field("person_src_id", UUID.class), BOB_ID.getValue())
-                .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID.getValue())
+        dslContext.insertInto(DSL.table(DSL.name("person__friends")))
+                .set(DSL.field(DSL.name("person_src_id"), UUID.class), BOB_ID.getValue())
+                .set(DSL.field(DSL.name("person_tgt_id"), UUID.class), ALICE_ID.getValue())
                 .execute();
-        dslContext.insertInto(DSL.table("product"),
-                        DSL.field("id", UUID.class), DSL.field("code", String.class), DSL.field("description", String.class))
+        dslContext.insertInto(DSL.table(DSL.name("product")),
+                        DSL.field(DSL.name("id"), UUID.class), DSL.field(DSL.name("code"), String.class), DSL.field(DSL.name("description"), String.class))
                 .values(PRODUCT1_ID.getValue(), "code_1", "test description")
                 .values(PRODUCT2_ID.getValue(), "code_2", "")
                 .values(PRODUCT3_ID.getValue(), "code_3", null)
                 .execute();
-        dslContext.insertInto(DSL.table("invoice__products"),
-                        DSL.field("invoice_id", UUID.class), DSL.field("product_id", UUID.class))
+        dslContext.insertInto(DSL.table(DSL.name("invoice__products")),
+                        DSL.field(DSL.name("invoice_id"), UUID.class), DSL.field(DSL.name("product_id"), UUID.class))
                 .values(INVOICE1_ID.getValue(), PRODUCT1_ID.getValue())
                 .values(INVOICE1_ID.getValue(), PRODUCT2_ID.getValue())
                 .execute();
-        dslContext.insertInto(DSL.table("address"), DSL.field("id", UUID.class))
+        dslContext.insertInto(DSL.table(DSL.name("address")), DSL.field(DSL.name("id"), UUID.class))
                 .values(ADDRESS1_ID.getValue())
                 .values(ADDRESS2_ID.getValue())
                 .execute();
@@ -2563,8 +2561,8 @@ class JOOQQueryEngineTest {
     void testPaging() {
         // Make a lot of data
         dslContext.truncateTable(PRODUCT.getTable().getValue(), INVOICE_PRODUCTS.getJoinTable().getValue()).execute();
-        var inserter = dslContext.insertInto(DSL.table(PRODUCT.getTable().getValue()),
-                        DSL.field("id", UUID.class), DSL.field("code", String.class), DSL.field("description", String.class));
+        var inserter = dslContext.insertInto(DSL.table(DSL.name(PRODUCT.getTable().getValue())),
+                        DSL.field(DSL.name("id"), UUID.class), DSL.field(DSL.name("code"), String.class), DSL.field(DSL.name("description"), String.class));
         for (int i = 0; i < 10_000; i++) {
             inserter = inserter.values(UUID_GENERATOR.generate(), "code_%04d".formatted(i), "a product");
         }
