@@ -24,10 +24,7 @@ import java.util.Set;
 @Getter
 public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilter implements LocaleAwareSearchFilter {
 
-    /**
-     * The locale for which the search filter is defined.
-     * Might be null, in which case the default locale for the {@link com.contentgrid.appserver.application.model.Application} will be used.
-     */
+
     Locale locale;
 
     @Builder
@@ -35,7 +32,7 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
                                         @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
                                         @NonNull PropertyPath attributePath,
                                         @NonNull @Singular Set<SearchFilterFlag> flags,
-                                        Locale locale) {
+                                        @NonNull Locale locale) {
         super(name, translations, attributePath, flags);
 
         this.locale = locale;
