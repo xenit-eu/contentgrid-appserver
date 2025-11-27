@@ -289,21 +289,8 @@ class JOOQThunkExpressionVisitorTest {
     @BeforeEach
     void setup() {
         // no AfterEach needed, because setup() is called in the same transaction of a test.
-        createCGPrefixSearchNormalize();
         tableCreator.createTables(APPLICATION);
         insertData();
-    }
-
-    void createCGPrefixSearchNormalize() {
-        var schema = DSL.schema("extensions");
-        dslContext.createSchemaIfNotExists(schema).execute();
-        dslContext.execute(DSL.sql("CREATE EXTENSION unaccent SCHEMA ?;", schema));
-        dslContext.execute(DSL.sql("""
-                CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
-                  RETURNS text
-                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
-                RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
-                """, schema, schema));
     }
 
     void insertData() {

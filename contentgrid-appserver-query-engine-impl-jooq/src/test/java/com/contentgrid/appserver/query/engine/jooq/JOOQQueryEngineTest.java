@@ -473,7 +473,6 @@ class JOOQQueryEngineTest {
 
     @BeforeEach
     void setup() {
-        createCGPrefixSearchNormalize();
         tableCreator.createTables(APPLICATION);
         insertData();
     }
@@ -481,26 +480,6 @@ class JOOQQueryEngineTest {
     @AfterEach
     void cleanup() {
         tableCreator.dropTables(APPLICATION);
-        dropCGPrefixSearchNormalize();
-    }
-
-    void createCGPrefixSearchNormalize() {
-        var schema = DSL.schema("extensions");
-        dslContext.createSchemaIfNotExists(schema).execute();
-        dslContext.execute(DSL.sql("CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ?;", schema));
-        dslContext.execute(DSL.sql("""
-                CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
-                  RETURNS text
-                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
-                RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
-                """, schema, schema));
-    }
-
-    void dropCGPrefixSearchNormalize() {
-        var schema = DSL.schema("extensions");
-        dslContext.execute(DSL.sql("DROP FUNCTION ?.contentgrid_prefix_search_normalize(text);", schema));
-        dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
-        dslContext.dropSchemaIfExists(schema).execute();
     }
 
     void insertData() {
