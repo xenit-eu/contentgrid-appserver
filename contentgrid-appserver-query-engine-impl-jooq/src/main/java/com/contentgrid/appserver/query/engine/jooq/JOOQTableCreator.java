@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
 import lombok.RequiredArgsConstructor;
+import org.jooq.Allow;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -32,6 +33,8 @@ public class JOOQTableCreator implements TableCreator {
             var strategy = JOOQRelationStrategyFactory.forRelation(relation);
             strategy.make(dslContext, application, relation);
         }
+        // Create extensions schema and functions
+        createCGPrefixSearchNormalize(dslContext);
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -77,6 +80,30 @@ public class JOOQTableCreator implements TableCreator {
             var table = JOOQUtils.resolveTable(entity);
             dslContext.dropTable(table).execute();
         }
+
+        // Drop extensions schema and functions
+        dropCGPrefixSearchNormalize(dslContext);
+    }
+
+    @Allow.PlainSQL
+    private void createCGPrefixSearchNormalize(DSLContext dslContext) {
+        var schema = DSL.schema("extensions");
+        dslContext.createSchemaIfNotExists(schema).execute();
+        dslContext.execute(DSL.sql("CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ?;", schema));
+        dslContext.execute(DSL.sql("""
+                CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
+                  RETURNS text
+                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+                RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
+                """, schema, schema));
+    }
+
+    @Allow.PlainSQL
+    private void dropCGPrefixSearchNormalize(DSLContext dslContext) {
+        var schema = DSL.schema("extensions");
+        dslContext.execute(DSL.sql("DROP FUNCTION ?.contentgrid_prefix_search_normalize(text);", schema));
+        dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
+        dslContext.dropSchemaIfExists(schema).execute();
     }
 
 }
