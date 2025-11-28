@@ -21,7 +21,14 @@ public interface UnderTestRunnable<P, T> {
     }
 
     static <T> UnderTestRunnableBuilder<Void, T> test(Supplier<T> test) {
-        return test(() -> null, p -> test.get());
+        return test(() -> {}, test);
+    }
+
+    static <T> UnderTestRunnableBuilder<Void, T> test(Runnable prepare, Supplier<T> test) {
+        return test(() -> {
+            prepare.run();
+            return null;
+        }, p -> test.get());
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

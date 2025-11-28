@@ -8,11 +8,14 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -29,6 +32,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.ConcurrencyJOOQQueryEngineTest.Config;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
@@ -38,6 +42,7 @@ import com.contentgrid.appserver.query.engine.jooq.test.concurrency.ConcurrencyI
 import com.contentgrid.appserver.query.engine.jooq.test.concurrency.UnderTestRunnable;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -111,6 +116,8 @@ class ConcurrencyJOOQQueryEngineTest {
                 .build();
         var targetEndpoint = RelationEndPoint.builder()
                 .entity(ENTITY_B.getName())
+                .name(RelationName.of("to_a"))
+                .flag(HiddenEndpointFlag.INSTANCE)
                 .build();
         return Stream.of(
                 Arguments.argumentSet("source one-to-one", SourceOneToOneRelation.builder()
@@ -129,12 +136,40 @@ class ConcurrencyJOOQQueryEngineTest {
                         .targetReference(ColumnName.of("entity_b_id"))
                         .build())
         );
+    }
 
+    static Stream<Arguments> toManyRelations() {
+        var sourceEndpoint = RelationEndPoint.builder()
+                .entity(ENTITY_A.getName())
+                .name(RelationName.of("to_bs"))
+                .pathSegment(PathSegmentName.of("to-bs"))
+                .linkName(LinkName.of("to-bs"))
+                .build();
+        var targetEndpoint = RelationEndPoint.builder()
+                .entity(ENTITY_B.getName())
+                .name(RelationName.of("to_a"))
+                .flag(HiddenEndpointFlag.INSTANCE)
+                .build();
+
+        return Stream.of(
+                Arguments.argumentSet("one-to-many", OneToManyRelation.builder()
+                        .sourceEndPoint(sourceEndpoint)
+                        .targetEndPoint(targetEndpoint)
+                        .sourceReference(ColumnName.of("entity_a_id"))
+                        .build()),
+                Arguments.argumentSet("many-to-many", ManyToManyRelation.builder()
+                        .sourceEndPoint(sourceEndpoint)
+                        .targetEndPoint(targetEndpoint)
+                        .joinTable(TableName.of("join_a_b"))
+                        .sourceReference(ColumnName.of("entity_a_id"))
+                        .targetReference(ColumnName.of("entity_b_id"))
+                        .build())
+        );
     }
 
     @ParameterizedTest
     @MethodSource("toOneRelations")
-    void setEmptyToOneRelations(Relation relation) {
+    void setEmptyToOneRelation(Relation relation) {
         var app = createModel(relation);
 
         var entityA = createItem(app, ENTITY_A.getName());
@@ -172,7 +207,7 @@ class ConcurrencyJOOQQueryEngineTest {
 
     @ParameterizedTest
     @MethodSource("toOneRelations")
-    void setFilledToOneRelations(Relation relation) {
+    void setFilledToOneRelation(Relation relation) {
         var app = createModel(relation);
 
         var entityA = createItem(app, ENTITY_A.getName());
@@ -207,7 +242,160 @@ class ConcurrencyJOOQQueryEngineTest {
                 () -> assertThatCode(() -> queryEngine.setLink(app, relReq, entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
                         .doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
         );
+    }
 
+    @ParameterizedTest
+    @MethodSource("toOneRelations")
+    void clearFilledToOneRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var originalValue = createItem(app, ENTITY_B.getName());
+        var entityB2 = createItem(app, ENTITY_B.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> {
+                            queryEngine.setLink(app, relReq, originalValue.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+                            return queryEngine.findTarget(app, relReq, PERMIT_ALWAYS)
+                                    .map(EntityIdAndVersion::version)
+                                    .orElseThrow();
+                        }, version -> assertThatCode(() -> queryEngine.unsetLink(app, relReq.withVersionConstraint(version), PERMIT_ALWAYS, NONE_EVENTS)))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
+                        .verify(thrown -> {
+                            var maybeTarget = queryEngine.findTarget(app, relReq, PERMIT_ALWAYS);
+                            thrown.satisfiesAnyOf(
+                                    throwable -> {
+                                        assertThat(throwable).isNull();
+                                        assertThat(maybeTarget).isEmpty();
+                                    },
+                                    throwable -> {
+                                        assertThat(throwable).isInstanceOf(UnsatisfiedVersionException.class);
+                                        assertThat(maybeTarget).map(EntityIdAndVersion::entityId).hasValue(entityB2.getId());
+                                    }
+                            );
+                        })
+                ,
+                () -> assertThatCode(() -> queryEngine.setLink(app, relReq, entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                        .doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("toOneRelations")
+    void concurrentlyClearFilledToOneRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var originalValue = createItem(app, ENTITY_B.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> {
+                            queryEngine.setLink(app, relReq, originalValue.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+                            return queryEngine.findTarget(app, relReq, PERMIT_ALWAYS)
+                                    .map(EntityIdAndVersion::version)
+                                    .orElseThrow();
+                        }, version -> assertThatCode(() -> queryEngine.unsetLink(app, relReq.withVersionConstraint(version), PERMIT_ALWAYS, NONE_EVENTS)))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
+                        .verify(thrown -> {
+                            var maybeTarget = queryEngine.findTarget(app, relReq, PERMIT_ALWAYS);
+                            assertThat(maybeTarget).isEmpty();
+                            thrown.satisfiesAnyOf(
+                                    throwable -> {
+                                        assertThat(throwable).isNull();
+                                    },
+                                    throwable -> {
+                                        assertThat(throwable).isInstanceOfSatisfying(UnsatisfiedVersionException.class, ex -> {
+                                            assertThat(ex.getActualVersion()).isEqualTo(Version.nonExisting());
+                                        });
+                                    }
+                            );
+                        })
+                ,
+                () -> assertThatCode(() -> queryEngine.unsetLink(app, relReq, PERMIT_ALWAYS, NONE_EVENTS))
+                        .satisfiesAnyOf(
+                                throwable -> {
+                                    assertThat(throwable).isNull();
+                                },
+                                throwable -> {
+                                    assertThat(throwable).isInstanceOfSatisfying(UnsatisfiedVersionException.class, ex -> {
+                                        assertThat(ex.getActualVersion()).isEqualTo(Version.nonExisting());
+                                    });
+                                }
+                        )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("toManyRelations")
+    void addItemsToManyRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var entityB1 = createItem(app, ENTITY_B.getName());
+        var entityB2 = createItem(app, ENTITY_B.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> assertThatCode(() -> queryEngine.addLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS)))
+                        .verify(thrown -> thrown.doesNotThrowAnyException())
+                        .verify(thrown -> {
+                            assertThat(queryEngine.isLinked(app, relReq, entityB1.getId(), PERMIT_ALWAYS)).isTrue();
+                        })
+                        .cleanup(() -> queryEngine.unsetLink(app, relReq, PERMIT_ALWAYS, NONE_EVENTS))
+                ,
+                () -> queryEngine.addLinks(app, relReq, Set.of(entityB2.getId()), PERMIT_ALWAYS, NONE_EVENTS)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("toManyRelations")
+    void concurrentlyAddSameItemToManyRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var entityB1 = createItem(app, ENTITY_B.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> assertThatCode(() -> queryEngine.addLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS)))
+                        .verify(thrown -> thrown.doesNotThrowAnyException())
+                        .verify(thrown -> {
+                            assertThat(queryEngine.isLinked(app, relReq, entityB1.getId(), PERMIT_ALWAYS)).isTrue();
+                        })
+                        .cleanup(() -> queryEngine.unsetLink(app, relReq, PERMIT_ALWAYS, NONE_EVENTS))
+                ,
+                () -> queryEngine.addLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("toManyRelations")
+    void concurrentlyRemoveSameItemToManyRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var entityB1 = createItem(app, ENTITY_B.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(UnderTestRunnable.test(
+                                () -> queryEngine.addLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS),
+                                () -> assertThatCode(() -> queryEngine.removeLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS))
+                        )
+                        // TODO: should this be allowed to throw RelationLinkNotFoundException, or should we consider "was already gone" as request fulfilled
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(RelationLinkNotFoundException.class))
+                        .verify(thrown -> {
+                            assertThat(queryEngine.isLinked(app, relReq, entityB1.getId(), PERMIT_ALWAYS)).isFalse();
+                        }),
+                () -> assertThatCode(() ->queryEngine.removeLinks(app, relReq, Set.of(entityB1.getId()), PERMIT_ALWAYS, NONE_EVENTS))
+                        .doesNotThrowAnyExceptionExcept(RelationLinkNotFoundException.class)
+        );
     }
 
     private Application createModel(Relation relation) {
