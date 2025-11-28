@@ -18,6 +18,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
+import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -36,6 +38,9 @@ public class TransactionalQueryEngine implements QueryEngine {
     @NonNull
     private final PlatformTransactionManager transactionManager;
 
+    @Setter
+    private int maxRetries = 3;
+
     private <T> T runInReadOnlyTransaction(Supplier<T> callable) {
         var tpl = new TransactionTemplate(transactionManager);
         tpl.setReadOnly(true);
@@ -46,19 +51,18 @@ public class TransactionalQueryEngine implements QueryEngine {
     private <T> T runInWriteTransaction(Supplier<T> callable) {
         var tpl = new TransactionTemplate(transactionManager);
 
-        return tpl.execute(tx -> {
-            var savepoint = tx.createSavepoint();
-            var hasThrown = true;
+        ConcurrencyFailureException lastException;
+        int i = maxRetries;
+        do {
+            i--;
             try {
-                var ret = callable.get();
-                hasThrown = false;
-                return ret;
-            } finally {
-                if(hasThrown) {
-                    tx.rollbackToSavepoint(savepoint);
-                }
+                return tpl.execute(tx -> callable.get());
+            } catch(ConcurrencyFailureException e) {
+                lastException = e;
             }
-        });
+        } while (i >= 0);
+
+        throw lastException;
     }
 
     @Override

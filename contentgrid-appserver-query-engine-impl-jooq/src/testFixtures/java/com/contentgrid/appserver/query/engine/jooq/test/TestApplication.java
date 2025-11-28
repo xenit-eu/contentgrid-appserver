@@ -14,6 +14,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootApplication
@@ -40,10 +41,18 @@ public class TestApplication {
     }
 
     @Bean
-    public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-            PlatformTransactionManager transactionManager) {
+    public JOOQQueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver) {
+        return new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500)));
+    }
+
+    @Bean
+    @Primary
+    public QueryEngine queryEngine(
+            JOOQQueryEngine jooqQueryEngine,
+            PlatformTransactionManager transactionManager
+    ) {
         return new TransactionalQueryEngine(
-                new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
+                jooqQueryEngine,
                 transactionManager
         );
     }
