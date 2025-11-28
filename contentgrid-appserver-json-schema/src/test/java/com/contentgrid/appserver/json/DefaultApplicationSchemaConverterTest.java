@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -27,7 +28,6 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.json.exceptions.SchemaValidationException;
-import com.contentgrid.appserver.json.exceptions.UnknownFlagException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -232,6 +232,8 @@ class DefaultApplicationSchemaConverterTest {
         var relation = ManyToOneRelation.builder()
                 .sourceEndPoint(Relation.RelationEndPoint.builder()
                         .entity(sourceEntity.getName())
+                        .name(RelationName.of("__internal_target_source"))
+                        .flag(HiddenEndpointFlag.INSTANCE)
                         .build())
                 .targetEndPoint(Relation.RelationEndPoint.builder()
                         .entity(targetEntity.getName())
@@ -326,6 +328,7 @@ class DefaultApplicationSchemaConverterTest {
                             "targetEndpoint":
                                 {
                                     "entityName": "source",
+                                    "name": "__internal_target_source",
                                     "flags": [ "hidden" ]
                                 },
                             "sourceReference":"target_ref"

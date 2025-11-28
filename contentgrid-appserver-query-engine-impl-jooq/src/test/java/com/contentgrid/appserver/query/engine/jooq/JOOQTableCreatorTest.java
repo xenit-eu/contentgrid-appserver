@@ -24,6 +24,7 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
@@ -225,6 +226,8 @@ class JOOQTableCreatorTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(PERSON.getName())
+                    .name(RelationName.of("__internal_person_friends"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
                     .build())
             .joinTable(TableName.of("person__friends"))
             .sourceReference(ColumnName.of("person_src_id"))

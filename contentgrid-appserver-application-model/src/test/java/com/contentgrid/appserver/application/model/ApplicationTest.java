@@ -25,6 +25,7 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -692,7 +693,11 @@ class ApplicationTest {
                                         .linkName(LinkName.of("orders"))
                                         .description("Represents the orders placed by a customer.")
                                         .build())
-                                .targetEndPoint(RelationEndPoint.builder().entity(order.getName()).build())
+                                .targetEndPoint(RelationEndPoint.builder()
+                                        .entity(order.getName())
+                                        .name(RelationName.of("__internal_customer_orders"))
+                                        .flag(HiddenEndpointFlag.INSTANCE)
+                                        .build())
                                 .sourceReference(ColumnName.of("_customer_id__orders"))
                                 .build()
                 )
@@ -704,7 +709,11 @@ class ApplicationTest {
                                         .linkName(LinkName.of("products"))
                                         .description("Represents the products in an order.")
                                         .build())
-                                .targetEndPoint(RelationEndPoint.builder().entity(product.getName()).build())
+                                .targetEndPoint(RelationEndPoint.builder()
+                                        .entity(product.getName())
+                                        .name(RelationName.of("__internal_order_products"))
+                                        .flag(HiddenEndpointFlag.INSTANCE)
+                                        .build())
                                 .joinTable(TableName.of("order_product"))
                                 .sourceReference(ColumnName.of("_order_id"))
                                 .targetReference(ColumnName.of("_product_id"))

@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -114,6 +115,8 @@ class DynamicDispatchApplicationHandlerMappingTest {
                             .build())
                     .targetEndPoint(RelationEndPoint.builder()
                             .entity(OTHER_ENTITY.getName())
+                            .name(RelationName.of("__internal_test_entity_to_many_other"))
+                            .flag(HiddenEndpointFlag.INSTANCE)
                             .build())
                     .sourceReference(ColumnName.of("test_id"))
                     .build())

@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.RelationEndPointBuilder;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -872,6 +873,7 @@ class StructuredRelationsJOOQQueryEngineTest {
             return copyWith(
                     sourceCustomizer,
                     targetCustomizer.andThen(b -> b
+                            .clearFlags()
                             .name(RelationName.of(relName))
                             .linkName(LinkName.of(relName))
                             .pathSegment(PathSegmentName.of(relName))
@@ -1024,7 +1026,7 @@ class StructuredRelationsJOOQQueryEngineTest {
 
     static class ManyToManyRelationArgumentFactory extends AbstractRelationArgumentFactory<ManyToManyRelation> {
         public ManyToManyRelationArgumentFactory(EntityName source) {
-            this(b -> b.entity(source), b -> {}, "many-to-many");
+            this(b -> b.entity(source), b -> b.name(RelationName.of("rel-tgt")).flag(HiddenEndpointFlag.INSTANCE), "many-to-many");
         }
 
         private ManyToManyRelationArgumentFactory(@NonNull Consumer<RelationEndPointBuilder> sourceCustomizer,
@@ -1057,7 +1059,7 @@ class StructuredRelationsJOOQQueryEngineTest {
 
     static class OneToManyRelationArgumentFactory extends AbstractRelationArgumentFactory<OneToManyRelation> {
         public OneToManyRelationArgumentFactory(EntityName source) {
-            this(b -> b.entity(source), b -> {}, "one-to-many");
+            this(b -> b.entity(source), b -> b.name(RelationName.of("rel-tgt")).flag(HiddenEndpointFlag.INSTANCE), "one-to-many");
         }
 
         private OneToManyRelationArgumentFactory(@NonNull Consumer<RelationEndPointBuilder> sourceCustomizer,

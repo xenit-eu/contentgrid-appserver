@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -746,8 +747,8 @@ public class EventsDispatchTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(ENTITY_A.getName())
-                    .name(null)
-                    .linkName(null)
+                    .name(RelationName.of("__internal_entity_a_related"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
                     .build())
             .joinTable(TableName.of("entity_a_related"))
             .sourceReference(ColumnName.of("source_id"))

@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -180,6 +181,8 @@ class BlindRelationOverwriteTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(ENTITY_B.getName())
+                    .name(RelationName.of("__inverse_otm_entity_b_uni"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
                     .build())
             .sourceReference(ColumnName.of("otm_entity_a_uni"))
             .build();

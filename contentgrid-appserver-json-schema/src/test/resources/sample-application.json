@@ -651,6 +651,7 @@
         "entityName": "department"
       },
       "targetEndpoint": {
+        "name": "__internal_department_projects",
         "entityName": "Project",
         "flags": ["hidden"]
       },
