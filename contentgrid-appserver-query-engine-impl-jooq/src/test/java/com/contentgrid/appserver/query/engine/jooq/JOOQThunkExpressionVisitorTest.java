@@ -1,10 +1,5 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
@@ -26,6 +21,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -40,46 +36,46 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.thunx.predicates.model.CollectionValue;
 import com.contentgrid.thunx.predicates.model.Comparison;
-import com.contentgrid.thunx.predicates.model.ListValue;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.NumericFunction;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
-import java.time.Instant;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
+import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
+        "logging.level.org.jooq.tools.LoggerListener=DEBUG",
 })
 @ContextConfiguration(classes = {TestApplication.class})
 @Transactional
+@Allow.PlainSQL
 class JOOQThunkExpressionVisitorTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
@@ -97,6 +93,12 @@ class JOOQThunkExpressionVisitorTest {
             .constraint(Constraint.unique())
             .build();
 
+    private static final SimpleAttribute PERSON_COMMENT = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -104,6 +106,7 @@ class JOOQThunkExpressionVisitorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -113,6 +116,11 @@ class JOOQThunkExpressionVisitorTest {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
+                    .build())
+            .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                    .attribute(PERSON_COMMENT)
+                    .locale(Locale.ENGLISH)
+                    .name(FilterName.of("comment~fts"))
                     .build())
             .build();
 
@@ -287,67 +295,84 @@ class JOOQThunkExpressionVisitorTest {
     @BeforeEach
     void setup() {
         // no AfterEach needed, because setup() is called in the same transaction of a test.
+        createCGPrefixSearchNormalize();
         tableCreator.createTables(APPLICATION);
         insertData();
     }
 
+    void createCGPrefixSearchNormalize() {
+        var schema = DSL.schema("extensions");
+        dslContext.createSchemaIfNotExists(schema).execute();
+        dslContext.execute(DSL.sql("CREATE EXTENSION unaccent SCHEMA ?;", schema));
+        dslContext.execute(DSL.sql("""
+                CREATE OR REPLACE FUNCTION ?.contentgrid_prefix_search_normalize(arg text)
+                  RETURNS text
+                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+                RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
+                """, schema, schema));
+    }
+
     void insertData() {
         var now = Instant.now();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), ALICE_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "alice")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_1")
+        dslContext.insertInto(DSL.table("person"))
+                .set(DSL.field("id", UUID.class), ALICE_ID)
+                .set(DSL.field("name", String.class), "alice")
+                .set(DSL.field("vat", String.class), "vat_1")
+                .set(DSL.field("comment", String.class), "Comment with the words foo and bar.")
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), BOB_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "bob")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_2")
+        dslContext.insertInto(DSL.table("person"))
+                .set(DSL.field("id", UUID.class), BOB_ID)
+                .set(DSL.field("name", String.class), "bob")
+                .set(DSL.field("vat", String.class), "vat_2")
+                .set(DSL.field("comment", String.class), "Another comment mentioning foo.")
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), JOHN_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "john")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
+        dslContext.insertInto(DSL.table("person"))
+                .set(DSL.field("id", UUID.class), JOHN_ID)
+                .set(DSL.field("name", String.class), "john")
+                .set(DSL.field("vat", String.class), "vat_3")
+                .set(DSL.field("comment", String.class), "Just a random comment.")
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), THIJS_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
-                .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
+        dslContext.insertInto(DSL.table("person"))
+                .set(DSL.field("id", UUID.class), THIJS_ID)
+                .set(DSL.field("name", String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
+                .set(DSL.field("vat", String.class), "Thijs")
+                .set(DSL.field("comment", String.class), "Comment with bar and foo.")
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("invoice")))
-                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
-                .set(DSL.field(DSL.name("number"), String.class), "invoice_1")
-                .set(DSL.field(DSL.name("amount"), Double.class), 10.0)
-                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
-                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
-                .set(DSL.field(DSL.name("is_paid"), Boolean.class), true)
-                .set(DSL.field(DSL.name("content__id"), String.class), "content_1")
-                .set(DSL.field(DSL.name("content__filename"), String.class), "file.pdf")
-                .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/pdf")
-                .set(DSL.field(DSL.name("content__length"), Long.class), 100L)
-                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
-                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "bob")
-                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
-                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "bob")
-                .set(DSL.field(DSL.name("customer"), UUID.class), ALICE_ID)
+        dslContext.insertInto(DSL.table("invoice"))
+                .set(DSL.field("id", UUID.class), INVOICE1_ID)
+                .set(DSL.field("number", String.class), "invoice_1")
+                .set(DSL.field("amount", Double.class), 10.0)
+                .set(DSL.field("received", Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
+                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
+                .set(DSL.field("is_paid", Boolean.class), true)
+                .set(DSL.field("content__id", String.class), "content_1")
+                .set(DSL.field("content__filename", String.class), "file.pdf")
+                .set(DSL.field("content__mimetype", String.class), "application/pdf")
+                .set(DSL.field("content__length", Long.class), 100L)
+                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__created_by_name", String.class), "bob")
+                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "bob")
+                .set(DSL.field("customer", UUID.class), ALICE_ID)
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("invoice")))
-                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE2_ID)
-                .set(DSL.field(DSL.name("number"), String.class), "invoice_2")
-                .set(DSL.field(DSL.name("amount"), Double.class), 20.0)
-                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
-                .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
+        dslContext.insertInto(DSL.table("invoice"))
+                .set(DSL.field("id", UUID.class), INVOICE2_ID)
+                .set(DSL.field("number", String.class), "invoice_2")
+                .set(DSL.field("amount", Double.class), 20.0)
+                .set(DSL.field("received", Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
+                .set(DSL.field("pay_before", Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field("is_paid", Boolean.class), false)
                 // no content
-                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
-                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
-                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
-                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "alice")
-                .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID)
-                .set(DSL.field(DSL.name("previous_invoice"), UUID.class), INVOICE1_ID)
+                .set(DSL.field("audit_metadata__created_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__created_by_name", String.class), "alice")
+                .set(DSL.field("audit_metadata__last_modified_date", Instant.class), now)
+                .set(DSL.field("audit_metadata__last_modified_by_name", String.class), "alice")
+                .set(DSL.field("customer", UUID.class), BOB_ID)
+                .set(DSL.field("previous_invoice", UUID.class), INVOICE1_ID)
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person__friends")))
-                .set(DSL.field(DSL.name("person_src_id"), UUID.class), BOB_ID)
-                .set(DSL.field(DSL.name("person_tgt_id"), UUID.class), ALICE_ID)
+        dslContext.insertInto(DSL.table("person__friends"))
+                .set(DSL.field("person_src_id", UUID.class), BOB_ID)
+                .set(DSL.field("person_tgt_id", UUID.class), ALICE_ID)
                 .execute();
     }
 
@@ -393,6 +418,24 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(ALICE_ID, result.get("id"));
         assertEquals("alice", result.get("name"));
         assertEquals("vat_1", result.get("vat"));
+    }
+
+    @Test
+    void findWithFullTextSearch() {
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                Scalar.of("bar foo"), Locale.ENGLISH
+
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoSet("name", String.class);
+
+        assertEquals(Set.of("alice", "Thĳs"), results);
     }
 
     @Test
@@ -554,107 +597,6 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(1, results.size());
         var result = results.getFirst();
         assertEquals(INVOICE1_ID, result.get("id"));
-    }
-
-
-
-    static Stream<Arguments> inOperatorValues() {
-        return Stream.of(
-                Arguments.argumentSet(
-                        "single set",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1")))),
-                        Set.of(INVOICE1_ID)
-                ),
-                Arguments.argumentSet(
-                        "single list",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1")))),
-                        Set.of(INVOICE1_ID)
-                ),
-                Arguments.argumentSet(
-                        "empty set",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new SetValue(Set.of())),
-                        Set.of()
-                ),
-                Arguments.argumentSet(
-                        "empty list",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new ListValue(java.util.List.of())),
-                        Set.of()
-                ),
-                Arguments.argumentSet(
-                        "multiple set",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
-                        Set.of(INVOICE1_ID, INVOICE2_ID)
-                ),
-                Arguments.argumentSet(
-                        "multiple list",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
-                        Set.of(INVOICE1_ID, INVOICE2_ID)
-                ),
-                Arguments.argumentSet(
-                        "nfkc normalized match",
-                        INVOICE,
-                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_¹")))),
-                        Set.of(INVOICE1_ID)
-                ),
-                Arguments.argumentSet(
-                        "double match",
-                        INVOICE,
-                        invoiceInThunxExpression("amount", new SetValue(Set.of(Scalar.of(10.0)))),
-                        Set.of(INVOICE1_ID)
-                ),
-                Arguments.argumentSet(
-                        "normalization match with non-normalized data",
-                        PERSON,
-                        Comparison.in(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
-                                new SetValue(Set.of(Scalar.of("Thijs"))) // contains ij instead of ĳ
-                        ),
-                        Set.of(THIJS_ID)
-                ),
-                Arguments.argumentSet(
-                        "over relation",
-                        INVOICE,
-                        Comparison.in(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat") ),
-                                new SetValue(Set.of(Scalar.of("vat_1")))
-                        ),
-                        Set.of(INVOICE1_ID)
-                )
-        );
-    }
-
-    static ThunkExpression<?> invoiceNumberInThunxExpression(CollectionValue<?> value) {
-        return invoiceInThunxExpression("number", value);
-    }
-
-    static ThunkExpression<?> invoiceInThunxExpression(String field, CollectionValue<?> value) {
-        return Comparison.in(
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path(field)),
-                value
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("inOperatorValues")
-    void inOperator(Entity entity, ThunkExpression<?> expression, Set<UUID> expectedUUids) {
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, entity);
-        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = expression.accept(VISITOR, context);
-        var results = dslContext.selectFrom(table)
-                .where((Condition) condition)
-                .fetch()
-                .intoMaps();
-        assertEquals(expectedUUids.size(), results.size());
-        var uuids = results.stream()
-                .map(row -> (UUID) row.get("id"))
-                .toList();
-        expectedUUids.forEach(uuid -> assertTrue(uuids.contains(uuid), "Expected UUID " + uuid + " to be in results"));
     }
 
     static Stream<ThunkExpression<Boolean>> allFunctions() {
@@ -866,15 +808,8 @@ class JOOQThunkExpressionVisitorTest {
         }
 
         @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-
-        @Bean
         public TableCreator jooqTableCreator(DSLContext dslContext) {
             return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
         }
     }
 }
-

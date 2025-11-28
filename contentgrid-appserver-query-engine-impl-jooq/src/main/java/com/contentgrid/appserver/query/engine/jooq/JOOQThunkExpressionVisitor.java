@@ -12,14 +12,10 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridFullTextSearch;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
-import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
-import com.contentgrid.thunx.predicates.model.ListValue;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.StringPathElement;
@@ -27,25 +23,26 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
-import org.jooq.impl.QOM.Array;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static java.util.Locale.ENGLISH;
 
 @RequiredArgsConstructor
-public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQContext> {
+public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQThunkExpressionVisitor.JOOQContext> {
 
     @Override
     public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
@@ -59,18 +56,16 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return DSL.value(scalar.getValue(), scalar.getResultType());
     }
 
-    @Allow.PlainSQL
     @Override
-    public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
-            throws InvalidThunkExpressionException {
+    public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context) throws InvalidThunkExpressionException {
         Field<?> result = switch (functionExpression.getOperator()) {
             case EQUALS -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
-                    left = JOOQUtils.normalize(left);
-                    right = JOOQUtils.normalize(right);
+                    left = normalize(left);
+                    right = normalize(right);
                 }
                 yield ((Field<Object>) left).equal((Field<Object>) right);
             }
@@ -79,8 +74,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
-                    left = JOOQUtils.normalize(left);
-                    right = JOOQUtils.normalize(right);
+                    left = normalize(left);
+                    right = normalize(right);
                 }
                 yield ((Field<Object>) left).notEqual((Field<Object>) right);
             }
@@ -107,16 +102,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 yield ((Field<Object>) left).lessOrEqual((Field<Object>) right);
-            }
-            case IN -> {
-                assertTwoTerms(functionExpression.getTerms());
-                var left = functionExpression.getTerms().getFirst().accept(this, context);
-                var right = (Array) functionExpression.getTerms().getLast().accept(this, context);
-                if (left.getDataType().getType().equals(String.class)) {
-                    left = JOOQUtils.normalize(left);
-                    // right side is already normalized in the visit function if needed
-                }
-                yield left.eq(DSL.any(right));
             }
             case AND -> {
                 yield DSL.and(functionExpression.getTerms().stream()
@@ -192,19 +177,18 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case CUSTOM -> {
-                if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
-                    var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
-                    var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                    var leftField = JOOQUtils.prefixSearchNormalize(left);
-                    var rightField = JOOQUtils.prefixSearchNormalize(right);
-                    yield leftField.startsWith(rightField);
-                } else if (functionExpression instanceof ContentGridFullTextSearch contentGridFullTextSearch) {
-                    var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
-                    var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
-                    // TODO: allow different languages.
-                    yield DSL.condition("to_tsvector('english', ?) @@ websearch_to_tsquery(?)", left, DSL.inline(right)); // TODO: split the right term. Also, add unaccent.
-                } else {
-                    throw new InvalidThunkExpressionException(
+                switch (functionExpression) {
+                    case ContentGridPrefixSearch contentGridPrefixSearch -> {
+                        var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
+                        var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
+                        var leftField = prefixSearchNormalize(left);
+                        var rightField = prefixSearchNormalize(right);
+                        yield leftField.startsWith(rightField);
+                    }
+                    case ContentGridFullTextSearch contentGridFullTextSearch -> {
+                        yield generateFTSCondition(context, contentGridFullTextSearch);
+                    }
+                    default -> throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
                                     functionExpression.getClass().getSimpleName()));
                 }
@@ -217,22 +201,41 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return result;
     }
 
+    @Allow.PlainSQL
+    private Condition generateFTSCondition(@NonNull JOOQContext context, @NonNull ContentGridFullTextSearch contentGridFullTextSearch) {
+        var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
+        var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+
+        var locale = contentGridFullTextSearch.getLocale();
+        var language = locale.getDisplayLanguage(ENGLISH);
+
+        return DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, right);
+    }
+
     private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {
         if (terms.size() != 1) {
             throw new InvalidThunkExpressionException("Operation requires 1 parameter.");
         }
     }
 
-    private static void assertTwoTerms(List<? extends ThunkExpression<?>> terms)
-            throws InvalidThunkExpressionException {
+    private static void assertTwoTerms(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {
         if (terms.size() != 2) {
             throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
         }
     }
 
+    @Allow.PlainSQL
+    private static Field<String> normalize(Field<?> field) {
+        return DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
+    }
+
+    @Allow.PlainSQL
+    private static Field<String> prefixSearchNormalize(Field<?> field) {
+        return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
+    }
+
     @Override
-    public Field<?> visit(SymbolicReference symbolicReference, JOOQContext context)
-            throws InvalidThunkExpressionException {
+    public Field<?> visit(SymbolicReference symbolicReference, JOOQContext context) throws InvalidThunkExpressionException {
         // Assumption: some other component will translate a SearchFilter to a ThunkExpression where
         // the SymbolicReference will use AttributeName and RelationName in path elements and that
         // a SymbolicReference from OPA also uses AttributeName and RelationName in path elements.
@@ -270,12 +273,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
-        throw new InvalidThunkExpressionException(
-                "Path element %s does not exist on entity %s".formatted(name, entity));
+        throw new InvalidThunkExpressionException("Path element %s does not exist on entity %s".formatted(name, entity));
     }
 
-    private Field<?> handleAttribute(@NonNull TableName currentAlias, @NonNull Attribute attribute,
-            @NonNull List<PathElement> tail)
+    private Field<?> handleAttribute(@NonNull TableName currentAlias, @NonNull Attribute attribute, @NonNull List<SymbolicReference.PathElement> tail)
             throws InvalidThunkExpressionException {
         switch (attribute) {
             case SimpleAttribute simpleAttribute -> {
@@ -299,16 +300,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     return handleAttribute(currentAlias, subAttribute, newTail);
                 } else {
                     // pathElement seems to reference a non-existing attribute
-                    throw new InvalidThunkExpressionException(
-                            "Path element %s does not exist on attribute %s".formatted(name,
-                                    compositeAttribute.getName()));
+                    throw new InvalidThunkExpressionException("Path element %s does not exist on attribute %s".formatted(name, compositeAttribute.getName()));
                 }
             }
         }
     }
 
-    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<PathElement> tail,
-            @NonNull JOOQContext context) {
+    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<SymbolicReference.PathElement> tail, @NonNull JOOQContext context) {
         if (tail.isEmpty()) {
             throw new InvalidThunkExpressionException("Path can not end in a relation");
         }
@@ -323,9 +321,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 }
                 tail = tail.subList(1, tail.size());
             } else {
-                throw new InvalidThunkExpressionException(
-                        "VariablePathElement is required in traversing a *-to-many relation, got '%s' of type %s."
-                                .formatted(pathElement, pathElement.getClass().getSimpleName()));
+                throw new InvalidThunkExpressionException("VariablePathElement is required in traversing a *-to-many relation, got '%s' of type %s."
+                        .formatted(pathElement, pathElement.getClass().getSimpleName()));
             }
         }
         context.getJoinCollection().addRelation(context.getApplication(), relation);
@@ -337,51 +334,22 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         throw new InvalidThunkExpressionException("Variable %s is not supported".formatted(variable.getName()));
     }
 
-    @Override
-    public Field<?> visit(SetValue setValue, JOOQContext context) {
-        return getArray(context, setValue.getValue().stream());
-    }
-
-    private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
-        var values = stream.map(thunkExpression -> {
-            if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
-                Field<?> field = visit(scalar, context);
-                if (field.getType().equals(String.class)) {
-                    field = JOOQUtils.normalize(field);
-                }
-                return field;
-            }
-            throw new InvalidThunkExpressionException("Unknown thunk expression: " + thunkExpression);
-
-        }).toArray();
-        return DSL.array(values);
-    }
-
-    @Override
-    public Field<?> visit(ListValue listValue, JOOQContext context) {
-        return getArray(context, listValue.getValue().stream());
-    }
-
     private static String getPathElementName(@NonNull PathElement elem) throws InvalidThunkExpressionException {
         if (elem instanceof StringPathElement string) {
             return ((Scalar<String>) string.getPath()).getValue();
         }
-        throw new InvalidThunkExpressionException(
-                "cannot traverse symbolic reference using path element type %s, expected a %s"
-                        .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
+        throw new InvalidThunkExpressionException("cannot traverse symbolic reference using path element type %s, expected a %s"
+                .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
     }
 
     @Value
     public static class JOOQContext {
 
-        @NonNull
-        Application application;
-        @NonNull
-        Entity entity;
+        @NonNull Application application;
+        @NonNull Entity entity;
 
         @Getter(AccessLevel.PRIVATE)
-        @NonNull
-        JoinCollection joinCollection;
+        @NonNull JoinCollection joinCollection;
 
         @Getter(AccessLevel.NONE)
         Set<String> variables = new HashSet<>();

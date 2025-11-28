@@ -1,11 +1,5 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
-import static com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator.SUPPORTED_LOCALES;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
@@ -28,6 +22,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -38,19 +33,11 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
+import com.contentgrid.appserver.query.engine.api.exception.InvalidSqlException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,13 +45,25 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:15:///"
@@ -94,10 +93,6 @@ class JOOQTableCreatorTest {
             .column(ColumnName.of("comment"))
             .type(Type.TEXT)
             .build();
-
-    private static final Supplier<AttributeSearchFilter.AttributeSearchFilterBuilder> PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER = () -> AttributeSearchFilter.builder()
-            .operation(Operation.FTS)
-            .name(FilterName.of("comment~fts"));
 
     private static final Supplier<Entity.EntityBuilder> PERSON_BUILDER_SUPPLIER = () -> Entity.builder()
             .name(EntityName.of("person"))
@@ -262,10 +257,7 @@ class JOOQTableCreatorTest {
             .build();
 
     @Autowired
-    private DSLContext dslContext;
-
-    @Autowired
-    private TableCreator tableCreator;
+    private JOOQTableCreator tableCreator;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -536,39 +528,13 @@ class JOOQTableCreatorTest {
                         .build())
                 .build();
 
-        assertThrows(DataAccessException.class, () -> tableCreator.createTables(application));
+        assertThrows(InvalidSqlException.class, () -> tableCreator.createTables(application));
 
         // Check no public tables exist
         assertTrue(getTables("public").isEmpty());
 
         // Drop tables should fail too
-        assertThrows(DataAccessException.class, () -> tableCreator.dropTables(application));
-        assertTrue(getTables("public").isEmpty());
-    }
-
-    static @NonNull Stream<@NonNull Locale> SUPPORTED_LOCALES() {
-        return JOOQTableCreator.SUPPORTED_LOCALES.stream();
-    }
-
-    @ParameterizedTest
-    @MethodSource("SUPPORTED_LOCALES")
-    void FTSLocaleIsActuallySupported(@NonNull Locale locale) {
-        var ftsSearchFilter = PERSON_COMMENT_FTS_FILTER_BUILDER_SUPPLIER
-                .get()
-                .attribute(PERSON_COMMENT)
-                .build();
-        var personWithFTS = PERSON_BUILDER_SUPPLIER
-                .get()
-                .searchFilter(ftsSearchFilter)
-                .build();
-        var application = Application.builder()
-                .name(ApplicationName.of("fts-locale-application-%s".formatted(locale.getLanguage())))
-                .entity(personWithFTS)
-                .build();
-
-        tableCreator.createTables(application);
-
-        tableCreator.dropTables(application);
+        assertThrows(InvalidSqlException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
     }
 
@@ -578,11 +544,6 @@ class JOOQTableCreatorTest {
             SpringApplication.run(TestApplication.class, args);
         }
 
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
         @Bean
         public TableCreator jooqTableCreator(DSLContext dslContext) {
             return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
