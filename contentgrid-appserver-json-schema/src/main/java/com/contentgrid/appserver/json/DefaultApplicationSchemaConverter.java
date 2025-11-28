@@ -28,6 +28,8 @@ import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpo
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.ConfigurableSearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -71,6 +73,8 @@ import com.contentgrid.appserver.json.model.UniqueConstraint;
 import com.contentgrid.appserver.json.model.UserAttribute;
 import com.contentgrid.appserver.json.validation.ApplicationSchemaValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.NonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -89,6 +93,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
+
+    private static final String FTS_TYPE = "full-text";
 
     private final ObjectMapper mapper = ApplicationSchemaObjectMapperFactory.createObjectMapper();
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
@@ -309,6 +315,24 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
 
+        return type.equals(FTS_TYPE) ? fromJsonFullTextSearchFilter(jsonFilter, propertyPath, filterName)
+                : fromJsonAttributeSearchFilter(jsonFilter, type, propertyPath, filterName);
+    }
+
+    private com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter fromJsonFullTextSearchFilter(
+            SearchFilter jsonFilter, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
+        Locale locale = Objects.requireNonNull(jsonFilter.getLocale(), "Full-text search filters require a locale to be set.");
+
+        return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, FullTextSearchAttributeSearchFilter.builder())
+                .name(filterName)
+                .attributePath(propertyPath)
+                .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                .locale(locale)
+                .build();
+    }
+
+    private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonAttributeSearchFilter(
+            SearchFilter jsonFilter, String type, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
         var operation = switch (type) {
             case "prefix" -> Operation.PREFIX;
             case "exact" -> Operation.EXACT;
@@ -548,16 +572,26 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonFilter.setTitle(toJsonTranslations(filter, SearchFilterTranslations::getName).omitIfEqualTo(jsonFilter.getName()));
         jsonFilter.setDescription(toJsonTranslations(filter, SearchFilterTranslations::getDescription));
         jsonFilter.setFlags(toJsonSearchFilterFlags(filter.getFlags()));
-        if (filter instanceof AttributeSearchFilter attributeFilter) {
-            jsonFilter.setAttributePath(toJsonPropertyPath(attributeFilter.getAttributePath()));
-            var type = switch (attributeFilter.getOperation()) {
-                case EXACT -> "exact";
-                case PREFIX -> "prefix";
-                case GREATER_THAN -> "greater";
-                case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
-                case LESS_THAN -> "less";
-                case LESS_THAN_OR_EQUAL -> "less-or-equal";
-            };
+        if (filter instanceof BaseAttributeSearchFilter baseAttributeSearchFilter) {
+            jsonFilter.setAttributePath(toJsonPropertyPath(baseAttributeSearchFilter.getAttributePath()));
+
+            String type;
+            switch (filter) {
+                case AttributeSearchFilter attributeSearchFilter ->
+                    type = switch (attributeSearchFilter.getOperation()) {
+                        case EXACT -> "exact";
+                        case PREFIX -> "prefix";
+                        case GREATER_THAN -> "greater";
+                        case GREATER_THAN_OR_EQUAL -> "greater-or-equal";
+                        case LESS_THAN -> "less";
+                        case LESS_THAN_OR_EQUAL -> "less-or-equal";
+                    };
+                case FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter -> {
+                    type = FTS_TYPE;
+                    jsonFilter.setLocale(fullTextSearchAttributeSearchFilter.getLocale());
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + filter);
+            }
             jsonFilter.setType(type);
         } else {
             throw new IllegalStateException("Unexpected value: " + filter);

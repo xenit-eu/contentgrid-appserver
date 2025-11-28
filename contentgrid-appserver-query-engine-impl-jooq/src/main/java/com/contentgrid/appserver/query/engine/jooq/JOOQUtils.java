@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.jooq.Allow;
+import org.jooq.Condition;
 import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.Table;
@@ -105,6 +106,11 @@ public class JOOQUtils {
             case DATETIME -> SQLDataType.INSTANT;
         };
         return dataType.nullable(!required);
+    }
+
+    @Allow.PlainSQL
+    static Condition generateFTSCondition(@NonNull Field<?> left, @NonNull Field<?> right, @NonNull String language) {
+        return DSL.condition("to_tsvector(?, coalesce(?, '')) @@ websearch_to_tsquery(?)", DSL.inline(language), left, right);
     }
 
     @Allow.PlainSQL

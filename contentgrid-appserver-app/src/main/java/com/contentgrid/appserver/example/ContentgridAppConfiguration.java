@@ -15,6 +15,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -33,8 +34,12 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Locale;
+
 @Configuration(proxyBeanMethods = false)
 public class ContentgridAppConfiguration {
+
+    private static final String COMMENT = "comment";
 
     @Bean
     ApplicationResolver applicationResolver() {
@@ -65,6 +70,12 @@ public class ContentgridAppConfiguration {
                         .build()
                 )
                 .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of(COMMENT))
+                        .description(COMMENT)
+                        .column(ColumnName.of(COMMENT))
+                        .type(Type.TEXT)
+                        .build())
+                .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("birth_date"))
                         .description("Birth date")
                         .column(ColumnName.of("birth_date"))
@@ -80,6 +91,16 @@ public class ContentgridAppConfiguration {
                         .operation(Operation.EXACT)
                         .name(FilterName.of("last_name"))
                         .attributePath(PropertyPath.of(AttributeName.of("last_name")))
+                        .build())
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.PREFIX)
+                        .name(FilterName.of("%s~prefix".formatted(COMMENT)))
+                        .attributePath(PropertyPath.of(AttributeName.of(COMMENT)))
+                        .build())
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("%s~fts".formatted(COMMENT)))
+                        .attributePath(PropertyPath.of(AttributeName.of(COMMENT)))
+                        .locale(Locale.ENGLISH)
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)

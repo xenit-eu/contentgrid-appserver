@@ -60,51 +60,13 @@
             "type": "array",
             "description": "A list of search filters for the entity.",
             "items": {
-              "type": "object",
-              "description": "Filters for the entity.",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "The name of the filter."
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/attributeSearchFilter"
                 },
-                "title": {
-                  "$ref": "#/$defs/translations",
-                  "description": "A human-readable name for the filter"
-                },
-                "description": {
-                  "$ref": "#/$defs/translations",
-                  "description": "A description of the filter"
-                },
-                "attributePath": {
-                  "$ref": "#/$defs/attributePath"
-                },
-                "type": {
-                  "type": "string",
-                  "description": "The type of filter.",
-                  "enum": [
-                    "exact",
-                    "prefix",
-                    "greater",
-                    "greater-or-equal",
-                    "less",
-                    "less-or-equal"
-                  ]
-                },
-                "flags": {
-                  "type": "array",
-                  "description": "A list of flags for the search filter",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "hidden"
-                    ]
-                  }
+                {
+                  "$ref": "#/$defs/fullTextSearchFilter"
                 }
-              },
-              "required": [
-                "name",
-                "attributePath",
-                "type"
               ]
             }
           },
@@ -644,6 +606,92 @@
         }
       },
       "additionalProperties": false
+    },
+    "baseSearchFilterProperties": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the filter."
+        },
+        "title": {
+          "$ref": "#/$defs/translations",
+          "description": "A human-readable name for the filter"
+        },
+        "description": {
+          "$ref": "#/$defs/translations",
+          "description": "A description of the filter"
+        },
+        "attributePath": {
+          "$ref": "#/$defs/attributePath"
+        },
+        "flags": {
+          "type": "array",
+          "description": "A list of flags for the search filter",
+          "items": {
+            "type": "string",
+            "enum": [
+              "hidden"
+            ]
+          }
+        }
+      }
+    },
+    "attributeSearchFilter": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseSearchFilterProperties"
+        },
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "The type of filter.",
+              "enum": [
+                "exact",
+                "prefix",
+                "greater",
+                "greater-or-equal",
+                "less",
+                "less-or-equal"
+              ]
+            }
+          }
+        }
+      ],
+      "required": [
+        "name",
+        "attributePath",
+        "type"
+      ]
+    },
+    "fullTextSearchFilter": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseSearchFilterProperties"
+        },
+        {
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "The type of filter.",
+              "const": "full-text"
+            },
+            "locale": {
+              "type": "string",
+              "description": "The locale to use for full-text search filters."
+            }
+          }
+        }
+      ],
+      "required": [
+        "name",
+        "attributePath",
+        "type",
+        "locale"
+      ]
     }
   }
 }
