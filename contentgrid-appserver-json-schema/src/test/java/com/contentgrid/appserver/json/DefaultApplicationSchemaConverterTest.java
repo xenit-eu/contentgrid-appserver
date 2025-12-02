@@ -18,12 +18,17 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
@@ -225,7 +230,14 @@ class DefaultApplicationSchemaConverterTest {
 
     @Test
     void testManyToOneSerialization() {
-        var sourceEntity = getEntity("source", "source entity", "source_table");
+        var sourceEntity = getEntityBuilder("source", "source entity", "source_table")
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.EXACT)
+                        .attributePath(PropertyPath.of(RelationName.of("__internal_target_source"), AttributeName.of("id")))
+                        .name(FilterName.of("__internal_target_source"))
+                        .flag(HiddenSearchFilterFlag.INSTANCE)
+                        .build())
+                .build();
 
         var targetEntity = getEntity("target", "target entity", "target_table");
 
@@ -286,7 +298,24 @@ class DefaultApplicationSchemaConverterTest {
                                             "type": "unique"
                                         }
                                     ]
+                                },
+                            "searchFilters": [
+                                {
+                                    "type": "exact",
+                                    "name": "__internal_target_source",
+                                    "attributePath": [
+                                        {
+                                            "name": "__internal_target_source",
+                                            "type": "rel"
+                                        },
+                                        {
+                                            "name": "id",
+                                            "type": "attr"
+                                        }
+                                    ],
+                                    "flags": [ "hidden" ]
                                 }
+                            ]
                         },
                         {
                             "name": "target",
@@ -338,7 +367,7 @@ class DefaultApplicationSchemaConverterTest {
                 """).allowingAnyArrayOrdering());
     }
 
-    private static Entity getEntity(String name, String description, String table) {
+    private static Entity.EntityBuilder getEntityBuilder(String name, String description, String table) {
         return Entity.builder()
                 .name(EntityName.of(name))
                 .description(description)
@@ -347,8 +376,11 @@ class DefaultApplicationSchemaConverterTest {
                 .linkName(LinkName.of(name))
                 .primaryKey(
                         getPrimaryKey()
-                )
-                .build();
+                );
+    }
+
+    private static Entity getEntity(String name, String description, String table) {
+        return getEntityBuilder(name, description, table).build();
     }
 
     private static SimpleAttribute getPrimaryKey() {

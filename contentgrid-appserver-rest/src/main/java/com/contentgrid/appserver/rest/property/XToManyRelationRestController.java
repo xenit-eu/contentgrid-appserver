@@ -67,32 +67,9 @@ public class XToManyRelationRestController {
                 // TODO: throw specific exception to support problem details
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
 
-        var targetEntity = application.getRelationTargetEntity(relation);
-        var sourceEntity = application.getRelationSourceEntity(relation);
+        var targetFilter = application.getFilterForRelation(relation);
 
-        if(relation.getTargetEndPoint().getName() == null) {
-            // TODO: throw specific exception to support problem details
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Following an unnamed *-to-many relation not implemented.");
-        }
-
-        var relationPath = new RelationPath(
-                relation.getTargetEndPoint().getName(),
-                new SimpleAttributePath(sourceEntity.getPrimaryKey().getName())
-        );
-
-        var targetFilter = targetEntity.getSearchFilters().stream()
-                .filter(searchFilter -> {
-                    if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                        return Operation.EXACT.equals(attributeSearchFilter.getOperation()) &&
-                                Objects.equals(attributeSearchFilter.getAttributePath(), relationPath);
-                    }
-                    return false;
-                })
-                .findFirst()
-                // TODO: throw specific exception to support problem details
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "A search filter for '%s' is required to follow this relation".formatted(relationPath)));
-
-        var redirectUrl = linkFactoryProvider.toCollection(targetEntity.getName(), CollectionParameters.defaults()
+        var redirectUrl = linkFactoryProvider.toCollection(relation.getTargetEndPoint().getEntity(), CollectionParameters.defaults()
                 .withSearchParam(targetFilter.getName().getValue(), instanceId.getValue().toString())
         ).toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();

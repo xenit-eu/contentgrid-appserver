@@ -18,11 +18,19 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -60,6 +68,7 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.google.common.collect.Sets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -112,32 +121,41 @@ class StructuredRelationsJOOQQueryEngineTest {
         dslContext.createSchema("public").execute();
     }
 
-    private static final Entity ENTITY_A = Entity.builder()
-            .name(EntityName.of("entityA"))
-            .pathSegment(PathSegmentName.of("entity-a"))
-            .linkName(LinkName.of("entity-a"))
-            .table(TableName.of("entity_a"))
-            .build();
+    private static final EntityName ENTITY_A = EntityName.of("entityA");
+    private static final EntityName ENTITY_B = EntityName.of("entityB");
 
-    private static final Entity ENTITY_B = Entity.builder()
-            .name(EntityName.of("entityB"))
-            .pathSegment(PathSegmentName.of("entity-b"))
-            .linkName(LinkName.of("entity-b"))
-            .table(TableName.of("entity_b"))
-            .build();
+    private static Entity getEntityA(List<SearchFilter> searchFilters) {
+        return Entity.builder()
+                .name(ENTITY_A)
+                .pathSegment(PathSegmentName.of("entity-a"))
+                .linkName(LinkName.of("entity-a"))
+                .table(TableName.of("entity_a"))
+                .searchFilters(searchFilters)
+                .build();
+    }
+
+    private static Entity getEntityB(List<SearchFilter> searchFilters) {
+        return Entity.builder()
+                .name(ENTITY_B)
+                .pathSegment(PathSegmentName.of("entity-b"))
+                .linkName(LinkName.of("entity-b"))
+                .table(TableName.of("entity_b"))
+                .searchFilters(searchFilters)
+                .build();
+    }
 
     private static final List<RelationArgumentFactory> FACTORIES = List.of(
-            new SourceOneToOneRelationArgumentFactory(ENTITY_A.getName()),
-            new TargetOneToOneRelationArgumentFactory(ENTITY_A.getName()),
-            new ManyToOneRelationArgumentFactory(ENTITY_A.getName()),
-            new OneToManyRelationArgumentFactory(ENTITY_A.getName()),
-            new ManyToManyRelationArgumentFactory(ENTITY_A.getName())
+            new SourceOneToOneRelationArgumentFactory(ENTITY_A),
+            new TargetOneToOneRelationArgumentFactory(ENTITY_A),
+            new ManyToOneRelationArgumentFactory(ENTITY_A),
+            new OneToManyRelationArgumentFactory(ENTITY_A),
+            new ManyToManyRelationArgumentFactory(ENTITY_A)
     );
 
     private static final List<Function<RelationArgumentFactory, RelationArgumentFactory>> MODIFIERS = cartesianProduct(List.of(
             Set.of(
-                    f -> f.withName("other-referencing").withTarget(ENTITY_B.getName()),
-                    f -> f.withName("self-referencing").withTarget(ENTITY_A.getName())
+                    f -> f.withName("other-referencing").withTarget(ENTITY_B),
+                    f -> f.withName("self-referencing").withTarget(ENTITY_A)
             ),
             Set.of(
                     f -> f.withName("uni-directional"),
@@ -187,12 +205,39 @@ class StructuredRelationsJOOQQueryEngineTest {
     private Application createModel(Relation relation) {
         var app = Application.builder()
                 .name(ApplicationName.of("test"))
-                .entity(ENTITY_A)
-                .entity(ENTITY_B)
+                .entity(getEntityA(getRelationSearchFilters(relation, ENTITY_A)))
+                .entity(getEntityB(getRelationSearchFilters(relation, ENTITY_B)))
                 .relation(relation)
                 .build();
         tableCreator.createTables(app);
         return app;
+    }
+
+    private static List<SearchFilter> getRelationSearchFilters(Relation relation, EntityName entityName) {
+        var result = new ArrayList<SearchFilter>();
+        // Add filter if source is exposed, target is MANY and target equals entityName
+        if (relation.getSourceEndPoint().hasFlag(VisibleEndpointFlag.class) &&
+                Plurality.MANY.equals(targetPlurality(relation)) &&
+                relation.getTargetEndPoint().getEntity().equals(entityName)) {
+            result.add(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of(relation.getTargetEndPoint().getName().getValue()))
+                    .attributePath(PropertyPath.of(relation.getTargetEndPoint().getName(), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build());
+        }
+        // Add filter if target is exposed, source is MANY and source equals entityName
+        if (relation.getTargetEndPoint().hasFlag(VisibleEndpointFlag.class) &&
+                Plurality.MANY.equals(sourcePlurality(relation)) &&
+                relation.getSourceEndPoint().getEntity().equals(entityName)) {
+            result.add(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of(relation.getSourceEndPoint().getName().getValue()))
+                    .attributePath(PropertyPath.of(relation.getSourceEndPoint().getName(), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build());
+        }
+        return result;
     }
 
     private EntityData createItem(Application application, EntityName entityName) {

@@ -12,11 +12,17 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
@@ -44,6 +50,18 @@ class JoinCollectionTest {
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
             .linkName(LinkName.of("invoices"))
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("__internal_customer"))
+                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("__internal_products"))
+                    .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
             .build();
 
     private static final Entity PRODUCT = Entity.builder()
@@ -51,6 +69,12 @@ class JoinCollectionTest {
             .table(TableName.of("product"))
             .pathSegment(PathSegmentName.of("products"))
             .linkName(LinkName.of("products"))
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("__internal_invoices"))
+                    .attributePath(PropertyPath.of(RelationName.of("invoices"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
             .build();
 
     private static final OneToOneRelation INVOICE_PREVIOUS = SourceOneToOneRelation.builder()
