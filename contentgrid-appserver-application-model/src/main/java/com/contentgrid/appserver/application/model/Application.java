@@ -6,9 +6,15 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -86,6 +92,14 @@ public class Application {
             }
             if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
+            }
+            if (relation.getSourceEndPoint().hasFlag(VisibleEndpointFlag.class) &&
+                    (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation)) {
+                getFilterForRelation(relation); // assert filter exists for redirects
+            }
+            if (relation.getTargetEndPoint().hasFlag(VisibleEndpointFlag.class) &&
+                    (relation instanceof ManyToOneRelation || relation instanceof ManyToManyRelation)) {
+                getFilterForRelation(relation.inverse()); // assert filter exists for redirects
             }
             this.relations.add(relation);
         });
@@ -261,6 +275,28 @@ public class Application {
         // TODO: These are incoming relations. Should we also filter down this list to only consider relations that have a name on the source side?
         // This function is currently unused, but I can imagine it being used for collection filters
         return results;
+    }
+
+    /**
+     * Find the filter that is used for the given relation redirect.
+     * <p>
+     * The filter is defined on the target entity. And is used for one-to-many and many-to-many relation redirects.
+     *
+     * @param relation the one-to-many or many-to-many relation
+     * @return the filter on the target entity belonging to the given relation
+     */
+    public SearchFilter getFilterForRelation(Relation relation) {
+        var sourceEntity = getRelationSourceEntity(relation);
+        var targetEntity = getRelationTargetEntity(relation);
+        var propertyPath = PropertyPath.of(relation.getTargetEndPoint().getName(), sourceEntity.getPrimaryKey().getName());
+        return targetEntity.getSearchFilters().stream()
+                .filter(AttributeSearchFilter.class::isInstance)
+                .map(AttributeSearchFilter.class::cast)
+                .filter(filter ->
+                        Operation.EXACT == filter.getOperation() && propertyPath.equals(filter.getAttributePath()))
+                .findFirst()
+                .orElseThrow(() -> new SearchFilterNotFoundException("Exact search filter with path '%s' not found on entity '%s'"
+                        .formatted(String.join(".", propertyPath.toList()), relation.getTargetEndPoint().getEntity())));
     }
 
 

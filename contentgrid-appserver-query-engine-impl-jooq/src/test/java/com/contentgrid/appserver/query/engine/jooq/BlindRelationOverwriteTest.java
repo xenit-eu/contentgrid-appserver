@@ -12,11 +12,18 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -95,6 +102,18 @@ class BlindRelationOverwriteTest {
             .pathSegment(PathSegmentName.of("entity-b"))
             .linkName(LinkName.of("entity-b"))
             .table(TableName.of("entity_b"))
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("__internal_otm_entity_a"))
+                    .attributePath(PropertyPath.of(RelationName.of("otm_entity_a"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("__internal___inverse_otm_entity_b_uni"))
+                    .attributePath(PropertyPath.of(RelationName.of("__inverse_otm_entity_b_uni"), AttributeName.of("id")))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
             .build();
 
     private static final Relation SOURCE_ONE_TO_ONE = SourceOneToOneRelation.builder()
@@ -180,6 +199,8 @@ class BlindRelationOverwriteTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(ENTITY_B.getName())
+                    .name(RelationName.of("__inverse_otm_entity_b_uni"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
                     .build())
             .sourceReference(ColumnName.of("otm_entity_a_uni"))
             .build();

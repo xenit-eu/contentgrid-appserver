@@ -19,14 +19,18 @@ import com.contentgrid.appserver.application.model.exceptions.DuplicateElementEx
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -47,7 +51,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplicationTest {
 
-    private static final Entity INVOICE = Entity.builder()
+    private static final Entity.EntityBuilder INVOICE_BUILDER = Entity.builder()
             .name(EntityName.of("Invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
@@ -70,6 +74,16 @@ class ApplicationTest {
                     .operation(Operation.EXACT)
                     .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
                     .name(FilterName.of("invoiceNumber"))
+                    .build())
+            ;
+
+    private static final Entity INVOICE = INVOICE_BUILDER.build();
+    private static final Entity INVOICE_WITH_FILTER = INVOICE_BUILDER
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
+                    .name(FilterName.of("__internal_customer"))
+                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 
@@ -103,19 +117,19 @@ class ApplicationTest {
     void invoiceApplicationTest() {
         var application = Application.builder()
                 .name(ApplicationName.of("invoiceApplication"))
-                .entity(INVOICE)
+                .entity(INVOICE_WITH_FILTER)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .build();
 
         assertEquals(CUSTOMER.getName(),
-                application.getRequiredRelationForEntity(INVOICE, RelationName.of("customer")).getTargetEndPoint()
+                application.getRequiredRelationForEntity(INVOICE_WITH_FILTER, RelationName.of("customer")).getTargetEndPoint()
                         .getEntity());
-        assertEquals(INVOICE, application.getRequiredEntityByName(EntityName.of("Invoice")));
+        assertEquals(INVOICE_WITH_FILTER, application.getRequiredEntityByName(EntityName.of("Invoice")));
         assertEquals(CUSTOMER.getName(),
                 application.getRequiredRelationForEntity(EntityName.of("Customer"), RelationName.of("invoices"))
                         .getSourceEndPoint().getEntity());
-        assertEquals(INVOICE, application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());
+        assertEquals(INVOICE_WITH_FILTER, application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());
         assertEquals(CUSTOMER.getName(), application.getRelationForPath(PathSegmentName.of("invoices"), PathSegmentName.of("customer"))
                 .orElseThrow().getTargetEndPoint().getEntity());
     }
@@ -152,12 +166,12 @@ class ApplicationTest {
     void application_duplicateTableName_withJoinTable() {
         var builder = Application.builder()
                 .name(ApplicationName.of("duplicateTableApplication"))
-                .entity(INVOICE)
+                .entity(INVOICE_WITH_FILTER)
                 .entity(CUSTOMER)
                 .relation(ManyToManyRelation.builder()
                         .sourceEndPoint(MANY_TO_ONE.getSourceEndPoint())
                         .targetEndPoint(MANY_TO_ONE.getTargetEndPoint())
-                        .joinTable(INVOICE.getTable())
+                        .joinTable(INVOICE_WITH_FILTER.getTable())
                         .sourceReference(ColumnName.of("source_id"))
                         .targetReference(ColumnName.of("target_id"))
                         .build());
@@ -197,10 +211,10 @@ class ApplicationTest {
         // relation1.source = relation2.source
         var builder = Application.builder()
                 .name(ApplicationName.of("duplicateRelationApplication"))
-                .entity(INVOICE)
+                .entity(INVOICE_WITH_FILTER)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
-                .relation(ManyToManyRelation.builder()
+                .relation(SourceOneToOneRelation.builder()
                         .sourceEndPoint(MANY_TO_ONE.getSourceEndPoint())
                         .targetEndPoint(RelationEndPoint.builder()
                                 .entity(CUSTOMER.getName())
@@ -208,8 +222,6 @@ class ApplicationTest {
                                 .pathSegment(PathSegmentName.of("segment-on-target"))
                                 .linkName(LinkName.of("rel_on_target"))
                                 .build())
-                        .joinTable(TableName.of("join_table"))
-                        .sourceReference(ColumnName.of("ref_on_source"))
                         .targetReference(ColumnName.of("ref_on_target"))
                         .build());
         assertThrows(DuplicateElementException.class, builder::build);
@@ -220,12 +232,12 @@ class ApplicationTest {
         // relation1.target = relation2.target
         var builder = Application.builder()
                 .name(ApplicationName.of("duplicateRelationApplication"))
-                .entity(INVOICE)
+                .entity(INVOICE_WITH_FILTER)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
                 .relation(SourceOneToOneRelation.builder()
                         .sourceEndPoint(RelationEndPoint.builder()
-                                .entity(INVOICE.getName())
+                                .entity(INVOICE_WITH_FILTER.getName())
                                 .name(RelationName.of("name_on_source"))
                                 .pathSegment(PathSegmentName.of("segment-on-source"))
                                 .linkName(LinkName.of("rel_on_source"))
@@ -241,10 +253,10 @@ class ApplicationTest {
         // relation1.source = relation2.target
         var builder = Application.builder()
                 .name(ApplicationName.of("duplicateRelationApplication"))
-                .entity(INVOICE)
+                .entity(INVOICE_WITH_FILTER)
                 .entity(CUSTOMER)
                 .relation(MANY_TO_ONE)
-                .relation(OneToManyRelation.builder()
+                .relation(TargetOneToOneRelation.builder()
                         .sourceEndPoint(RelationEndPoint.builder()
                                 .entity(CUSTOMER.getName())
                                 .name(RelationName.of("name_on_source"))
@@ -263,7 +275,7 @@ class ApplicationTest {
                 .name(ApplicationName.of("nonExistingEntityApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
-                .relation(ManyToOneRelation.builder()
+                .relation(SourceOneToOneRelation.builder()
                         .sourceEndPoint(RelationEndPoint.builder()
                                 .entity(EntityName.of("Non-existing"))
                                 .name(RelationName.of("name_on_source"))
@@ -287,7 +299,7 @@ class ApplicationTest {
                 .name(ApplicationName.of("nonExistingEntityApplication"))
                 .entity(INVOICE)
                 .entity(CUSTOMER)
-                .relation(ManyToOneRelation.builder()
+                .relation(SourceOneToOneRelation.builder()
                         .sourceEndPoint(RelationEndPoint.builder()
                                 .entity(INVOICE.getName())
                                 .name(RelationName.of("name_on_source"))
@@ -370,7 +382,7 @@ class ApplicationTest {
                         .build())
                 .build();
 
-        var relation = ManyToOneRelation.builder()
+        var relation = SourceOneToOneRelation.builder()
                 .sourceEndPoint(RelationEndPoint.builder()
                         .entity(sourceEntity.getName())
                         .name(RelationName.of("target"))
@@ -461,6 +473,16 @@ class ApplicationTest {
                     .entity(entity)
                     .build();
         });
+    }
+
+    @Test
+    void application_missingSearchFilterForToManyRedirects() {
+        var builder = Application.builder()
+                .name(ApplicationName.of("invoiceApplication"))
+                .entity(INVOICE) // should be INVOICE_WITH_FILTER
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE);
+        assertThrows(SearchFilterNotFoundException.class, builder::build);
     }
 
     @Test
@@ -640,6 +662,12 @@ class ApplicationTest {
                         .name(FilterName.of("products.category"))
                         .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("category")))
                         .build())
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.EXACT)
+                        .name(FilterName.of("__internal_customer_orders"))
+                        .attributePath(PropertyPath.of(RelationName.of("__internal_customer_orders"), AttributeName.of("id")))
+                        .flag(HiddenSearchFilterFlag.INSTANCE)
+                        .build())
                 .build();
 
         var productName = SimpleAttribute.builder().type(Type.TEXT).name(AttributeName.of("name"))
@@ -679,6 +707,12 @@ class ApplicationTest {
                         .attribute(productCategory)
                         .name(FilterName.of("category"))
                         .build())
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.EXACT)
+                        .name(FilterName.of("__internal_order_products"))
+                        .attributePath(PropertyPath.of(RelationName.of("__internal_order_products"), AttributeName.of("id")))
+                        .flag(HiddenSearchFilterFlag.INSTANCE)
+                        .build())
                 .build();
 
         var application = Application.builder()
@@ -692,7 +726,11 @@ class ApplicationTest {
                                         .linkName(LinkName.of("orders"))
                                         .description("Represents the orders placed by a customer.")
                                         .build())
-                                .targetEndPoint(RelationEndPoint.builder().entity(order.getName()).build())
+                                .targetEndPoint(RelationEndPoint.builder()
+                                        .entity(order.getName())
+                                        .name(RelationName.of("__internal_customer_orders"))
+                                        .flag(HiddenEndpointFlag.INSTANCE)
+                                        .build())
                                 .sourceReference(ColumnName.of("_customer_id__orders"))
                                 .build()
                 )
@@ -704,7 +742,11 @@ class ApplicationTest {
                                         .linkName(LinkName.of("products"))
                                         .description("Represents the products in an order.")
                                         .build())
-                                .targetEndPoint(RelationEndPoint.builder().entity(product.getName()).build())
+                                .targetEndPoint(RelationEndPoint.builder()
+                                        .entity(product.getName())
+                                        .name(RelationName.of("__internal_order_products"))
+                                        .flag(HiddenEndpointFlag.INSTANCE)
+                                        .build())
                                 .joinTable(TableName.of("order_product"))
                                 .sourceReference(ColumnName.of("_order_id"))
                                 .targetReference(ColumnName.of("_product_id"))

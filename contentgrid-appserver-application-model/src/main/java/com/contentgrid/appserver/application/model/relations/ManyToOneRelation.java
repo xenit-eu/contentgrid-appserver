@@ -31,6 +31,9 @@ public class ManyToOneRelation extends Relation {
         if (this.getTargetEndPoint().isRequired()) {
             throw new InvalidRelationException("Target endpoint %s can not be required, because it does not reference a single source entity".formatted(this.getTargetEndPoint().getName()));
         }
+        if (this.getSourceEndPoint().getName() == null) {
+            throw new InvalidRelationException("Source endpoint needs a name to allow redirects from target endpoint %s".formatted(this.getTargetEndPoint().getName()));
+        }
         this.targetReference = targetReference;
     }
 
