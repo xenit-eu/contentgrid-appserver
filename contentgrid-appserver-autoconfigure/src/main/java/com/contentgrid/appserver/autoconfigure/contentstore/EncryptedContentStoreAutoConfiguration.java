@@ -5,7 +5,9 @@ import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStor
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.AlfrescoCompatibleEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
@@ -66,6 +68,10 @@ public class EncryptedContentStoreAutoConfiguration {
             case AES128_CTR -> new AesCtrEncryptionEngine(128);
             case AES192_CTR -> new AesCtrEncryptionEngine(192);
             case AES256_CTR -> new AesCtrEncryptionEngine(256);
+            case Alfresco_AES -> new AlfrescoCompatibleEncryptionEngine();
+            case Alfresco_DES -> new AlfrescoCompatibleEncryptionEngine();
+            case Alfresco_DESede -> new AlfrescoCompatibleEncryptionEngine();
+            case Alfresco_RSA -> new AlfrescoCompatibleEncryptionEngine();
         };
     }
 
@@ -88,6 +94,10 @@ public class EncryptedContentStoreAutoConfiguration {
     enum EncryptionEngineAlgorithm {
         AES128_CTR,
         AES192_CTR,
-        AES256_CTR
+        AES256_CTR,
+        Alfresco_AES,
+        Alfresco_DES,
+        Alfresco_DESede,
+        Alfresco_RSA,
     }
 }
