@@ -13,6 +13,10 @@ contentgrid:
   events:
     rabbitmq.enabled: false
 
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
 # spring:
 #   rabbitmq:
 #     host: localhost
