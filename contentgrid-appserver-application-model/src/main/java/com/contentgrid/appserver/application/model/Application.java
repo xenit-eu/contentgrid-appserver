@@ -293,7 +293,7 @@ public class Application {
                 .filter(AttributeSearchFilter.class::isInstance)
                 .map(AttributeSearchFilter.class::cast)
                 .filter(filter ->
-                        Operation.EXACT.equals(filter.getOperation()) && propertyPath.equals(filter.getAttributePath()))
+                        Operation.EXACT == filter.getOperation() && propertyPath.equals(filter.getAttributePath()))
                 .findFirst()
                 .orElseThrow(() -> new SearchFilterNotFoundException("Exact search filter with path '%s' not found on entity '%s'"
                         .formatted(String.join(".", propertyPath.toList()), relation.getTargetEndPoint().getEntity())));

@@ -217,7 +217,7 @@ class StructuredRelationsJOOQQueryEngineTest {
         var result = new ArrayList<SearchFilter>();
         // Add filter if source is exposed, target is MANY and target equals entityName
         if (relation.getSourceEndPoint().hasFlag(VisibleEndpointFlag.class) &&
-                Plurality.MANY.equals(targetPlurality(relation)) &&
+                Plurality.MANY == targetPlurality(relation) &&
                 relation.getTargetEndPoint().getEntity().equals(entityName)) {
             result.add(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
@@ -228,7 +228,7 @@ class StructuredRelationsJOOQQueryEngineTest {
         }
         // Add filter if target is exposed, source is MANY and source equals entityName
         if (relation.getTargetEndPoint().hasFlag(VisibleEndpointFlag.class) &&
-                Plurality.MANY.equals(sourcePlurality(relation)) &&
+                Plurality.MANY == sourcePlurality(relation) &&
                 relation.getSourceEndPoint().getEntity().equals(entityName)) {
             result.add(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
