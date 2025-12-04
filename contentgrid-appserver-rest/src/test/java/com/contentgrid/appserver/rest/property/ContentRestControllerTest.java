@@ -133,21 +133,21 @@ class ContentRestControllerTest {
 
     @ParameterizedTest
     @MethodSource("nonExistentPaths")
-    void get_nonexistent_fails(String pathTemplate) throws Exception {
+    void get_nonexistent_fails(String pathTemplate, String problemType) throws Exception {
         String invoiceId = createInvoice(null);
 
         mockMvc.perform(get(pathTemplate, invoiceId))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.NOT_FOUND)
+                        .withType(problemType)
                 );
     }
 
     static Stream<Arguments> nonExistentPaths() {
         return Stream.of(
-                Arguments.argumentSet("non-existent ID", "/invoices/" + UUID.randomUUID() + "/content"),
-                Arguments.argumentSet("non-existent entity", "/nonexistent/{instanceId}/content"),
-                Arguments.argumentSet("non-existent property", "/invoices/{instanceId}/nonexistent")
+                Arguments.argumentSet("non-existent ID", "/invoices/" + UUID.randomUUID() + "/content", "https://contentgrid.cloud/problems/not-found/entity-item"),
+                Arguments.argumentSet("non-existent entity", "/nonexistent/{instanceId}/content", "https://contentgrid.cloud/problems/not-found/entity-definition"),
+                Arguments.argumentSet("non-existent property", "/invoices/{instanceId}/nonexistent", "https://contentgrid.cloud/problems/not-found/entity-definition")
         );
     }
 
@@ -398,9 +398,10 @@ class ContentRestControllerTest {
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                         .header(HttpHeaders.RANGE, rangeHeader))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.BAD_REQUEST)
-                        // TODO: proper problem detail here
-                );
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withSatisfy(pd -> assertThat(pd.getDetail())
+                                .isIn("Can not parse Range header", "At least one range specifier is required")
+                        ));
         Mockito.verifyNoInteractions(contentStoreSpy);
     }
 
@@ -533,15 +534,15 @@ class ContentRestControllerTest {
 
     @ParameterizedTest
     @MethodSource("nonExistentPaths")
-    void upload_nonexistent_fails(String pathTemplate) throws Exception {
+    void upload_nonexistent_fails(String pathTemplate, String problemType) throws Exception {
         String instanceId = createInvoice(null);
 
         mockMvc.perform(post(pathTemplate, instanceId)
                         .contentType(INVOICE_CONTENT_FILE.getContentType())
                         .content(INVOICE_CONTENT_FILE.getBytes()))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.NOT_FOUND)
+                        .withType(problemType)
                 );
     }
 
@@ -568,14 +569,16 @@ class ContentRestControllerTest {
         mockMvc.perform(post("/invoices/{instanceId}/content", invoiceId)
                         .content(INVOICE_CONTENT_FILE.getBytes()))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.BAD_REQUEST)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withTitle("Missing 'Content-Type' header")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withStatusCode(HttpStatus.NOT_FOUND)
+                        .withType("about:blank"));
     }
 
     @Test
@@ -586,15 +589,17 @@ class ContentRestControllerTest {
                         .contentType("")
                         .content(INVOICE_CONTENT_FILE.getBytes()))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.BAD_REQUEST)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withTitle("Missing 'Content-Type' header")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
 
         // No upload has happened
         mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                .andExpect(status().isNotFound());
+                .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withStatusCode(HttpStatus.NOT_FOUND)
+                        .withType("about:blank"));
 
     }
 
@@ -698,8 +703,8 @@ class ContentRestControllerTest {
         mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
                         .file(file))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.BAD_REQUEST)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withTitle("Missing 'Content-Type' header")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
@@ -715,8 +720,8 @@ class ContentRestControllerTest {
 
         mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.BAD_REQUEST)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withDetail("Required part 'file' is not present.")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
@@ -744,13 +749,13 @@ class ContentRestControllerTest {
 
     @ParameterizedTest
     @MethodSource("nonExistentPaths")
-    void delete_nonexistent_fails(String pathTemplate) throws Exception {
+    void delete_nonexistent_fails(String pathTemplate, String problemType) throws Exception {
         String instanceId = createInvoice(null);
 
         mockMvc.perform(delete(pathTemplate, instanceId))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                .withStatusCode(HttpStatus.NOT_FOUND)
-                        // TODO: proper problem detail here
+                        .withStatusCode(HttpStatus.NOT_FOUND)
+                        .withType(problemType)
                 );
     }
 

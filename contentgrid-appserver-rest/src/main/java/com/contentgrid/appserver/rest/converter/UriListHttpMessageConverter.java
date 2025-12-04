@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.converter;
 
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
+import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,7 +39,7 @@ public class UriListHttpMessageConverter extends AbstractHttpMessageConverter<UR
                         try {
                             return URI.create(line);
                         } catch (IllegalArgumentException e) {
-                            throw new HttpMessageNotReadableException("Invalid URI in text/uri-list: " + line, e, inputMessage);
+                            throw new InvalidUriInListException(line, e, inputMessage);
                         }
                     })
                     .toList());

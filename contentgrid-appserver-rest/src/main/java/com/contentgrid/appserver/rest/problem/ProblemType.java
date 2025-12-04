@@ -23,8 +23,17 @@ public enum ProblemType implements ProblemTypeResolvable {
     INVALID_REQUEST_BODY_TYPE("invalid-request-body", "type"),
     INVALID_REQUEST_BODY_JSON("invalid-request-body", "json"),
 
+    MISSING_CONTENT_TYPE("missing-content-type"),
+    UNSUPPORTED_CONTENT_TYPE("unsupported-content-type"),
+
     UNSATISFIED_VERSION("unsatisfied-version"),
 
+    NOT_FOUND_ENTITY_DEFINITION("not-found", "entity-definition"),
+    NOT_FOUND_ENTITY_ITEM("not-found", "entity-item"),
+    NOT_FOUND_RELATION_ITEM("not-found", "relation-item"), // Specific item not linked in a relation
+    NOT_FOUND_EMPTY_RELATION("not-found", "empty-relation"), // To-one relation has no target
+
+    INTEGRITY_INVALID_RELATION_TARGET("integrity", "invalid-relation-target"),
     INTEGRITY_RELATION_BLIND_OVERWRITE("integrity", "blind-relation-overwrite"),
     INTEGRITY_RELATION_REQUIRED("integrity", "relation-required"),
     INTEGRITY_REQUIRED("integrity", "required")

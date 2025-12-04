@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
@@ -23,6 +24,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioAsyncClient;
@@ -518,7 +520,7 @@ class InvoicingApiApplicationTest {
                         .andExpect(status().isNoContent());
 
                 assertThat(invoicingApi.findInvoiceByNumber(INVOICE_NUMBER_1)).isEmpty();
-                assertThat(invoicingApi.findInvoiceContent(id)).isEmpty();
+                assertThrows(EntityIdNotFoundException.class, () -> invoicingApi.findInvoiceContent(id));
             }
 
             @Test

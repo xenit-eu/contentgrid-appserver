@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -59,7 +60,7 @@ public class EntityRestController {
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity not found"));
+                .orElseThrow(() -> new EntityDefinitionNotFoundException(entityName.getValue()));
     }
 
     // Workaround for https://github.com/spring-projects/spring-framework/issues/23820
@@ -114,7 +115,7 @@ public class EntityRestController {
                         EntityRequest.forEntity(entity.getName(), id),
                         authorizationContext
                 )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), id));
 
         return ResponseEntity.ok()
                 .eTag(calculateETag(result))
@@ -184,20 +185,16 @@ public class EntityRestController {
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
-        try {
-            var updateResult = datamodelApi.update(
-                    application,
-                    EntityRequest.forEntity(entity.getName(), id)
-                            .withVersionConstraint(requestedVersion),
-                    data,
-                    authorizationContext
-            );
-            return ResponseEntity.noContent()
-                    .eTag(calculateETag(updateResult))
-                    .build();
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        var updateResult = datamodelApi.update(
+                application,
+                EntityRequest.forEntity(entity.getName(), id)
+                        .withVersionConstraint(requestedVersion),
+                data,
+                authorizationContext
+        );
+        return ResponseEntity.noContent()
+                .eTag(calculateETag(updateResult))
+                .build();
     }
 
     @PatchMapping("/{entityName}/{id}")
@@ -213,21 +210,17 @@ public class EntityRestController {
     ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
 
-        try {
-            var updateResult = datamodelApi.updatePartial(
-                    application,
-                    EntityRequest.forEntity(entity.getName(), id)
-                            .withVersionConstraint(requestedVersion),
-                    data,
-                    authorizationContext
-            );
+        var updateResult = datamodelApi.updatePartial(
+                application,
+                EntityRequest.forEntity(entity.getName(), id)
+                        .withVersionConstraint(requestedVersion),
+                data,
+                authorizationContext
+        );
 
-            return ResponseEntity.noContent()
-                    .eTag(calculateETag(updateResult))
-                    .build();
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        return ResponseEntity.noContent()
+                .eTag(calculateETag(updateResult))
+                .build();
     }
 
     @DeleteMapping("/{entityName}/{id}")
@@ -240,13 +233,9 @@ public class EntityRestController {
     ) {
         var entity = getEntityOrThrow(application, entityName);
 
-        try {
-            var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
-            datamodelApi.deleteEntity(application, request, authorizationContext);
-            return ResponseEntity.noContent().build();
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
+        datamodelApi.deleteEntity(application, request, authorizationContext);
+        return ResponseEntity.noContent().build();
     }
 
 }

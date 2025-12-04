@@ -14,11 +14,20 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.rest.exception.EmptyRelationException;
+import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
+import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
+import com.contentgrid.appserver.rest.exception.MissingContentTypeException;
+import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
+import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties;
@@ -36,8 +45,11 @@ import org.springframework.hateoas.mediatype.problem.Problem;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MimeType;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @ControllerAdvice
@@ -216,6 +228,131 @@ public class ContentGridExceptionHandler {
                 .withProperties(properties -> {
                     var affectedRelation = linkFactoryProvider.toRelation(exception.getTargetRelationIdentity()).orElseThrow().toUri();
                     properties.put("affected-relation", affectedRelation.toString());
+                })
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleEntityItemNotFound(@NonNull EntityIdNotFoundException exception) {
+        var id = exception.getId().getValue();
+        var entity = exception.getEntityName().getValue();
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_ENTITY_ITEM, entity, id)
+                .withStatus(HttpStatus.NOT_FOUND)
+                .withProperties(Map.of("id", id, "entity", entity))
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleRelationLinkNotFound(@NonNull RelationLinkNotFoundException exception) {
+        var targetEntity = exception.getTargetEntity();
+        var sourceRelationIdentity = exception.getSourceRelationIdentity();
+        var relationName = sourceRelationIdentity.getRelationName();
+        var id = EntityIdentity.forEntity(sourceRelationIdentity.getEntityName(), sourceRelationIdentity.getEntityId());
+
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_RELATION_ITEM, relationName, id, targetEntity.getEntityId())
+                .withStatus(HttpStatus.NOT_FOUND)
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleEmptyRelation(@NonNull EmptyRelationException exception) {
+        var relationIdentity = exception.getRelationRequest();
+        var entityIdentity = EntityIdentity.forEntity(relationIdentity.getEntityName(), relationIdentity.getEntityId());
+
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_EMPTY_RELATION, relationIdentity.getRelationName(), entityIdentity)
+                .withStatus(HttpStatus.NOT_FOUND)
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleRelationTargetNotFound(@NonNull RelationTargetNotFoundException exception) {
+        var allExceptions = exception.allExceptions().toList();
+
+        var propertiesBuilder = ConstraintViolationProblemProperties.builder();
+        for (var ex : allExceptions) {
+            propertiesBuilder.target(
+                    handleEntityItemNotFound(ex).getBody(),
+                            ex.getEntityName().getValue(),
+                            ex.getId().getValue().toString()
+            );
+        }
+
+        var validationProblemProperties = propertiesBuilder.build();
+
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INTEGRITY_INVALID_RELATION_TARGET)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withProperties(validationProblemProperties)
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleInvalidRelationTarget(@NonNull InvalidRelationTargetException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INTEGRITY_INVALID_RELATION_TARGET)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withProperties(properties -> properties.put("reference", exception.getReference()))
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleInvalidUriInList(@NonNull InvalidUriInListException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INTEGRITY_INVALID_RELATION_TARGET)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+                        .withProperties(properties -> properties.put("reference", exception.getInvalid()))
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleResourceNotFound(@NonNull NoResourceFoundException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_ENTITY_DEFINITION, exception.getResourcePath())
+                .withStatus(HttpStatus.NOT_FOUND)
+                .withProperties(Map.of("resource", exception.getResourcePath()))
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleMissingContentTypeOnUpload(@NonNull MissingContentTypeException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.MISSING_CONTENT_TYPE)
+                .withStatus(HttpStatus.BAD_REQUEST)
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleMissingRelationTarget(@NonNull MissingRelationTargetException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY)
+                .withStatus(HttpStatus.BAD_REQUEST)
+                .withDetail("No relation targets provided in request body")
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleMultipleRelationTargets(@NonNull MultipleRelationTargetsException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY)
+                .withStatus(HttpStatus.BAD_REQUEST)
+                .withDetail("Multiple relation targets provided for to-one relation")
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleUnsupportedMediaType(@NonNull HttpMediaTypeNotSupportedException exception) {
+        var maybeContentType = Optional.ofNullable(exception.getContentType());
+        var contentType = maybeContentType.map(MimeType::toString).orElse("unknown");
+
+        return createResponse(problemFactory.createProblem(ProblemType.UNSUPPORTED_CONTENT_TYPE, contentType)
+                .withStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .withProperties(properties -> {
+                    if (maybeContentType.isPresent()) {
+                        properties.put("content-type", contentType);
+                    }
+                    var supportedTypes = exception.getSupportedMediaTypes().stream()
+                            .map(org.springframework.http.MediaType::toString)
+                            .toList();
+                    if (!supportedTypes.isEmpty()) {
+                        properties.put("supported-types", supportedTypes);
+                    }
                 })
         );
     }
