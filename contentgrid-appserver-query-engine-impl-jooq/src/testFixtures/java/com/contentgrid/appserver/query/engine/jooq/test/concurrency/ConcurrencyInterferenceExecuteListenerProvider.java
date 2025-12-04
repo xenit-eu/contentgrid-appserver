@@ -4,6 +4,8 @@ import com.contentgrid.appserver.query.engine.jooq.test.concurrency.ConcurrentEx
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -15,12 +17,19 @@ import org.jooq.ExecuteListenerProvider;
 
 @Slf4j
 public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteListenerProvider {
-    private AtomicReference<ConcurrencyInterferenceExecutor> executorRef = new AtomicReference<>(ConcurrencyInterferenceExecutor.NOOP);
+    private final AtomicReference<ConcurrencyInterferenceExecutor> executorRef = new AtomicReference<>(ConcurrencyInterferenceExecutor.NOOP);
+
+    interface CloseableExecutorRef extends AutoCloseable {
+
+        @Override
+        void close();
+    }
 
     @SneakyThrows
-    public void setExecutor(@NonNull ConcurrencyInterferenceExecutor executor) {
+    public CloseableExecutorRef setExecutor(@NonNull ConcurrencyInterferenceExecutor executor) {
         var oldExecutor = executorRef.getAndSet(executor);
         oldExecutor.onDiscard();
+        return () -> setExecutor(ConcurrencyInterferenceExecutor.NOOP);
     }
 
     @Override
@@ -33,21 +42,19 @@ public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteLi
         };
     }
 
-    private <P, T> void runUnderExecutor(UnderTestRunnable<P, T> underTestRunnable, ConcurrencyInterferenceExecutor executor, String testName) {
+    private <P, T> void runUnderExecutor(UnderTestRunnable<P, T> underTestRunnable, Function<P, ConcurrencyInterferenceExecutor> executorFactory, String testName) {
         log.info("{}: prepare", testName);
         var preparation = underTestRunnable.prepare();
-        setExecutor(executor);
+        var executor = executorFactory.apply(preparation);
         T testResult;
-        try {
+        try(CloseableExecutorRef ignored = setExecutor(executor)) {
             log.info("{}: test start", testName);
             testResult = underTestRunnable.test(preparation);
             log.info("{}: test end", testName);
-        } finally {
-            setExecutor(ConcurrencyInterferenceExecutor.NOOP);
         }
         try {
             log.info("{}: verification", testName);
-            underTestRunnable.verify(testResult);
+            underTestRunnable.verify(preparation, testResult);
         } catch (AssertionError assertionError) {
             if(executor instanceof ConcurrentExecutorConcurrencyInterferenceExecutor hasQueryLocation) {
                 assertionError.addSuppressed(hasQueryLocation.getQueryLocation());
@@ -55,15 +62,19 @@ public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteLi
             throw assertionError;
         } finally {
             log.info("{}: cleanup", testName);
-            underTestRunnable.cleanup();
+            underTestRunnable.cleanup(preparation, testResult);
             log.info("{}: finished", testName);
 
         }
     }
 
     public <P, T> void runConcurrencyTest(UnderTestRunnable<P, T> underTestRunnable, Runnable interference) {
+        runConcurrencyTest(underTestRunnable, p -> interference.run());
+    }
+
+    public <P, T> void runConcurrencyTest(UnderTestRunnable<P, T> underTestRunnable, Consumer<P> interference) {
         var counter = new CountingConcurrencyInterferenceExecutor();
-        runUnderExecutor(underTestRunnable, counter, "Pre-run");
+        runUnderExecutor(underTestRunnable, p -> counter, "Pre-run");
 
         var count = counter.getCount();
         log.info("Will run {} tests (one before each query)", count);
@@ -75,9 +86,13 @@ public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteLi
 
         for(int i = 0; i < count; i++) {
             log.debug("Inject right before query#{} '{}'", i, counter.getQueries().get(i));
-            var concurrent = new ConcurrentExecutorConcurrencyInterferenceExecutor(interference, i);
+            var queryPos = i;
             try {
-                runUnderExecutor(underTestRunnable, concurrent, "Test#" + i);
+                runUnderExecutor(underTestRunnable, p -> new ConcurrentExecutorConcurrencyInterferenceExecutor(() -> {
+                    // Immediately clear the executor, so it doesn't process the interference itself
+                    setExecutor(ConcurrencyInterferenceExecutor.NOOP);
+                    interference.accept(p);
+                }, queryPos), "Test#" + i);
             } catch(AssertionError assertionError) {
                 assertionErrors.add(assertionError);
             }

@@ -41,6 +41,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
@@ -90,6 +91,7 @@ import org.jooq.Record3;
 import org.jooq.SelectUnionStep;
 import org.jooq.SortField;
 import org.jooq.exception.DataAccessException;
+import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 
 @RequiredArgsConstructor
@@ -674,15 +676,23 @@ public class JOOQQueryEngine implements QueryEngine {
             }
         }
 
-        // No foreign key constraint violation can be thrown here anymore,
-        // because all relations that reference the entity and are not stored in our own table have
-        // already been removed (or failed with an exception) above.
-        var deleted = dslContext.deleteFrom(table)
-                .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
-                .returning(JOOQUtils.resolveAttributeFields(entity))
-                .fetchOptionalMap()
-                .map(result -> EntityDataMapper.from(entity, result))
-                .map(checkVersionSatisfied(entityRequest));
+        Optional<EntityData> deleted;
+
+        try {
+            // No foreign key constraint violation can be thrown here anymore,
+            // because all relations that reference the entity and are not stored in our own table have
+            // already been removed (or failed with an exception) above.
+            // However, due to concurrent execution with relation updates, this *can* cause a constraint violation.
+            // The only way to handle that is to re-run the whole logic in a retry, after which we are hopefully in the clear
+            deleted = dslContext.deleteFrom(table)
+                    .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
+                    .returning(JOOQUtils.resolveAttributeFields(entity))
+                    .fetchOptionalMap()
+                    .map(result -> EntityDataMapper.from(entity, result))
+                    .map(checkVersionSatisfied(entityRequest));
+        } catch(IntegrityConstraintViolationException constraintViolationException) {
+            throw new ConcurrencyFailureException(constraintViolationException);
+        }
 
         deleted.ifPresent(data -> deleteEventConsumer.onEntityDelete(application, data));
 

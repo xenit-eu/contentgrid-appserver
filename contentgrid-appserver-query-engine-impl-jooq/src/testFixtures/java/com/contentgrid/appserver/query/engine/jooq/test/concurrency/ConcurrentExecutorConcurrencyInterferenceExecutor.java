@@ -49,6 +49,7 @@ public class ConcurrentExecutorConcurrencyInterferenceExecutor implements Concur
     @SneakyThrows(InterruptedException.class)
     public void onQueryStart(ExecuteContext ctx) {
         var pos = currentPosition.getAndIncrement();
+        log.debug("Query #{}: {}", pos, ctx.query());
         if(pos != this.position) {
             // Not in the current position; nothing to do
             return;

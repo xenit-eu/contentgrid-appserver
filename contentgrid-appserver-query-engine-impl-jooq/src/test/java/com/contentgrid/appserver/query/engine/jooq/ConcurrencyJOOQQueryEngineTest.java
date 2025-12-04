@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
+import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
@@ -32,8 +33,10 @@ import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.jooq.ConcurrencyJOOQQueryEngineTest.Config;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.appserver.query.engine.jooq.test.NoneEvents;
@@ -43,6 +46,7 @@ import com.contentgrid.appserver.query.engine.jooq.test.concurrency.UnderTestRun
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -398,6 +402,76 @@ class ConcurrencyJOOQQueryEngineTest {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource({"toOneRelations", "toManyRelations"})
+    void deleteTargetEntityWhileSettingRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> createItem(app, ENTITY_B.getName()),
+                                entityB -> {
+                                    if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
+                                        return assertThatCode(() -> queryEngine.setLink(app, relReq, entityB.getId(), PERMIT_ALWAYS, NONE_EVENTS));
+                                    } else {
+                                        return assertThatCode(() -> queryEngine.addLinks(app, relReq, Set.of(entityB.getId()), PERMIT_ALWAYS, NONE_EVENTS));
+                                    }
+                                })
+                        // This may have thrown, depending on whether entity B was deleted before or after the linking
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class))
+                        .cleanup((entityB, unused) -> {
+                            var entityBRequest = EntityRequest.forEntity(ENTITY_B.getName(), entityB.getId());
+                            // Clean up created entity B, if it still exists
+                            assertThatCode(() -> queryEngine.delete(app, entityBRequest, PERMIT_ALWAYS, NONE_EVENTS))
+                                    .doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class);
+                        })
+                ,
+                entityB -> {
+                    var entityBRequest = EntityRequest.forEntity(ENTITY_B.getName(), entityB.getId());
+                    // Retry concurrency failure a couple of times
+                    withRetries(() -> queryEngine.delete(app, entityBRequest, PERMIT_ALWAYS, NONE_EVENTS));
+                }
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource({"toOneRelations", "toManyRelations"})
+    void deleteSourceEntityWhileSettingRelation(Relation relation) {
+        var app = createModel(relation);
+
+        var entityB = createItem(app, ENTITY_B.getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> createItem(app, ENTITY_A.getName()),
+                                entityA -> {
+                                    var relReq = RelationRequest.forRelation(entityA.getIdentity(), relation.getSourceEndPoint().getName());
+
+                                    if(relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation) {
+                                        return assertThatCode(() -> queryEngine.setLink(app, relReq, entityB.getId(), PERMIT_ALWAYS, NONE_EVENTS));
+                                    } else {
+                                        return assertThatCode(() -> queryEngine.addLinks(app, relReq, Set.of(entityB.getId()), PERMIT_ALWAYS, NONE_EVENTS));
+                                    }
+                                })
+                        // This may have thrown, depending on whether entity A is deleted before or after the linking
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class))
+                        .cleanup((entityA, unused) -> {
+                            var entityARequest = EntityRequest.forEntity(ENTITY_A.getName(), entityA.getId());
+                            // Clean up created entity A, if it still exists
+                            assertThatCode(() -> queryEngine.delete(app, entityARequest, PERMIT_ALWAYS, NONE_EVENTS))
+                                    .doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class);
+                        })
+                ,
+                entityA -> {
+                    var entityARequest = EntityRequest.forEntity(ENTITY_A.getName(), entityA.getId());
+                    // Retry concurrency failure a couple of times
+                    withRetries(() -> queryEngine.delete(app, entityARequest, PERMIT_ALWAYS, NONE_EVENTS));
+                }
+        );
+    }
+
     private Application createModel(Relation relation) {
         var app = Application.builder()
                 .name(ApplicationName.of("test"))
@@ -429,6 +503,23 @@ class ConcurrencyJOOQQueryEngineTest {
         }
 
         return queryEngine.create(application, entityDataBuilder.build(), PERMIT_ALWAYS, NONE_EVENTS);
+    }
+
+    private static final int MAX_RETRIES = 3;
+
+    private static <T> T withRetries(Supplier<T> callable) {
+        ConcurrencyFailureException lastException;
+        int i = MAX_RETRIES;
+        do {
+            i--;
+            try {
+                return callable.get();
+            } catch(ConcurrencyFailureException e) {
+                lastException = e;
+            }
+        } while (i >= 0);
+
+        throw lastException;
     }
 
     @TestConfiguration

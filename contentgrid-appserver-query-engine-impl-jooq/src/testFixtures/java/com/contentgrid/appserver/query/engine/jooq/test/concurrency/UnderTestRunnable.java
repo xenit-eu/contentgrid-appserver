@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query.engine.jooq.test.concurrency;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -13,8 +14,8 @@ import lombok.With;
 public interface UnderTestRunnable<P, T> {
     P prepare();
     T test(P preparation);
-    void verify(T result);
-    void cleanup();
+    void verify(P preparation, T result);
+    void cleanup(P preparation, T result);
 
     static <P, T> UnderTestRunnableBuilder<P, T> test(Supplier<P> prepare, Function<P, T> test) {
         return new UnderTestRunnableBuilder<>(prepare, test);
@@ -41,28 +42,31 @@ public interface UnderTestRunnable<P, T> {
 
         @NonNull
         @With(value = AccessLevel.PRIVATE)
-        private final Runnable cleanup;
+        private final BiConsumer<P, T> cleanup;
 
         @With(value = AccessLevel.PRIVATE)
         @NonNull
-        private final Consumer<T> verification;
+        private final BiConsumer<P, T> verification;
 
         private UnderTestRunnableBuilder(@NonNull Supplier<P> prepare, @NonNull Function<P, T> test) {
-            this(prepare, test, () -> {}, t -> {});
+            this(prepare, test, (p, t) -> {}, (p, t) -> {});
         }
 
         public UnderTestRunnableBuilder<P, T> verify(@NonNull Consumer<T> verification) {
+            return verify((p, t) -> verification.accept(t));
+        }
+
+        public UnderTestRunnableBuilder<P, T> verify(@NonNull BiConsumer<P, T> verification) {
             return withVerification(this.verification.andThen(verification));
         }
 
-        public UnderTestRunnableBuilder<P, T> cleanup(@NonNull Runnable cleanup) {
-            var oldCleanup = this.cleanup;
-            return withCleanup(() -> {
-                oldCleanup.run();
-                cleanup.run();
-            });
+        public UnderTestRunnableBuilder<P, T> cleanup(@NonNull BiConsumer<P, T> cleanup) {
+            return withCleanup(this.cleanup.andThen(cleanup));
         }
 
+        public UnderTestRunnableBuilder<P, T> cleanup(@NonNull Runnable cleanup) {
+            return cleanup((p, t) -> cleanup.run());
+        }
 
         @Override
         public P prepare() {
@@ -75,14 +79,14 @@ public interface UnderTestRunnable<P, T> {
         }
 
         @Override
-        public void verify(T result) {
+        public void verify(P preparation, T result) {
             assertThat(result)
-                    .satisfies(verification);
+                    .satisfies(r -> verification.accept(preparation, r));
         }
 
         @Override
-        public void cleanup() {
-            cleanup.run();
+        public void cleanup(P preparation, T result) {
+            cleanup.accept(preparation, result);
         }
     }
 }
