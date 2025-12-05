@@ -130,22 +130,53 @@ class ConcurrencyJOOQQueryEngineTest {
                 .name(RelationName.of("to_a"))
                 .flag(HiddenEndpointFlag.INSTANCE)
                 .build();
+
+        var sourceEndpoint2 = RelationEndPoint.builder()
+                .entity(ENTITY_A.getName())
+                .name(RelationName.of("to_b2"))
+                .pathSegment(PathSegmentName.of("to-b2"))
+                .linkName(LinkName.of("to-b2"))
+                .build();
+        var targetEndpoint2 = RelationEndPoint.builder()
+                .entity(ENTITY_B.getName())
+                .name(RelationName.of("to_a2"))
+                .flag(HiddenEndpointFlag.INSTANCE)
+                .build();
+
         return Stream.of(
-                Arguments.argumentSet("source one-to-one", SourceOneToOneRelation.builder()
-                        .sourceEndPoint(sourceEndpoint)
-                        .targetEndPoint(targetEndpoint)
-                        .targetReference(ColumnName.of("entity_b_id"))
-                        .build()),
-                Arguments.argumentSet("target one-to-one", TargetOneToOneRelation.builder()
-                        .sourceEndPoint(sourceEndpoint)
-                        .targetEndPoint(targetEndpoint)
-                        .sourceReference(ColumnName.of("entity_a_id"))
-                        .build()),
-                Arguments.argumentSet("many-to-one", ManyToOneRelation.builder()
-                        .sourceEndPoint(sourceEndpoint)
-                        .targetEndPoint(targetEndpoint)
-                        .targetReference(ColumnName.of("entity_b_id"))
-                        .build())
+                Arguments.argumentSet("source one-to-one",
+                        SourceOneToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint)
+                                .targetEndPoint(targetEndpoint)
+                                .targetReference(ColumnName.of("entity_b_id"))
+                                .build(),
+                        SourceOneToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint2)
+                                .targetEndPoint(targetEndpoint2)
+                                .targetReference(ColumnName.of("entity_b_id2"))
+                                .build()),
+                Arguments.argumentSet("target one-to-one",
+                        TargetOneToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint)
+                                .targetEndPoint(targetEndpoint)
+                                .sourceReference(ColumnName.of("entity_a_id"))
+                                .build(),
+                        TargetOneToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint2)
+                                .targetEndPoint(targetEndpoint2)
+                                .sourceReference(ColumnName.of("entity_a_id2"))
+                                .build()),
+                Arguments.argumentSet("many-to-one",
+                        ManyToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint)
+                                .targetEndPoint(targetEndpoint)
+                                .targetReference(ColumnName.of("entity_b_id"))
+                                .build(),
+                        ManyToOneRelation.builder()
+                                .sourceEndPoint(sourceEndpoint2)
+                                .targetEndPoint(targetEndpoint2)
+                                .targetReference(ColumnName.of("entity_b_id2"))
+                                .build())
         );
     }
 
@@ -337,6 +368,39 @@ class ConcurrencyJOOQQueryEngineTest {
                                     });
                                 }
                         )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("toOneRelations")
+    void setDifferentToOneRelations(Relation relation1, Relation relation2) {
+        var app = createModel(relation1, relation2);
+
+        var entityA = createItem(app, ENTITY_A.getName());
+        var entityB = createItem(app, ENTITY_B.getName());
+
+        var relReq1 = RelationRequest.forRelation(entityA.getIdentity(), relation1.getSourceEndPoint().getName());
+        var relReq2 = RelationRequest.forRelation(entityA.getIdentity(), relation2.getSourceEndPoint().getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> {
+                            assertThatCode(() -> queryEngine.setLink(app, relReq1, entityB.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                                    .doesNotThrowAnyException();
+                            return null;
+                        })
+                        .verify(unused -> {
+                            var target1 = queryEngine.findTarget(app, relReq1, PERMIT_ALWAYS);
+                            assertThat(target1).map(EntityIdAndVersion::entityId).hasValue(entityB.getId());
+                            var target2 = queryEngine.findTarget(app, relReq2, PERMIT_ALWAYS);
+                            assertThat(target2).map(EntityIdAndVersion::entityId).hasValue(entityB.getId());
+                        })
+                        .cleanup(() -> {
+                            queryEngine.unsetLink(app, relReq1, PERMIT_ALWAYS, NONE_EVENTS);
+                            queryEngine.unsetLink(app, relReq2, PERMIT_ALWAYS, NONE_EVENTS);
+                        })
+                ,
+                () -> assertThatCode(() -> queryEngine.setLink(app, relReq2, entityB.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                        .doesNotThrowAnyException()
         );
     }
 
