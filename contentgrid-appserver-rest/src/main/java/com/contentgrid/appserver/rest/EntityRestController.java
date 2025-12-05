@@ -93,11 +93,11 @@ public class EntityRestController {
                 .toCollectionModel(results);
     }
 
-    @GetMapping("/{entityName}/{instanceId}")
+    @GetMapping("/{entityName}/{id}")
     public ResponseEntity<EntityDataRepresentationModel> getEntity(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             AuthorizationContext authorizationContext,
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
@@ -111,7 +111,7 @@ public class EntityRestController {
                         // already queried the database.
                         // All expensive operations have already happened (the body is not that large),
                         // so there is no point in still discarding it
-                        EntityRequest.forEntity(entity.getName(), instanceId),
+                        EntityRequest.forEntity(entity.getName(), id),
                         authorizationContext
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

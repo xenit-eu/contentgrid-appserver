@@ -35,7 +35,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor
 @SpecializedOnPropertyType(type = PropertyType.TO_MANY_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
-@RequestMapping("/{entityName}/{instanceId}/{propertyName}")
+@RequestMapping("/{entityName}/{id}/{propertyName}")
 public class XToManyRelationRestController {
 
     @NonNull
@@ -52,21 +52,21 @@ public class XToManyRelationRestController {
     public ResponseEntity<Object> getRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), instanceId),
+        datamodelApi.findById(application, EntityRequest.forEntity(relation.getSourceEndPoint().getEntity(), id),
                         authorizationContext)
                 // TODO: throw specific exception to support problem details
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(instanceId)));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entity with id %s not found".formatted(id)));
 
         var targetFilter = application.getFilterForRelation(relation);
 
         var redirectUrl = linkFactoryProvider.toCollection(relation.getTargetEndPoint().getEntity(), CollectionParameters.defaults()
-                .withSearchParam(targetFilter.getName().getValue(), instanceId.getValue().toString())
+                .withSearchParam(targetFilter.getName().getValue(), id.getValue().toString())
         ).toUri();
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }
@@ -75,7 +75,7 @@ public class XToManyRelationRestController {
     public ResponseEntity<Object> addRelationItems(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             @RequestBody URIList body,
             AuthorizationContext authorizationContext,
@@ -89,7 +89,7 @@ public class XToManyRelationRestController {
         var relation = getRequiredRelation(application, entityName, propertyName);
         var relationRequest = RelationRequest.forRelation(
                 relation.getSourceEndPoint().getEntity(),
-                instanceId,
+                id,
                 relation.getSourceEndPoint().getName()
         );
         var matcher = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity());
@@ -106,7 +106,7 @@ public class XToManyRelationRestController {
         try {
             datamodelApi.addRelationItems(application, relationRequest, targetIds, authorizationContext);
         } catch (EntityIdNotFoundException e) {
-            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
+            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
                 // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
             } else {
@@ -121,7 +121,7 @@ public class XToManyRelationRestController {
     public ResponseEntity<Object> deleteRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             AuthorizationContext authorizationContext
     ) {
@@ -129,7 +129,7 @@ public class XToManyRelationRestController {
             var relation = getRequiredRelation(application, entityName, propertyName);
             var request = RelationRequest.forRelation(
                     relation.getSourceEndPoint().getEntity(),
-                    instanceId,
+                    id,
                     relation.getSourceEndPoint().getName()
             );
             datamodelApi.deleteRelation(application, request, authorizationContext);
@@ -144,14 +144,14 @@ public class XToManyRelationRestController {
     public ResponseEntity<Object> getRelationItem(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             @PathVariable EntityId itemId,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        if (datamodelApi.hasRelationTarget(application, relation, instanceId, itemId, authorizationContext)) {
+        if (datamodelApi.hasRelationTarget(application, relation, id, itemId, authorizationContext)) {
             var uri = linkFactoryProvider.toItem(EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), itemId)).toUri();
             return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
         } else {
@@ -163,7 +163,7 @@ public class XToManyRelationRestController {
     public ResponseEntity<Object> deleteRelationItem(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             @PathVariable EntityId itemId,
             AuthorizationContext authorizationContext
@@ -172,7 +172,7 @@ public class XToManyRelationRestController {
             var relation = getRequiredRelation(application, entityName, propertyName);
             var relationRequest = RelationRequest.forRelation(
                     relation.getSourceEndPoint().getEntity(),
-                    instanceId,
+                    id,
                     relation.getSourceEndPoint().getName()
             );
             datamodelApi.removeRelationItem(application, relationRequest, itemId, authorizationContext);
