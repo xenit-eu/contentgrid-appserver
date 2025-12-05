@@ -18,17 +18,12 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
@@ -94,12 +89,6 @@ class DynamicDispatchApplicationHandlerMappingTest {
             .table(TableName.of("other"))
             .pathSegment(PathSegmentName.of("others"))
             .linkName(LinkName.of("other"))
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_test_entity_to_many_other"))
-                    .attributePath(PropertyPath.of(RelationName.of("__internal_test_entity_to_many_other"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))

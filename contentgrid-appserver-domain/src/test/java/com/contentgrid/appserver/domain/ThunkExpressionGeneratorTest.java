@@ -19,7 +19,6 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -228,18 +227,6 @@ class ThunkExpressionGeneratorTest {
                     .name(FilterName.of("shipment.destination"))
                     .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("destination")))
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("shipment"))
-                    .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("wishlisted_by"))
-                    .attributePath(PropertyPath.of(RelationName.of("wishlisted_by"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
 
     private static final Entity shipmentEntity = Entity.builder()
@@ -281,12 +268,6 @@ class ThunkExpressionGeneratorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("parcel.barcode"))
                     .attributePath(PropertyPath.of(RelationName.of("parcel"), AttributeName.of("barcode")))
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("customer"))
-                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 
@@ -334,12 +315,6 @@ class ThunkExpressionGeneratorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("wishlist.description"))
                     .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("wishlist"))
-                    .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("invoice_id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 

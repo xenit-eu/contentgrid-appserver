@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
 public class HiddenSearchFilterFlag implements SearchFilterFlag {
 
     public static final HiddenSearchFilterFlag INSTANCE = new HiddenSearchFilterFlag();

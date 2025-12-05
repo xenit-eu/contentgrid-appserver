@@ -34,6 +34,7 @@ import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.Co
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -478,7 +479,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey((SimpleAttribute) toJsonAttribute(entity.getPrimaryKey()));
         jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
-        jsonEntity.setSearchFilters(entity.getSearchFilters().stream().map(this::toJsonSearchFilter).toList());
+        jsonEntity.setSearchFilters(entity.getSearchFilters().stream()
+                .filter(searchfilter -> !searchfilter.hasFlag(SyntheticSearchFilterFlag.class))
+                .map(this::toJsonSearchFilter).toList());
         jsonEntity.setSortableFields(entity.getSortableFields().stream().map(this::toJsonSortableField).toList());
         return jsonEntity;
     }

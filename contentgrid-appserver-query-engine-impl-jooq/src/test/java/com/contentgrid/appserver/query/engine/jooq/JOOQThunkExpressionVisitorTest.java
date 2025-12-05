@@ -27,7 +27,6 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -36,7 +35,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -114,12 +112,6 @@ class JOOQThunkExpressionVisitorTest {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_person_friends"))
-                    .attributePath(PropertyPath.of(RelationName.of("__internal_person_friends"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .searchFilter(FullTextSearchAttributeSearchFilter.builder()
                     .attribute(PERSON_COMMENT)
@@ -217,12 +209,6 @@ class JOOQThunkExpressionVisitorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_customer"))
-                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 
