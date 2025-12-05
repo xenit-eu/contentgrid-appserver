@@ -36,7 +36,6 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -160,12 +159,6 @@ class JOOQQueryEngineTest {
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_person_friends"))
-                    .attributePath(PropertyPath.of(RelationName.of("__internal_person_friends"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
 
     private static final Entity ORDER = Entity.builder()
@@ -274,18 +267,6 @@ class JOOQQueryEngineTest {
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_customer"))
-                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_products"))
-                    .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("invoice_num"))
                     .propertyPath(PropertyPath.of(INVOICE_NUMBER.getName()))
@@ -327,12 +308,6 @@ class JOOQQueryEngineTest {
                     .name(FilterName.of("code"))
                     .attribute(PRODUCT_CODE)
                     .build())
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_invoices"))
-                    .attributePath(PropertyPath.of(RelationName.of("invoices"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
 
     private static final Entity ADDRESS = Entity.builder()
@@ -340,12 +315,6 @@ class JOOQQueryEngineTest {
             .table(TableName.of("address"))
             .pathSegment(PathSegmentName.of("addresses"))
             .linkName(LinkName.of("addresses"))
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_person"))
-                    .attributePath(PropertyPath.of(RelationName.of("person"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()

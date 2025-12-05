@@ -28,7 +28,6 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -36,7 +35,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -81,7 +79,7 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
-    private static final Entity.EntityBuilder PERSON_BUILDER = Entity.builder()
+    private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
             .pathSegment(PathSegmentName.of("persons"))
@@ -97,14 +95,6 @@ class JOOQTableCreatorTest {
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
                     .name(FilterName.of("name~prefix"))
-                    .build());
-
-    private static final Entity PERSON = PERSON_BUILDER.build();
-    private static final Entity PERSON_WITH_FILTER = PERSON_BUILDER.searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_person_friends"))
-                    .attributePath(PropertyPath.of(RelationName.of("__internal_person_friends"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 
@@ -181,7 +171,7 @@ class JOOQTableCreatorTest {
                     .build())
             .build();
 
-    private static final Entity.EntityBuilder INVOICE_BUILDER = Entity.builder()
+    private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
@@ -197,14 +187,6 @@ class JOOQTableCreatorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
-                    .build());
-
-    private static final Entity INVOICE = INVOICE_BUILDER.build();
-    private static final Entity INVOICE_WITH_FILTER = INVOICE_BUILDER.searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_customer"))
-                    .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
                     .build())
             .build();
 
@@ -425,7 +407,7 @@ class JOOQTableCreatorTest {
     void applicationWithRelation(Relation relation) {
         var application = Application.builder()
                 .name(ApplicationName.of("relation-application"))
-                .entity(INVOICE_WITH_FILTER)
+                .entity(INVOICE)
                 .entity(PERSON)
                 .relation(relation)
                 .build();
@@ -453,7 +435,7 @@ class JOOQTableCreatorTest {
     void applicationWithManyToMany() {
         var application = Application.builder()
                 .name(ApplicationName.of("many-to-many-application"))
-                .entity(PERSON_WITH_FILTER)
+                .entity(PERSON)
                 .relation(PERSON_FRIENDS)
                 .build();
 

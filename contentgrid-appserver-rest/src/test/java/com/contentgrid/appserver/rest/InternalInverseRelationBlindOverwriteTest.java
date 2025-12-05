@@ -14,17 +14,12 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.example.ContentgridApp;
@@ -183,12 +178,6 @@ class InternalInverseRelationBlindOverwriteTest {
             .linkName(LinkName.of("employees"))
             .primaryKey(ATTR_EMPLOYEE_ID)
             .attribute(ATTR_EMPLOYEE_NAME)
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("__internal_department__members"))
-                    .attributePath(PropertyPath.of(RelationName.of("__internal_department__members"), AttributeName.of("department_id")))
-                    .flag(HiddenSearchFilterFlag.INSTANCE)
-                    .build())
             .build();
 
     // Define Department entity
@@ -226,7 +215,7 @@ class InternalInverseRelationBlindOverwriteTest {
                     .build())
             .targetEndPoint(RelationEndPoint.builder()
                     .entity(ENT_EMPLOYEE.getName())
-                    .name(RelationName.of("__internal_department__members"))
+                    .name(RelationName.of("_internal_department__members"))
                     .pathSegment(null)
                     .linkName(null)
                     .flag(HiddenEndpointFlag.INSTANCE)

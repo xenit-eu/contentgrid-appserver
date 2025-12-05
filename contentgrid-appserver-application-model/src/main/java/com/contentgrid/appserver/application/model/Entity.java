@@ -353,7 +353,6 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
      * Adds additional search filters
      *
      * @param additionalFilters Additional search filters to add
-     * @return a new entity with the additional search filters applied
      */
     /* package-private */ Entity withAdditionalSearchFilters(Collection<SearchFilter> additionalFilters) {
         return new Entity(

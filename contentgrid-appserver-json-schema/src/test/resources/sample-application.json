@@ -250,6 +250,12 @@
           "name": "subordinates.lastNameFilter",
           "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "_internal_projects",
+          "attributePath": [{ "name": "projects", "type": "rel" }, { "name": "id", "type": "attr" }],
+          "type": "exact",
+          "flags": ["hidden"]
         }
       ],
       "sortableFields": [
@@ -390,18 +396,6 @@
           "name": "budget~lte",
           "attributePath": [{"name": "budget", "type": "attr"}],
           "type": "less-or-equal"
-        },
-        {
-          "name": "__internal_employees",
-          "attributePath": [{"name": "employees", "type": "rel"}, {"name": "id", "type": "attr"}],
-          "type": "exact",
-          "flags": ["hidden"]
-        },
-        {
-          "name": "__internal_department_projects",
-          "attributePath": [{"name": "__internal_department_projects", "type": "rel"}, {"name": "id", "type": "attr"}],
-          "type": "exact",
-          "flags": ["hidden"]
         }
       ],
       "sortableFields": [
@@ -553,12 +547,6 @@
           "name": "categoryFilter",
           "attributePath": [{"name": "category", "type": "attr"}],
           "type": "exact"
-        },
-        {
-          "name": "__internal_employees",
-          "attributePath": [{ "name": "employees", "type": "rel" }, { "name": "id", "type": "attr" }],
-          "type": "exact",
-          "flags": ["hidden"]
         }
       ],
       "sortableFields": [
