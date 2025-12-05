@@ -250,24 +250,6 @@
           "name": "subordinates.lastNameFilter",
           "attributePath": [{"name": "subordinates", "type": "rel"}, {"name": "lastName", "type": "attr"}],
           "type": "prefix"
-        },
-        {
-          "name": "__internal_projects",
-          "attributePath": [{ "name": "projects", "type": "rel" }, { "name": "id", "type": "attr" }],
-          "type": "exact",
-          "flags": ["hidden"]
-        },
-        {
-          "name": "__internal_subordinates",
-          "attributePath": [{ "name": "subordinates", "type": "rel" }, { "name": "id", "type": "attr" }],
-          "type": "exact",
-          "flags": ["hidden"]
-        },
-        {
-          "name": "__internal_skills",
-          "attributePath": [{ "name": "skills", "type": "rel" }, { "name": "id", "type": "attr" }],
-          "type": "exact",
-          "flags": ["hidden"]
         }
       ],
       "sortableFields": [

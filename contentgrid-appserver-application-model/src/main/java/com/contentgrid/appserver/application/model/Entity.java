@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
+import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -29,6 +30,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -98,10 +100,10 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
             @NonNull ConfigurableTranslatable<EntityTranslations, ConfigurableEntityTranslations> translations,
             @NonNull TableName table,
             @NonNull LinkName linkName,
-            @Singular List<Attribute> attributes,
+            @Singular Collection<Attribute> attributes,
             SimpleAttribute primaryKey,
-            @Singular List<SearchFilter> searchFilters,
-            @Singular List<SortableField> sortableFields
+            @Singular Collection<SearchFilter> searchFilters,
+            @Singular Collection<SortableField> sortableFields
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
@@ -345,6 +347,29 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
      */
     public Optional<ContentAttribute> getContentByPathSegment(PathSegmentName pathSegment) {
         return Optional.ofNullable(contentAttributes.get(pathSegment));
+    }
+
+    /**
+     * Adds additional search filters
+     *
+     * @param additionalFilters Additional search filters to add
+     * @return a new entity with the additional search filters applied
+     */
+    /* package-private */ Entity withAdditionalSearchFilters(Collection<SearchFilter> additionalFilters) {
+        return new Entity(
+                name,
+                pathSegment,
+                new UnconfigurableTranslatable<>(translations),
+                table,
+                linkName,
+                attributes.values(),
+                primaryKey,
+                Stream.concat(
+                        searchFilters.values().stream(),
+                        additionalFilters.stream()
+                ).toList(),
+                sortableFields.values()
+        );
     }
 
     public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {

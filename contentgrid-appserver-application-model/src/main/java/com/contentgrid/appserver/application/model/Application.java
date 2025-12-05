@@ -8,16 +8,17 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilte
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.relations.flags.VisibleEndpointFlag;
+import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -93,14 +94,8 @@ public class Application {
             if (relation instanceof ManyToManyRelation manyToManyRelation && !tables.add(manyToManyRelation.getJoinTable())) {
                 throw new DuplicateElementException("Duplicate table named %s".formatted(manyToManyRelation.getJoinTable()));
             }
-            if (relation.getSourceEndPoint().hasFlag(VisibleEndpointFlag.class) &&
-                    (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation)) {
-                getFilterForRelation(relation); // assert filter exists for redirects
-            }
-            if (relation.getTargetEndPoint().hasFlag(VisibleEndpointFlag.class) &&
-                    (relation instanceof ManyToOneRelation || relation instanceof ManyToManyRelation)) {
-                getFilterForRelation(relation.inverse()); // assert filter exists for redirects
-            }
+            ensureRequiredRelationFiltersPresent(relation);
+            ensureRequiredRelationFiltersPresent(relation.inverse());
             this.relations.add(relation);
         });
 
@@ -286,6 +281,14 @@ public class Application {
      * @return the filter on the target entity belonging to the given relation
      */
     public SearchFilter getFilterForRelation(Relation relation) {
+        return findFilterForRelation(relation)
+                .orElseThrow(() -> new SearchFilterNotFoundException("No search filter found on %s for relation %s".formatted(
+                        relation.getTargetEndPoint().getEntity(),
+                        relation.getSourceEndPoint().getName()
+                )));
+    }
+
+    private Optional<AttributeSearchFilter> findFilterForRelation(Relation relation) {
         var sourceEntity = getRelationSourceEntity(relation);
         var targetEntity = getRelationTargetEntity(relation);
         var propertyPath = PropertyPath.of(relation.getTargetEndPoint().getName(), sourceEntity.getPrimaryKey().getName());
@@ -294,11 +297,54 @@ public class Application {
                 .map(AttributeSearchFilter.class::cast)
                 .filter(filter ->
                         Operation.EXACT == filter.getOperation() && propertyPath.equals(filter.getAttributePath()))
-                .findFirst()
-                .orElseThrow(() -> new SearchFilterNotFoundException("Exact search filter with path '%s' not found on entity '%s'"
-                        .formatted(String.join(".", propertyPath.toList()), relation.getTargetEndPoint().getEntity())));
+                .findFirst();
     }
 
+    /**
+     * Ensures that the relation filters that are necessary for the application to function are present
+     * <p>
+     * For to-many relations, we need a filter on the target entity collection, so we can redirect from the
+     * relation endpoint to the collection with that filter present
+     */
+    private void ensureRequiredRelationFiltersPresent(Relation relation) {
+        if (relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
+            // Hidden relations don't need a filter, because they can't be followed
+            return;
+        }
+        if (!(relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation)) {
+            // Ony to-many relations need a filter to redirect to; to-one relations redirect directly to their target
+            return;
+        }
+
+        if (findFilterForRelation(relation).isPresent()) {
+            // The relation already has a filter; we don't need to create a synthetic one
+            return;
+        }
+
+        var sourceEntity = getRelationSourceEntity(relation);
+        var targetEntity = getRelationTargetEntity(relation);
+
+        // Generate a filter name in case the original is already occupied
+        var originalFilterName = "__internal_%s".formatted(relation.getTargetEndPoint().getName().getValue());
+        var filterName = FilterName.of(originalFilterName);
+        int i = 0;
+        while(targetEntity.getFilterByName(filterName).isPresent()) {
+            i++;
+            filterName = FilterName.of(originalFilterName+"_"+i);
+        }
+
+        var filter = AttributeSearchFilter.builder()
+                .name(filterName)
+                .attributePath(PropertyPath.of(relation.getTargetEndPoint().getName(), sourceEntity.getPrimaryKey().getName()))
+                .flag(SyntheticSearchFilterFlag.INSTANCE)
+                .operation(Operation.EXACT)
+                .build();
+
+        var newTargetEntity = targetEntity.withAdditionalSearchFilters(Set.of(filter));
+
+        entities.put(targetEntity.getName(), newTargetEntity);
+        pathSegmentEntities.put(targetEntity.getPathSegment(), newTargetEntity);
+    }
 
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {

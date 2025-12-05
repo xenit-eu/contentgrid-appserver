@@ -1,9 +1,12 @@
 package com.contentgrid.appserver.application.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.contentgrid.appserver.application.model.Entity.EntityBuilder;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -31,6 +34,7 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
+import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -42,6 +46,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,7 +56,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplicationTest {
 
-    private static final Entity.EntityBuilder INVOICE_BUILDER = Entity.builder()
+    private static final Supplier<EntityBuilder> INVOICE_BUILDER_FACTORY = () -> Entity.builder()
             .name(EntityName.of("Invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
@@ -77,8 +82,8 @@ class ApplicationTest {
                     .build())
             ;
 
-    private static final Entity INVOICE = INVOICE_BUILDER.build();
-    private static final Entity INVOICE_WITH_FILTER = INVOICE_BUILDER
+    private static final Entity INVOICE = INVOICE_BUILDER_FACTORY.get().build();
+    private static final Entity INVOICE_WITH_FILTER = INVOICE_BUILDER_FACTORY.get()
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attributePath(PropertyPath.of(RelationName.of("customer"), AttributeName.of("id")))
@@ -125,11 +130,10 @@ class ApplicationTest {
         assertEquals(CUSTOMER.getName(),
                 application.getRequiredRelationForEntity(INVOICE_WITH_FILTER, RelationName.of("customer")).getTargetEndPoint()
                         .getEntity());
-        assertEquals(INVOICE_WITH_FILTER, application.getRequiredEntityByName(EntityName.of("Invoice")));
         assertEquals(CUSTOMER.getName(),
                 application.getRequiredRelationForEntity(EntityName.of("Customer"), RelationName.of("invoices"))
                         .getSourceEndPoint().getEntity());
-        assertEquals(INVOICE_WITH_FILTER, application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());
+        assertEquals(application.getRequiredEntityByName(EntityName.of("Invoice")), application.getEntityByPathSegment(PathSegmentName.of("invoices")).orElseThrow());
         assertEquals(CUSTOMER.getName(), application.getRelationForPath(PathSegmentName.of("invoices"), PathSegmentName.of("customer"))
                 .orElseThrow().getTargetEndPoint().getEntity());
     }
@@ -477,12 +481,60 @@ class ApplicationTest {
 
     @Test
     void application_missingSearchFilterForToManyRedirects() {
-        var builder = Application.builder()
+        var app = Application.builder()
                 .name(ApplicationName.of("invoiceApplication"))
-                .entity(INVOICE) // should be INVOICE_WITH_FILTER
+                .entity(INVOICE)
                 .entity(CUSTOMER)
-                .relation(MANY_TO_ONE);
-        assertThrows(SearchFilterNotFoundException.class, builder::build);
+                .relation(MANY_TO_ONE)
+                .build();
+
+        // A filter for the to-many relation is automatically generated
+        assertThat(app.getFilterForRelation(MANY_TO_ONE.inverse())).satisfies(filter -> {
+            assertThat(app.getEntityByName(EntityName.of("Invoice")).orElseThrow().getSearchFilters()).contains(filter);
+
+            assertThat(filter.getName().getValue()).isEqualTo("__internal_customer");
+            assertThat(filter.hasFlag(SyntheticSearchFilterFlag.class)).isTrue();
+        });
+
+        // A filter for the to-one relation is not generated
+        assertThatThrownBy(() -> app.getFilterForRelation(MANY_TO_ONE))
+                .isInstanceOf(SearchFilterNotFoundException.class);
+    }
+
+    public static Stream<Arguments> application_syntheticSearchFilter_nameConflict() {
+        return Stream.of(
+                Arguments.of(List.of(), "__internal_customer"),
+                Arguments.of(List.of("__internal_customer"), "__internal_customer_1"),
+                Arguments.of(List.of("__internal_customer", "__internal_customer_1"), "__internal_customer_2")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void application_syntheticSearchFilter_nameConflict(List<String> filterNames, String generatedFilterName) {
+        var searchFilters = filterNames.stream()
+                .map(FilterName::of)
+                .map(filterName -> AttributeSearchFilter.builder()
+                        .name(filterName)
+                        .operation(Operation.EXACT)
+                        .attribute(INVOICE.getPrimaryKey())
+                        .build()
+                )
+                .toList();
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .entity(INVOICE_BUILDER_FACTORY.get()
+                        .searchFilters(searchFilters)
+                        .build()
+                )
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .build();
+
+        // A filter for the to-many relation is automatically generated, and does not conflict with an existing filter
+        assertThat(app.getFilterForRelation(MANY_TO_ONE.inverse())).satisfies(filter -> {
+            assertThat(filter.getName().getValue()).isEqualTo(generatedFilterName);
+        });
     }
 
     @Test
