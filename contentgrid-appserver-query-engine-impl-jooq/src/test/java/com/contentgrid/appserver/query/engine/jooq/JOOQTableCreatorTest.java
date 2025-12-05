@@ -314,7 +314,7 @@ class JOOQTableCreatorTest {
                     String typeName = columns.getString("TYPE_NAME");
                     int dataType = columns.getInt("DATA_TYPE");
 
-                   log.debug("Found column: %s, DB Type: %s, SQL Type: %d%n",
+                    log.debug("Found column: %s, DB Type: %s, SQL Type: %d%n",
                             columnName, typeName, dataType);
 
                     // Store details (lowercase key for consistent comparison)

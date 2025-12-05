@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
@@ -27,6 +28,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -36,11 +38,16 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
 import org.jooq.impl.QOM.Array;
+
+import static com.contentgrid.appserver.query.engine.jooq.JOOQUtils.generateFTSCondition;
+import static com.contentgrid.appserver.query.engine.jooq.JOOQUtils.prefixSearchNormalize;
+import static java.util.Locale.ENGLISH;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQContext> {
@@ -189,17 +196,28 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case CUSTOM -> {
-                if (functionExpression instanceof ContentGridPrefixSearch contentGridPrefixSearch) {
-                    var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
-                    var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                    var leftField = JOOQUtils.prefixSearchNormalize(left);
-                    var rightField = JOOQUtils.prefixSearchNormalize(right);
-                    yield leftField.startsWith(rightField);
-                } else {
-                    throw new InvalidThunkExpressionException(
+                switch (functionExpression) {
+                    case ContentGridPrefixSearch contentGridPrefixSearch -> {
+                        var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
+                        var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
+                        var leftField = JOOQUtils.prefixSearchNormalize(left);
+                        var rightField = JOOQUtils.prefixSearchNormalize(right);
+                        yield leftField.startsWith(rightField);
+                    }
+                    case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
+                        var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
+                        var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+
+                        var locale = contentGridFullTextSearch.getLocale();
+                        var language = locale.getDisplayLanguage(ENGLISH);
+
+                        yield generateFTSCondition(left, right, language);
+                    }
+                    default -> throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(
                                     functionExpression.getClass().getSimpleName()));
                 }
+
             }
         };
 

@@ -6,6 +6,8 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
@@ -46,7 +48,7 @@ public class ThunkExpressionGenerator {
             SearchFilter searchFilter = maybeSearchFilter.get();
 
             // currently only handle attribute search filters
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                 List<PathElement> pathElements;
 
@@ -113,9 +115,18 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, List<PathElement> pathElements, Scalar<?> value) {
+    private static ThunkExpression<Boolean> createExpression(BaseAttributeSearchFilter filter,
+                                                             List<PathElement> pathElements,
+                                                             Scalar<?> value) throws IllegalArgumentException {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
+        if (filter instanceof FullTextSearchAttributeSearchFilter ftsSearchFilter) return createExpression(ftsSearchFilter, attr, value);
+        if (filter instanceof AttributeSearchFilter attrSearchFilter) return createExpression(attrSearchFilter, attr, value);
+
+        throw new IllegalArgumentException("Received unknown filter type (%s).".formatted(filter.getClass().getName()));
+    }
+
+    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, SymbolicReference attr, Scalar<?> value) {
         return switch (filter.getOperation()) {
             case EXACT -> Comparison.areEqual(attr, value);
             case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
@@ -124,6 +135,12 @@ public class ThunkExpressionGenerator {
             case LESS_THAN -> Comparison.less(attr, value);
             case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
         };
+    }
+
+    private static ThunkExpression<Boolean> createExpression(FullTextSearchAttributeSearchFilter filter,
+                                                             SymbolicReference attr,
+                                                             Scalar<?> value) {
+        return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter.getLocale());
     }
 
     private static List<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {

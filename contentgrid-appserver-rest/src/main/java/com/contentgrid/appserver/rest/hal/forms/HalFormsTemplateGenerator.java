@@ -18,6 +18,7 @@ import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -134,7 +135,7 @@ public class HalFormsTemplateGenerator {
             if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
                 continue;
             }
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                 var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                 var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
                         .withPrompt(attributeSearchFilter.getTranslations(userLocales).getName())

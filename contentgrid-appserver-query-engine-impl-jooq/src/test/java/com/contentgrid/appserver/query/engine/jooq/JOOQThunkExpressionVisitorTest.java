@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpo
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -57,6 +58,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -100,6 +102,12 @@ class JOOQThunkExpressionVisitorTest {
             .constraint(Constraint.unique())
             .build();
 
+    private static final SimpleAttribute PERSON_COMMENT = SimpleAttribute.builder()
+            .name(AttributeName.of("comment"))
+            .column(ColumnName.of("comment"))
+            .type(Type.TEXT)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -107,6 +115,7 @@ class JOOQThunkExpressionVisitorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_COMMENT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -122,6 +131,11 @@ class JOOQThunkExpressionVisitorTest {
                     .name(FilterName.of("__internal_person_friends"))
                     .attributePath(PropertyPath.of(RelationName.of("__internal_person_friends"), AttributeName.of("id")))
                     .flag(HiddenSearchFilterFlag.INSTANCE)
+                    .build())
+            .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                    .attribute(PERSON_COMMENT)
+                    .locale(Locale.ENGLISH)
+                    .name(FilterName.of("comment~fts"))
                     .build())
             .build();
 
@@ -314,21 +328,25 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field(DSL.name("id"), UUID.class), ALICE_ID)
                 .set(DSL.field(DSL.name("name"), String.class), "alice")
                 .set(DSL.field(DSL.name("vat"), String.class), "vat_1")
+                .set(DSL.field(DSL.name("comment"), String.class), "Comment with the words foo and bar.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("person")))
                 .set(DSL.field(DSL.name("id"), UUID.class), BOB_ID)
                 .set(DSL.field(DSL.name("name"), String.class), "bob")
                 .set(DSL.field(DSL.name("vat"), String.class), "vat_2")
+                .set(DSL.field(DSL.name("comment"), String.class), "Another comment mentioning foo.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("person")))
                 .set(DSL.field(DSL.name("id"), UUID.class), JOHN_ID)
                 .set(DSL.field(DSL.name("name"), String.class), "john")
                 .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
+                .set(DSL.field(DSL.name("comment"), String.class), "Just a random comment.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("person")))
                 .set(DSL.field(DSL.name("id"), UUID.class), THIJS_ID)
                 .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
                 .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
+                .set(DSL.field(DSL.name("comment"), String.class), "Comment with bar and foo.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice")))
                 .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
@@ -430,6 +448,24 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(1, results.size());
         var result = results.getFirst();
         assertEquals(INVOICE1_ID, result.get("id"));
+    }
+
+    @Test
+    void findWithFullTextSearch() {
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                Scalar.of("bar foo"), Locale.ENGLISH
+
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoSet("name", String.class);
+
+        assertEquals(Set.of("alice", "Thĳs"), results);
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -37,6 +39,7 @@ public class ProfileSearchParamRepresentationModel {
         EXACT("exact-match"),
         PREFIX("prefix-match"),
         LESS_THAN("less-than"),
+        FULL_TEXT("full-text"),
         LESS_THAN_OR_EQUAL("less-than-or-equal"),
         GREATER_THAN("greater-than"),
         GREATER_THAN_OR_EQUAL("greater-than-or-equal");
@@ -52,8 +55,12 @@ public class ProfileSearchParamRepresentationModel {
             return value;
         }
 
-        public static ProfileSearchParamType from(AttributeSearchFilter filter) {
-            return switch (filter.getOperation()) {
+        public static ProfileSearchParamType from(BaseAttributeSearchFilter filter) {
+            // Locales are not relevant for the profile (at the moment?), so we treat both filter types the same way here.
+            if (filter instanceof FullTextSearchAttributeSearchFilter) return FULL_TEXT;
+
+            AttributeSearchFilter attributeSearchFilter = (AttributeSearchFilter) filter;
+            return switch (attributeSearchFilter.getOperation()) {
                 case EXACT -> EXACT;
                 case PREFIX -> PREFIX;
                 case GREATER_THAN -> GREATER_THAN;
