@@ -46,32 +46,18 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.appserver.query.engine.jooq.BlindRelationOverwriteTest.TestApplication;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.Scalar;
-import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
-import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.PlatformTransactionManager;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
-})
-@ContextConfiguration(classes = {TestApplication.class})
+@JooqTest
 public class EventsDispatchTest {
     public static final Scalar<Boolean> PERMIT_ALWAYS = Scalar.of(true);
 
@@ -787,27 +773,4 @@ public class EventsDispatchTest {
             .relation(RELATION_A_TO_A)
             .relation(RELATION_C_TO_B)
             .build();
-
-    @SpringBootApplication
-    static class TestApplication {
-
-        @Bean
-        public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
-            return new AutowiredDSLContextResolver(dslContext);
-        }
-
-        @Bean
-        public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
-            return new JOOQTableCreator(dslContextResolver);
-        }
-
-        @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager) {
-            return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
-                    transactionManager
-            );
-        }
-    }
 }

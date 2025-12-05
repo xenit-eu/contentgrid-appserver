@@ -40,8 +40,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreatorTest.TestApplication;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -58,20 +57,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///"
-})
-@ContextConfiguration(classes = TestApplication.class)
+@JooqTest
 @Slf4j
 @Transactional
 class JOOQTableCreatorTest {
@@ -550,22 +540,5 @@ class JOOQTableCreatorTest {
         // Drop tables should fail too
         assertThrows(DataAccessException.class, () -> tableCreator.dropTables(application));
         assertTrue(getTables("public").isEmpty());
-    }
-
-    @SpringBootApplication
-    static class TestApplication {
-        public static void main(String[] args) {
-            SpringApplication.run(TestApplication.class, args);
-        }
-
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-        @Bean
-        public TableCreator jooqTableCreator(DSLContext dslContext) {
-            return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
-        }
     }
 }

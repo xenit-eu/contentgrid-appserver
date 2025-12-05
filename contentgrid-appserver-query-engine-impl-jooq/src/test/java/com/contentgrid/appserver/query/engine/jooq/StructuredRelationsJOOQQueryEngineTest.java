@@ -42,14 +42,8 @@ import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
-import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
-import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
-import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
-import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
-import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
@@ -59,15 +53,12 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngineTest.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.StructuredRelationsJOOQQueryEngineTest.RelationArgumentFactory.UnbuildableException;
-import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
+import com.contentgrid.appserver.query.engine.jooq.test.NoneEvents;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.google.common.collect.Sets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -86,19 +77,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.PlatformTransactionManager;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
-})
-@ContextConfiguration(classes = {TestApplication.class})
+@JooqTest
 class StructuredRelationsJOOQQueryEngineTest {
 
     private static final ThunkExpression<Boolean> PERMIT_ALWAYS = Scalar.of(true);
@@ -1165,63 +1145,4 @@ class StructuredRelationsJOOQQueryEngineTest {
         }
     }
 
-    @SpringBootApplication
-    static class TestApplication {
-        public static void main(String[] args) {
-            SpringApplication.run(JOOQQueryEngineTest.TestApplication.class, args);
-        }
-
-        @Bean
-        public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
-            return new AutowiredDSLContextResolver(dslContext);
-        }
-
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-
-        @Bean
-        public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
-            return new JOOQTableCreator(dslContextResolver);
-        }
-
-        @Bean
-        public QueryEngine jooqQueryEngine(DSLContextResolver dslContextResolver,
-                PlatformTransactionManager transactionManager) {
-            return new TransactionalQueryEngine(
-                    new JOOQQueryEngine(dslContextResolver, new JOOQTimedCountStrategy(Duration.ofMillis(500))),
-                    transactionManager
-            );
-        }
-    }
-
-    private static class NoneEvents implements CreateEventConsumer, DeleteEventConsumer, LinkEventConsumer,
-            UnlinkEventConsumer, UpdateEventConsumer {
-
-        @Override
-        public void onEntityCreate(Application application, EntityData data) {
-        }
-
-        @Override
-        public void onEntityDelete(Application application, EntityData data) {
-
-        }
-
-        @Override
-        public void onLink(Application application, EntityData oldData, EntityData newData) {
-
-        }
-
-        @Override
-        public void onUnlink(Application application, EntityData oldData, EntityData newData) {
-
-        }
-
-        @Override
-        public void onEntityUpdate(Application application, EntityData oldData, EntityData newData) {
-
-        }
-    }
 }

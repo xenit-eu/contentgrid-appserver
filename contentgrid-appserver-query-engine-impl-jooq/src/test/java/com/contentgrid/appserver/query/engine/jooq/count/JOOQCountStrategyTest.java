@@ -20,9 +20,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
-import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -36,18 +34,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
-})
+@JooqTest
 @Allow.PlainSQL
 class JOOQCountStrategyTest {
 
@@ -176,29 +166,6 @@ class JOOQCountStrategyTest {
             assertTrue(count.isEstimated());
         } finally {
             transactionManager.rollback(transaction);
-        }
-    }
-
-    @SpringBootApplication
-    static class TestApplication {
-        public static void main(String[] args) {
-            SpringApplication.run(TestApplication.class, args);
-        }
-
-        @Bean
-        public DSLContextResolver autowiredDSLContextResolver(DSLContext dslContext) {
-            return new AutowiredDSLContextResolver(dslContext);
-        }
-
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-
-        @Bean
-        public TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
-            return new JOOQTableCreator(dslContextResolver);
         }
     }
 }

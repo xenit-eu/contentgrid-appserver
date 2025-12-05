@@ -42,8 +42,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitorTest.TestApplication;
-import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
+import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.CollectionValue;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ListValue;
@@ -71,19 +70,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:15:///",
-        "logging.level.org.jooq.tools.LoggerListener=DEBUG"
-})
-@ContextConfiguration(classes = {TestApplication.class})
+@JooqTest
 @Transactional
 class JOOQThunkExpressionVisitorTest {
 
@@ -910,24 +899,6 @@ class JOOQThunkExpressionVisitorTest {
     void findIllegalExpression(ThunkExpression<Boolean> expression) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         assertThrows(InvalidThunkExpressionException.class, () -> expression.accept(VISITOR, context));
-    }
-
-    @SpringBootApplication
-    static class TestApplication {
-        public static void main(String[] args) {
-            SpringApplication.run(TestApplication.class, args);
-        }
-
-        @Bean
-        ExceptionTranslatorExecuteListener noopExceptionTranslator() {
-            return new ExceptionTranslatorExecuteListener() {
-            };
-        }
-
-        @Bean
-        public TableCreator jooqTableCreator(DSLContext dslContext) {
-            return new JOOQTableCreator(new AutowiredDSLContextResolver(dslContext));
-        }
     }
 }
 
