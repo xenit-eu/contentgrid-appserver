@@ -290,7 +290,7 @@ class ProfileRestControllerTest {
                                     href: "http://localhost/invoices",
                                     name: "collection"
                                 }, {
-                                    href: "http://localhost/invoices/{instanceId}",
+                                    href: "http://localhost/invoices/{id}",
                                     templated: true,
                                     name: "item"
                                 }]
@@ -585,7 +585,7 @@ class ProfileRestControllerTest {
                                     title: "Personen",
                                     name: "collection"
                                 }, {
-                                    href: "http://localhost/persons/{instanceId}",
+                                    href: "http://localhost/persons/{id}",
                                     title: "Persoon",
                                     templated: true,
                                     name: "item"

@@ -148,7 +148,7 @@ public class LinkFactoryProvider {
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
                                 .getEntity(application, entity.getPathSegment(), null, null, userLocales, this),
-                        params -> EntityId.of(UUID.fromString(params.get("instanceId"))))
+                        params -> EntityId.of(UUID.fromString(params.get("id"))))
                 .build();
     }
 

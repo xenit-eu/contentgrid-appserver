@@ -37,7 +37,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor
 @SpecializedOnPropertyType(type = PropertyType.TO_ONE_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
-@RequestMapping("/{entityName}/{instanceId}/{propertyName}")
+@RequestMapping("/{entityName}/{id}/{propertyName}")
 public class XToOneRelationRestController {
 
     @NonNull
@@ -62,7 +62,7 @@ public class XToOneRelationRestController {
     public ResponseEntity<Object> getRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
@@ -70,7 +70,7 @@ public class XToOneRelationRestController {
         var relation = getRequiredRelation(application, entityName, propertyName);
         var relationRequest = RelationRequest.forRelation(
                 relation.getSourceEndPoint().getEntity(),
-                instanceId,
+                id,
                 relation.getSourceEndPoint().getName()
         );
         try {
@@ -91,7 +91,7 @@ public class XToOneRelationRestController {
     public ResponseEntity<Object> setRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             @RequestBody URIList body,
             VersionConstraint versionConstraint,
@@ -117,12 +117,12 @@ public class XToOneRelationRestController {
         try {
             var relationRequest = RelationRequest.forRelation(
                     relation.getSourceEndPoint().getEntity(),
-                    instanceId,
+                    id,
                     relation.getSourceEndPoint().getName()
             ).withVersionConstraint(versionConstraint);
             datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
         } catch (EntityIdNotFoundException e) {
-            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), instanceId)) {
+            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
                 // TODO: throw specific exception to support problem details
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
             } else {
@@ -137,7 +137,7 @@ public class XToOneRelationRestController {
     public ResponseEntity<Object> clearRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext
@@ -146,7 +146,7 @@ public class XToOneRelationRestController {
             var relation = getRequiredRelation(application, entityName, propertyName);
             var relationRequest = RelationRequest.forRelation(
                     relation.getSourceEndPoint().getEntity(),
-                    instanceId,
+                    id,
                     relation.getSourceEndPoint().getName()
             ).withVersionConstraint(versionConstraint);
             datamodelApi.deleteRelation(application, relationRequest, authorizationContext);

@@ -56,7 +56,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @SpecializedOnPropertyType(type = PropertyType.CONTENT_ATTRIBUTE, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
-@RequestMapping("/{entityName}/{instanceId}/{propertyName}")
+@RequestMapping("/{entityName}/{id}/{propertyName}")
 public class ContentRestController {
 
     private final ContentApi contentApi;
@@ -82,7 +82,7 @@ public class ContentRestController {
             @RequestHeader HttpHeaders httpHeaders,
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
@@ -93,7 +93,7 @@ public class ContentRestController {
         var content = contentApi.find(
                 application,
                 entityAndContent.entityName(),
-                instanceId,
+                id,
                 entityAndContent.attributeName(),
                 authorizationContext
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -194,13 +194,13 @@ public class ContentRestController {
             @RequestHeader HttpHeaders httpHeaders,
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
             AuthorizationContext authorizationContext
     ) {
-        var response = getContent(httpHeaders, application, entityName, instanceId, propertyName, versionConstraint, webRequest,
+        var response = getContent(httpHeaders, application, entityName, id, propertyName, versionConstraint, webRequest,
                 authorizationContext);
 
         return ResponseEntity.status(response.getStatusCode())
@@ -212,7 +212,7 @@ public class ContentRestController {
     public ResponseEntity<?> setContent(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
@@ -231,7 +231,7 @@ public class ContentRestController {
             var newContent = contentApi.update(
                     application,
                     entityAndContent.entityName(),
-                    instanceId,
+                    id,
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
@@ -249,7 +249,7 @@ public class ContentRestController {
     public ResponseEntity<?> setContent(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             @RequestParam MultipartFile file,
@@ -269,7 +269,7 @@ public class ContentRestController {
             var newContent = contentApi.update(
                     application,
                     entityAndContent.entityName(),
-                    instanceId,
+                    id,
                     entityAndContent.attributeName(),
                     versionConstraint,
                     fileData,
@@ -287,7 +287,7 @@ public class ContentRestController {
     public ResponseEntity<?> deleteContent(
             Application application,
             @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId instanceId,
+            @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext
@@ -298,7 +298,7 @@ public class ContentRestController {
             contentApi.delete(
                     application,
                     entityAndContent.entityName(),
-                    instanceId,
+                    id,
                     entityAndContent.attributeName(),
                     versionConstraint,
                     authorizationContext

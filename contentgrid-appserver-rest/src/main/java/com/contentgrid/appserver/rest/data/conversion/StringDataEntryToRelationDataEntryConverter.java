@@ -27,7 +27,7 @@ public class StringDataEntryToRelationDataEntryConverter implements Converter<St
                                 .getEntity(null, null, null, null, null, null),
                         params -> {
                             var entityPathSegment = params.get("entityName");
-                            var entityId = params.get("instanceId");
+                            var entityId = params.get("id");
                             var entity = application.getEntityByPathSegment(PathSegmentName.of(entityPathSegment))
                                     .orElseThrow(() -> new IllegalArgumentException("Invalid entity URL '%s': no entity mapped to path '%s'".formatted(value, entityPathSegment)));
 
