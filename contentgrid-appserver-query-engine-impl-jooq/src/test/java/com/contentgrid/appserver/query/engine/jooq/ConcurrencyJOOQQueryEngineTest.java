@@ -32,6 +32,7 @@ import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -55,6 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.tools.LoggerListener;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -95,6 +97,18 @@ class ConcurrencyJOOQQueryEngineTest {
         }
     }
 
+    private static final SimpleAttribute ATTRIBUTE_TEXT = SimpleAttribute.builder()
+            .name(AttributeName.of("text_field"))
+            .column(ColumnName.of("text_field"))
+            .type(Type.TEXT)
+            .build();
+
+    private static final SimpleAttribute ATTRIBUTE_NUMBER = SimpleAttribute.builder()
+            .name(AttributeName.of("number_field"))
+            .column(ColumnName.of("number_field"))
+            .type(Type.LONG)
+            .build();
+
     private static final SimpleAttribute VERSION_ATTR = SimpleAttribute.builder()
             .name(AttributeName.of("_version"))
             .column(ColumnName.of("_version"))
@@ -107,6 +121,8 @@ class ConcurrencyJOOQQueryEngineTest {
             .pathSegment(PathSegmentName.of("entity-a"))
             .linkName(LinkName.of("entity-a"))
             .table(TableName.of("entity_a"))
+            .attribute(ATTRIBUTE_TEXT)
+            .attribute(ATTRIBUTE_NUMBER)
             .attribute(VERSION_ATTR)
             .build();
 
@@ -540,6 +556,147 @@ class ConcurrencyJOOQQueryEngineTest {
                     // Retry concurrency failure a couple of times
                     withRetries(() -> queryEngine.delete(app, entityARequest, PERMIT_ALWAYS, NONE_EVENTS));
                 }
+        );
+    }
+
+    @Test
+    void concurrentUpdateOfSameField() {
+        var app = createModel();
+
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> assertThatCode(() -> {
+                            var updatePayload = new EntityData(entityA.getIdentity(), List.of(
+                                    SimpleAttributeData.builder()
+                                            .name(ATTRIBUTE_TEXT.getName())
+                                            .value("value1")
+                                            .build()
+                            ));
+                            queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                        }))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
+                        .verify(thrown -> {
+                            var entityRequest = EntityRequest.forEntity(entityA.getName(), entityA.getId());
+                            var updated = queryEngine.findById(app, entityRequest, PERMIT_ALWAYS).orElseThrow();
+                            var textAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow();
+                            thrown.satisfiesAnyOf(
+                                    throwable -> {
+                                        assertThat(throwable).isNull();
+                                        assertThat(textAttr.getValue()).isEqualTo("value1");
+                                    },
+                                    throwable -> {
+                                        assertThat(throwable).isInstanceOf(UnsatisfiedVersionException.class);
+                                        assertThat(textAttr.getValue()).isEqualTo("value2");
+                                    }
+                            );
+                        })
+                ,
+                () -> assertThatCode(() -> {
+                    var updatePayload = new EntityData(entityA.getIdentity(), List.of(
+                            SimpleAttributeData.builder()
+                                    .name(ATTRIBUTE_TEXT.getName())
+                                    .value("value2")
+                                    .build()
+                    ));
+                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                }).doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
+        );
+    }
+
+    @Test
+    void concurrentUpdateOfDifferentFields() {
+        var app = createModel();
+
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> assertThatCode(() -> {
+                            var updatePayload = EntityData.builder()
+                                    .name(ENTITY_A.getName())
+                                    .id(entityA.getId())
+                                    // Note: no version locking, because we want to test that both get updated
+                                    .attribute(SimpleAttributeData.builder()
+                                            .name(ATTRIBUTE_TEXT.getName())
+                                            .value("text_value")
+                                            .build())
+                                    .build();
+                            queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                        }))
+                        .verify(thrown -> thrown.doesNotThrowAnyException())
+                        .verify(thrown -> {
+                            var entityRequest = EntityRequest.forEntity(entityA.getName(), entityA.getId());
+                            var updated = queryEngine.findById(app, entityRequest, PERMIT_ALWAYS).orElseThrow();
+                            var textAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow();
+                            var numberAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_NUMBER.getName()).orElseThrow();
+                            assertThat(textAttr.getValue()).isEqualTo("text_value");
+                            assertThat(numberAttr.getValue()).isEqualTo(42L);
+                        })
+                ,
+                () -> {
+                    var updatePayload = EntityData.builder()
+                            .name(ENTITY_A.getName())
+                            .id(entityA.getId())
+                            .attribute(SimpleAttributeData.builder()
+                                    .name(ATTRIBUTE_NUMBER.getName())
+                                    .value(42L)
+                                    .build())
+                            .build();
+                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                }
+        );
+    }
+
+    @Test
+    void concurrentUpdateAndDelete() {
+        var app = createModel();
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> createItem(app, ENTITY_A.getName()),
+                                entityA -> assertThatCode(() -> {
+                                    var updatePayload = EntityData.builder()
+                                            .name(ENTITY_A.getName())
+                                            .id(entityA.getId())
+                                            .attribute(SimpleAttributeData.builder()
+                                                    .name(ATTRIBUTE_TEXT.getName())
+                                                    .value("updated_value")
+                                                    .build())
+                                            .build();
+                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                                }))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class))
+                        .verify((entityA, thrown) -> {
+                            var entityARequest = EntityRequest.forEntity(ENTITY_A.getName(), entityA.getId());
+                            assertThat(queryEngine.findById(app, entityARequest, PERMIT_ALWAYS)).isEmpty();
+                        })
+                ,
+                entityA -> {
+                    var entityARequest = EntityRequest.forEntity(ENTITY_A.getName(), entityA.getId());
+                    // Retry concurrency failure a couple of times
+                    withRetries(() -> queryEngine.delete(app, entityARequest, PERMIT_ALWAYS, NONE_EVENTS));
+                }
+        );
+    }
+
+    @Test
+    void concurrentDelete() {
+        var app = createModel();
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> {
+                                    var entityA = createItem(app, ENTITY_A.getName());
+                                    return EntityRequest.forEntity(entityA.getName(), entityA.getId());
+                                },
+                                (req) -> assertThatCode(() -> queryEngine.delete(app, req, PERMIT_ALWAYS, NONE_EVENTS)))
+                        // TODO: should this be allowed to throw EntityIdNotFoundException, or should we consider "was already gone" as request fulfilled
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class))
+                        .verify((req, thrown) -> {
+                            var maybeEntity = queryEngine.findById(app, req, PERMIT_ALWAYS);
+                            assertThat(maybeEntity).isEmpty();
+                        })
+                ,
+                (req) -> assertThatCode(() -> queryEngine.delete(app, req, PERMIT_ALWAYS, NONE_EVENTS))
+                        .doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class)
         );
     }
 
