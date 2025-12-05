@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import ch.qos.logback.classic.Level;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -43,13 +44,16 @@ import com.contentgrid.appserver.query.engine.jooq.test.NoneEvents;
 import com.contentgrid.appserver.query.engine.jooq.test.TestApplication;
 import com.contentgrid.appserver.query.engine.jooq.test.concurrency.ConcurrencyInterferenceExecuteListenerProvider;
 import com.contentgrid.appserver.query.engine.jooq.test.concurrency.UnderTestRunnable;
+import com.contentgrid.appserver.query.engine.jooq.test.logging.LoggerContext;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.jooq.tools.LoggerListener;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -84,8 +88,11 @@ class ConcurrencyJOOQQueryEngineTest {
 
     @AfterEach
     void cleanup() {
-        dslContext.dropSchema("public").cascade().execute();
-        dslContext.createSchema("public").execute();
+        try(var loggerCtx = LoggerContext.create(LoggerListener.class)) {
+            loggerCtx.setLevel(Level.OFF);
+            dslContext.dropSchema("public").cascade().execute();
+            dslContext.createSchema("public").execute();
+        }
     }
 
     private static final SimpleAttribute VERSION_ATTR = SimpleAttribute.builder()
@@ -472,14 +479,17 @@ class ConcurrencyJOOQQueryEngineTest {
         );
     }
 
-    private Application createModel(Relation relation) {
+    private Application createModel(Relation... relation) {
         var app = Application.builder()
                 .name(ApplicationName.of("test"))
                 .entity(ENTITY_A)
                 .entity(ENTITY_B)
-                .relation(relation)
+                .relations(List.of(relation))
                 .build();
-        tableCreator.createTables(app);
+        try(var loggerCtx = LoggerContext.create(LoggerListener.class)) {
+            loggerCtx.setLevel(Level.OFF);
+            tableCreator.createTables(app);
+        }
         return app;
     }
 
