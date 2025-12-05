@@ -48,6 +48,10 @@ public class ConcurrentExecutorConcurrencyInterferenceExecutor implements Concur
     @Override
     @SneakyThrows(InterruptedException.class)
     public void onQueryStart(ExecuteContext ctx) {
+        if (Thread.currentThread() == thread) {
+            // We are in our interference thread, don't run our code here
+            return;
+        }
         var pos = currentPosition.getAndIncrement();
         log.debug("Query #{}: {}", pos, ctx.query());
         if(pos != this.position) {

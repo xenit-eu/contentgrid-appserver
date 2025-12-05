@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.query.engine.jooq.test.concurrency;
 
-import com.contentgrid.appserver.query.engine.jooq.test.concurrency.ConcurrentExecutorConcurrencyInterferenceExecutor.QueryLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,8 +88,6 @@ public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteLi
             var queryPos = i;
             try {
                 runUnderExecutor(underTestRunnable, p -> new ConcurrentExecutorConcurrencyInterferenceExecutor(() -> {
-                    // Immediately clear the executor, so it doesn't process the interference itself
-                    setExecutor(ConcurrencyInterferenceExecutor.NOOP);
                     interference.accept(p);
                 }, queryPos), "Test#" + i);
             } catch(AssertionError assertionError) {
