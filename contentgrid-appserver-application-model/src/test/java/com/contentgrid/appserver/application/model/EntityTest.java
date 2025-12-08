@@ -518,7 +518,7 @@ class EntityTest {
                 .build();
         String attrName = filter.getHiddenTextAttributeFormattedName();
         Optional<Attribute> attribute = entity.getAttributeByName(AttributeName.of(attrName));
-        assert(attribute.isPresent());
-        assert(attribute.get().isIgnored());
+        assertTrue(attribute.isPresent());
+        assertTrue(attribute.get().isIgnored());
     }
 }
