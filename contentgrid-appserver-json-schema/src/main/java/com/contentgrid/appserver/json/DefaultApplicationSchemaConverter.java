@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.DoNotSerializeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
@@ -30,6 +31,7 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.ConfigurableSearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter.SearchFilterTranslations;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -96,6 +98,7 @@ import java.util.stream.Stream;
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
 
     private static final String FTS_TYPE = "full-text";
+    private static final String CONTENT_FTS_TYPE = "full-text-content";
 
     private final ObjectMapper mapper = ApplicationSchemaObjectMapperFactory.createObjectMapper();
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
@@ -316,8 +319,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var propertyPath = PropertyPath.of(attrPath);
         var filterName = FilterName.of(jsonFilter.getName());
 
-        return type.equals(FTS_TYPE) ? fromJsonFullTextSearchFilter(jsonFilter, propertyPath, filterName)
-                : fromJsonAttributeSearchFilter(jsonFilter, type, propertyPath, filterName);
+        if (type.equals(FTS_TYPE)) return fromJsonFullTextSearchFilter(jsonFilter, propertyPath, filterName);
+        else if (type.equals(CONTENT_FTS_TYPE)) return fromJsonContentFullTextSearchFilter(jsonFilter, propertyPath, filterName);
+        else return fromJsonAttributeSearchFilter(jsonFilter, type, propertyPath, filterName);
     }
 
     private com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter fromJsonFullTextSearchFilter(
@@ -325,6 +329,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         Locale locale = Objects.requireNonNull(jsonFilter.getLocale(), "Full-text search filters require a locale to be set.");
 
         return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, FullTextSearchAttributeSearchFilter.builder())
+                .name(filterName)
+                .attributePath(propertyPath)
+                .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
+                .locale(locale)
+                .build();
+    }
+
+    private com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter fromJsonContentFullTextSearchFilter(
+            SearchFilter jsonFilter, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
+        Locale locale = Objects.requireNonNull(jsonFilter.getLocale(), "Full-text search filters require a locale to be set.");
+
+        return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, FullTextSearchContentAttributeSearchFilter.builder())
                 .name(filterName)
                 .attributePath(propertyPath)
                 .flags(fromJsonSearchFilterFlags(jsonFilter.getFlags()))
@@ -478,7 +494,12 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setDescription(toJsonTranslations(entity, EntityTranslations::getDescription));
         jsonEntity.setTable(entity.getTable().getValue());
         jsonEntity.setPrimaryKey((SimpleAttribute) toJsonAttribute(entity.getPrimaryKey()));
-        jsonEntity.setAttributes(entity.getAttributes().stream().map(this::toJsonAttribute).toList());
+        jsonEntity.setAttributes(entity
+                .getAttributes()
+                .stream()
+                .filter(attribute -> !attribute.hasFlag(DoNotSerializeFlag.class))
+                .map(this::toJsonAttribute)
+                .toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream()
                 .filter(searchfilter -> !searchfilter.hasFlag(SyntheticSearchFilterFlag.class))
                 .map(this::toJsonSearchFilter).toList());
@@ -592,6 +613,10 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 case FullTextSearchAttributeSearchFilter fullTextSearchAttributeSearchFilter -> {
                     type = FTS_TYPE;
                     jsonFilter.setLocale(fullTextSearchAttributeSearchFilter.getLocale());
+                }
+                case FullTextSearchContentAttributeSearchFilter fullTextSearchContentAttributeSearchFilter -> {
+                    type = CONTENT_FTS_TYPE;
+                    jsonFilter.setLocale(fullTextSearchContentAttributeSearchFilter.getLocale());
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + filter);
             }

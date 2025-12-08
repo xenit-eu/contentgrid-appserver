@@ -8,7 +8,9 @@ import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
@@ -47,13 +49,17 @@ public class ThunkExpressionGenerator {
 
             SearchFilter searchFilter = maybeSearchFilter.get();
 
-            // currently only handle attribute search filters
             if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                PropertyPath propertyPath = attributeSearchFilter.getAttributePath();
+                // FTS content search filter targets a different attribute than is specified in its filter spec
+                if (searchFilter instanceof FullTextSearchContentAttributeSearchFilter ftsSearchFilter) {
+                    propertyPath = PropertyPath.of(AttributeName.of(ftsSearchFilter.getHiddenTextAttributeFormattedName()));
+                }
+                var attribute = application.resolvePropertyPath(entity, propertyPath);
                 List<PathElement> pathElements;
 
                 try {
-                    pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
+                    pathElements = convertPath(application, entity, propertyPath);
                 } catch (IllegalArgumentException e) {
                     throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
                             attribute.getType(), entry.getValue().toString(), e);
@@ -121,6 +127,7 @@ public class ThunkExpressionGenerator {
         SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
 
         if (filter instanceof FullTextSearchAttributeSearchFilter ftsSearchFilter) return createExpression(ftsSearchFilter, attr, value);
+        if (filter instanceof FullTextSearchContentAttributeSearchFilter ftsContentSearchFilter) return createExpression(ftsContentSearchFilter, attr, value);
         if (filter instanceof AttributeSearchFilter attrSearchFilter) return createExpression(attrSearchFilter, attr, value);
 
         throw new IllegalArgumentException("Received unknown filter type (%s).".formatted(filter.getClass().getName()));
@@ -138,6 +145,12 @@ public class ThunkExpressionGenerator {
     }
 
     private static ThunkExpression<Boolean> createExpression(FullTextSearchAttributeSearchFilter filter,
+                                                             SymbolicReference attr,
+                                                             Scalar<?> value) {
+        return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter.getLocale());
+    }
+
+    private static ThunkExpression<Boolean> createExpression(FullTextSearchContentAttributeSearchFilter filter,
                                                              SymbolicReference attr,
                                                              Scalar<?> value) {
         return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter.getLocale());

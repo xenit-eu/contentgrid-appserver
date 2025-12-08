@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -58,6 +59,7 @@ public class ProfileSearchParamRepresentationModel {
         public static ProfileSearchParamType from(BaseAttributeSearchFilter filter) {
             // Locales are not relevant for the profile (at the moment?), so we treat both filter types the same way here.
             if (filter instanceof FullTextSearchAttributeSearchFilter) return FULL_TEXT;
+            if (filter instanceof FullTextSearchContentAttributeSearchFilter) return FULL_TEXT;
 
             AttributeSearchFilter attributeSearchFilter = (AttributeSearchFilter) filter;
             return switch (attributeSearchFilter.getOperation()) {

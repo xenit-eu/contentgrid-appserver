@@ -481,6 +481,12 @@
           "attributePath": [{"name": "description", "type": "attr"}],
           "type": "full-text",
           "locale": "en"
+        },
+        {
+          "name": "contentFilter",
+          "attributePath": [{"name": "file", "type":  "attr"}],
+          "type": "full-text-content",
+          "locale": "en"
         }
       ],
       "sortableFields": [

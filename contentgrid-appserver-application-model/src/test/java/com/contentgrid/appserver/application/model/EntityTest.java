@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
@@ -16,6 +17,7 @@ import com.contentgrid.appserver.application.model.exceptions.MissingFlagExcepti
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -30,6 +32,8 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -494,5 +498,27 @@ class EntityTest {
         assertEquals("Colors", entity.getTranslations(UserLocales.defaults()).getPluralName());
         assertEquals("Couleur", entity.getTranslations(Locale.FRENCH).getSingularName());
         assertNull(entity.getTranslations(Locale.FRENCH).getPluralName());
+    }
+
+    @Test
+    void entity_createsHiddenTextAttribute() {
+        FullTextSearchContentAttributeSearchFilter filter = FullTextSearchContentAttributeSearchFilter
+                .builder()
+                .name(FilterName.of("file-fts-content"))
+                .locale(Locale.ENGLISH)
+                .attribute(CONTENT1)
+                .build();
+        var entity = Entity.builder()
+                .name(EntityName.of("file"))
+                .pathSegment(PathSegmentName.of("files"))
+                .linkName(LinkName.of("file"))
+                .table(TableName.of("file"))
+                .attribute(CONTENT1)
+                .searchFilter(filter)
+                .build();
+        String attrName = filter.getHiddenTextAttributeFormattedName();
+        Optional<Attribute> attribute = entity.getAttributeByName(AttributeName.of(attrName));
+        assert(attribute.isPresent());
+        assert(attribute.get().isIgnored());
     }
 }
