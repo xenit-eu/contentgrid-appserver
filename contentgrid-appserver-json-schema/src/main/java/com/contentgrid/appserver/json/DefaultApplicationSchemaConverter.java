@@ -11,7 +11,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
-import com.contentgrid.appserver.application.model.attributes.flags.DoNotSerializeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.SyntheticAttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
@@ -76,7 +76,6 @@ import com.contentgrid.appserver.json.model.UniqueConstraint;
 import com.contentgrid.appserver.json.model.UserAttribute;
 import com.contentgrid.appserver.json.validation.ApplicationSchemaValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -497,7 +496,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonEntity.setAttributes(entity
                 .getAttributes()
                 .stream()
-                .filter(attribute -> !attribute.hasFlag(DoNotSerializeFlag.class))
+                .filter(attribute -> !attribute.hasFlag(SyntheticAttributeFlag.class))
                 .map(this::toJsonAttribute)
                 .toList());
         jsonEntity.setSearchFilters(entity.getSearchFilters().stream()

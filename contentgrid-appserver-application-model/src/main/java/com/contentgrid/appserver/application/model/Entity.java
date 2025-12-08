@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.attributes.flags.DoNotSerializeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.SyntheticAttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
@@ -30,7 +30,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -213,8 +212,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 .name(AttributeName.of(attributeName))
                                 .column(ColumnName.of(attributeName))
                                 .type(Type.TEXT)
-                                .flag(IgnoredFlag.INSTANCE)
-                                .flag(DoNotSerializeFlag.INSTANCE)
+                                .flag(SyntheticAttributeFlag.INSTANCE)
                                 .build();
                         this.attributes.put(AttributeName.of(attributeName), hiddenTextAttribute);
                     }
