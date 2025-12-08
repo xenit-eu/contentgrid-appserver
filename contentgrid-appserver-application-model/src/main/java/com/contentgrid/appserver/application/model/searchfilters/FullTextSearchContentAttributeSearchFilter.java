@@ -15,6 +15,7 @@ import lombok.NonNull;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * FullTextSearchContentAttributeSearchFilter is a search filter that performs full-text search against
@@ -50,7 +51,17 @@ public class FullTextSearchContentAttributeSearchFilter extends BaseAttributeSea
 
     public String getHiddenTextAttributeFormattedName() {
         List<String> path = this.getAttributePath().toList();
-        return HIDDEN_EXTRACTED_TEXT_ATTRIBUTE_FORMAT.formatted(String.join("_", path));
+        // Format the paths from x.y.z to x_y_z so they can be used to construct
+        // the attribute name. However, if a path is formatted like
+        // some.path_to.attribute, and another attribute is formatted like
+        // some.path.to.attribute, both will end up with the same generated name for
+        // the extracted text attribute. To get around this, we can replace all underscores in each
+        // path element's name with two underscores. This way, the paths above become
+        // some_path__to_attribute and some_path_to_attribute.
+        String formattedPath = path.stream()
+                .map(element -> element.replace("_", "__"))
+                .collect(Collectors.joining("_"));
+        return HIDDEN_EXTRACTED_TEXT_ATTRIBUTE_FORMAT.formatted(formattedPath);
     }
 
     public static class FullTextSearchContentAttributeSearchFilterBuilder extends TranslationBuilderSupport<SearchFilterTranslations, ConfigurableSearchFilterTranslations, FullTextSearchContentAttributeSearchFilterBuilder> {
