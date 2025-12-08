@@ -24,8 +24,8 @@ import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionEx
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
-import com.contentgrid.appserver.rest.exception.MissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
 import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactory;
@@ -47,6 +47,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MimeType;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -256,7 +257,7 @@ public class ContentGridExceptionHandler {
 
     @ExceptionHandler
     ResponseEntity<Problem> handleEmptyRelation(@NonNull EmptyRelationException exception) {
-        var relationIdentity = exception.getRelationRequest();
+        var relationIdentity = exception.getRelationIdentity();
         var entityIdentity = EntityIdentity.forEntity(relationIdentity.getEntityName(), relationIdentity.getEntityId());
 
         return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_EMPTY_RELATION, relationIdentity.getRelationName(), entityIdentity)
@@ -314,8 +315,15 @@ public class ContentGridExceptionHandler {
     }
 
     @ExceptionHandler
-    ResponseEntity<Problem> handleMissingContentTypeOnUpload(@NonNull MissingContentTypeException exception) {
-        return createResponse(problemFactory.createProblem(ProblemType.MISSING_CONTENT_TYPE)
+    ResponseEntity<Problem> handleMissingRequestHeader(MissingRequestHeaderException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.MISSING_REQUIRED_HEADER, exception.getHeaderName())
+                .withStatus(HttpStatus.BAD_REQUEST)
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleMissingContentType(MultipartDataMissingContentTypeException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.MISSING_CONTENT_TYPE, exception.getFieldName())
                 .withStatus(HttpStatus.BAD_REQUEST)
         );
     }

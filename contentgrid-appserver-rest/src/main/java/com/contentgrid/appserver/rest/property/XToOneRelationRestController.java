@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -73,14 +74,11 @@ public class XToOneRelationRestController {
             LinkFactoryProvider linkFactoryProvider
     ) throws EmptyRelationException {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var relationRequest = RelationRequest.forRelation(
-                relation.getSourceEndPoint().getEntity(),
-                id,
-                relation.getSourceEndPoint().getName()
-        );
+        var source = relation.getSourceEndPoint();
+        var relationRequest = RelationRequest.forRelation(source.getEntity(), id, source.getName());
         try {
             var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
-                    .orElseThrow(() -> new EmptyRelationException(relationRequest));
+                    .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
             var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND)
@@ -103,14 +101,18 @@ public class XToOneRelationRestController {
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws RelationTargetNotFoundException, MissingRelationTargetException, InvalidRelationTargetException, MultipleRelationTargetsException {
+        var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationIdent = RelationIdentity.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName());
         if (body == null || body.uris().isEmpty()) {
-            throw new MissingRelationTargetException(propertyName.getValue());
+            throw new MissingRelationTargetException(relationIdent);
         }
         var uris = body.uris();
         if (uris.size() > 1) {
-            throw new MultipleRelationTargetsException(propertyName.getValue());
+            throw new MultipleRelationTargetsException(relationIdent);
         }
-        var relation = getRequiredRelation(application, entityName, propertyName);
         var element = uris.getFirst();
         var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
         if (maybeId.isEmpty()) {

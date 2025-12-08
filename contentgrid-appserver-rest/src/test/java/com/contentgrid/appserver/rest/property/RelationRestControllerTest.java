@@ -467,6 +467,7 @@ class RelationRestControllerTest {
                     "http://localhost/persons/%s%n".formatted(targetId), // person instead of invoice
                     "http://localhost/invoices%n".formatted(), // collection url
                     "http://localhost/invoices/%s/next-invoice%n".formatted(targetId), // relation url
+                    "http://example.com/invoices/%s%n".formatted(targetId), // wrong domain
                     "}%s%n".formatted(targetId) // illegal url
             );
         }

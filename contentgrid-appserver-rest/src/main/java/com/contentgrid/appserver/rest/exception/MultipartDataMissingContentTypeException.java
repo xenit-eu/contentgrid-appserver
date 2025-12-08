@@ -1,18 +1,15 @@
 package com.contentgrid.appserver.rest.exception;
 
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class InvalidRelationTargetException extends Exception {
+public class MultipartDataMissingContentTypeException extends Exception {
     @Getter
-    @NonNull
-    private final String reference;
+    private final String fieldName;
 
     @Override
     public String getMessage() {
-        return "Invalid relation target: '%s'".formatted(reference);
+        return "File field '%s' must have a Content-Type specified".formatted(fieldName);
     }
 }
-

@@ -14,7 +14,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.rest.exception.MissingContentTypeException;
+import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -215,14 +215,11 @@ public class ContentRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
-            @RequestHeader(value = HttpHeaders.CONTENT_TYPE, required = false) MediaType contentType,
+            @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
             @RequestBody InputStreamResource requestBody,
             AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException, MissingContentTypeException {
-        if (contentType == null) {
-            throw new MissingContentTypeException();
-        }
+    ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
         var fileData = new FileDataEntry(
@@ -258,13 +255,13 @@ public class ContentRestController {
             VersionConstraint versionConstraint,
             @RequestParam MultipartFile file,
             AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException, MissingContentTypeException {
+    ) throws InvalidPropertyDataException, MultipartDataMissingContentTypeException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
         var fileData = new FileDataEntry(
                 file.getOriginalFilename(),
                 Optional.ofNullable(file.getContentType())
-                        .orElseThrow(MissingContentTypeException::new),
+                        .orElseThrow(() -> new MultipartDataMissingContentTypeException(file.getName())),
                 file::getInputStream
         );
 

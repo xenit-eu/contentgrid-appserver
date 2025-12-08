@@ -10,6 +10,7 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
@@ -83,11 +84,15 @@ public class XToManyRelationRestController {
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws RelationTargetNotFoundException, MissingRelationTargetException, InvalidRelationTargetException {
+        var relation = getRequiredRelation(application, entityName, propertyName);
         if (body == null || body.uris().isEmpty()) {
-            throw new MissingRelationTargetException(propertyName.getValue());
+            throw new MissingRelationTargetException(RelationIdentity.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    id,
+                    relation.getSourceEndPoint().getName()
+            ));
         }
         var uris = body.uris();
-        var relation = getRequiredRelation(application, entityName, propertyName);
         var relationRequest = RelationRequest.forRelation(
                 relation.getSourceEndPoint().getEntity(),
                 id,
@@ -99,7 +104,7 @@ public class XToManyRelationRestController {
         for (var element : uris) {
             var maybeId = matcher.tryMatch(element.toString());
             if (maybeId.isEmpty()) {
-                // Invalid Relation Target: wrong entity (e.g., person instead of invoice)
+                // Invalid Relation Target: wrong entity (e.g., person instead of invoice) or wrong link format
                 throw new InvalidRelationTargetException(element.toString());
             }
             targetIds.add(maybeId.get());
@@ -107,9 +112,11 @@ public class XToManyRelationRestController {
         try {
             datamodelApi.addRelationItems(application, relationRequest, targetIds, authorizationContext);
         } catch (EntityIdNotFoundException e) {
-            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
-                throw new EntityIdNotFoundException(e.getEntityName(), e.getId());
+            if (Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
+                // Can't find entity that's meant to have the relation
+                throw e;
             } else {
+                // Can't find some of the entities to put in the relation
                 throw new RelationTargetNotFoundException(e);
             }
         }

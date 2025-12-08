@@ -570,7 +570,8 @@ class ContentRestControllerTest {
                         .content(INVOICE_CONTENT_FILE.getBytes()))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                         .withStatusCode(HttpStatus.BAD_REQUEST)
-                        .withTitle("Missing 'Content-Type' header")
+                        .withTitle("Missing required header")
+                        .withDetail("Required header 'Content-Type' is not present")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
@@ -590,7 +591,8 @@ class ContentRestControllerTest {
                         .content(INVOICE_CONTENT_FILE.getBytes()))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                         .withStatusCode(HttpStatus.BAD_REQUEST)
-                        .withTitle("Missing 'Content-Type' header")
+                        .withTitle("Missing required header")
+                        .withDetail("Required header 'Content-Type' is not present")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);
@@ -704,7 +706,8 @@ class ContentRestControllerTest {
                         .file(file))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                         .withStatusCode(HttpStatus.BAD_REQUEST)
-                        .withTitle("Missing 'Content-Type' header")
+                        .withTitle("Missing Content-Type for multipart field")
+                        .withDetail("Multipart form field 'file' must have a Content-Type specified")
                 );
 
         Mockito.verifyNoInteractions(contentStoreSpy);

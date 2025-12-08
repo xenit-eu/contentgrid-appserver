@@ -22,7 +22,10 @@ public enum ProblemType implements ProblemTypeResolvable {
     INVALID_REQUEST_BODY("invalid-request-body"),
     INVALID_REQUEST_BODY_TYPE("invalid-request-body", "type"),
     INVALID_REQUEST_BODY_JSON("invalid-request-body", "json"),
+    INVALID_REQUEST_BODY_NO_RELATIONS("invalid-request-body", "no-relations"),
+    INVALID_REQUEST_BODY_TOO_MANY_RELATIONS("invalid-request-body", "too-many-relations"),
 
+    MISSING_REQUIRED_HEADER("missing-required-header"),
     MISSING_CONTENT_TYPE("missing-content-type"),
     UNSUPPORTED_CONTENT_TYPE("unsupported-content-type"),
 
