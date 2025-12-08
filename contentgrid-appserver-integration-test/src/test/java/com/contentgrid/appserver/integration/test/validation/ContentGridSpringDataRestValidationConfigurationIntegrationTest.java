@@ -164,7 +164,6 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
         }
 
         @Test
-        @Disabled("ACC-2377: returns 500 - PSQLException: insert or update on table \"invoice\" violates foreign key constraint \"invoice_counterparty_fkey\"")
         void rejectsInvalidInvoiceCreate_nonExistingRelation() throws Exception {
             mockMvc.perform(post("/invoices")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -174,7 +173,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
                                 "counterparty": "http://localhost/customers/01bb4210-523b-11ee-9553-e76392218fe8"
                             }
                             """)
-            ).andExpect(status().isBadRequest());
+            ).andExpect(status().isNotFound());
         }
 
         @Test

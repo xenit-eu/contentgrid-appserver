@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -396,6 +397,15 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         }
 
         @Test
+        void removeRequiredEntityRelation_otherSide_not500() throws Exception {
+            var invoiceId = createInvoice();
+            invoicingApi.createRefund(invoiceId);
+            // Now there is a refund that references our invoice
+
+            mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
+                    .andExpect(status().is4xxClientError());
+        }
+        @Test
         @Disabled("ACC-2416: returns 500 - PSQLException: null value in column \"invoice\" of relation \"refund\" violates not-null constraint")
         void removeRequiredEntityRelation_otherSide() throws Exception {
             var invoiceId = createInvoice();
@@ -429,6 +439,18 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
                             .withError(error -> error.withProperty("invoices"))
+                    );
+        }
+
+        @Test
+        void deleteEntity_targetOfRequiredOneToOneRelation_not500() throws Exception {
+            var invoiceId = createInvoice();
+            invoicingApi.createRefund(invoiceId);
+            // Now there is a refund that references our invoice
+
+            mockMvc.perform(delete("/invoices/{id}", invoiceId))
+                    .andExpect(problemDetails()
+                            .withStatusCode(HttpStatus.CONFLICT)
                     );
         }
 
