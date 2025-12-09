@@ -20,6 +20,7 @@ import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAss
 import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
+import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
 import java.util.HashMap;
@@ -136,18 +137,23 @@ public class EntityRestController {
             AuthorizationContext authorizationContext,
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
-    ) throws InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException, RelationTargetNotFoundException {
         var entity = getEntityOrThrow(application, entityName);
 
         GenericConversionService conversionService = new GenericConversionService();
         conversionService.addConverter(new StringDataEntryToRelationDataEntryConverter(application));
 
-        var result = datamodelApi.create(
-                application,
-                entity.getName(),
-                new ConversionServiceRequestInputData(data, conversionService),
-                authorizationContext
-        );
+        EntityInstance result;
+        try {
+            result = datamodelApi.create(
+                    application,
+                    entity.getName(),
+                    new ConversionServiceRequestInputData(data, conversionService),
+                    authorizationContext
+            );
+        } catch (EntityIdNotFoundException e) {
+            throw new RelationTargetNotFoundException(e);
+        }
 
         var model = assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
         return ResponseEntity
@@ -164,7 +170,7 @@ public class EntityRestController {
             AuthorizationContext authorizationContext,
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
-    ) throws InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException, RelationTargetNotFoundException {
         var inputData = new ConversionServiceRequestInputData(
                 MultipartRequestInputData.fromRequest(request),
                 conversionService

@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -173,7 +172,7 @@ class ContentGridSpringDataRestValidationConfigurationIntegrationTest {
                                 "counterparty": "http://localhost/customers/01bb4210-523b-11ee-9553-e76392218fe8"
                             }
                             """)
-            ).andExpect(status().isNotFound());
+            ).andExpect(status().isBadRequest());
         }
 
         @Test
