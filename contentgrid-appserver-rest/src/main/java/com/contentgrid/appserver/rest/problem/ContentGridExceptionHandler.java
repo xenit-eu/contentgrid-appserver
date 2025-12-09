@@ -34,9 +34,11 @@ import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProp
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,31 +103,62 @@ public class ContentGridExceptionHandler {
     ResponseEntity<Problem> handleBlindRelationOverwrite(BlindRelationOverwriteException exception, Application application, LinkFactoryProvider linkFactoryProvider) {
         var relation = application.getRelationForEntity(exception.getExistingRelation().getEntityName(), exception.getExistingRelation().getRelationName()).orElseThrow();
 
-        return createResponse(
-                problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE, exception.getNewRelation(), exception.getTargetEntity(), exception.getExistingRelation())
-                        .withStatus(HttpStatus.CONFLICT)
-                        .withProperties(properties -> {
-                            var newItemLink = linkFactoryProvider.toItem(EntityIdentity.forEntity(exception.getNewRelation().getEntityName(), exception.getNewRelation().getEntityId())).toUri();
-                            var newRelationLink = linkFactoryProvider.toRelation(exception.getNewRelation()).orElseThrow().toUri();
-                            properties.put("new-item", newItemLink.toString());
-                            properties.put("new-relation", newRelationLink.toString());
+        var allErrors = allExceptions(exception, BlindRelationOverwriteException.class).toList();
 
-                            var existingItemLink = linkFactoryProvider.toItem(exception.getExistingValue()).toUri();
-                            var existingRelationLink = linkFactoryProvider.toRelation(exception.getExistingRelation()).orElseThrow().toUri();
-                            properties.put("existing-item", existingItemLink.toString());
-                            properties.put("existing-relation", existingRelationLink.toString());
+        if (allErrors.size() > 1) {
+            // If we have multiple relations that would be overwritten, put the whole collection behind the problem's "error" key
+            var propertiesBuilder = ConstraintViolationProblemProperties.builder();
+            for (var error : allErrors) {
+                var problem = convertBlindRelationOverwrite(error, application, linkFactoryProvider);
+                propertiesBuilder.target(
+                        problem,
+                        error.getTargetEntity().getEntityName().getValue(),
+                        error.getTargetEntity().getEntityId().getValue().toString()
+                );
+            }
 
-                            var targetItemLink = linkFactoryProvider.toItem(exception.getTargetEntity()).toUri();
-                            var targetRelationLink = Optional.<URI>empty();
-                            if(relation.getTargetEndPoint().getName() != null) {
-                                targetRelationLink = linkFactoryProvider.toRelation(RelationIdentity.forRelation(exception.getTargetEntity(), relation.getTargetEndPoint()
+            var constraintViolationProblemProperties = propertiesBuilder.build();
+
+            return createResponse(
+                    problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE,
+                                    exception.getNewRelation(), exception.getTargetEntity(), exception.getExistingRelation())
+                            .withStatus(HttpStatus.CONFLICT)
+                            .withProperties(constraintViolationProblemProperties)
+            );
+        } else {
+            return createResponse(
+                    convertBlindRelationOverwrite(exception, application, linkFactoryProvider)
+            );
+        }
+    }
+
+    private Problem convertBlindRelationOverwrite(BlindRelationOverwriteException exception, Application application, LinkFactoryProvider linkFactoryProvider) {
+        var relation = application.getRelationForEntity(exception.getExistingRelation().getEntityName(), exception.getExistingRelation().getRelationName()).orElseThrow();
+
+        return problemFactory.createProblem(ProblemType.INTEGRITY_RELATION_BLIND_OVERWRITE, exception.getNewRelation(), exception.getTargetEntity(), exception.getExistingRelation())
+                .withStatus(HttpStatus.CONFLICT)
+                .withProperties(properties -> {
+                    var newItemLink = linkFactoryProvider.toItem(EntityIdentity.forEntity(exception.getNewRelation().getEntityName(), exception.getNewRelation().getEntityId())).toUri();
+                    var newRelationLink = linkFactoryProvider.toRelation(exception.getNewRelation()).orElseThrow().toUri();
+                    properties.put("new-item", newItemLink.toString());
+                    properties.put("new-relation", newRelationLink.toString());
+
+                    var existingItemLink = linkFactoryProvider.toItem(exception.getExistingValue()).toUri();
+                    var existingRelationLink = linkFactoryProvider.toRelation(exception.getExistingRelation()).orElseThrow().toUri();
+                    properties.put("existing-item", existingItemLink.toString());
+                    properties.put("existing-relation", existingRelationLink.toString());
+
+                    var targetItemLink = linkFactoryProvider.toItem(exception.getTargetEntity()).toUri();
+                    var targetRelationLink = Optional.<URI>empty();
+                    if(relation.getTargetEndPoint().getName() != null) {
+                        targetRelationLink = linkFactoryProvider.toRelation(RelationIdentity.forRelation(exception.getTargetEntity(), relation.getTargetEndPoint()
                                         .getName()))
-                                        .map(LinkFactory::toUri);
-                            }
-                            properties.put("target-item", targetItemLink.toString());
-                            targetRelationLink.ifPresent(uri -> properties.put("target-relation", uri.toString()));
-                        })
-        );
+                                .map(LinkFactory::toUri);
+                    }
+                    properties.put("target-item", targetItemLink.toString());
+                    targetRelationLink.ifPresent(uri -> properties.put("target-relation", uri.toString()));
+                });
+
     }
 
     @ExceptionHandler
@@ -374,6 +407,17 @@ public class ContentGridExceptionHandler {
 
         return responseBuilder.contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
+    }
+
+    private static <E extends Throwable> Stream<E> allExceptions(E e, Class<E> clazz) {
+        return Stream.concat(
+                Stream.of(e),
+                Arrays.stream(e.getSuppressed())
+                        .filter(clazz::isInstance)
+                        .map(clazz::cast)
+                        .flatMap(x -> allExceptions(x, clazz))
+        );
+
     }
 
 }

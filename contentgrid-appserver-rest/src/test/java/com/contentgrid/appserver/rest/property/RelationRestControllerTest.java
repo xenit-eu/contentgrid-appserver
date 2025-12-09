@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.property;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatList;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -35,6 +36,7 @@ import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -772,6 +774,51 @@ class RelationRestControllerTest {
                             .withField("existing-relation", "http://localhost/invoices/%s/previous-invoice".formatted(invoice1.getEntityId()))
                             .withField("new-item", "http://localhost/invoices/%s".formatted(invoice3.getEntityId()))
                             .withField("new-relation", "http://localhost/invoices/%s/previous-invoice".formatted(invoice3.getEntityId()))
+                    );
+        }
+
+        @Test
+        void setRelationBlindOverwrite_multiple() throws Exception {
+            var parent1 = createEntity(PERSON);
+            var child1 = createEntity(PERSON);
+            var child2 = createEntity(PERSON);
+            var child3 = createEntity(PERSON);
+            var child4 = createEntity(PERSON);
+            var parent2 = createEntity(PERSON);
+
+            // link parent1 -> child 1-4
+            mockMvc.perform(post("/persons/{id}/children", parent1.getEntityId())
+                            .contentType("text/uri-list")
+                            .content("""
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    """.formatted(child1.getEntityId(), child2.getEntityId(), child3.getEntityId(), child4.getEntityId()))
+                    )
+                    .andExpect(status().is2xxSuccessful());
+
+
+            // try to link parent2 -> child 1,2
+            mockMvc.perform(post("/persons/{id}/children", parent2.getEntityId())
+                    .contentType("text/uri-list")
+                    .content("""
+                            http://localhost/persons/%s
+                            http://localhost/persons/%s
+                            """.formatted(child1.getEntityId(), child2.getEntityId()))
+                    )
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.CONFLICT)
+                            .withType("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite")
+                            .withTitle("Relation already has a value that would be overwritten")
+                            .withField("errors", errors -> {
+                                assertThat(errors).asInstanceOf(InstanceOfAssertFactories.list(LinkedHashMap.class))
+                                        .hasSize(2)
+                                        .anySatisfy(x -> assertThat(x.get("target-item")).isEqualTo("http://localhost/persons/%s".formatted(child1.getEntityId())))
+                                        .anySatisfy(x -> assertThat(x.get("target-item")).isEqualTo("http://localhost/persons/%s".formatted(child2.getEntityId())))
+                                        .allSatisfy(x -> assertThat(x.get("existing-item")).isEqualTo("http://localhost/persons/%s".formatted(parent1.getEntityId())))
+                                ;
+                            })
                     );
         }
 
