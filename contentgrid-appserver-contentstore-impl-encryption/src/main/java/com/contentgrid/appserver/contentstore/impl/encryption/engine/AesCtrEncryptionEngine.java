@@ -22,10 +22,8 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
-import javax.security.auth.Destroyable;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.experimental.Delegate;
 
 /**
  * Symmetric data encryption engine using AES-CTR encryption mode
@@ -77,7 +75,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         try {
             cipher.init(
                     forEncryption ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE,
-                    new AESSecretKey(parameters.getSecretKey()),
+                    new SecretKey(parameters.getSecretKey(), "AES"),
                     new IvParameterSpec(parameters.getInitializationVector())
             );
         } finally {
@@ -161,29 +159,6 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
             byte[] ivBytes = new byte[IV_SIZE_BYTES];
             System.arraycopy(bigintBytes, 0, ivBytes, IV_SIZE_BYTES-bigintBytes.length, bigintBytes.length);
             return ivBytes;
-        }
-    }
-
-    @RequiredArgsConstructor
-    private static class AESSecretKey implements javax.crypto.SecretKey {
-        @Delegate(types = Destroyable.class)
-        private final KeyBytes keyBytes;
-
-        @Override
-        public String getAlgorithm() {
-            return "AES";
-        }
-
-        @Override
-        public String getFormat() {
-            return "RAW";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            // This one needs to be a copy, because the AES engine clears it.
-            // We don't want to have it destroy our KeyBytes copy
-            return keyBytes.getKeyBytesCopy();
         }
     }
 

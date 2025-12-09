@@ -7,27 +7,20 @@ import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
-import com.contentgrid.appserver.contentstore.impl.utils.ZeroPrefixedInputStream;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
 
-
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.DESKeySpec;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.Destroyable;
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+
+import lombok.RequiredArgsConstructor;
 
 public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngine {
     // Taken from de.acosix.alfresco.simplecontentstores.repo.store.encrypted.CipherUtil
@@ -45,7 +38,13 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
     @Override
     public boolean supports(DataEncryptionAlgorithm algorithm) {
-        return PADDINGS_BY_ALGORITHM.containsKey(algorithm.getValue());
+        boolean supported = true;
+        try {
+            Cipher.getInstance(algorithm.getValue());
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            supported = false;
+        }
+        return supported;
     }
 
     @Override
@@ -56,31 +55,6 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     @Override
     public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) {
         throw new UnsupportedOperationException("Alfresco-compatible encryption engine can only be used for decryption");
-    }
-
-    @RequiredArgsConstructor
-    private static class SecretKey implements javax.crypto.SecretKey {
-        @Delegate(types = Destroyable.class)
-        private final KeyBytes keyBytes;
-
-        private final String algorithm;
-
-        @Override
-        public String getAlgorithm() {
-            return this.algorithm;
-        }
-
-        @Override
-        public String getFormat() {
-            return "RAW";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            // This one needs to be a copy, because the AES engine clears it.
-            // We don't want to have it destroy our KeyBytes copy
-            return keyBytes.getKeyBytesCopy();
-        }
     }
 
     private Cipher initializeCipher(EncryptionParameters parameters)
