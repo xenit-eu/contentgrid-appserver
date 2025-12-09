@@ -173,7 +173,7 @@ public class ContentGridExceptionHandler {
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
                         .withProperties(Map.of(
-                                "all-errors", exception.allExceptions()
+                                "all-errors", allExceptions(exception, InvalidSortParameterException.class)
                                         .map(ex -> Map.of("detail", ex.getMessage()))
                                         .toList()
                         ))
@@ -191,7 +191,7 @@ public class ContentGridExceptionHandler {
     // This includes handling for all subclasses of InvalidDataException, as those are always wrapped in InvalidPropertyDataException
     // before they end up here
     ResponseEntity<Problem> handleInvalidPropertyDataException(@NonNull InvalidPropertyDataException exception) {
-        var allErrors = exception.allExceptions().toList();
+        var allErrors = allExceptions(exception, InvalidPropertyDataException.class).toList();
 
         var propertiesBuilder = ConstraintViolationProblemProperties.builder();
         for (var error : allErrors) {
