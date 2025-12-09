@@ -5,7 +5,6 @@ import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
-import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
 
 import java.io.InputStream;
@@ -17,33 +16,52 @@ import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
 import lombok.RequiredArgsConstructor;
 
 public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngine {
+
+    private static final String COMMON_MODE_AND_PADDING = "CBC/PKCS5Padding";
     // Taken from de.acosix.alfresco.simplecontentstores.repo.store.encrypted.CipherUtil
     // See https://github.com/Acosix/alfresco-simple-content-stores
-    private static final Map<String, String> PADDINGS_BY_ALGORITHM = Map.of(
-            "AES", "CBC/PKCS5Padding",
-            "DES", "CBC/PKCS5Padding",
-            "DESede", "CBC/PKCS5Padding",
-            "RSA", "ECB/OAEPWithSHA-256AndMGF1Padding"
+    // RSA mode not supported for file encryption (only symmetric-key algorithms)
+    private static final Map<String, String> MODES_AND_PADDINGS_BY_ALGORITHM = Map.of(
+            "AES", COMMON_MODE_AND_PADDING,
+            "DES", COMMON_MODE_AND_PADDING,
+            "DESede", COMMON_MODE_AND_PADDING
     );
-
-    public AlfrescoCompatibleEncryptionEngine() {
-
-    }
 
     @Override
     public boolean supports(DataEncryptionAlgorithm algorithm) {
         boolean supported = true;
+
+        // alfresco-simple-content-stores supports arbitrary algorithms, though only symmetric onces
+        // check Java support of algorithm (which may include mode + padding)
+        // and also check key algorithm for being symmetric
+        String algorithmValue = algorithm.getValue();
+        String keyAlgorithmValue = algorithmValue;
+        if (keyAlgorithmValue.contains("/")) {
+            keyAlgorithmValue = keyAlgorithmValue.substring(0, keyAlgorithmValue.indexOf('/'));
+        }
+
+        Cipher cipher = null;
         try {
-            Cipher.getInstance(algorithm.getValue());
+            cipher = Cipher.getInstance(algorithmValue);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             supported = false;
         }
+
+        if (cipher != null) {
+            try {
+                KeyGenerator.getInstance(keyAlgorithmValue);
+            } catch (NoSuchAlgorithmException e) {
+                supported = false;
+            }
+        }
+
         return supported;
     }
 
@@ -69,8 +87,8 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
                 cipher.init(Cipher.DECRYPT_MODE, key);
             } else {
                 // Same padding logic as in alfresco encrypted storage plugin
-                if (PADDINGS_BY_ALGORITHM.containsKey(algorithm)) {
-                    algorithm = algorithm + "/" + PADDINGS_BY_ALGORITHM.get(algorithm);
+                if (MODES_AND_PADDINGS_BY_ALGORITHM.containsKey(algorithm)) {
+                    algorithm = algorithm + "/" + MODES_AND_PADDINGS_BY_ALGORITHM.get(algorithm);
                 }
                 cipher = Cipher.getInstance(algorithm);
                 // Always use zero IV because we will always read from the start.
