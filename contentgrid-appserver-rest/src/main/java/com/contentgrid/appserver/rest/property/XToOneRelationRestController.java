@@ -90,7 +90,7 @@ public class XToOneRelationRestController {
         }
     }
 
-    @PutMapping
+    @PutMapping(consumes = "text/uri-list")
     public ResponseEntity<Object> setRelation(
             Application application,
             @PathVariable PathSegmentName entityName,

@@ -74,7 +74,7 @@ public class XToManyRelationRestController {
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUrl).build();
     }
 
-    @PostMapping
+    @PostMapping(consumes = "text/uri-list")
     public ResponseEntity<Object> addRelationItems(
             Application application,
             @PathVariable PathSegmentName entityName,

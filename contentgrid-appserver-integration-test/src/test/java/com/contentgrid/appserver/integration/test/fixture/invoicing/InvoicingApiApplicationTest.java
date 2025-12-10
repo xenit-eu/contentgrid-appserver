@@ -788,7 +788,6 @@ class InvoicingApiApplicationTest {
             class ManyToMany {
 
                 @Test
-                @Disabled("ACC-2412 RelationRestControllers return 500")
                 void postJson_promos_forOrder_shouldReturn_http415_unsupportedMediaType() throws Exception {
                     mockMvc.perform(post("/orders/{id}/promos", ORDER_1_ID)
                                     .accept(MediaType.APPLICATION_JSON)
