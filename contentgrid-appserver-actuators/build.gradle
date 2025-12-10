@@ -12,15 +12,15 @@ dependencies {
 
     implementation project(':contentgrid-appserver-domain-spi')
     implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
-
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
-    implementation 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'jakarta.servlet:jakarta.servlet-api' // TODO-m: Check if this can be removed 
 
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-resttestclient'
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
