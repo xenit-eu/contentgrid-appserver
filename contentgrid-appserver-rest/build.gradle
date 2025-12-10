@@ -12,7 +12,12 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring'
-    implementation 'com.contentgrid.thunx:thunx-spring-security'
+    implementation 'org.springframework.boot:spring-boot-jackson2'
+    implementation('com.contentgrid.thunx:thunx-api-spring-boot-starter') {
+        exclude group: 'com.contentgrid.thunx', module: 'spring-data-querydsl-predicate-injector'
+        exclude group: 'com.contentgrid.thunx', module: 'thunx-predicates-querydsl'
+        exclude group: 'org.springframework.data'
+    }
 
     implementation 'org.springframework.security:spring-security-oauth2-jose'
     implementation 'org.springframework.security:spring-security-oauth2-resource-server'
@@ -23,6 +28,7 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 
     testFixturesImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testFixturesImplementation 'org.springframework.boot:spring-boot-autoconfigure'
@@ -33,6 +39,7 @@ dependencies {
     testFixturesImplementation 'org.springframework.security:spring-security-test'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-jose'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-resource-server'
+    testFixturesImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testFixturesImplementation 'org.assertj:assertj-core'
 }
 

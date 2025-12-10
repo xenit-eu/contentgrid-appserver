@@ -12,6 +12,7 @@ dependencies {
     implementation 'org.webjars:webjars-locator-core'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 
     testRuntimeOnly 'jakarta.servlet:jakarta.servlet-api'
 }

@@ -5,7 +5,7 @@ import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationM
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.Optional;
-import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
+import org.springframework.boot.http.converter.autoconfigure.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.MethodLinkBuilderFactory;
