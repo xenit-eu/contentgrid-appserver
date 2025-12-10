@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'org.springframework.boot:spring-boot-http-converter'
     implementation 'org.springframework.boot:spring-boot-flyway'
     implementation 'org.springframework.boot:spring-boot-jooq'
     implementation 'org.springframework.boot:spring-boot-security'
