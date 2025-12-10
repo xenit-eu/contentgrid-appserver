@@ -63,8 +63,9 @@ public class ContentApiImpl implements ContentApi {
             @NonNull EntityId id, @NonNull AttributeName attributeName,
             @NonNull AuthorizationContext authorizationContext) {
 
-        return datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
-                .map(entityData -> extractContent(application, entityData, attributeName))
+        var entityData = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
+                .orElseThrow(() -> new EntityIdNotFoundException(entityName, id));
+        return Optional.of(extractContent(application, entityData, attributeName))
                 .filter(content -> content.getContentId().isPresent())
                 .map(Content.class::cast);
     }

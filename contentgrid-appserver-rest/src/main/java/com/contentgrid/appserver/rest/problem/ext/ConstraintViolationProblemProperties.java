@@ -43,6 +43,15 @@ public class ConstraintViolationProblemProperties {
                     )
             );
         }
+
+        public ConstraintViolationProblemPropertiesBuilder target(Problem problem, String entity, String id) {
+            return error(
+                    MergedProblemProperties.extend(
+                            problem,
+                            new RelationTargetProblemProperties(entity, id)
+                    )
+            );
+        }
     }
 
     @Value
@@ -56,5 +65,11 @@ public class ConstraintViolationProblemProperties {
 
         @JsonProperty("invalid_value")
         Object invalidValue;
+    }
+
+    @Value
+    private static class RelationTargetProblemProperties {
+        String entity;
+        String id;
     }
 }

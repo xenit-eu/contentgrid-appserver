@@ -384,8 +384,10 @@ class EntityRestControllerTest {
 
             mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
+                            .withDetail("No entity or static resource foobars")
                     );
         }
 
@@ -628,8 +630,10 @@ class EntityRestControllerTest {
 
             mockMvc.perform(get("/products/" + nonExistentId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
+                            .withTitle("Entity item not found")
+                            .withDetail("No entity 'product' found with id '" + nonExistentId + "'")
                     );
         }
 
@@ -640,12 +644,14 @@ class EntityRestControllerTest {
             mockMvc.perform(get("/foobars/" + nonExistentId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withTitle("Entity or resource not found")
                     );
             mockMvc.perform(get("/foobars"))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withTitle("Entity or resource not found")
                     );
         }
     }
@@ -1010,7 +1016,8 @@ class EntityRestControllerTest {
                             .content(objectMapper.writeValueAsString(updated)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withTitle("Entity or resource not found")
                     );
         }
 
@@ -1039,7 +1046,9 @@ class EntityRestControllerTest {
                             .content(objectMapper.writeValueAsString(updatedProduct)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/not-found/entity-item")
+                                    .withTitle("Entity item not found")
+
                     );
         }
 
@@ -1091,7 +1100,8 @@ class EntityRestControllerTest {
                     )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                    .withTitle("Object has changed")
                     );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl())
@@ -1121,7 +1131,7 @@ class EntityRestControllerTest {
                     )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                                    .withDetail("Invalid ETag in header")
                     );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl())
@@ -1149,7 +1159,8 @@ class EntityRestControllerTest {
                     )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                    .withTitle("Object has changed")
                     );
 
             mockMvc.perform(get(createResponse.getRedirectedUrl()))
@@ -1341,8 +1352,10 @@ class EntityRestControllerTest {
             // Verify entity no longer exists
             mockMvc.perform(get("/products/" + id))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
+                            .withTitle("Entity item not found")
+                            .withField("id", id)
                     );
         }
 
@@ -1352,8 +1365,10 @@ class EntityRestControllerTest {
 
             mockMvc.perform(delete("/products/" + nonExistentId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
+                            .withTitle("Entity item not found")
+                            .withField("id", nonExistentId)
                     );
         }
 
@@ -1363,8 +1378,9 @@ class EntityRestControllerTest {
 
             mockMvc.perform(delete("/foobars/" + someId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
                     );
         }
 
@@ -1382,7 +1398,8 @@ class EntityRestControllerTest {
             mockMvc.perform(get(createResponse.getRedirectedUrl()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/not-found/entity-item")
+                                    .withTitle("Entity item not found")
                     );
         }
 
@@ -1395,7 +1412,8 @@ class EntityRestControllerTest {
                     )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                            // TODO: proper problem detail here
+                                    .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                                    .withTitle("Object has changed")
                     );
 
             // Verify entity still exists
@@ -1418,7 +1436,7 @@ class EntityRestControllerTest {
                     )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                                    .withDetail("Invalid ETag in header")
                     );
 
             // Verify entity still exists

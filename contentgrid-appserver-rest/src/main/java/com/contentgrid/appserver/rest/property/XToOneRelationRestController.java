@@ -9,11 +9,17 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
+import com.contentgrid.appserver.rest.exception.EmptyRelationException;
+import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
+import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -66,16 +72,13 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName propertyName,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
-    ) {
+    ) throws EmptyRelationException {
         var relation = getRequiredRelation(application, entityName, propertyName);
-        var relationRequest = RelationRequest.forRelation(
-                relation.getSourceEndPoint().getEntity(),
-                id,
-                relation.getSourceEndPoint().getName()
-        );
+        var source = relation.getSourceEndPoint();
+        var relationRequest = RelationRequest.forRelation(source.getEntity(), id, source.getName());
         try {
             var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target of %s not found".formatted(relation.getSourceEndPoint().getName())));
+                    .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
             var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
 
             return ResponseEntity.status(HttpStatus.FOUND)
@@ -87,32 +90,33 @@ public class XToOneRelationRestController {
         }
     }
 
-    @PutMapping
+    @PutMapping(consumes = "text/uri-list")
     public ResponseEntity<Object> setRelation(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
-            @RequestBody URIList body,
+            @RequestBody(required = false) URIList body,
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
-    ) {
-        var uris = body.uris();
-        if (uris.isEmpty()) {
-            // TODO: throw specific exception to support problem details
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No entity url provided.");
-        }
-        if (uris.size() > 1) {
-            // TODO: throw specific exception to support problem details
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Multiple targets not supported.");
-        }
+    ) throws RelationTargetNotFoundException, MissingRelationTargetException, InvalidRelationTargetException, MultipleRelationTargetsException {
         var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationIdent = RelationIdentity.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName());
+        if (body == null || body.uris().isEmpty()) {
+            throw new MissingRelationTargetException(relationIdent);
+        }
+        var uris = body.uris();
+        if (uris.size() > 1) {
+            throw new MultipleRelationTargetsException(relationIdent);
+        }
         var element = uris.getFirst();
         var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
-            // TODO: throw specific exception to support problem details
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target entity.");
+            throw new InvalidRelationTargetException(element.toString());
         }
         try {
             var relationRequest = RelationRequest.forRelation(
@@ -123,11 +127,9 @@ public class XToOneRelationRestController {
             datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
-                // TODO: throw specific exception to support problem details
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+                throw new EntityIdNotFoundException(e.getEntityName(), e.getId());
             } else {
-                // TODO: throw specific exception to support problem details
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+                throw new RelationTargetNotFoundException(e);
             }
         }
         return ResponseEntity.noContent().build();
@@ -142,18 +144,13 @@ public class XToOneRelationRestController {
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext
     ) {
-        try {
-            var relation = getRequiredRelation(application, entityName, propertyName);
-            var relationRequest = RelationRequest.forRelation(
-                    relation.getSourceEndPoint().getEntity(),
-                    id,
-                    relation.getSourceEndPoint().getName()
-            ).withVersionConstraint(versionConstraint);
-            datamodelApi.deleteRelation(application, relationRequest, authorizationContext);
-        } catch (EntityIdNotFoundException | RelationLinkNotFoundException e) {
-            // TODO: throw specific exception to support problem details
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        }
+        var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        ).withVersionConstraint(versionConstraint);
+        datamodelApi.deleteRelation(application, relationRequest, authorizationContext);
         return ResponseEntity.noContent().build();
     }
 

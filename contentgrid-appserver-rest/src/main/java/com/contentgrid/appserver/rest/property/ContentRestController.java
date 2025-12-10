@@ -14,6 +14,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -254,14 +255,13 @@ public class ContentRestController {
             VersionConstraint versionConstraint,
             @RequestParam MultipartFile file,
             AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException, MultipartDataMissingContentTypeException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
         var fileData = new FileDataEntry(
                 file.getOriginalFilename(),
                 Optional.ofNullable(file.getContentType())
-                        // TODO: throw a dedicated exception to support problem details
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST)),
+                        .orElseThrow(() -> new MultipartDataMissingContentTypeException(file.getName())),
                 file::getInputStream
         );
 

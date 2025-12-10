@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.property;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatList;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -34,10 +35,16 @@ import com.contentgrid.appserver.rest.property.RelationRestControllerTest.TestCo
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -53,6 +60,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.hateoas.mediatype.problem.Problem;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -461,6 +469,7 @@ class RelationRestControllerTest {
                     "http://localhost/persons/%s%n".formatted(targetId), // person instead of invoice
                     "http://localhost/invoices%n".formatted(), // collection url
                     "http://localhost/invoices/%s/next-invoice%n".formatted(targetId), // relation url
+                    "http://example.com/invoices/%s%n".formatted(targetId), // wrong domain
                     "}%s%n".formatted(targetId) // illegal url
             );
         }
@@ -483,8 +492,9 @@ class RelationRestControllerTest {
         void followRelationInvalidUrl(String url) throws Exception {
             mockMvc.perform(get(url))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
                     );
         }
 
@@ -495,8 +505,9 @@ class RelationRestControllerTest {
                             .contentType("text/uri-list")
                             .content("%n".formatted()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body")
+                            .withDetail("No relation targets provided in request body")
                     );
         }
 
@@ -505,8 +516,8 @@ class RelationRestControllerTest {
             var invoice = createEntity(INVOICE);
             mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body")
                     );
         }
 
@@ -520,8 +531,8 @@ class RelationRestControllerTest {
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(target1, target2)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body")
                     );
         }
 
@@ -533,8 +544,8 @@ class RelationRestControllerTest {
                             .contentType("text/uri-list")
                             .content(url))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/integrity/invalid-relation-target")
                     );
         }
 
@@ -548,7 +559,7 @@ class RelationRestControllerTest {
                             .content("http://localhost/invoices/%s%n".formatted(targetId)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                            // TODO: proper problem detail here
+                            .withType("https://contentgrid.cloud/problems/unsupported-content-type")
                     );
         }
 
@@ -560,7 +571,7 @@ class RelationRestControllerTest {
                             .content("%n".formatted()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body")
                     );
         }
 
@@ -569,8 +580,8 @@ class RelationRestControllerTest {
             var person = createEntity(PERSON);
             mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request-body")
                     );
         }
 
@@ -585,7 +596,7 @@ class RelationRestControllerTest {
                     .andExpect(status().isUnsupportedMediaType())
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                            // TODO: proper problem detail here
+                            .withType("https://contentgrid.cloud/problems/unsupported-content-type")
                     );
         }
 
@@ -597,8 +608,9 @@ class RelationRestControllerTest {
                             .contentType("text/uri-list")
                             .content(url))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/integrity/invalid-relation-target")
+                            .withTitle("Invalid relation target")
                     );
         }
 
@@ -658,8 +670,8 @@ class RelationRestControllerTest {
             mockMvc.perform(requestBuilder)
                     .andExpect(status().isNotFound())
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
                     );
         }
 
@@ -672,8 +684,8 @@ class RelationRestControllerTest {
         void followToOneRelationSourceIdNotFound() throws Exception {
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                     );
         }
 
@@ -682,8 +694,8 @@ class RelationRestControllerTest {
             var invoice = createEntity(INVOICE);
             mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/empty-relation")
                     );
         }
 
@@ -691,8 +703,8 @@ class RelationRestControllerTest {
         void followToManyRelationSourceIdNotFound() throws Exception {
             mockMvc.perform(get("/persons/{sourceId}/invoices", PERSON_ID))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                     );
         }
 
@@ -703,8 +715,8 @@ class RelationRestControllerTest {
 
             mockMvc.perform(get("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/relation-item")
                     );
         }
 
@@ -716,8 +728,16 @@ class RelationRestControllerTest {
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%n".formatted(UUID.randomUUID())))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/integrity/invalid-relation-target")
+                            .withSatisfy(pd -> {
+                                assertThat(pd.getProperties().get("errors"))
+                                        .asInstanceOf(InstanceOfAssertFactories.list(LinkedHashMap.class))
+                                        .hasSize(1)
+                                        .first()
+                                        .extracting(error -> error.get("type"))
+                                        .isEqualTo("https://contentgrid.cloud/problems/not-found/entity-item");
+                            })
                     );
         }
 
@@ -758,6 +778,51 @@ class RelationRestControllerTest {
         }
 
         @Test
+        void setRelationBlindOverwrite_multiple() throws Exception {
+            var parent1 = createEntity(PERSON);
+            var child1 = createEntity(PERSON);
+            var child2 = createEntity(PERSON);
+            var child3 = createEntity(PERSON);
+            var child4 = createEntity(PERSON);
+            var parent2 = createEntity(PERSON);
+
+            // link parent1 -> child 1-4
+            mockMvc.perform(post("/persons/{id}/children", parent1.getEntityId())
+                            .contentType("text/uri-list")
+                            .content("""
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    http://localhost/persons/%s
+                                    """.formatted(child1.getEntityId(), child2.getEntityId(), child3.getEntityId(), child4.getEntityId()))
+                    )
+                    .andExpect(status().is2xxSuccessful());
+
+
+            // try to link parent2 -> child 1,2
+            mockMvc.perform(post("/persons/{id}/children", parent2.getEntityId())
+                    .contentType("text/uri-list")
+                    .content("""
+                            http://localhost/persons/%s
+                            http://localhost/persons/%s
+                            """.formatted(child1.getEntityId(), child2.getEntityId()))
+                    )
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.CONFLICT)
+                            .withType("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite")
+                            .withTitle("Relation already has a value that would be overwritten")
+                            .withField("errors", errors -> {
+                                assertThat(errors).asInstanceOf(InstanceOfAssertFactories.list(LinkedHashMap.class))
+                                        .hasSize(2)
+                                        .anySatisfy(x -> assertThat(x.get("target-item")).isEqualTo("http://localhost/persons/%s".formatted(child1.getEntityId())))
+                                        .anySatisfy(x -> assertThat(x.get("target-item")).isEqualTo("http://localhost/persons/%s".formatted(child2.getEntityId())))
+                                        .allSatisfy(x -> assertThat(x.get("existing-item")).isEqualTo("http://localhost/persons/%s".formatted(parent1.getEntityId())))
+                                ;
+                            })
+                    );
+        }
+
+        @Test
         void addRelationEntitySourceIdNotFound() throws Exception {
             var invoice1 = createEntity(INVOICE);
             var invoice2 = createEntity(INVOICE);
@@ -767,8 +832,8 @@ class RelationRestControllerTest {
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1.getEntityId(),
                                     invoice2.getEntityId())))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                     );
         }
 
@@ -778,13 +843,25 @@ class RelationRestControllerTest {
             var invoice1 = EntityId.of(UUID.randomUUID());
             var invoice2 = EntityId.of(UUID.randomUUID());
 
+            Function<EntityId, Consumer<LinkedHashMap>> isInvoice = (id) -> (map) ->
+                    assertThat(map.get("detail")).isEqualTo("No entity 'invoice' found with id '%s'".formatted(id));
+
             mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType("text/uri-list")
                             .content("http://localhost/invoices/%s%nhttp://localhost/invoices/%s%n".formatted(invoice1,
                                     invoice2)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.BAD_REQUEST)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/integrity/invalid-relation-target")
+                            .withTitle("Invalid relation target")
+                            .withSatisfy(pd -> {
+                                assertThat(pd.getProperties().get("errors"))
+                                        .asInstanceOf(InstanceOfAssertFactories.list(LinkedHashMap.class))
+                                        .satisfiesExactlyInAnyOrder(
+                                                isInvoice.apply(invoice1),
+                                                isInvoice.apply(invoice2)
+                                        );
+                            })
                     );
         }
 
@@ -792,8 +869,8 @@ class RelationRestControllerTest {
         void clearRelationEntityIdNotFound() throws Exception {
             mockMvc.perform(delete("/invoices/{sourceId}/previous-invoice", UUID.randomUUID()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                     );
         }
 
@@ -818,8 +895,8 @@ class RelationRestControllerTest {
 
             mockMvc.perform(delete("/persons/{sourceId}/invoices/{targetId}", person.getEntityId(), invoice.getEntityId()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                                    .withStatusCode(HttpStatus.NOT_FOUND)
-                            // TODO: proper problem detail here
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/relation-item")
                     );
         }
 
