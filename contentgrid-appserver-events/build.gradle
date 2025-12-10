@@ -19,4 +19,5 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 }
