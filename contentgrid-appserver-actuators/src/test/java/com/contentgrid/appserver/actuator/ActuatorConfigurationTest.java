@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(
@@ -25,6 +26,7 @@ import org.springframework.http.ResponseEntity;
                 "management.server.port=0" // random, different port from main port
         }
 )
+@AutoConfigureTestRestTemplate
 class ActuatorConfigurationTest {
     @Autowired
     private TestRestTemplate rest;
