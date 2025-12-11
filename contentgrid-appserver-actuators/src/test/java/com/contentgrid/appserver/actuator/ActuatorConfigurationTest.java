@@ -2,18 +2,15 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
-import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
-import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.context.annotation.Bean;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
+import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.http.MediaType;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(
@@ -26,10 +23,10 @@ import org.springframework.http.ResponseEntity;
                 "management.server.port=0" // random, different port from main port
         }
 )
-@AutoConfigureTestRestTemplate
-class ActuatorConfigurationTest {
+@AutoConfigureRestTestClient
+public class ActuatorConfigurationTest {
     @Autowired
-    private TestRestTemplate rest;
+    private RestTestClient rest;
 
     @Value("${local.management.port}")
     int managementPort;
@@ -38,11 +35,6 @@ class ActuatorConfigurationTest {
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
-        }
-
-        @Bean
-        BlueprintArtifact testBlueprintArtifact() {
-            return new ClassPathBlueprintArtifact(ActuatorConfigurationTest.class.getClassLoader(), Path.of("blueprint-artifact"));
         }
     }
 
