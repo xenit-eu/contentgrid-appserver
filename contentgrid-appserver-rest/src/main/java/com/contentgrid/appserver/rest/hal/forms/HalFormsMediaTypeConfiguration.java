@@ -26,13 +26,13 @@ public class HalFormsMediaTypeConfiguration implements HypermediaMappingInformat
         return Collections.singletonList(MediaTypes.HAL_FORMS_JSON);
     }
 
-    @Override
-    public ObjectMapper configureObjectMapper(ObjectMapper mapper) {
-        mapper = halMediaTypeConfiguration.configureObjectMapper(mapper);
-        addView(mapper, HalFormsView.class);
+    // @Override
+    // public ObjectMapper configureObjectMapper(ObjectMapper mapper) {
+    //     mapper = halMediaTypeConfiguration.configureObjectMapper(mapper);
+    //     addView(mapper, HalFormsView.class);
 
-        return mapper;
-    }
+    //     return mapper;
+    // }
 
     /**
      * Bean that customizes the {@link ObjectMapper} to only expose properties with the {@link DefaultView}.
