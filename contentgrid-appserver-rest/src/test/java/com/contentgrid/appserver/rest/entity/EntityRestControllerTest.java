@@ -66,6 +66,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.LinkedMultiValueMap;
@@ -91,7 +92,7 @@ class EntityRestControllerTest {
     }
 
     interface MediaTypeConfiguration {
-        MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder, Map<String, Object> requestData) throws Exception;
+        RequestBuilder configure(MockHttpServletRequestBuilder builder, Map<String, Object> requestData) throws Exception;
     }
 
     private static Stream<Map.Entry<String, Object>> flattenMap(Map<String, Object> map) {
@@ -113,7 +114,7 @@ class EntityRestControllerTest {
         return Stream.of(
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         return builder.contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(requestData));
@@ -126,7 +127,7 @@ class EntityRestControllerTest {
                 },
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         var fieldMap = new LinkedMultiValueMap<String, String>();
                         flattenMap(requestData)
@@ -145,7 +146,7 @@ class EntityRestControllerTest {
                 },
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         var request = builder.buildRequest(new MockServletContext());
                         var multipartRequestBuilder = MockMvcRequestBuilders.multipart(
@@ -278,8 +279,8 @@ class EntityRestControllerTest {
             product.put("release_date", "2023-01-15T10:00:00Z");
             product.put("in_stock", true);
 
-            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
-                            .accept(MediaTypes.HAL_JSON))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products")
+                        .accept(MediaTypes.HAL_JSON), product))
                     .andExpect(status().isCreated())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.id", notNullValue()))
@@ -447,8 +448,8 @@ class EntityRestControllerTest {
             product.put("in_stock", true);
             product.put("picture", Map.of("filename", "picture.jpg", "mimetype", "application/jpeg"));
 
-            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
-                            .accept(MediaTypes.HAL_JSON))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products")
+                        .accept(MediaTypes.HAL_JSON), product))
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
                                     .withTitle("No content present")
