@@ -13,7 +13,7 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 public class AnonymousHttpConfigurer extends AbstractHttpConfigurer<AnonymousHttpConfigurer, HttpSecurity> {
 
     @Override
-    public void init(HttpSecurity http) throws Exception {
+    public void init(HttpSecurity http) {
         ApplicationContext context = http.getSharedObject(ApplicationContext.class);
 
         var disableCsrf = context.getEnvironment().getProperty("contentgrid.security.csrf.disabled", Boolean.class);
