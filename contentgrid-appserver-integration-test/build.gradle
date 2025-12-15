@@ -13,7 +13,7 @@ dependencies {
     testFixturesImplementation 'org.testcontainers:testcontainers-rabbitmq'
     testFixturesRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    testFixturesRuntimeOnly 'org.testcontainers:testcontainers-postgresql'
+    testFixturesRuntimeOnly 'org.postgresql:postgresql'
 
 
     testImplementation project(':contentgrid-appserver-domain')
