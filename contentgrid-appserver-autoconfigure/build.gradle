@@ -81,6 +81,8 @@ dependencies {
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
 
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql' 
+
     testImplementation 'io.minio:minio'
     testImplementation 'org.springframework.hateoas:spring-hateoas'
 }
