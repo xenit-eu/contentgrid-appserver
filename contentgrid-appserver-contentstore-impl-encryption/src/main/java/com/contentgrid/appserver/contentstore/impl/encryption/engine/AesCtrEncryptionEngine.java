@@ -179,6 +179,10 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
                             ),
                             cipher
                     ),
+                    // CipherInputStream does not skip(n) into not-yet-decrypted data
+                    // Spring StreamUtils.copyRange needs that behaviour
+                    // so we have to tell prefixed input stream to use skipNBytes
+                    true,
                     byteStartOffset
             );
         }

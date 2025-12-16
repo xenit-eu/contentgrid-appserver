@@ -37,10 +37,10 @@ class AlfrescoCompatibleEncryptionEngineTest
             "bc49e9ad-fcfc-403e-ba3e-2280d602a53e.bin", "ba50f10d-4df4-4ba0-9161-3038be5fab80.bin",
             "05efb43b-2808-4a1f-b25a-83f1c24f8bcf.bin" };
 
-    private static final String[] ALGORITHMS = { "AES", "AES", "AES", "AES", "AES", "DES", "DESede" };
+    private static final String[] ALGORITHMS = { "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-DES", "Alfresco-DESede" };
 
     private static final long[] DECRYPTED_SIZES = { 6094l, 4240l, 4117l, 4162l, 1001l, 2859l, 5853l };
-    
+
     private static final long[] ENCRYPTED_SIZES = { 6096l, 4256l, 4128l, 4176l, 1008l, 2864l, 5856l };
 
     private static final List<Arguments> RANGED_ARGUMENTS = Arrays.asList(Arguments.of(0, 128l), Arguments.of(1, 3096l),
@@ -52,7 +52,7 @@ class AlfrescoCompatibleEncryptionEngineTest
         var engine = new AlfrescoCompatibleEncryptionEngine();
         assertThatThrownBy(() -> engine.createNewParameters()).isInstanceOf(UnsupportedOperationException.class);
 
-        var params = new EncryptionParameters(DataEncryptionAlgorithm.of("AES"), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[0])),
+        var params = new EncryptionParameters(DataEncryptionAlgorithm.of("Alfresco-AES"), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[0])),
                 new byte[0]);
         try (InputStream is = AlfrescoCompatibleEncryptionEngineTest.class.getResourceAsStream("/alfresco/decrypted/" + RESOURCES[0]))
         {
@@ -67,13 +67,13 @@ class AlfrescoCompatibleEncryptionEngineTest
         // supported + unsupported
 
         var engine = new AlfrescoCompatibleEncryptionEngine();
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("AES"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("AES/CTR/PKCS5Padding"))).isEqualTo(false);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("AES/CBC/PKCS5Padding"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("AES/CTR/NoPadding"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("DES"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("DESede"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("RSA"))).isEqualTo(false);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES"))).isEqualTo(true);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/PKCS5Padding"))).isEqualTo(false);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CBC/PKCS5Padding"))).isEqualTo(true);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/NoPadding"))).isEqualTo(true);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DES"))).isEqualTo(true);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DESede"))).isEqualTo(true);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-RSA"))).isEqualTo(false);
     }
 
     @ParameterizedTest
@@ -134,10 +134,12 @@ class AlfrescoCompatibleEncryptionEngineTest
         assertThat(reader.getReference()).isEqualTo(ContentReference.of(encryptedResource));
         assertThat(reader.getDescription()).isEqualTo("Decrypted resource file " + encryptedResource);
 
-        try (var is = AlfrescoCompatibleEncryptionEngineTest.class.getResourceAsStream(decryptedResource))
+        try (var is1 = AlfrescoCompatibleEncryptionEngineTest.class.getResourceAsStream(decryptedResource))
         {
-            is.skipNBytes(contentRange.getStartByte());
-            assertThat(reader.getContentInputStream()).hasSameContentAs(is);
+            is1.skipNBytes(contentRange.getStartByte());
+            InputStream is2 = reader.getContentInputStream();
+            assertThat(is2.skip(contentRange.getStartByte())).isEqualTo(contentRange.getStartByte());
+            assertThat(is2).hasSameContentAs(is1);
         }
     }
 

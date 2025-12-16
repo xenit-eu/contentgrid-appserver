@@ -24,7 +24,10 @@ import lombok.RequiredArgsConstructor;
 
 public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngine {
 
+    public static final String ALFRESCO_ALG_PREFIX = "Alfresco-";
+
     private static final String COMMON_MODE_AND_PADDING = "CBC/PKCS5Padding";
+
     // Taken from de.acosix.alfresco.simplecontentstores.repo.store.encrypted.CipherUtil
     // See https://github.com/Acosix/alfresco-simple-content-stores
     // RSA mode not supported for file encryption (only symmetric-key algorithms)
@@ -42,24 +45,29 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
         // check Java support of algorithm (which may include mode + padding)
         // and also check key algorithm for being symmetric
         String algorithmValue = algorithm.getValue();
-        String keyAlgorithmValue = algorithmValue;
-        if (keyAlgorithmValue.contains("/")) {
-            keyAlgorithmValue = keyAlgorithmValue.substring(0, keyAlgorithmValue.indexOf('/'));
-        }
-
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance(algorithmValue);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            supported = false;
-        }
-
-        if (cipher != null) {
+        if (algorithmValue.startsWith(ALFRESCO_ALG_PREFIX)) {
+            algorithmValue = algorithmValue.substring(ALFRESCO_ALG_PREFIX.length());
+            String keyAlgorithmValue = algorithmValue;
+            if (keyAlgorithmValue.contains("/")) {
+                keyAlgorithmValue = keyAlgorithmValue.substring(0, keyAlgorithmValue.indexOf('/'));
+            }
+    
+            Cipher cipher = null;
             try {
-                KeyGenerator.getInstance(keyAlgorithmValue);
-            } catch (NoSuchAlgorithmException e) {
+                cipher = Cipher.getInstance(algorithmValue);
+            } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
                 supported = false;
             }
+    
+            if (cipher != null) {
+                try {
+                    KeyGenerator.getInstance(keyAlgorithmValue);
+                } catch (NoSuchAlgorithmException e) {
+                    supported = false;
+                }
+            }
+        } else {
+            supported = false;
         }
 
         return supported;
@@ -78,6 +86,10 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     private Cipher initializeCipher(EncryptionParameters parameters)
             throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
         String algorithm = parameters.getAlgorithm().getValue();
+        if (!algorithm.startsWith(ALFRESCO_ALG_PREFIX)) {
+            throw new UnsupportedOperationException("Not an Alfresco-compatible encryption algorithm");
+        }
+        algorithm = algorithm.substring(ALFRESCO_ALG_PREFIX.length());
         Cipher cipher = Cipher.getInstance(algorithm);
         try {
             Key key = new SecretKey(parameters.getSecretKey(), algorithm);
@@ -118,7 +130,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
             throw new UndecryptableContentException(rawReader.getReference(), e);
         }
 
-        return new DecryptingContentReader(rawReader, cipher, contentRange.getStartByte());
+        return new DecryptingContentReader(rawReader, cipher);
     }
 
     @RequiredArgsConstructor
@@ -126,13 +138,14 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         private final ContentReader delegate;
         private final Cipher cipher;
-        private final long byteStartOffset;
 
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
             InputStream raw = delegate.getContentInputStream();
-            InputStream decryptedStream = new CipherInputStream(raw, cipher);
-            return new SkippingInputStream(decryptedStream, byteStartOffset);
+            // CipherInputStream does not skip(n) into not-yet-decrypted data
+            // Spring StreamUtils.copyRange needs that behaviour
+            // so we have to tell prefixed input stream to use skipNBytes
+            return new SkippingInputStream(new CipherInputStream(raw, cipher), 0, true);
         }
 
         @Override

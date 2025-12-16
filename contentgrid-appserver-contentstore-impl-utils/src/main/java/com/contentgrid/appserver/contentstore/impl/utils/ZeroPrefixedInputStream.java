@@ -8,10 +8,20 @@ import java.io.InputStream;
  */
 public class ZeroPrefixedInputStream extends InputStream {
     private final InputStream delegate;
+    // some delegates' skip may not skip into unread data
+    // allow case-by-case option to use skipNBytes on delegate
+    private final boolean useDelegateSkipN;
     private long prefixBytes;
 
     public ZeroPrefixedInputStream(InputStream delegate, long prefixBytes) {
         this.delegate = delegate;
+        this.useDelegateSkipN = false;
+        this.prefixBytes = prefixBytes;
+    }
+
+    public ZeroPrefixedInputStream(InputStream delegate, boolean useDelegateSkipN, long prefixBytes) {
+        this.delegate = delegate;
+        this.useDelegateSkipN = useDelegateSkipN;
         this.prefixBytes = prefixBytes;
     }
 
@@ -27,12 +37,20 @@ public class ZeroPrefixedInputStream extends InputStream {
         if(prefixBytes > 0) {
             n = n - prefixBytes; // Still skipping so many bytes from the offset
             try {
+                if (useDelegateSkipN) {
+                    delegate.skipNBytes(n);
+                    return prefixBytes + n;
+                }
                 return prefixBytes + delegate.skip(n);
             } finally {
                 prefixBytes = 0; // Now the whole offset is consumed; skip to the delegate
             }
         }
 
+        if (useDelegateSkipN) {
+            delegate.skipNBytes(n);
+            return n;
+        }
         return delegate.skip(n);
     }
 

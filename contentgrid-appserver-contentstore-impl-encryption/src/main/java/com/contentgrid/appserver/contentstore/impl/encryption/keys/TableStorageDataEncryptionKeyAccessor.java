@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.impl.SQLDataType;
 
 @RequiredArgsConstructor
 public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyAccessor {
@@ -19,12 +20,22 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
 
     private static final String TABLE_NAME = "_dek_storage";
     private static final org.jooq.Table<Record> DEK_STORAGE = table(name(TABLE_NAME));
-    private static final Field<String> CONTENT_ID = field(name(TABLE_NAME, "content_id"), String.class);
-    private static final Field<String> KEK_LABEL = field(name(TABLE_NAME, "kek_label"), String.class);
-    private static final Field<byte[]> ENCRYPTED_DEK = field(name(TABLE_NAME, "encrypted_dek"), byte[].class);
-    private static final Field<String> ALGORITHM = field(name(TABLE_NAME, "algorithm"), String.class);
-    private static final Field<byte[]> INITIALIZATION_VECTOR = field(name(TABLE_NAME, "iv"), byte[].class);
+    private static final Field<String> CONTENT_ID = field(name(TABLE_NAME, "content_id"), SQLDataType.VARCHAR);
+    private static final Field<String> KEK_LABEL = field(name(TABLE_NAME, "kek_label"), SQLDataType.VARCHAR);
+    private static final Field<byte[]> ENCRYPTED_DEK = field(name(TABLE_NAME, "encrypted_dek"), SQLDataType.BLOB);
+    private static final Field<String> ALGORITHM = field(name(TABLE_NAME, "algorithm"), SQLDataType.VARCHAR);
+    private static final Field<byte[]> INITIALIZATION_VECTOR = field(name(TABLE_NAME, "iv"), SQLDataType.BLOB);
 
+    public void setupTables() {
+        dslContext.createTable(TABLE_NAME)
+            .column(CONTENT_ID)
+            .column(KEK_LABEL)
+            .column(ENCRYPTED_DEK)
+            .column(ALGORITHM)
+            .column(INITIALIZATION_VECTOR)
+            .execute();
+    }
+    
     @Override
     public List<StoredDataEncryptionKey> findAllKeys(ContentReference contentReference) {
         return dslContext.select(DEK_STORAGE.asterisk())

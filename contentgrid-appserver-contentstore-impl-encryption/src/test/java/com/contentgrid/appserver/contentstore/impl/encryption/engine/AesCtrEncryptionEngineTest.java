@@ -143,7 +143,10 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
 
         try(var decryptedStream = decrypted.getContentInputStream()) {
             // We have no use for the first bytes when we have not requested them
-            decryptedStream.skipNBytes(offsetStart);
+            // note: we use skip instead of skipNBytes to implicitly test Spring compatibility
+            // Spring ResourceRegionHttpMessageConverter uses skip via StreamUtils.copyRange
+            var skipped = decryptedStream.skip(offsetStart);
+            assertThat(skipped).isEqualTo(offsetStart);
 
             var decryptedBytes = decryptedStream.readAllBytes();
 
@@ -181,8 +184,12 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
                 var originalStream = onlyByteRange(PLAINTEXT, resolvedRange).getContentInputStream()
         ) {
             // We have no use for the first bytes when we have not requested them
-            decryptedStream.skipNBytes(resolvedRange.getStartByte());
-            originalStream.skipNBytes(resolvedRange.getStartByte());
+            // note: we use skip instead of skipNBytes to implicitly test Spring compatibility
+            // Spring ResourceRegionHttpMessageConverter uses skip via StreamUtils.copyRange
+            var skippedDecrypted = decryptedStream.skip(resolvedRange.getStartByte());
+            var skippedOriginal = originalStream.skip(resolvedRange.getStartByte());
+            assertThat(skippedDecrypted).isEqualByComparingTo(resolvedRange.getStartByte());
+            assertThat(skippedOriginal).isEqualByComparingTo(resolvedRange.getStartByte());
 
             var decryptedBytes = decryptedStream.readNBytes((int) resolvedRange.getRangeSize());
             var originalBytes = originalStream.readNBytes((int)resolvedRange.getRangeSize());
