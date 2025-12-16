@@ -12,6 +12,7 @@ import com.contentgrid.appserver.contentstore.impl.encryption.keys.WrappingKeyId
 import com.contentgrid.appserver.contentstore.impl.encryption.testing.InMemoryDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.testing.XorTestEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
+
 import java.util.Set;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).doesNotHaveBean("dekTableInitializer");
                 });
     }
 
@@ -168,6 +170,31 @@ class EncryptedContentStoreAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EncryptedContentStore.class);
                     assertThat(context).doesNotHaveBean(TableStorageDataEncryptionKeyAccessor.class);
+                });
+    }
+
+    @Test
+    void checkWithBootStrapTables() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasSingleBean(TableStorageDataEncryptionKeyAccessor.class);
+                    assertThat(context).hasBean("dekTableInitializer");
+                });
+    }
+
+    @Test
+    void checkWithCustomEncryptionKeyAccessorAndBootStrapTables() {
+        contextRunner
+                .withUserConfiguration(CustomEncryptionKeyAccessorConfiguration.class)
+                .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).doesNotHaveBean(TableStorageDataEncryptionKeyAccessor.class);
+                    assertThat(context).doesNotHaveBean("dekTableInitializer");
                 });
     }
 

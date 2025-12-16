@@ -67,7 +67,7 @@ public class JOOQQueryEngineAutoConfiguration {
     @Bean
     @ConditionalOnBean(ApplicationResolver.class)
     @ConditionalOnBooleanProperty("contentgrid.appserver.query-engine.bootstrap-tables")
-    TableInitializer tableInitializer(TableCreator tableCreator, ApplicationResolver applicationResolver) {
+    TableInitializer jooqTableInitializer(TableCreator tableCreator, ApplicationResolver applicationResolver) {
         return new TableInitializer(tableCreator, applicationResolver);
     }
 
