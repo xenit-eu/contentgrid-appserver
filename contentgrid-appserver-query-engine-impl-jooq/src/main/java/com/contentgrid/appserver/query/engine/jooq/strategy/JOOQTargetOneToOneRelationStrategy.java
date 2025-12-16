@@ -168,8 +168,9 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                 // Unique constraint violation may happen under concurrent execution.
                 // This is not directly recoverable. It can be recovered by retrying the whole transaction
                 case UNIQUE_CONSTRAINT_VIOLATION -> throw new ConcurrencyFailureException(e);
+                // Other unhandled exceptions are rethrown
+                default -> throw e;
             }
-            throw e;
         }
     }
 
