@@ -682,7 +682,7 @@ public class JOOQQueryEngine implements QueryEngine {
             // No foreign key constraint violation can be thrown here anymore,
             // because all relations that reference the entity and are not stored in our own table have
             // already been removed (or failed with an exception) above.
-            // However, due to concurrent execution with relation updates, this *can* cause a constraint violation.
+            // However, due to concurrent execution with relation updates, this *can* cause a foreign key constraint violation.
             // The only way to handle that is to re-run the whole logic in a retry, after which we are hopefully in the clear
             deleted = dslContext.deleteFrom(table)
                     .where(primaryKey.eq(entityRequest.getEntityId().getValue()))
@@ -690,8 +690,11 @@ public class JOOQQueryEngine implements QueryEngine {
                     .fetchOptionalMap()
                     .map(result -> EntityDataMapper.from(entity, result))
                     .map(checkVersionSatisfied(entityRequest));
-        } catch(IntegrityConstraintViolationException constraintViolationException) {
-            throw new ConcurrencyFailureException(constraintViolationException);
+        } catch(DataAccessException ex) {
+            if(PostgresqlErrorType.from(ex).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
+                throw new ConcurrencyFailureException(ex);
+            }
+            throw ex;
         }
 
         deleted.ifPresent(data -> deleteEventConsumer.onEntityDelete(application, data));
