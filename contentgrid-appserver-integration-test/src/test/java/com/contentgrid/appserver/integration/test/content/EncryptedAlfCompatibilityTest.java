@@ -75,7 +75,7 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
         })
-public class EncryptedAlfCompatibilityTest {
+class EncryptedAlfCompatibilityTest {
 
     private static final ThunkExpression<Boolean> PERMIT_ALWAYS = Scalar.of(true);
 
@@ -286,12 +286,12 @@ public class EncryptedAlfCompatibilityTest {
 
         @Override
         public void onUnlink(Application application, EntityData oldData, EntityData newData) {
-
+            // NO-OP
         }
 
         @Override
         public void onEntityUpdate(Application application, EntityData oldData, EntityData newData) {
-
+            // NO-OP
         }
     }
 }

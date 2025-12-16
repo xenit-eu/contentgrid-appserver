@@ -5,13 +5,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ZeroPrefixedInputStreamTest {
-    private static final byte[] FULL_DATA = "This is a test string".getBytes(StandardCharsets.UTF_8);
+class ZeroPrefixedInputStreamTest extends AbstractDelegatingInputStreamTest<ZeroPrefixedInputStream> {
     InputStream inputStream;
 
     @BeforeEach
@@ -63,5 +62,37 @@ class ZeroPrefixedInputStreamTest {
 
         // 5 prefixed bytes skipped + 5 data bytes skipped
         assertEquals(FULL_DATA[5], inputStream.read());
+    }
+    
+    @Test
+    void skipNWithUnskippingDelegateAndPrefixSkip() throws Exception {
+        // if no data was read yet (decrypted), the underlying cipher stream can not skip
+        // skip is limited to the zero prefix
+        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, false)) {
+            assertEquals(5, sis.skip(10));
+        }
+
+        // if some data was read, the underlying cipher stream can only skip up to the block size
+        // AES block size is 16 byte, test data is longer
+        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, false)) {
+            // can only skip as much as zero prefix, but not into actual content
+            assertEquals(5, sis.skip(10));
+            assertEquals(FULL_DATA[0], sis.read());
+            // can skip until end of decrypted block
+            assertEquals(15, sis.skip(20));
+        }
+
+        // with us forcing skipNBytes on the delegate, everything should be fine
+        // this is only safe unless trying to skip beyond the limit, due to implicit read
+        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, true)) {
+            assertEquals(3, sis.skip(3));
+            // this skips prefix and some real data
+            assertEquals(3, sis.skip(3));
+            assertEquals(10, sis.skip(10));
+        }
+    }
+
+    protected ZeroPrefixedInputStream wrapDelegate(InputStream is, boolean useDelegateSkipN) {
+        return new ZeroPrefixedInputStream(is, 0, useDelegateSkipN);
     }
 }

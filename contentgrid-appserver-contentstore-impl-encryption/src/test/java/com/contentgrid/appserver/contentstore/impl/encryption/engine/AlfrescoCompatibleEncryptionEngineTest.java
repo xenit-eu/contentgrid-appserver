@@ -50,7 +50,7 @@ class AlfrescoCompatibleEncryptionEngineTest
     void decryptionOnly() throws Exception
     {
         var engine = new AlfrescoCompatibleEncryptionEngine();
-        assertThatThrownBy(() -> engine.createNewParameters()).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(engine::createNewParameters).isInstanceOf(UnsupportedOperationException.class);
 
         var params = new EncryptionParameters(DataEncryptionAlgorithm.of("Alfresco-AES"), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[0])),
                 new byte[0]);
@@ -67,13 +67,44 @@ class AlfrescoCompatibleEncryptionEngineTest
         // supported + unsupported
 
         var engine = new AlfrescoCompatibleEncryptionEngine();
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/PKCS5Padding"))).isEqualTo(false);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CBC/PKCS5Padding"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/NoPadding"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DES"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DESede"))).isEqualTo(true);
-        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-RSA"))).isEqualTo(false);
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("AES"))).isFalse();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES"))).isTrue();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/PKCS5Padding"))).isFalse();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CBC/PKCS5Padding"))).isTrue();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/NoPadding"))).isTrue();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DES"))).isTrue();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-DESede"))).isTrue();
+        assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-RSA"))).isFalse();
+
+        // attempt to decrypt using unsupported algorithm (lacking prefix)
+        var encryptedResource = "/alfresco/encrypted/" + RESOURCES[0];
+        var params = new EncryptionParameters(DataEncryptionAlgorithm.of("AES"), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[0])),
+                new byte[0]);
+
+        ResolvedContentRange contentRange = new ResolvedContentRange()
+        {
+
+            @Override
+            public long getStartByte()
+            {
+                return 0;
+            }
+
+            // isn't really used - also hasSameContentAs cannot be limited
+            @Override
+            public long getEndByteInclusive()
+            {
+                return DECRYPTED_SIZES[0] - 1;
+            }
+
+            @Override
+            public long getContentSize()
+            {
+                return DECRYPTED_SIZES[0];
+            }
+        };
+
+        assertThatThrownBy(() -> engine.decrypt(r -> new ResourceContentReader(encryptedResource), params, contentRange)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @ParameterizedTest
@@ -150,7 +181,7 @@ class AlfrescoCompatibleEncryptionEngineTest
 
         private final long contentSize;
 
-        public ResourceContentReader(String resourceName)
+        ResourceContentReader(String resourceName)
         {
             this.resourceName = resourceName;
             long size = 0;

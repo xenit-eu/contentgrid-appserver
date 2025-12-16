@@ -125,7 +125,8 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues(
                         "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128-CTR",
                         "contentgrid.appserver.content.encryption.engine.algorithms[1]=AES192-CTR",
-                        "contentgrid.appserver.content.encryption.engine.algorithms[2]=AES256-CTR"
+                        "contentgrid.appserver.content.encryption.engine.algorithms[2]=AES256-CTR",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[3]=ALFRESCO"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();

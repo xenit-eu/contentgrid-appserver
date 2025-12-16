@@ -15,14 +15,14 @@ public class ZeroPrefixedInputStream extends InputStream {
 
     public ZeroPrefixedInputStream(InputStream delegate, long prefixBytes) {
         this.delegate = delegate;
-        this.useDelegateSkipN = false;
         this.prefixBytes = prefixBytes;
+        this.useDelegateSkipN = false;
     }
 
-    public ZeroPrefixedInputStream(InputStream delegate, boolean useDelegateSkipN, long prefixBytes) {
+    public ZeroPrefixedInputStream(InputStream delegate, long prefixBytes, boolean useDelegateSkipN) {
         this.delegate = delegate;
-        this.useDelegateSkipN = useDelegateSkipN;
         this.prefixBytes = prefixBytes;
+        this.useDelegateSkipN = useDelegateSkipN;
     }
 
     @Override
