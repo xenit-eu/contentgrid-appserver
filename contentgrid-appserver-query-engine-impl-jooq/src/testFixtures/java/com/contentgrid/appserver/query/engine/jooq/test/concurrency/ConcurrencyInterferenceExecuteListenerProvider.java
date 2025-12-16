@@ -14,18 +14,23 @@ import org.jooq.ExecuteContext;
 import org.jooq.ExecuteListener;
 import org.jooq.ExecuteListenerProvider;
 
+/**
+ * Entrypoint for concurrency testing.
+ * <p>
+ * This listener is registered with jOOQ, after which concurrency tests can be executed using {@link #runConcurrencyTest(UnderTestRunnable, Runnable)}
+ */
 @Slf4j
 public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteListenerProvider {
     private final AtomicReference<ConcurrencyInterferenceExecutor> executorRef = new AtomicReference<>(ConcurrencyInterferenceExecutor.NOOP);
 
-    interface CloseableExecutorRef extends AutoCloseable {
+    private interface CloseableExecutorRef extends AutoCloseable {
 
         @Override
         void close();
     }
 
     @SneakyThrows
-    public CloseableExecutorRef setExecutor(@NonNull ConcurrencyInterferenceExecutor executor) {
+    private CloseableExecutorRef setExecutor(@NonNull ConcurrencyInterferenceExecutor executor) {
         var oldExecutor = executorRef.getAndSet(executor);
         oldExecutor.onDiscard();
         return () -> setExecutor(ConcurrencyInterferenceExecutor.NOOP);

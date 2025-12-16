@@ -11,6 +11,21 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.With;
 
+/**
+ * Simple interface that holds a bunch of functions that are used to run during a concurrency test
+ * <p>
+ * A concurrency test exists of multiple independent runs.
+ * Every run consists of 4 phases, that are executed in order:
+ * <ol>
+ * <li>{@link #prepare()}: Set up state of the database to prepare for a test run
+ * <li>{@link #test(Object)}: Performs the actual test run. Executes the main code that is under test. Interfering, concurrently running code is also executed at some point while this function is executing
+ * <li>{@link #verify(Object, Object)}: Verifies the results of the test run
+ * <li>{@link #cleanup(Object, Object)}: Clean up database changes done during {@link #prepare()} and {@link #test(Object)}, so the next run can be performed from a clean starting point
+ * </ol>
+ *
+ * @param <P> Result from preparation. Used to pass some information (usually generated entity IDs) to later stages
+ * @param <T> Result from test. Used to pass some information (entity IDs, thrown exceptions, ...) to later stages
+ */
 public interface UnderTestRunnable<P, T> {
     P prepare();
     T test(P preparation);

@@ -101,6 +101,12 @@ public class ConcurrentExecutorConcurrencyInterferenceExecutor implements Concur
 
     }
 
+    /**
+     * This is not an exception that is thrown directly.
+     * This extends {@linkplain Exception} only because we want a stacktrace of the place where this object is constructed.
+     * This object is also added to suppressed exceptions when there is a verification error, to make it easier to pinpoint where in code the
+     * query was executed.
+     */
     @RequiredArgsConstructor
     @Getter
     public static class QueryLocation extends Exception {
