@@ -17,7 +17,6 @@ import com.contentgrid.appserver.rest.automations.AutomationsRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.http.converter.autoconfigure.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
@@ -52,7 +51,7 @@ class ContentGridRestAutoConfigurationTest {
                     // autoconfigurations for rest
                     ContentGridEventsAutoConfiguration.class,
                     ContentGridRestFormatterAutoConfiguration.class,
-                    HttpMessageConvertersAutoConfiguration.class,
+                    // autoconfigurations for rest
                     WebMvcAutoConfiguration.class,
                     AbacContextAutoConfiguration.class,
                     ContentGridRestAutoConfiguration.class

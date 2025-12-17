@@ -34,14 +34,14 @@ import org.springframework.boot.actuate.autoconfigure.web.server.ManagementConte
 import org.springframework.boot.servlet.autoconfigure.actuate.web.ServletManagementContextAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
-import org.springframework.boot.web.server.autoconfigure.servlet.ServletWebServerConfiguration;
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration;
-import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.server.context.ServerPortInfoApplicationContextInitializer;
 import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
 import org.springframework.security.web.SecurityFilterChain;
@@ -83,14 +83,12 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 EnvironmentEndpointAutoConfiguration.class,
 
                 EndpointAutoConfiguration.class,
-                WebMvcAutoConfiguration.class,
                 WebEndpointAutoConfiguration.class
         );
 
         static final AutoConfigurations MANAGEMENT = AutoConfigurations.of(
                 ManagementContextAutoConfiguration.class,
                 ServletManagementContextAutoConfiguration.class,
-                ServletWebServerConfiguration.class,
                 DispatcherServletAutoConfiguration.class
         );
 
@@ -111,6 +109,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             .withConfiguration(AutoConfigs.ACTUATORS)
             .withConfiguration(AutoConfigs.CONTENTGRID)
             .withConfiguration(AutoConfigs.MANAGEMENT)
+            .withUserConfiguration(TestWebServerConfig.class)
             .withConfiguration(AutoConfigurations.of(
                     SecurityAutoConfiguration.class,
                     ManagementWebSecurityAutoConfiguration.class,
@@ -344,6 +343,28 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 request.setRemoteAddr(remoteAddress.getHostAddress());
                 request.setRemoteHost(remoteAddress.getHostName());
                 return request;
+            };
+        }
+    }
+
+    @Configuration
+    static class TestWebServerConfig {
+
+        @Bean
+        org.springframework.boot.web.server.servlet.ServletWebServerFactory servletWebServerFactory() {
+            return initializers -> new org.springframework.boot.web.server.WebServer() {
+                @Override
+                public void start() {
+                }
+
+                @Override
+                public void stop() {
+                }
+
+                @Override
+                public int getPort() {
+                    return 0;
+                }
             };
         }
     }
