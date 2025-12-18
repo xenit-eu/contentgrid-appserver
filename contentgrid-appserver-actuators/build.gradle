@@ -13,6 +13,9 @@ dependencies {
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
     implementation 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'org.springframework.boot:spring-boot-security'
+    implementation 'org.springframework.boot:spring-boot-health'
+    implementation 'org.springframework.boot:spring-boot-micrometer-metrics'
 
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
