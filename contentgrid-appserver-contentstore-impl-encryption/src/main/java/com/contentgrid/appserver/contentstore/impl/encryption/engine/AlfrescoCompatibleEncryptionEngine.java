@@ -41,7 +41,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     public boolean supports(DataEncryptionAlgorithm algorithm) {
         boolean supported = true;
 
-        // alfresco-simple-content-stores supports arbitrary algorithms, though only symmetric onces
+        // alfresco-simple-content-stores supports arbitrary algorithms, though only symmetric ones
         // check Java support of algorithm (which may include mode + padding)
         // and also check key algorithm for being symmetric
         String algorithmValue = algorithm.getValue();
@@ -101,8 +101,8 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
                 // Same padding logic as in alfresco encrypted storage plugin
                 if (MODES_AND_PADDINGS_BY_ALGORITHM.containsKey(algorithm)) {
                     algorithm = algorithm + "/" + MODES_AND_PADDINGS_BY_ALGORITHM.get(algorithm);
+                    cipher = Cipher.getInstance(algorithm);
                 }
-                cipher = Cipher.getInstance(algorithm);
                 // Always use zero IV because we will always read from the start.
                 // This is fine because this decryption engine is strictly a migration tool.
                 cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(new byte[blockSize]));

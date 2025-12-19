@@ -3,15 +3,14 @@ package com.contentgrid.appserver.contentstore.impl.encryption.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
+import com.contentgrid.appserver.contentstore.impl.encryption.testing.ResourceContentReader;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -19,15 +18,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.FieldSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class AlfrescoCompatibleEncryptionEngineTest
 {
 
-    // KEYS, RESOURCES, SIZES all correlate to another and must have consistent order
+    // the following static variables correlate to another and must have consistent order
     // KEYS = symmetric encryption keys generated in an alfresco-simple-content-stores ACS instance
     // RESOURCES = encrypted/decrypted resources (lorem ipsum-like)
-    // SIZES = unencrypted resource sizes
+    // ALGORITHMS = encryption algorithms used for resources
+    // DECRYPTED_SIZES = unencrypted resource sizes
+    // ENCRYPTED_SIZES = encrypted resource sizes
     private static final String[] KEYS = { "156c8bc259cd3e4ad1d9c38cf6361847", "566cf243d7ee9cf69df6ec004bf5f35c",
             "2405ae5a16b3909abb9ece58833c08bc", "72c51fcefd0a6da181dc4c98bbcc08e5", "89cf56ab800a394d95c10548065aae5d", "e39d23642ca81c68",
             "13320e7520e60e26133ef8372a0b7aad9e9e8a0bba5bf2ab" };
@@ -42,14 +42,27 @@ class AlfrescoCompatibleEncryptionEngineTest
     private static final long[] DECRYPTED_SIZES = { 6094l, 4240l, 4117l, 4162l, 1001l, 2859l, 5853l };
 
     private static final long[] ENCRYPTED_SIZES = { 6096l, 4256l, 4128l, 4176l, 1008l, 2864l, 5856l };
+    
+    private static final long[] START_BYTES = { 128l, 3096l, 1234l, 3210l, 512l, 1536l, 4096l };
 
-    private static final List<Arguments> RANGED_ARGUMENTS = Arrays.asList(Arguments.of(0, 128l), Arguments.of(1, 3096l),
-            Arguments.of(2, 1234l), Arguments.of(3, 3210l), Arguments.of(4, 512l), Arguments.of(5, 1536l), Arguments.of(6, 4096l));
+    private static final List<Arguments> fullComparison;
+    private static final List<Arguments> rangedComparison;
+    static {
+        fullComparison = new ArrayList<>();
+        rangedComparison = new ArrayList<>();
+        for (int i = 0; i < KEYS.length; i++)
+        {
+            fullComparison.add(Arguments.of(ALGORITHMS[i], KEYS[i], RESOURCES[i], DECRYPTED_SIZES[i]));
+            rangedComparison.add(Arguments.of(ALGORITHMS[i], KEYS[i], RESOURCES[i], DECRYPTED_SIZES[i], ENCRYPTED_SIZES[i], START_BYTES[i]));
+        }
+    }
+
+    // engine is stateless
+    private final AlfrescoCompatibleEncryptionEngine engine = new AlfrescoCompatibleEncryptionEngine();
 
     @Test
     void decryptionOnly() throws Exception
     {
-        var engine = new AlfrescoCompatibleEncryptionEngine();
         assertThatThrownBy(engine::createNewParameters).isInstanceOf(UnsupportedOperationException.class);
 
         var params = new EncryptionParameters(DataEncryptionAlgorithm.of("Alfresco-AES"), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[0])),
@@ -65,8 +78,6 @@ class AlfrescoCompatibleEncryptionEngineTest
     {
         // test various general algorithms and explicit modes
         // supported + unsupported
-
-        var engine = new AlfrescoCompatibleEncryptionEngine();
         assertThat(engine.supports(DataEncryptionAlgorithm.of("AES"))).isFalse();
         assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES"))).isTrue();
         assertThat(engine.supports(DataEncryptionAlgorithm.of("Alfresco-AES/CTR/PKCS5Padding"))).isFalse();
@@ -108,35 +119,32 @@ class AlfrescoCompatibleEncryptionEngineTest
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 0, 1, 2, 3, 4 })
-    void fullComparison(int resIdx) throws Exception
+    @FieldSource
+    void fullComparison(String alg, String keyHex, String resource, long decryptedSize) throws Exception
     {
-        var engine = new AlfrescoCompatibleEncryptionEngine();
-        var alg = ALGORITHMS[resIdx];
-        var params = new EncryptionParameters(DataEncryptionAlgorithm.of(alg), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[resIdx])),
+        var params = new EncryptionParameters(DataEncryptionAlgorithm.of(alg), KeyBytes.adopt(HexFormat.of().parseHex(keyHex)),
                 new byte[0]);
 
-        var encryptedResource = "/alfresco/encrypted/" + RESOURCES[resIdx];
-        var decryptedResource = "/alfresco/decrypted/" + RESOURCES[resIdx];
+        var encryptedResource = "/alfresco/encrypted/" + resource;
+        var decryptedResource = "/alfresco/decrypted/" + resource;
 
         var reader = engine.decrypt(r -> new ResourceContentReader(encryptedResource), params,
-                ResolvedContentRange.fullRange(DECRYPTED_SIZES[resIdx]));
+                ResolvedContentRange.fullRange(decryptedSize));
 
         assertThat(reader.getContentInputStream())
                 .hasSameContentAs(AlfrescoCompatibleEncryptionEngineTest.class.getResourceAsStream(decryptedResource));
     }
 
     @ParameterizedTest
-    @FieldSource("RANGED_ARGUMENTS")
-    void rangedComparison(int resIdx, long startByte) throws Exception
+    @FieldSource
+    void rangedComparison(String alg, String keyHex, String resource, long decryptedSize, long encryptedSize, long startByte)
+            throws Exception
     {
-        var engine = new AlfrescoCompatibleEncryptionEngine();
-        var alg = ALGORITHMS[resIdx];
-        var params = new EncryptionParameters(DataEncryptionAlgorithm.of(alg), KeyBytes.adopt(HexFormat.of().parseHex(KEYS[resIdx])),
+        var params = new EncryptionParameters(DataEncryptionAlgorithm.of(alg), KeyBytes.adopt(HexFormat.of().parseHex(keyHex)),
                 new byte[0]);
 
-        var encryptedResource = "/alfresco/encrypted/" + RESOURCES[resIdx];
-        var decryptedResource = "/alfresco/decrypted/" + RESOURCES[resIdx];
+        var encryptedResource = "/alfresco/encrypted/" + resource;
+        var decryptedResource = "/alfresco/decrypted/" + resource;
 
         ResolvedContentRange contentRange = new ResolvedContentRange()
         {
@@ -151,17 +159,17 @@ class AlfrescoCompatibleEncryptionEngineTest
             @Override
             public long getEndByteInclusive()
             {
-                return DECRYPTED_SIZES[resIdx] - 1;
+                return decryptedSize - 1;
             }
 
             @Override
             public long getContentSize()
             {
-                return DECRYPTED_SIZES[resIdx];
+                return decryptedSize;
             }
         };
         var reader = engine.decrypt(r -> new ResourceContentReader(encryptedResource), params, contentRange);
-        assertThat(reader.getContentSize()).isEqualTo(ENCRYPTED_SIZES[resIdx]);
+        assertThat(reader.getContentSize()).isEqualTo(encryptedSize);
         assertThat(reader.getReference()).isEqualTo(ContentReference.of(encryptedResource));
         assertThat(reader.getDescription()).isEqualTo("Decrypted resource file " + encryptedResource);
 
@@ -171,58 +179,6 @@ class AlfrescoCompatibleEncryptionEngineTest
             InputStream is2 = reader.getContentInputStream();
             assertThat(is2.skip(contentRange.getStartByte())).isEqualTo(contentRange.getStartByte());
             assertThat(is2).hasSameContentAs(is1);
-        }
-    }
-
-    private static class ResourceContentReader implements ContentReader
-    {
-
-        private final String resourceName;
-
-        private final long contentSize;
-
-        ResourceContentReader(String resourceName)
-        {
-            this.resourceName = resourceName;
-            long size = 0;
-            try (InputStream is = getContentInputStream())
-            {
-                byte[] buf = new byte[1024];
-                int bytesRead = 0;
-                while ((bytesRead = is.read(buf)) != -1)
-                {
-                    size += bytesRead;
-                }
-            }
-            catch (IOException ioex)
-            {
-                throw new RuntimeException(ioex);
-            }
-            this.contentSize = size;
-        }
-
-        @Override
-        public ContentReference getReference()
-        {
-            return ContentReference.of(this.resourceName);
-        }
-
-        @Override
-        public String getDescription()
-        {
-            return "resource file " + this.resourceName;
-        }
-
-        @Override
-        public long getContentSize()
-        {
-            return this.contentSize;
-        }
-
-        @Override
-        public InputStream getContentInputStream()
-        {
-            return AlfrescoCompatibleEncryptionEngineTest.class.getResourceAsStream(resourceName);
         }
     }
 }

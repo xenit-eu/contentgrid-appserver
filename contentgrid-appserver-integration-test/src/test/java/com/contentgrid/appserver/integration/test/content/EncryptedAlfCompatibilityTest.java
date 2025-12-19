@@ -37,9 +37,11 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,10 +113,12 @@ class EncryptedAlfCompatibilityTest {
 
     private static final String FILENAME = "hello.txt";
 
-    // KEYS, RESOURCES, SIZES all correlate to another and must have consistent order
+    // the following static variables correlate to another and must have consistent order
     // KEYS = symmetric encryption keys generated in an alfresco-simple-content-stores ACS instance
     // RESOURCES = encrypted/decrypted resources (lorem ipsum-like)
-    // SIZES = unencrypted resource sizes
+    // ALGORITHMS = encryption algorithms used for resources
+    // DECRYPTED_SIZES = unencrypted resource sizes
+    // ENCRYPTED_SIZES = encrypted resource sizes
     private static final String[] KEYS = { "156c8bc259cd3e4ad1d9c38cf6361847", "566cf243d7ee9cf69df6ec004bf5f35c",
             "2405ae5a16b3909abb9ece58833c08bc", "72c51fcefd0a6da181dc4c98bbcc08e5", "89cf56ab800a394d95c10548065aae5d", "e39d23642ca81c68",
             "13320e7520e60e26133ef8372a0b7aad9e9e8a0bba5bf2ab" };
@@ -124,15 +128,22 @@ class EncryptedAlfCompatibilityTest {
             "bc49e9ad-fcfc-403e-ba3e-2280d602a53e.bin", "ba50f10d-4df4-4ba0-9161-3038be5fab80.bin",
             "05efb43b-2808-4a1f-b25a-83f1c24f8bcf.bin" };
 
-    private static final String[] ALGORITHMS = { "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES",
-            "Alfresco-DES", "Alfresco-DESede" };
+    private static final String[] ALGORITHMS = { "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-AES", "Alfresco-DES", "Alfresco-DESede" };
 
     private static final long[] DECRYPTED_SIZES = { 6094l, 4240l, 4117l, 4162l, 1001l, 2859l, 5853l };
 
     private static final long[] ENCRYPTED_SIZES = { 6096l, 4256l, 4128l, 4176l, 1008l, 2864l, 5856l };
+    
+    private static final long[] START_BYTES = { 128l, 3096l, 1234l, 3210l, 512l, 1536l, 4096l };
 
-    private static final List<Arguments> RANGED_ARGUMENTS = Arrays.asList(Arguments.of(0, 128l), Arguments.of(1, 3096l),
-            Arguments.of(2, 1234l), Arguments.of(3, 3210l), Arguments.of(4, 512l), Arguments.of(5, 1536l), Arguments.of(6, 4096l));
+    private static final List<Arguments> simulateContentMigrationAndAccess;
+    static {
+        simulateContentMigrationAndAccess = new ArrayList<>();
+        for (int i = 0; i < KEYS.length; i++)
+        {
+            simulateContentMigrationAndAccess.add(Arguments.of(ALGORITHMS[i], KEYS[i], RESOURCES[i], DECRYPTED_SIZES[i], ENCRYPTED_SIZES[i], START_BYTES[i]));
+        }
+    }
 
     @LocalServerPort
     private int port;
@@ -195,15 +206,16 @@ class EncryptedAlfCompatibilityTest {
     }
 
     @ParameterizedTest
-    @FieldSource("RANGED_ARGUMENTS")
-    void simulateContentMigrationAndAccess(int resIdx, long startByte) throws Exception
+    @FieldSource
+    void simulateContentMigrationAndAccess(String alg, String keyHex, String resource, long decryptedSize, long encryptedSize,
+            long startByte) throws Exception
     {
         // it is not possible to use ReST API to create migrated content
         // migration scripts (as far as I know) use direct DB load + store access
 
-        var encryptedResource = "/alfresco/encrypted/" + RESOURCES[resIdx];
-        var decryptedResource = "/alfresco/decrypted/" + RESOURCES[resIdx];
-        var keyBytes = KeyBytes.adopt(HexFormat.of().parseHex(KEYS[resIdx]));
+        var encryptedResource = "/alfresco/encrypted/" + resource;
+        var decryptedResource = "/alfresco/decrypted/" + resource;
+        var keyBytes = KeyBytes.adopt(HexFormat.of().parseHex(keyHex));
 
         // write file as stored in Alfresco
         ContentAccessor written;
@@ -214,18 +226,18 @@ class EncryptedAlfCompatibilityTest {
         // record content-associated key 
         dkeAccessor.addKey(written.getReference(),
                 new StoredDataEncryptionKey(
-                        DataEncryptionAlgorithm.of(ALGORITHMS[resIdx]),
+                        DataEncryptionAlgorithm.of(alg),
                         WrappingKeyId.unwrapped(), keyBytes, new byte[0]));
 
         // create entity creation data (typically done in DatamodelApi)
         // need to save the encrypted size (actual length is technically unknown internally)
-        String fileName = "test" + resIdx;
+        String fileName = "test-" + UUID.randomUUID().toString();
         var compositeContent = CompositeAttributeData.builder()
                 .name(AttributeName.of("file"))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("id"), written.getReference().getValue()))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("filename"), fileName))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("mimetype"), "text/plain"))
-                .attribute(new SimpleAttributeData<>(AttributeName.of("length"), ENCRYPTED_SIZES[resIdx]))
+                .attribute(new SimpleAttributeData<>(AttributeName.of("length"), encryptedSize))
                 .build();
         var entity = EntityCreateData.builder()
                 .entityName(EntityName.of("employee"))
@@ -239,7 +251,7 @@ class EncryptedAlfCompatibilityTest {
 
         // use RestAPI to read
         var start = startByte;
-        var end = startByte + (DECRYPTED_SIZES[resIdx] - startByte) / 2;
+        var end = startByte + (decryptedSize - startByte) / 2;
 
         var expected = new byte[(int)(end - start + 1)];
         try (InputStream is = EncryptedAlfCompatibilityTest.class.getResourceAsStream(decryptedResource)) {
