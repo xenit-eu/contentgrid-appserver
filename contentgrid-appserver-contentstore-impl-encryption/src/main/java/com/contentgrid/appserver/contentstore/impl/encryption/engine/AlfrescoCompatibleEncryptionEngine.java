@@ -5,7 +5,7 @@ import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
-import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
+import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 
 import java.io.InputStream;
 import java.security.InvalidAlgorithmParameterException;
@@ -15,7 +15,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
@@ -144,8 +143,8 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
             InputStream raw = delegate.getContentInputStream();
             // CipherInputStream does not skip(n) into not-yet-decrypted data
             // Spring StreamUtils.copyRange needs that behaviour
-            // so we have to tell prefixed input stream to use skipNBytes
-            return new SkippingInputStream(new CipherInputStream(raw, cipher), 0, true);
+            // so we use our SkippableCipherInputStream
+            return new SkippableCipherInputStream(raw, cipher);
         }
 
         @Override

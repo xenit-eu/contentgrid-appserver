@@ -21,35 +21,36 @@ abstract class AbstractDelegatingInputStreamTest<T extends InputStream>
 
     @Test
     void skipNegative() throws IOException {
-        try (InputStream is = wrapDelegate(new ByteArrayInputStream(FULL_DATA), false)) {
+        try (InputStream is = wrapDelegate(new ByteArrayInputStream(FULL_DATA))) {
             assertEquals(0, is.skip(-100));
         }
     }
 
     @Test
-    void skipNWithUnskippingDelegate() throws Exception {
+    void skipWithUnskippingDelegate() throws Exception {
         // if no data was read yet (decrypted), the underlying cipher stream can not skip
-        try (var sis = wrapDelegate(getUnskippingInputStream(), false)) {
+        try (var sis = wrapDelegate(getUnskippableInputStream())) {
             assertEquals(0, sis.skip(5));
         }
 
         // if some data was read, the underlying cipher stream can only skip up to the block size
         // AES block size is 16 byte, test data is longer
-        try (var sis = wrapDelegate(getUnskippingInputStream(), false)) {
+        try (var sis = wrapDelegate(getUnskippableInputStream())) {
             assertEquals(FULL_DATA[0], sis.read());
             assertEquals(5, sis.skip(5));
             assertEquals(10, sis.skip(12));
         }
+    }
 
-        // with us forcing skipNBytes on the delegate, everything should be fine
-        // this is only safe unless trying to skip beyond the limit, due to implicit read
-        try (var sis = wrapDelegate(getUnskippingInputStream(), true)) {
+    @Test
+    void skipWithSkippingDelegate() throws Exception {
+        try (var sis = wrapDelegate(getProperSkippableInputStream())) {
             assertEquals(5, sis.skip(5));
             assertEquals(15, sis.skip(15));
         }
     }
 
-    protected InputStream getUnskippingInputStream() throws Exception {
+    protected InputStream getUnskippableInputStream() throws Exception {
         var bos = new ByteArrayOutputStream();
         var keygen = KeyGenerator.getInstance("AES");
         var key = keygen.generateKey();
@@ -67,5 +68,23 @@ abstract class AbstractDelegatingInputStreamTest<T extends InputStream>
         return new CipherInputStream(bis, cipher);
     }
 
-    protected abstract T wrapDelegate(InputStream is, boolean useDelegateSkipN);
+    protected InputStream getProperSkippableInputStream() throws Exception {
+        var bos = new ByteArrayOutputStream();
+        var keygen = KeyGenerator.getInstance("AES");
+        var key = keygen.generateKey();
+        var cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+        try (var cos = new CipherOutputStream(bos, cipher)) {
+            cos.write(FULL_DATA);
+        }
+
+        var bis = new ByteArrayInputStream(bos.toByteArray());
+        cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+
+        return new SkippableCipherInputStream(bis, cipher);
+    }
+
+    protected abstract T wrapDelegate(InputStream is);
 }

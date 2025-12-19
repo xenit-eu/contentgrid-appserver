@@ -41,25 +41,28 @@ class SkippingInputStreamTest extends AbstractDelegatingInputStreamTest<Skipping
     }
     
     @Test
-    void skipNWithUnskippingDelegateAndPrefixSkip() throws Exception {
+    void skipWithUnskippingDelegateAndPrefixSkip() throws Exception {
         // if some data was read, the underlying cipher stream can only skip up to the block size
         // AES block size is 16 byte, test data is longer
         // SkippingInputStream#ensureSkipped uses skipNBytes to read during initial skip
-        try (var sis = new SkippingInputStream(getUnskippingInputStream(), 5, false)) {
+        try (var sis = new SkippingInputStream(getUnskippableInputStream(), 5)) {
             assertEquals(5, sis.skip(5));
             // reaching 16 byte block size and not going beyond
             assertEquals(6, sis.skip(10));
         }
+    }
 
+    @Test
+    void skipWithSkippingDelegateAndPrefixSkip() throws Exception {
         // with us forcing skipNBytes on the delegate, everything should be fine
         // this is only safe unless trying to skip beyond the limit, due to implicit read
-        try (var sis = new SkippingInputStream(getUnskippingInputStream(), 5, true)) {
+        try (var sis = new SkippingInputStream(getProperSkippableInputStream(), 5)) {
             assertEquals(5, sis.skip(5));
             assertEquals(10, sis.skip(10));
         }
     }
 
-    protected SkippingInputStream wrapDelegate(InputStream is, boolean useDelegateSkipN) {
-        return new SkippingInputStream(is, 0, useDelegateSkipN);
+    protected SkippingInputStream wrapDelegate(InputStream is) {
+        return new SkippingInputStream(is, 0);
     }
 }

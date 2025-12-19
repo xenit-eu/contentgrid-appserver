@@ -65,26 +65,29 @@ class ZeroPrefixedInputStreamTest extends AbstractDelegatingInputStreamTest<Zero
     }
     
     @Test
-    void skipNWithUnskippingDelegateAndPrefixSkip() throws Exception {
+    void skipWithUnskippingDelegateAndPrefixSkip() throws Exception {
         // if no data was read yet (decrypted), the underlying cipher stream can not skip
         // skip is limited to the zero prefix
-        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, false)) {
+        try (var sis = new ZeroPrefixedInputStream(getUnskippableInputStream(), 5)) {
             assertEquals(5, sis.skip(10));
         }
 
         // if some data was read, the underlying cipher stream can only skip up to the block size
         // AES block size is 16 byte, test data is longer
-        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, false)) {
+        try (var sis = new ZeroPrefixedInputStream(getUnskippableInputStream(), 5)) {
             // can only skip as much as zero prefix, but not into actual content
             assertEquals(5, sis.skip(10));
             assertEquals(FULL_DATA[0], sis.read());
             // can skip until end of decrypted block
             assertEquals(15, sis.skip(20));
         }
+    }
 
+    @Test
+    void skipWithSkippingDelegateAndPrefixSkip() throws Exception {
         // with us forcing skipNBytes on the delegate, everything should be fine
         // this is only safe unless trying to skip beyond the limit, due to implicit read
-        try (var sis = new ZeroPrefixedInputStream(getUnskippingInputStream(), 5, true)) {
+        try (var sis = new ZeroPrefixedInputStream(getProperSkippableInputStream(), 5)) {
             assertEquals(3, sis.skip(3));
             // this skips prefix and some real data
             assertEquals(3, sis.skip(3));
@@ -92,7 +95,7 @@ class ZeroPrefixedInputStreamTest extends AbstractDelegatingInputStreamTest<Zero
         }
     }
 
-    protected ZeroPrefixedInputStream wrapDelegate(InputStream is, boolean useDelegateSkipN) {
-        return new ZeroPrefixedInputStream(is, 0, useDelegateSkipN);
+    protected ZeroPrefixedInputStream wrapDelegate(InputStream is) {
+        return new ZeroPrefixedInputStream(is, 0);
     }
 }

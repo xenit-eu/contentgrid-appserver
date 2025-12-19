@@ -6,8 +6,10 @@ import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
+import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.ZeroPrefixedInputStream;
+
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -18,10 +20,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
+
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
@@ -172,18 +176,17 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
             return new ZeroPrefixedInputStream(
-                    new CipherInputStream(
+                    // CipherInputStream does not skip(n) into not-yet-decrypted data
+                    // Spring StreamUtils.copyRange needs that behaviour
+                    // so we use our SkippableCipherInputStream
+                    new SkippableCipherInputStream(
                             new SkippingInputStream(
                                     delegate.getContentInputStream(),
                                     byteStartOffset
                             ),
                             cipher
                     ),
-                    byteStartOffset,
-                    // CipherInputStream does not skip(n) into not-yet-decrypted data
-                    // Spring StreamUtils.copyRange needs that behaviour
-                    // so we have to tell prefixed input stream to use skipNBytes
-                    true
+                    byteStartOffset
             );
         }
 

@@ -13,16 +13,7 @@ public class SkippingInputStream extends InputStream {
     @NonNull
     private final InputStream delegate;
     private final long skipBytes;
-    // some delegates' skip may not skip into unread data
-    // allow case-by-case option to use skipNBytes on delegate
-    private boolean useDelegateSkipN = false;
     private boolean hasSkipped = false;
-
-    public SkippingInputStream(@NonNull InputStream delegate, long skipBytes, boolean useDelegateSkipN)
-    {
-        this(delegate, skipBytes);
-        this.useDelegateSkipN = useDelegateSkipN;
-    }
 
     private void ensureSkipped() throws IOException {
         if(!hasSkipped) {
@@ -37,10 +28,6 @@ public class SkippingInputStream extends InputStream {
             return 0;
         }
         ensureSkipped();
-        if (useDelegateSkipN) {
-            delegate.skipNBytes(n);
-            return n;
-        }
         return delegate.skip(n);
     }
 
