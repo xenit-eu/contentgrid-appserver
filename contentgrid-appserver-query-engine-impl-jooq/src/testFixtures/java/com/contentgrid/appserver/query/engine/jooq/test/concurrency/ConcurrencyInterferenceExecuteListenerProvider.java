@@ -79,9 +79,20 @@ public class ConcurrencyInterferenceExecuteListenerProvider implements ExecuteLi
     public <P, T> void runConcurrencyTest(UnderTestRunnable<P, T> underTestRunnable, Consumer<P> interference) {
         var counter = new CountingConcurrencyInterferenceExecutor();
         runUnderExecutor(underTestRunnable, p -> {
-            // Run interference early, so verification can also look at the effects of the interference code for asserts
-            interference.accept(p);
-            return counter;
+            return new ConcurrencyInterferenceExecutor() {
+                @Override
+                public void onQueryStart(ExecuteContext ctx) {
+                    counter.onQueryStart(ctx);
+                }
+
+                @Override
+                public void onDiscard() {
+                    // Run interference after main code was run, so the effect of interference does not affect
+                    // the collection of queries, but verification can refer to the effect of the interference for asserts
+                    interference.accept(p);
+                    counter.onDiscard();
+                }
+            };
         }, "Pre-run");
 
         var count = counter.getCount();

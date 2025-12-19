@@ -256,7 +256,7 @@ class ConcurrencyJOOQQueryEngineTest {
                             queryEngine.unsetLink(app, relReq, PERMIT_ALWAYS, NONE_EVENTS);
                         })
                 ,
-                () -> assertThatCode(() -> queryEngine.setLink(app, relReq, entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                () -> assertThatCode(() -> queryEngine.setLink(app, relReq.withVersionConstraint(Version.nonExisting()), entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
                         // This piece of code that runs concurrently might sometimes cause an unsatisfied version error as well,
                         // when the test update has run before this one
                         .doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class, ConcurrencyFailureException.class)
@@ -297,7 +297,7 @@ class ConcurrencyJOOQQueryEngineTest {
                             );
                         })
                 ,
-                () -> assertThatCode(() -> queryEngine.setLink(app, relReq, entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                (version) -> assertThatCode(() -> queryEngine.setLink(app, relReq.withVersionConstraint(version), entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
                         .doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
         );
     }
@@ -335,7 +335,7 @@ class ConcurrencyJOOQQueryEngineTest {
                             );
                         })
                 ,
-                () -> assertThatCode(() -> queryEngine.setLink(app, relReq, entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                (version) -> assertThatCode(() -> queryEngine.setLink(app, relReq.withVersionConstraint(version), entityB2.getId(), PERMIT_ALWAYS, NONE_EVENTS))
                         .doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
         );
     }
@@ -563,20 +563,22 @@ class ConcurrencyJOOQQueryEngineTest {
     void concurrentUpdateOfSameField() {
         var app = createModel();
 
-        var entityA = createItem(app, ENTITY_A.getName());
-
         tester.runConcurrencyTest(
-                UnderTestRunnable.test(() -> assertThatCode(() -> {
-                            var updatePayload = new EntityData(entityA.getIdentity(), List.of(
-                                    SimpleAttributeData.builder()
-                                            .name(ATTRIBUTE_TEXT.getName())
-                                            .value("value1")
-                                            .build()
-                            ));
-                            queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
-                        }))
+                UnderTestRunnable.test(() -> {
+                    return createItem(app, ENTITY_A.getName());
+                },
+                    (entityA) -> assertThatCode(() -> {
+                                var updatePayload = new EntityData(entityA.getIdentity(), List.of(
+                                        SimpleAttributeData.builder()
+                                                .name(ATTRIBUTE_TEXT.getName())
+                                                .value("value1")
+                                                .build()
+                                ));
+                                queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                            })
+                        )
                         .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
-                        .verify(thrown -> {
+                        .verify((entityA, thrown) -> {
                             var entityRequest = EntityRequest.forEntity(entityA.getName(), entityA.getId());
                             var updated = queryEngine.findById(app, entityRequest, PERMIT_ALWAYS).orElseThrow();
                             var textAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow();
@@ -592,7 +594,7 @@ class ConcurrencyJOOQQueryEngineTest {
                             );
                         })
                 ,
-                () -> assertThatCode(() -> {
+                (entityA) -> assertThatCode(() -> {
                     var updatePayload = new EntityData(entityA.getIdentity(), List.of(
                             SimpleAttributeData.builder()
                                     .name(ATTRIBUTE_TEXT.getName())
@@ -608,23 +610,23 @@ class ConcurrencyJOOQQueryEngineTest {
     void concurrentUpdateOfDifferentFields() {
         var app = createModel();
 
-        var entityA = createItem(app, ENTITY_A.getName());
-
-        tester.runConcurrencyTest(
-                UnderTestRunnable.test(() -> assertThatCode(() -> {
-                            var updatePayload = EntityData.builder()
-                                    .name(ENTITY_A.getName())
-                                    .id(entityA.getId())
-                                    // Note: no version locking, because we want to test that both get updated
-                                    .attribute(SimpleAttributeData.builder()
-                                            .name(ATTRIBUTE_TEXT.getName())
-                                            .value("text_value")
-                                            .build())
-                                    .build();
-                            queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
-                        }))
+        tester.runConcurrencyTest(UnderTestRunnable.test(() -> {
+                                    return createItem(app, ENTITY_A.getName());
+                                },
+                                (entityA) -> assertThatCode(() -> {
+                                    var updatePayload = EntityData.builder()
+                                            .name(ENTITY_A.getName())
+                                            .id(entityA.getId())
+                                            // Note: no version locking, because we want to test that both get updated
+                                            .attribute(SimpleAttributeData.builder()
+                                                    .name(ATTRIBUTE_TEXT.getName())
+                                                    .value("text_value")
+                                                    .build())
+                                            .build();
+                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                                }))
                         .verify(thrown -> thrown.doesNotThrowAnyException())
-                        .verify(thrown -> {
+                        .verify((entityA, thrown) -> {
                             var entityRequest = EntityRequest.forEntity(entityA.getName(), entityA.getId());
                             var updated = queryEngine.findById(app, entityRequest, PERMIT_ALWAYS).orElseThrow();
                             var textAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow();
@@ -633,7 +635,7 @@ class ConcurrencyJOOQQueryEngineTest {
                             assertThat(numberAttr.getValue()).isEqualTo(42L);
                         })
                 ,
-                () -> {
+                (entityA) -> {
                     var updatePayload = EntityData.builder()
                             .name(ENTITY_A.getName())
                             .id(entityA.getId())
