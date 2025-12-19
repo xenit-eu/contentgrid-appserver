@@ -20,5 +20,6 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-resttestclient'
     testImplementation 'org.hamcrest:hamcrest'
 }

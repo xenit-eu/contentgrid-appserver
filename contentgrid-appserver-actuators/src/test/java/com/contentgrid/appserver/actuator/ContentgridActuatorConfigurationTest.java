@@ -7,8 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(
@@ -21,7 +22,8 @@ import org.springframework.http.ResponseEntity;
                 "management.server.port=0" // random, different port from main port
         }
 )
-public class ContentgridActuatorConfigurationTest {
+@AutoConfigureTestRestTemplate
+class ContentgridActuatorConfigurationTest {
     @Autowired
     private TestRestTemplate rest;
 
