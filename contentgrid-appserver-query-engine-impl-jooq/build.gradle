@@ -27,6 +27,7 @@ dependencies {
 
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-jooq'
+    testFixturesImplementation 'ch.qos.logback:logback-classic'
 }
 
 // Enable jOOQ's PlainSQLChecker annotation processor to error on plain SQL usage

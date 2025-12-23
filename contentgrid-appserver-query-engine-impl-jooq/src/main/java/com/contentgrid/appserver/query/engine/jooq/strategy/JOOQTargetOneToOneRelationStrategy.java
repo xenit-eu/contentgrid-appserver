@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
+import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
@@ -149,6 +150,9 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                         .execute();
             }
 
+            // If the same update is concurrently executed right here, we'll get a unique constraint violation
+            // because the other execution has not seen 2 rows, and thus has not executed the update above
+
             dslContext.update(table)
                     .set(sourceRef, id.getValue())
                     .where(newRowCondition)
@@ -158,11 +162,15 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             // Unique constraint violation can not happen, because the query above ensures that the unique is wiped out first
             // Not null violation can not happen, because when he sourceRef is NOT NULL, a BlindRelationOverwriteException would have been thrown
             // (because newRecord.get(sourceRef) also would not be null
-            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
-                throw ExceptionUtils.handleException(e,
+            switch (PostgresqlErrorType.from(e)) {
+                case FOREIGN_KEY_CONSTRAINT_VIOLATION -> throw ExceptionUtils.handleException(e,
                         () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+                // Unique constraint violation may happen under concurrent execution.
+                // This is not directly recoverable. It can be recovered by retrying the whole transaction
+                case UNIQUE_CONSTRAINT_VIOLATION -> throw new ConcurrencyFailureException(e);
+                // Other unhandled exceptions are rethrown
+                default -> throw e;
             }
-            throw e;
         }
     }
 
