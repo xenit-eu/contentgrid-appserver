@@ -1,0 +1,2 @@
+# test files should be treated as binary (no crlf magic!)
+*.bin binary

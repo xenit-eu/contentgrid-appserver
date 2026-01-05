@@ -24,6 +24,9 @@ public class SkippingInputStream extends InputStream {
 
     @Override
     public long skip(long n) throws IOException {
+        if (n <= 0) {
+            return 0;
+        }
         ensureSkipped();
         return delegate.skip(n);
     }

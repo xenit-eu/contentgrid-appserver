@@ -42,7 +42,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("tableInitializer");
+                    assertThat(context).doesNotHaveBean("jooqTableInitializer");
                 });
     }
 
@@ -55,7 +55,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).hasBean("tableInitializer");
+                    assertThat(context).hasBean("jooqTableInitializer");
                 });
     }
 
@@ -67,7 +67,7 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("tableInitializer");
+                    assertThat(context).doesNotHaveBean("jooqTableInitializer");
                 });
     }
 

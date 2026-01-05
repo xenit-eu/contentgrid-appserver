@@ -6,8 +6,10 @@ import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
+import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.ZeroPrefixedInputStream;
+
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -18,14 +20,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
-import javax.security.auth.Destroyable;
+
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.experimental.Delegate;
 
 /**
  * Symmetric data encryption engine using AES-CTR encryption mode
@@ -77,7 +79,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         try {
             cipher.init(
                     forEncryption ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE,
-                    new AESSecretKey(parameters.getSecretKey()),
+                    new SecretKey(parameters.getSecretKey(), "AES"),
                     new IvParameterSpec(parameters.getInitializationVector())
             );
         } finally {
@@ -165,29 +167,6 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @RequiredArgsConstructor
-    private static class AESSecretKey implements javax.crypto.SecretKey {
-        @Delegate(types = Destroyable.class)
-        private final KeyBytes keyBytes;
-
-        @Override
-        public String getAlgorithm() {
-            return "AES";
-        }
-
-        @Override
-        public String getFormat() {
-            return "RAW";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            // This one needs to be a copy, because the AES engine clears it.
-            // We don't want to have it destroy our KeyBytes copy
-            return keyBytes.getKeyBytesCopy();
-        }
-    }
-
-    @RequiredArgsConstructor
     private static class DecryptingContentReader implements ContentReader {
 
         private final ContentReader delegate;
@@ -197,7 +176,10 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
             return new ZeroPrefixedInputStream(
-                    new CipherInputStream(
+                    // CipherInputStream does not skip(n) into not-yet-decrypted data
+                    // Spring StreamUtils.copyRange needs that behaviour
+                    // so we use our SkippableCipherInputStream
+                    new SkippableCipherInputStream(
                             new SkippingInputStream(
                                     delegate.getContentInputStream(),
                                     byteStartOffset
