@@ -30,7 +30,7 @@ dependencies {
     testImplementation 'org.springframework:spring-tx'
     testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.hamcrest:hamcrest'
-    testImplementation 'org.testcontainers:junit-jupiter:1.21.3'
-    testImplementation 'org.testcontainers:minio:1.21.3'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:minio'
     testImplementation 'io.minio:minio'
 }
