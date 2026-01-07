@@ -169,8 +169,8 @@ class HalLinkTitlesAndFormPromptsTest {
                                             prompt: "Total Amount Spent",
                                             name : "total_spend",
                                             type : "number"
-                                        } #, TODO: re-enable in ACC-2311
-                                        #{ name : "orders", type : "url" }, { name : "invoices", type : "url" }
+                                        },
+                                        { name : "orders", type : "url" }, { name : "invoices", type : "url" }
                                     ]
                                 }
                             }

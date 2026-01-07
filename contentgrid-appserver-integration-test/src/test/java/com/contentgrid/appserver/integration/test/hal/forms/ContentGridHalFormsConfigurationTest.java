@@ -86,7 +86,7 @@ class ContentGridHalFormsConfigurationTest {
                                                     maxItems: 1
                                                 }
                                             },
-                                            {},{},{},{},{} #,{} TODO: re-enable in ACC-2311
+                                            {},{},{},{},{},{},{}
                                         ]
                                     }
                                 }
