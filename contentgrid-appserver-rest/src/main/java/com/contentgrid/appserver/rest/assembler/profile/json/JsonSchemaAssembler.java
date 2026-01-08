@@ -131,7 +131,7 @@ public class JsonSchemaAssembler {
 
     private JsonSchemaType toJsonSchemaType(SimpleAttribute.Type type) {
         return switch (type) {
-            case TEXT, DATETIME, UUID -> JsonSchemaType.STRING;
+            case TEXT, DATE, DATETIME, UUID -> JsonSchemaType.STRING;
             case LONG -> JsonSchemaType.INTEGER;
             case DOUBLE -> JsonSchemaType.NUMBER;
             case BOOLEAN -> JsonSchemaType.BOOLEAN;
@@ -140,6 +140,7 @@ public class JsonSchemaAssembler {
 
     private JsonSchemaFormat toJsonSchemaFormat(SimpleAttribute.Type type) {
         return switch (type) {
+            case DATE -> JsonSchemaFormat.DATE;
             case DATETIME -> JsonSchemaFormat.DATE_TIME;
             case UUID -> JsonSchemaFormat.UUID;
             default -> null;

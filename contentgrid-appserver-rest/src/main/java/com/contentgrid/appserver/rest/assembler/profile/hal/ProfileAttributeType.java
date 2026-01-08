@@ -8,6 +8,7 @@ public enum ProfileAttributeType {
     LONG,
     DOUBLE,
     BOOLEAN,
+    DATE,
     DATETIME,
     OBJECT;
 
@@ -18,6 +19,7 @@ public enum ProfileAttributeType {
             case LONG -> LONG;
             case DOUBLE -> DOUBLE;
             case BOOLEAN -> BOOLEAN;
+            case DATE -> DATE;
             case DATETIME -> DATETIME;
         };
     }

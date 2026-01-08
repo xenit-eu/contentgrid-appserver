@@ -4,6 +4,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -14,6 +15,7 @@ import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,6 +50,7 @@ public class MapRequestInputData implements RequestInputData {
             case Double doubleVal -> new DecimalDataEntry(BigDecimal.valueOf(doubleVal));
             case BigDecimal bigDecimal -> new DecimalDataEntry(bigDecimal);
             case String s -> new StringDataEntry(s);
+            case LocalDate localDate -> new LocalDateDataEntry(localDate);
             case Instant instant -> new InstantDataEntry(instant);
             case Boolean bool -> new BooleanDataEntry(bool);
             case List<?> list -> new ListDataEntry(list.stream()

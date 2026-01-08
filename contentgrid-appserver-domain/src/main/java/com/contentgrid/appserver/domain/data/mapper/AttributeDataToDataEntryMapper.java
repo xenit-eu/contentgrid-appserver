@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
@@ -18,6 +19,7 @@ import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -80,6 +82,7 @@ public class AttributeDataToDataEntryMapper implements
             case DOUBLE -> new DecimalDataEntry((BigDecimal) data);
             case BOOLEAN -> new BooleanDataEntry((Boolean) data);
             case TEXT, UUID -> new StringDataEntry(data.toString());
+            case DATE -> new LocalDateDataEntry((LocalDate) data);
             case DATETIME -> new InstantDataEntry((Instant) data);
         };
     }

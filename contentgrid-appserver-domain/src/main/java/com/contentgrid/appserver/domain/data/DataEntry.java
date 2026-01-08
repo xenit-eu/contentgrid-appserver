@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -41,7 +42,7 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
      * A scalar data value: the basic types boolean, decimal, instant, long, null and string
      */
     sealed interface ScalarDataEntry extends PlainDataEntry permits BooleanDataEntry, DecimalDataEntry,
-            InstantDataEntry, LongDataEntry, NullDataEntry, StringDataEntry {
+            LocalDateDataEntry, InstantDataEntry, LongDataEntry, NullDataEntry, StringDataEntry {
 
         Object getValue();
 
@@ -76,6 +77,14 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
         @NonNull
         BigDecimal value;
+
+    }
+
+    @Value
+    class LocalDateDataEntry implements ScalarDataEntry {
+
+        @NonNull
+        LocalDate value;
 
     }
 

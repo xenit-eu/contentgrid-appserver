@@ -27,7 +27,7 @@ import java.util.Locale;
  */
 public enum JsonSchemaFormat {
 
-    EMAIL, DATE_TIME, HOSTNAME, IPV4, IPV6, URI, UUID;
+    EMAIL, DATE_TIME, TIME, DATE, DURATION, HOSTNAME, IPV4, IPV6, URI, URI_TEMPLATE, UUID;
 
     @JsonValue
     @Override

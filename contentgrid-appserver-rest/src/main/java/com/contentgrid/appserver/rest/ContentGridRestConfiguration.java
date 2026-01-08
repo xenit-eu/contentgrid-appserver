@@ -11,6 +11,7 @@ import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
+import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLocalDateDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
 import com.contentgrid.appserver.rest.filter.SingleRangeRequestServletFilter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
@@ -82,6 +83,7 @@ public class ContentGridRestConfiguration {
                     registry.addConverter(new StringDataEntryToBooleanDataEntryConverter(conversionService));
                     registry.addConverter(new StringDataEntryToDecimalDataEntryConverter(conversionService));
                     registry.addConverter(new StringDataEntryToInstantDataEntryConverter(conversionService));
+                    registry.addConverter(new StringDataEntryToLocalDateDataEntryConverter(conversionService));
                     registry.addConverter(new StringDataEntryToLongDataEntryConverter(conversionService));
                 } else {
                     throw new IllegalStateException("Registry is not a ConversionService");

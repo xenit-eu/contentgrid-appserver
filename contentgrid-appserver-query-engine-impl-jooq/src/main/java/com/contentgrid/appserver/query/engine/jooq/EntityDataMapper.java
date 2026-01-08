@@ -13,7 +13,9 @@ import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.Temporal;
 import java.util.Map;
 import java.util.UUID;
@@ -109,9 +111,19 @@ public class EntityDataMapper {
                 }
                 throw new IllegalStateException("Value of attribute '%s' is not a boolean".formatted(attribute.getName()));
             }
+            case DATE -> {
+                if (value instanceof Temporal temporal) {
+                    yield LocalDate.from(temporal);
+                } else if (value instanceof Date date) {
+                    yield date.toLocalDate();
+                }
+                throw new IllegalStateException("Value of attribute '%s' is not a local date".formatted(attribute.getName()));
+            }
             case DATETIME -> {
                 if (value instanceof Temporal temporal) {
                     yield Instant.from(temporal);
+                } else if (value instanceof Date date) {
+                    yield date.toInstant();
                 }
                 throw new IllegalStateException("Value of attribute '%s' is not a datetime".formatted(attribute.getName()));
             }

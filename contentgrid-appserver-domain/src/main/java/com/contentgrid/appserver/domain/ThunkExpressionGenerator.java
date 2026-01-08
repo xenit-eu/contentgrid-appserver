@@ -24,6 +24,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -110,6 +111,7 @@ public class ThunkExpressionGenerator {
             case DOUBLE -> Scalar.of(new BigDecimal(value));
             case BOOLEAN -> Scalar.of(Boolean.parseBoolean(value));
             case TEXT -> Scalar.of(value);
+            case DATE -> Scalar.of(LocalDate.parse(value));
             case DATETIME -> Scalar.of(Instant.parse(value));
             case UUID -> Scalar.of(java.util.UUID.fromString(value));
         };

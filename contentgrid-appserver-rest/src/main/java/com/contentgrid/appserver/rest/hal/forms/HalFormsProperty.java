@@ -43,6 +43,7 @@ public class HalFormsProperty {
             case TEXT, UUID -> HtmlInputType.TEXT_VALUE;
             case LONG, DOUBLE -> HtmlInputType.NUMBER_VALUE;
             case BOOLEAN -> HtmlInputType.CHECKBOX_VALUE;
+            case DATE -> HtmlInputType.DATE_VALUE;
             case DATETIME -> "datetime";
         };
         return withType(inputType);
