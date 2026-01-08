@@ -16,6 +16,8 @@ jobs:
           distribution: liberica
           java-version: 21
           cache: gradle
+      - name: Generate Javadoc
+        run: ./gradlew javadoc
       - name: Build and Test
         run: ./gradlew check
       - name: Upload test reports
