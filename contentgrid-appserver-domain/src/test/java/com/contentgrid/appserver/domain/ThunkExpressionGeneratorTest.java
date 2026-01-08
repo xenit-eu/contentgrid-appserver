@@ -39,6 +39,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,9 +74,15 @@ class ThunkExpressionGeneratorTest {
             .type(Type.TEXT)
             .build();
 
+    private static final SimpleAttribute DATE_ATTR = SimpleAttribute.builder()
+            .name(AttributeName.of("event_date"))
+            .column(ColumnName.of("event_date"))
+            .type(Type.DATE)
+            .build();
+
     private static final SimpleAttribute DATETIME_ATTR = SimpleAttribute.builder()
-            .name(AttributeName.of("arrival_date"))
-            .column(ColumnName.of("arrival_date"))
+            .name(AttributeName.of("arrival_timestamp"))
+            .column(ColumnName.of("arrival_timestamp"))
             .type(Type.DATETIME)
             .build();
 
@@ -120,6 +127,7 @@ class ThunkExpressionGeneratorTest {
             .attribute(DOUBLE_ATTR)
             .attribute(BOOLEAN_ATTR)
             .attribute(TEXT_ATTR)
+            .attribute(DATE_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
             .searchFilter(AttributeSearchFilter.builder()
@@ -189,27 +197,52 @@ class ThunkExpressionGeneratorTest {
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
-                    .name(FilterName.of("arrival_date"))
+                    .name(FilterName.of("event_date"))
+                    .attribute(DATE_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.GREATER_THAN)
+                    .name(FilterName.of("event_date~after"))
+                    .attribute(DATE_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.GREATER_THAN_OR_EQUAL)
+                    .name(FilterName.of("event_date~from"))
+                    .attribute(DATE_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.LESS_THAN)
+                    .name(FilterName.of("event_date~before"))
+                    .attribute(DATE_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.LESS_THAN_OR_EQUAL)
+                    .name(FilterName.of("event_date~to"))
+                    .attribute(DATE_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("arrival_timestamp"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN)
-                    .name(FilterName.of("arrival_date~after"))
+                    .name(FilterName.of("arrival_timestamp~after"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.GREATER_THAN_OR_EQUAL)
-                    .name(FilterName.of("arrival_date~from"))
+                    .name(FilterName.of("arrival_timestamp~from"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN)
-                    .name(FilterName.of("arrival_date~before"))
+                    .name(FilterName.of("arrival_timestamp~before"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.LESS_THAN_OR_EQUAL)
-                    .name(FilterName.of("arrival_date~to"))
+                    .name(FilterName.of("arrival_timestamp~to"))
                     .attribute(DATETIME_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
@@ -557,11 +590,32 @@ class ThunkExpressionGeneratorTest {
 
     @ParameterizedTest
     @CsvSource({
-            "arrival_date,EQUALS",
-            "arrival_date~after,GREATER_THAN",
-            "arrival_date~from,GREATER_THAN_OR_EQUAL_TO",
-            "arrival_date~before,LESS_THAN",
-            "arrival_date~to,LESS_THEN_OR_EQUAL_TO",
+            "event_date,EQUALS",
+            "event_date~after,GREATER_THAN",
+            "event_date~from,GREATER_THAN_OR_EQUAL_TO",
+            "event_date~before,LESS_THAN",
+            "event_date~to,LESS_THEN_OR_EQUAL_TO",
+    })
+    void localDateAttributeShouldParseCorrectly(String name, Operator operator) {
+        String date = "2023-01-01";
+        Map<String, List<String>> params = new HashMap<>();
+        params.put(name, List.of(date));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        assertInstanceOf(Comparison.class, result);
+        Comparison comparison = (Comparison) result;
+        assertEquals(LocalDate.parse(date), ((Scalar<?>) comparison.getRightTerm()).getValue());
+        assertEquals(operator, comparison.getOperator());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "arrival_timestamp,EQUALS",
+            "arrival_timestamp~after,GREATER_THAN",
+            "arrival_timestamp~from,GREATER_THAN_OR_EQUAL_TO",
+            "arrival_timestamp~before,LESS_THAN",
+            "arrival_timestamp~to,LESS_THEN_OR_EQUAL_TO",
     })
     void datetimeAttributeShouldParseCorrectly(String name, Operator operator) {
         String timestamp = "2023-01-01T12:00:00Z";
@@ -620,18 +674,33 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void invalidDatetimeValueShouldThrowException() {
+    void invalidLocalDateValueShouldThrowException() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("arrival_date", List.of("not a date"));
+        params.put("event_date", List.of("not a date"));
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("arrival_date", exception.getAttributeName());
-        assertEquals(Type.DATETIME, exception.getType());
+        assertEquals("event_date", exception.getAttributeName());
+        assertEquals(Type.DATE, exception.getType());
         assertEquals("not a date", exception.getValue());
+    }
+
+    @Test
+    void invalidDatetimeValueShouldThrowException() {
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("arrival_timestamp", List.of("not a timestamp"));
+
+        InvalidParameterException exception = assertThrows(
+                InvalidParameterException.class,
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+        );
+
+        assertEquals("arrival_timestamp", exception.getAttributeName());
+        assertEquals(Type.DATETIME, exception.getType());
+        assertEquals("not a timestamp", exception.getValue());
     }
 
     @Test

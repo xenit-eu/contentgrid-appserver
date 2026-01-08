@@ -151,7 +151,7 @@ class ProfileRestControllerTest {
                                     }
                                 }, {
                                     name: "received",
-                                    type: "datetime",
+                                    type: "date",
                                     _embedded: {
                                         "blueprint:search-param": [{
                                             name: "received~after",
@@ -163,13 +163,25 @@ class ProfileRestControllerTest {
                                     }
                                 }, {
                                     name: "pay_before",
-                                    type: "datetime",
+                                    type: "date",
                                     _embedded: {
                                         "blueprint:search-param": [{
                                             name: "pay_before~after",
                                             type: "greater-than"
                                         }, {
                                             name: "pay_before~before",
+                                            type: "less-than"
+                                        }]
+                                    }
+                                }, {
+                                    name: "pay_timestamp",
+                                    type: "datetime",
+                                    _embedded: {
+                                        "blueprint:search-param": [{
+                                            name: "pay_timestamp~after",
+                                            type: "greater-than"
+                                        }, {
+                                            name: "pay_timestamp~before",
                                             type: "less-than"
                                         }]
                                     }
@@ -323,15 +335,21 @@ class ProfileRestControllerTest {
                                         type: "number"
                                     }, {
                                         name: "received~after",
-                                        type: "datetime"
+                                        type: "date"
                                     }, {
                                         name: "received~before",
-                                        type: "datetime"
+                                        type: "date"
                                     }, {
                                         name: "pay_before~after",
-                                        type: "datetime"
+                                        type: "date"
                                     }, {
                                         name: "pay_before~before",
+                                        type: "date"
+                                    }, {
+                                        name: "pay_timestamp~after",
+                                        type: "datetime"
+                                    }, {
+                                        name: "pay_timestamp~before",
                                         type: "datetime"
                                     }, {
                                         name: "confidentiality",
@@ -422,9 +440,12 @@ class ProfileRestControllerTest {
                                         type: "number"
                                     }, {
                                         name: "received",
-                                        type: "datetime"
+                                        type: "date"
                                     }, {
                                         name: "pay_before",
+                                        type: "date"
+                                    }, {
+                                        name: "pay_timestamp",
                                         type: "datetime"
                                     }, {
                                         name: "is_paid",
@@ -650,6 +671,12 @@ class ProfileRestControllerTest {
                                             name: "invoices.pay_before~before"
                                         },
                                         {
+                                            name: "invoices.pay_timestamp~after"
+                                        },
+                                        {
+                                            name: "invoices.pay_timestamp~before"
+                                        },
+                                        {
                                             name: "_sort",
                                             prompt: "Sort",
                                             options: {
@@ -763,9 +790,13 @@ class ProfileRestControllerTest {
                                 },
                                 received: {
                                     type: "string",
-                                    format: "date-time"
+                                    format: "date"
                                 },
                                 pay_before: {
+                                    type: "string",
+                                    format: "date"
+                                },
+                                pay_timestamp: {
                                     type: "string",
                                     format: "date-time"
                                 },
