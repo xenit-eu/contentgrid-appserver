@@ -673,10 +673,11 @@ class ThunkExpressionGeneratorTest {
         assertEquals("not a decimal", exception.getValue());
     }
 
-    @Test
-    void invalidLocalDateValueShouldThrowException() {
+    @ParameterizedTest
+    @CsvSource({"not a date", "2025-01-01T01:01:01.234Z"})
+    void invalidLocalDateValueShouldThrowException(String value) {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("event_date", List.of("not a date"));
+        params.put("event_date", List.of(value));
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
@@ -685,13 +686,14 @@ class ThunkExpressionGeneratorTest {
 
         assertEquals("event_date", exception.getAttributeName());
         assertEquals(Type.DATE, exception.getType());
-        assertEquals("not a date", exception.getValue());
+        assertEquals(value, exception.getValue());
     }
 
-    @Test
-    void invalidDatetimeValueShouldThrowException() {
+    @ParameterizedTest
+    @CsvSource({"not a timestamp", "2025-01-01"})
+    void invalidDatetimeValueShouldThrowException(String value) {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("arrival_timestamp", List.of("not a timestamp"));
+        params.put("arrival_timestamp", List.of(value));
 
         InvalidParameterException exception = assertThrows(
                 InvalidParameterException.class,
@@ -700,7 +702,7 @@ class ThunkExpressionGeneratorTest {
 
         assertEquals("arrival_timestamp", exception.getAttributeName());
         assertEquals(Type.DATETIME, exception.getType());
-        assertEquals("not a timestamp", exception.getValue());
+        assertEquals(value, exception.getValue());
     }
 
     @Test
