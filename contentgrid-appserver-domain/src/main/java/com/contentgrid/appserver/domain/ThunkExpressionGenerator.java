@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidParameterException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.thunx.predicates.model.Comparison;
@@ -36,55 +37,59 @@ public class ThunkExpressionGenerator {
 
     static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, List<String>> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
+        var collector = new ValidationExceptionCollector<>(InvalidParameterException.class);
 
-        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
-            String filterName = entry.getKey();
+        collector.use(() -> {
+            for (Map.Entry<String, List<String>> entry : params.entrySet()) {
+                String filterName = entry.getKey();
 
-            var maybeSearchFilter = entity.getFilterByName(FilterName.of(filterName));
-            if (maybeSearchFilter.isEmpty()) {
-                // ignore unknown filters
-                continue;
-            }
-
-            SearchFilter searchFilter = maybeSearchFilter.get();
-
-            // currently only handle attribute search filters
-            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                List<PathElement> pathElements;
-
-                try {
-                    pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
-                } catch (IllegalArgumentException e) {
-                    throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                            attribute.getType(), entry.getValue().toString(), e);
+                var maybeSearchFilter = entity.getFilterByName(FilterName.of(filterName));
+                if (maybeSearchFilter.isEmpty()) {
+                    // ignore unknown filters
+                    continue;
                 }
 
-                List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
+                SearchFilter searchFilter = maybeSearchFilter.get();
 
-                for (String value : entry.getValue()) {
+                // currently only handle attribute search filters
+                if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
+                    var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                    List<PathElement> pathElements;
+
                     try {
-                        Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
-                        subexpressions.add(createExpression(
-                                attributeSearchFilter,
-                                pathElements,
-                                parsedValue
-                        ));
-                    } catch (Exception e) {
+                        pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
+                    } catch (IllegalArgumentException e) {
                         throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
-                                attribute.getType(), value, e);
+                                attribute.getType(), entry.getValue().toString(), e);
+                    }
+
+                    List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
+
+                    for (String value : entry.getValue()) {
+                        try {
+                            Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
+                            subexpressions.add(createExpression(
+                                    attributeSearchFilter,
+                                    pathElements,
+                                    parsedValue
+                            ));
+                        } catch (Exception e) {
+                            throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                                    attribute.getType(), value, e);
+                        }
+                    }
+
+                    if (subexpressions.size() == 1) {
+                        // If there's only one subexpression, add it directly
+                        expressions.add(subexpressions.getFirst());
+                    } else if (!subexpressions.isEmpty()) {
+                        // Otherwise, create a disjunction (OR) of all subexpressions if not empty
+                        expressions.add(LogicalOperation.disjunction(subexpressions));
                     }
                 }
-
-                if (subexpressions.size() == 1) {
-                    // If there's only one subexpression, add it directly
-                    expressions.add(subexpressions.getFirst());
-                } else if (!subexpressions.isEmpty()) {
-                    // Otherwise, create a disjunction (OR) of all subexpressions if not empty
-                    expressions.add(LogicalOperation.disjunction(subexpressions));
-                }
             }
-        }
+        });
+        collector.rethrow();
 
         // If no valid expressions were created, return a "true" expression
         if (expressions.isEmpty()) {

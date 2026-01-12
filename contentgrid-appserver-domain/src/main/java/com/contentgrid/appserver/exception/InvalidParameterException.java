@@ -13,9 +13,9 @@ public class InvalidParameterException extends IllegalArgumentException {
     private final Type type;
     private final String value;
 
-    private static final String fullTemplate = "Invalid argument for attribute %s in entity %s:"
+    private static final String fullTemplate = "Invalid argument for filter %s in entity %s:"
             + " Could not convert value '%s' to %s";
-    private static final String templateWithoutEntity = "Invalid argument for attribute %s:"
+    private static final String templateWithoutEntity = "Invalid argument for filter %s:"
             + " Could not convert value '%s' to %s";
 
     public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type,

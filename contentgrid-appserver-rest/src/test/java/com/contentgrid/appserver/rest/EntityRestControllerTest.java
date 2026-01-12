@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -40,7 +41,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -846,22 +846,21 @@ class EntityRestControllerTest {
 
         static Stream<Arguments> testListEntityInstances_withQueryParam_invalidValue() {
             return Stream.of(
-                    Arguments.of("amount", "not+a+decimal"),
-                    Arguments.of("amount~gt", "not+a+decimal"),
-                    Arguments.of("amount~gte", "not+a+decimal"),
-                    Arguments.of("received~after", "2024-01-01T00:00:00.000Z"),
-                    Arguments.of("received~from", "not+a+date"),
-                    Arguments.of("pay_before~after", "2025-01-01T01:01:01.001Z"),
-                    Arguments.of("pay_before~from", "not+a+date"),
-                    Arguments.of("pay_timestamp~after", "2025-01-02"),
-                    Arguments.of("customer", "not+a+uuid")
+                    Arguments.of("amount", "not+a+decimal", Type.DOUBLE),
+                    Arguments.of("amount~gt", "not+a+decimal", Type.DOUBLE),
+                    Arguments.of("amount~gte", "not+a+decimal", Type.DOUBLE),
+                    Arguments.of("received~after", "2024-01-01T00:00:00.000Z", Type.DATE),
+                    Arguments.of("received~from", "not+a+date", Type.DATE),
+                    Arguments.of("pay_before~after", "2025-01-01T01:01:01.001Z", Type.DATE),
+                    Arguments.of("pay_before~from", "not+a+date", Type.DATE),
+                    Arguments.of("pay_timestamp~after", "2025-01-02", Type.DATETIME),
+                    Arguments.of("customer", "not+a+uuid", Type.UUID)
             );
         }
 
         @ParameterizedTest
         @MethodSource
-        @Disabled("ACC-2557: 500 response for invalid query parameter values")
-        void testListEntityInstances_withQueryParam_invalidValue(String queryParam, String value) throws Exception {
+        void testListEntityInstances_withQueryParam_invalidValue(String queryParam, String value, Type type) throws Exception {
             var person1 = new HashMap<String, Object>();
             person1.put("name", "Alice");
             person1.put("vat", "vat1");
@@ -940,7 +939,8 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType("https://contentgrid.cloud/problems/invalid-filter-parameter")
                             .withTitle("Filter query parameter is invalid")
-                            .withDetail("Filter query parameter '%s=%s' is invalid".formatted(queryParam, value))
+                            .withDetail("Invalid argument for filter %s in entity invoice: Could not convert value '%s' to %s"
+                                    .formatted(queryParam, value, type))
                     );
         }
 
