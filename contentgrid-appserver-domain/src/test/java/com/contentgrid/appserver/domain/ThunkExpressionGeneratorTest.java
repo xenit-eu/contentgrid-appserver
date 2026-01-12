@@ -30,6 +30,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -452,7 +453,7 @@ class ThunkExpressionGeneratorTest {
     @Test
     void paramsWithoutValuesShouldBeIgnored() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("description", List.of());
+        params.put("description~prefix", List.of());
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
         assertInstanceOf(Scalar.class, result);
@@ -462,18 +463,18 @@ class ThunkExpressionGeneratorTest {
     @Test
     void singleParameterSingleValueShouldCreateEqualityExpression() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("description", List.of("test value"));
+        params.put("description~prefix", List.of("test value"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
-        var comparison = assertInstanceOf(Comparison.class, result);
+        var comparison = assertInstanceOf(ContentGridPrefixSearch.class, result);
         assertEquals("test value", ((Scalar<String>) comparison.getRightTerm()).getValue());
     }
 
     @Test
     void multipleParametersSingleValueShouldCreateConjunction() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("description", List.of("test value"));
+        params.put("description~prefix", List.of("test value"));
         params.put("count", List.of("123"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
@@ -489,7 +490,7 @@ class ThunkExpressionGeneratorTest {
     @Test
     void singleParameterMultipleValuesShouldCreateDisjunction() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("description", List.of("foo", "bar"));
+        params.put("description~prefix", List.of("foo", "bar"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
 
@@ -497,14 +498,14 @@ class ThunkExpressionGeneratorTest {
         assertEquals(Operator.OR, operation.getOperator());
         assertEquals(2, operation.getTerms().size());
         operation.getTerms().forEach(term -> {
-            assertInstanceOf(Comparison.class, term);
+            assertInstanceOf(ContentGridPrefixSearch.class, term);
         });
     }
 
     @Test
     void MultipleParametersMultipleValuesShouldCreateConjunctionOfDisjunctions() {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("description", List.of("foo", "bar"));
+        params.put("description~prefix", List.of("foo", "bar"));
         params.put("count", List.of("0", "1"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
@@ -677,14 +678,14 @@ class ThunkExpressionGeneratorTest {
     @CsvSource({"not a date", "2025-01-01T01:01:01.234Z"})
     void invalidLocalDateValueShouldThrowException(String value) {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("event_date", List.of(value));
+        params.put("event_date~after", List.of(value));
 
         InvalidFilterParameterException exception = assertThrows(
                 InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("event_date", exception.getFilterName());
+        assertEquals("event_date~after", exception.getFilterName());
         assertEquals(Type.DATE, exception.getType());
         assertEquals(value, exception.getValue());
     }
@@ -693,14 +694,14 @@ class ThunkExpressionGeneratorTest {
     @CsvSource({"not a timestamp", "2025-01-01"})
     void invalidDatetimeValueShouldThrowException(String value) {
         Map<String, List<String>> params = new HashMap<>();
-        params.put("arrival_timestamp", List.of(value));
+        params.put("arrival_timestamp~after", List.of(value));
 
         InvalidFilterParameterException exception = assertThrows(
                 InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("arrival_timestamp", exception.getFilterName());
+        assertEquals("arrival_timestamp~after", exception.getFilterName());
         assertEquals(Type.DATETIME, exception.getType());
         assertEquals(value, exception.getValue());
     }
