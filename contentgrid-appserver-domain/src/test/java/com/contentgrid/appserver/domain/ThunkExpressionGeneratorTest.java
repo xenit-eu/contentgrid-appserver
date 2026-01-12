@@ -653,7 +653,7 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("count", exception.getAttributeName());
+        assertEquals("count", exception.getFilterName());
         assertEquals(Type.LONG, exception.getType());
         assertEquals("not a number", exception.getValue());
     }
@@ -668,7 +668,7 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("price", exception.getAttributeName());
+        assertEquals("price", exception.getFilterName());
         assertEquals(Type.DOUBLE, exception.getType());
         assertEquals("not a decimal", exception.getValue());
     }
@@ -684,7 +684,7 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("event_date", exception.getAttributeName());
+        assertEquals("event_date", exception.getFilterName());
         assertEquals(Type.DATE, exception.getType());
         assertEquals(value, exception.getValue());
     }
@@ -700,7 +700,7 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("arrival_timestamp", exception.getAttributeName());
+        assertEquals("arrival_timestamp", exception.getFilterName());
         assertEquals(Type.DATETIME, exception.getType());
         assertEquals(value, exception.getValue());
     }
@@ -715,7 +715,7 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("id", exception.getAttributeName());
+        assertEquals("id", exception.getFilterName());
         assertEquals(Type.UUID, exception.getType());
         assertEquals("not a uuid", exception.getValue());
     }

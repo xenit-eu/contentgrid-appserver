@@ -170,13 +170,19 @@ public class ContentGridExceptionHandler {
     @ExceptionHandler
     ResponseEntity<Problem> handleInvalidParameterException(@NonNull InvalidParameterException exception) {
         return createResponse(
-                problemFactory.createProblem(ProblemType.INVALID_FILTER_PARAMETER)
+                problemFactory.createProblem(ProblemType.INVALID_FILTER_PARAMETER_FORMAT)
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withDetail(exception.getMessage())
                         .withProperties(Map.of(
                                 "all-errors", allExceptions(exception, InvalidParameterException.class)
-                                        .map(ex -> Map.of("detail", ex.getMessage()))
-                                        .toList()
+                                        .map(ex -> Map.of(
+                                                "detail", ex.getMessage(),
+                                                "property", ex.getFilterName(),
+                                                "invalid_value", ex.getValue()
+                                        ))
+                                        .toList(),
+                                "property", exception.getFilterName(),
+                                "invalid_value", exception.getValue()
                         ))
         );
     }

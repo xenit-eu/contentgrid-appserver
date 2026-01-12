@@ -8,7 +8,7 @@ import lombok.NonNull;
 public class InvalidParameterException extends IllegalArgumentException {
     private final String entityName;
     @NonNull
-    private final String attributeName;
+    private final String filterName;
     @NonNull
     private final Type type;
     private final String value;
@@ -18,26 +18,26 @@ public class InvalidParameterException extends IllegalArgumentException {
     private static final String templateWithoutEntity = "Invalid argument for filter %s:"
             + " Could not convert value '%s' to %s";
 
-    public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type,
+    public InvalidParameterException(String entityName, @NonNull String filterName, @NonNull Type type,
             String value, Throwable cause) {
         super(entityName == null
-                ? templateWithoutEntity.formatted(attributeName, value, type)
-                : fullTemplate.formatted(attributeName, entityName, value, type),
+                ? templateWithoutEntity.formatted(filterName, value, type)
+                : fullTemplate.formatted(filterName, entityName, value, type),
                 cause
         );
         this.entityName = entityName;
-        this.attributeName = attributeName;
+        this.filterName = filterName;
         this.type = type;
         this.value = value;
     }
 
-    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, String value, Throwable cause) {
-        this(null, attributeName, type, value, cause);
+    public InvalidParameterException(@NonNull String filterName, @NonNull Type type, String value, Throwable cause) {
+        this(null, filterName, type, value, cause);
     }
-    public InvalidParameterException(String entityName, @NonNull String attributeName, @NonNull Type type, String value) {
-        this(entityName, attributeName, type, value, null);
+    public InvalidParameterException(String entityName, @NonNull String filterName, @NonNull Type type, String value) {
+        this(entityName, filterName, type, value, null);
     }
-    public InvalidParameterException(@NonNull String attributeName, @NonNull Type type, String value) {
-        this(null, attributeName, type, value, null);
+    public InvalidParameterException(@NonNull String filterName, @NonNull Type type, String value) {
+        this(null, filterName, type, value, null);
     }
 }

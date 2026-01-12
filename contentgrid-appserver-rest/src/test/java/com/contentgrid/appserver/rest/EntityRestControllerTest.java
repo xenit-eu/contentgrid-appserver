@@ -865,8 +865,8 @@ class EntityRestControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType("https://contentgrid.cloud/problems/invalid-filter-parameter")
-                            .withTitle("Filter query parameter is invalid")
+                            .withType("https://contentgrid.cloud/problems/invalid-filter-parameter/format")
+                            .withTitle("Filter query parameter has an invalid format")
                             .withDetail("Invalid argument for filter %s in entity invoice: Could not convert value '%s' to %s"
                                     .formatted(queryParam, value, type))
                     );
