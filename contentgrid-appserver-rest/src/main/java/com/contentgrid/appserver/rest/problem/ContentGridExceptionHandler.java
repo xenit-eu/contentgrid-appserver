@@ -12,6 +12,7 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeEx
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -164,6 +165,26 @@ public class ContentGridExceptionHandler {
     @ExceptionHandler
     ResponseEntity<?> handlePermissionDeniedException(PermissionDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleInvalidParameterException(@NonNull InvalidFilterParameterException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_FILTER_PARAMETER_FORMAT)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+                        .withProperties(Map.of(
+                                "all-errors", allExceptions(exception, InvalidFilterParameterException.class)
+                                        .map(ex -> Map.of(
+                                                "detail", ex.getMessage(),
+                                                "property", ex.getFilterName(),
+                                                "invalid_value", ex.getValue()
+                                        ))
+                                        .toList(),
+                                "property", exception.getFilterName(),
+                                "invalid_value", exception.getValue()
+                        ))
+        );
     }
 
     @ExceptionHandler

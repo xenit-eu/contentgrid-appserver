@@ -576,7 +576,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         }
 
         @Test
-        @Disabled("ACC-2416: returns 500 - DateTimeParseException: Text 'invalid' could not be parsed at index 0")
         void invalidDateFilterValue() throws Exception {
             mockMvc.perform(get("/customers?birthday=invalid")
                             .accept(MediaType.APPLICATION_JSON)
