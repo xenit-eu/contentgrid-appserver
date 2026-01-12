@@ -69,6 +69,7 @@ public class SimpleAttribute implements Attribute {
         DOUBLE,
         BOOLEAN,
         TEXT,
+        DATE,
         DATETIME,
         UUID;
     }

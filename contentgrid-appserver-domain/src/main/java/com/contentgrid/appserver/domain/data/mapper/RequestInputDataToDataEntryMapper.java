@@ -14,6 +14,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -79,6 +80,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             case DOUBLE -> DecimalDataEntry.class;
             case BOOLEAN -> BooleanDataEntry.class;
             case TEXT, UUID -> StringDataEntry.class;
+            case DATE -> LocalDateDataEntry.class;
             case DATETIME -> InstantDataEntry.class;
         };
         try {

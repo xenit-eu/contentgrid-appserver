@@ -9,6 +9,7 @@ public enum TechnicalDataType implements DataType {
     LONG,
     DECIMAL,
     BOOLEAN,
+    DATE,
     DATETIME,
     NULL,
     LIST,

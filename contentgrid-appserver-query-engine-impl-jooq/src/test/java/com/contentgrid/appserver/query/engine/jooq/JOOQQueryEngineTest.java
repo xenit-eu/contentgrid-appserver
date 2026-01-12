@@ -97,6 +97,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -187,12 +188,18 @@ class JOOQQueryEngineTest {
     private static final SimpleAttribute INVOICE_RECEIVED = SimpleAttribute.builder()
             .name(AttributeName.of("received"))
             .column(ColumnName.of("received"))
-            .type(Type.DATETIME)
+            .type(Type.DATE)
             .build();
 
     private static final SimpleAttribute INVOICE_PAY_BEFORE = SimpleAttribute.builder()
             .name(AttributeName.of("pay_before"))
             .column(ColumnName.of("pay_before"))
+            .type(Type.DATE)
+            .build();
+
+    private static final SimpleAttribute INVOICE_PAY_TIMESTAMP = SimpleAttribute.builder()
+            .name(AttributeName.of("pay_timestamp"))
+            .column(ColumnName.of("pay_timestamp"))
             .type(Type.DATETIME)
             .build();
 
@@ -259,6 +266,7 @@ class JOOQQueryEngineTest {
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
             .attribute(INVOICE_PAY_BEFORE)
+            .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
@@ -481,8 +489,9 @@ class JOOQQueryEngineTest {
                 .set(DSL.field(DSL.name("version"), Long.class), 150L)
                 .set(DSL.field(DSL.name("number"), String.class), "invoice_1")
                 .set(DSL.field(DSL.name("amount"), Double.class), 10.0)
-                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-01-01T00:00:00Z"))
-                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-01-31T23:59:59Z"))
+                .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-01-01"))
+                .set(DSL.field(DSL.name("pay_before"), LocalDate.class), LocalDate.parse("2025-01-31"))
+                .set(DSL.field(DSL.name("pay_timestamp"), Instant.class), Instant.parse("2025-01-22T23:59:59Z"))
                 .set(DSL.field(DSL.name("is_paid"), Boolean.class), true)
                 .set(DSL.field(DSL.name("content__id"), String.class), "content_1")
                 .set(DSL.field(DSL.name("content__filename"), String.class), "file.pdf")
@@ -499,8 +508,9 @@ class JOOQQueryEngineTest {
                 .set(DSL.field(DSL.name("version"), Long.class), 9999L)
                 .set(DSL.field(DSL.name("number"), String.class), "invoice_2")
                 .set(DSL.field(DSL.name("amount"), Double.class), 5.0)
-                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-02-01"))
+                .set(DSL.field(DSL.name("pay_before"), LocalDate.class), LocalDate.parse("2025-02-28"))
+                .set(DSL.field(DSL.name("pay_timestamp"), Instant.class), Instant.parse("2025-02-22T23:59:59Z"))
                 .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
                 // no content
                 .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
@@ -515,8 +525,9 @@ class JOOQQueryEngineTest {
                 .set(DSL.field(DSL.name("version"), Long.class), 9999L)
                 .set(DSL.field(DSL.name("number"), String.class), "invoice_3")
                 .set(DSL.field(DSL.name("amount"), Double.class), 1.0)
-                .set(DSL.field(DSL.name("received"), Instant.class), Instant.parse("2025-02-01T00:00:00Z"))
-                .set(DSL.field(DSL.name("pay_before"), Instant.class), Instant.parse("2025-02-28T23:59:59Z"))
+                .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-02-01"))
+                .set(DSL.field(DSL.name("pay_before"), LocalDate.class), LocalDate.parse("2025-02-28"))
+                .set(DSL.field(DSL.name("pay_timestamp"), Instant.class), Instant.parse("2025-02-22T23:59:59Z"))
                 .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
                 .set(DSL.field(DSL.name("content__id"), String.class), "content_3")
                 .set(DSL.field(DSL.name("content__filename"), String.class), "invoice.doc")
@@ -891,11 +902,15 @@ class JOOQQueryEngineTest {
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_RECEIVED.getName())
-                                .value(Instant.parse("2025-01-01T00:00:00Z"))
+                                .value(LocalDate.parse("2025-01-01"))
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_PAY_BEFORE.getName())
-                                .value(Instant.parse("2025-02-01T00:00:00Z"))
+                                .value(LocalDate.parse("2025-02-01"))
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(INVOICE_PAY_TIMESTAMP.getName())
+                                .value(Instant.parse("2025-01-22T22:22:22Z"))
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_IS_PAID.getName())
@@ -1414,11 +1429,15 @@ class JOOQQueryEngineTest {
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_RECEIVED.getName())
-                                .value(Instant.parse("2025-01-01T00:00:00Z"))
+                                .value(LocalDate.parse("2025-01-01"))
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_PAY_BEFORE.getName())
-                                .value(Instant.parse("2025-02-01T00:00:00Z"))
+                                .value(LocalDate.parse("2025-02-01"))
+                                .build())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(INVOICE_PAY_TIMESTAMP.getName())
+                                .value(Instant.parse("2025-01-22T22:22:22Z"))
                                 .build())
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_IS_PAID.getName())

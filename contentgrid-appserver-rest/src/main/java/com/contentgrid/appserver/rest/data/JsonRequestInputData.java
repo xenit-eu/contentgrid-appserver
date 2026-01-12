@@ -5,6 +5,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,7 @@ public class JsonRequestInputData implements RequestInputData {
             new ClassMapping<>(BooleanDataEntry.class, Boolean.class, BooleanDataEntry::new),
             new ClassMapping<>(LongDataEntry.class, Long.class, LongDataEntry::new),
             new ClassMapping<>(DecimalDataEntry.class, BigDecimal.class, DecimalDataEntry::new),
+            new ClassMapping<>(LocalDateDataEntry.class, LocalDate.class, LocalDateDataEntry::new),
             new ClassMapping<>(InstantDataEntry.class, Instant.class, InstantDataEntry::new)
     ).collect(Collectors.toUnmodifiableMap(ClassMapping::dataEntryClass, Function.identity()));
 

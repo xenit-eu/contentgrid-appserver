@@ -11,6 +11,7 @@ import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,10 +106,11 @@ public class EntityDataConverter {
                     throw new IllegalInputDataException("Expected value to be a boolean, got %s".formatted(value.getClass().getSimpleName()));
                 }
             }
-            case DATETIME -> {
-                if (!(value instanceof Temporal)) {
-                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
-                            .formatted(Temporal.class.getSimpleName(), value.getClass().getSimpleName()));
+            case DATE, DATETIME -> {
+                var temporalTypes = Stream.of(Temporal.class, Date.class);
+                if (temporalTypes.noneMatch(clazz -> clazz.isInstance(value))) {
+                    throw new IllegalInputDataException("Expected value to be a temporal type, got %s"
+                            .formatted(value.getClass().getSimpleName()));
                 }
             }
             case UUID -> {

@@ -116,12 +116,18 @@ class JOOQTableCreatorTest {
     private static final SimpleAttribute INVOICE_RECEIVED = SimpleAttribute.builder()
             .name(AttributeName.of("received"))
             .column(ColumnName.of("received"))
-            .type(Type.DATETIME)
+            .type(Type.DATE)
             .build();
 
     private static final SimpleAttribute INVOICE_PAY_BEFORE = SimpleAttribute.builder()
             .name(AttributeName.of("pay_before"))
             .column(ColumnName.of("pay_before"))
+            .type(Type.DATE)
+            .build();
+
+    private static final SimpleAttribute INVOICE_PAY_TIMESTAMP = SimpleAttribute.builder()
+            .name(AttributeName.of("pay_timestamp"))
+            .column(ColumnName.of("pay_timestamp"))
             .type(Type.DATETIME)
             .build();
 
@@ -180,6 +186,7 @@ class JOOQTableCreatorTest {
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
             .attribute(INVOICE_PAY_BEFORE)
+            .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
@@ -354,12 +361,13 @@ class JOOQTableCreatorTest {
 
         var columnInfo = getColumnInfo("public", "invoice");
 
-        assertEquals(18, columnInfo.size());
+        assertEquals(19, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
         assertEquals("text", columnInfo.get("number"));
         assertDecimal(columnInfo.get("amount"));
-        assertEquals("timestamptz", columnInfo.get("received"));
-        assertEquals("timestamptz", columnInfo.get("pay_before"));
+        assertEquals("date", columnInfo.get("received"));
+        assertEquals("date", columnInfo.get("pay_before"));
+        assertEquals("timestamptz", columnInfo.get("pay_timestamp"));
         assertBoolean(columnInfo.get("is_paid"));
         assertEquals("text", columnInfo.get("content__id"));
         assertEquals("text", columnInfo.get("content__filename"));
@@ -420,7 +428,7 @@ class JOOQTableCreatorTest {
         var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
         assertEquals(3, personInfo.size()); // unchanged
-        assertEquals(19, invoiceInfo.size());
+        assertEquals(20, invoiceInfo.size());
         assertEquals("uuid", invoiceInfo.get("customer"));
 
         assertEquals(1, invoiceForeignKeys.size());
@@ -479,7 +487,7 @@ class JOOQTableCreatorTest {
         var columnInfo = getColumnInfo("public", "invoice");
         var foreignKeys = getForeignKeys("public", "invoice");
 
-        assertEquals(19, columnInfo.size());
+        assertEquals(20, columnInfo.size());
         assertEquals("uuid", columnInfo.get("next_invoice"));
         assertNull(columnInfo.get("previous_invoice"));
 

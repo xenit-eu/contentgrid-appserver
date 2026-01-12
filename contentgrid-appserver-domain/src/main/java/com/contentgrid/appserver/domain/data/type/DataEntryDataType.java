@@ -6,6 +6,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
@@ -33,6 +34,7 @@ final class DataEntryDataType {
         MAPPING.put(RelationDataEntry.class, RelationDataType.simple());
         MAPPING.put(MultipleRelationDataEntry.class, RelationListDataType.simple());
         MAPPING.put(FileDataEntry.class, TechnicalDataType.CONTENT);
+        MAPPING.put(LocalDateDataEntry.class, TechnicalDataType.DATE);
         MAPPING.put(InstantDataEntry.class, TechnicalDataType.DATETIME);
         MAPPING.put(MissingDataEntry.class, TechnicalDataType.MISSING);
     }
@@ -55,6 +57,7 @@ final class DataEntryDataType {
             case FileDataEntry ignored -> TechnicalDataType.CONTENT;
             case BooleanDataEntry ignored -> TechnicalDataType.BOOLEAN;
             case DecimalDataEntry ignored -> TechnicalDataType.DECIMAL;
+            case LocalDateDataEntry ignored -> TechnicalDataType.DATE;
             case InstantDataEntry ignored -> TechnicalDataType.DATETIME;
             case LongDataEntry ignored -> TechnicalDataType.LONG;
             case MissingDataEntry ignored -> TechnicalDataType.MISSING;

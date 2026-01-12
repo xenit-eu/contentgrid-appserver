@@ -103,6 +103,7 @@ public class JOOQUtils {
             case LONG -> SQLDataType.BIGINT;
             case DOUBLE -> SQLDataType.DECIMAL;
             case BOOLEAN -> SQLDataType.BOOLEAN;
+            case DATE -> SQLDataType.LOCALDATE;
             case DATETIME -> SQLDataType.INSTANT;
         };
         return dataType.nullable(!required);
