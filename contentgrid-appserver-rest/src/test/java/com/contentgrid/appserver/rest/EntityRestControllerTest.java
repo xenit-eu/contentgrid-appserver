@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -738,6 +739,108 @@ class EntityRestControllerTest {
                     .andExpect(content().contentType(MediaTypes.HAL_JSON))
                     .andExpect(jsonPath("$._embedded.item").isArray())
                     .andExpect(jsonPath("$._embedded.item[0]").doesNotExist());
+        }
+
+        static Stream<Arguments> testListEntityInstances_withQueryParam() {
+            return Stream.of(
+                    Arguments.of("?number=invoice1", 1),
+                    Arguments.of("?amount=12.0", 1),
+                    Arguments.of("?amount~gt=10.0&amount~lt=20.0", 1),
+                    Arguments.of("?amount~gte=12.0&amount~lte=12.5", 1),
+                    Arguments.of("?received~after=2024-01-01&received~before=2025-01-02", 1),
+                    Arguments.of("?received~from=2024-01-01&received~to=2025-01-01", 1),
+                    Arguments.of("?pay_before~after=2025-01-31&pay_before~before=2026-01-31", 1),
+                    Arguments.of("?pay_before~from=2025-01-31&pay_before~to=2025-02-28", 1),
+                    Arguments.of("?pay_timestamp~after=2025-01-02T00:00:00.000Z&pay_timestamp~before=2025-01-02T23:59:59.999Z", 1),
+                    Arguments.of("?confidentiality=public", 1),
+                    Arguments.of("?customer=00000000-0000-0000-0000-000000000000", 0),
+                    Arguments.of("?customer.name~prefix=a", 1),
+                    Arguments.of("?customer.vat=vat1", 1),
+                    Arguments.of("?previous_invoice.number=invoice1", 1),
+                    Arguments.of("?previous_invoice.confidentiality=confidential", 1),
+                    Arguments.of("?next_invoice.number=invoice2", 1),
+                    Arguments.of("?next_invoice.confidentiality=public", 1)
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void testListEntityInstances_withQueryParam(String queryParams, int results) throws Exception {
+            var person1 = new HashMap<String, Object>();
+            person1.put("name", "Alice");
+            person1.put("vat", "vat1");
+            person1.put("age", 12);
+
+            // Add first person
+            var person1response = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(person1)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+
+            var person1link = person1response.getHeader(HttpHeaders.LOCATION);
+            assertThat(person1link).isNotBlank();
+
+            var invoice1 = new HashMap<String, Object>();
+            invoice1.put("number", "invoice1");
+            invoice1.put("amount", 12.0);
+            invoice1.put("received", "2025-01-01");
+            invoice1.put("pay_before", "2026-01-01");
+            invoice1.put("pay_timestamp", "2025-06-05T04:03:02.001Z");
+            invoice1.put("is_paid", true);
+            invoice1.put("confidentiality", "confidential");
+            invoice1.put("customer", person1link);
+
+            // Add first invoice
+            var invoice1response = mockMvc.perform(post("/invoices")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(invoice1)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+
+            var invoice1link = invoice1response.getHeader(HttpHeaders.LOCATION);
+            assertThat(invoice1link).isNotBlank();
+
+            var person2 = new HashMap<String, Object>();
+            person2.put("name", "Bob");
+            person2.put("vat", "vat2");
+            person2.put("age", 20);
+
+            // Add second person
+            var person2response = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(person2)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+
+            var person2link = person2response.getHeader(HttpHeaders.LOCATION);
+            assertThat(person2link).isNotBlank();
+
+            var invoice2 = new HashMap<String, Object>();
+            invoice2.put("number", "invoice2");
+            invoice2.put("amount", 20.0);
+            invoice2.put("received", "2025-01-02");
+            invoice2.put("pay_before", "2025-01-31");
+            invoice2.put("pay_timestamp", "2025-01-02T03:04:05.006Z");
+            invoice2.put("is_paid", false);
+            invoice2.put("confidentiality", "public");
+            invoice2.put("customer", person2link);
+            invoice2.put("previous_invoice", invoice1link);
+
+            // Add second invoice
+            mockMvc.perform(post("/invoices")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(invoice2)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+
+            mockMvc.perform(get("/invoices" + queryParams))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$._embedded.item.length()", is(results)));
         }
 
         @Test
