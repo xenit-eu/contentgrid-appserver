@@ -159,6 +159,12 @@ class ProfileRestControllerTest {
                                         }, {
                                             name: "received~before",
                                             type: "less-than"
+                                        }, {
+                                            name: "received~from",
+                                            type: "greater-than-or-equal"
+                                        }, {
+                                            name: "received~to",
+                                            type: "less-than-or-equal"
                                         }]
                                     }
                                 }, {
@@ -171,6 +177,12 @@ class ProfileRestControllerTest {
                                         }, {
                                             name: "pay_before~before",
                                             type: "less-than"
+                                        }, {
+                                            name: "pay_before~from",
+                                            type: "greater-than-or-equal"
+                                        }, {
+                                            name: "pay_before~to",
+                                            type: "less-than-or-equal"
                                         }]
                                     }
                                 }, {
@@ -340,10 +352,22 @@ class ProfileRestControllerTest {
                                         name: "received~before",
                                         type: "date"
                                     }, {
+                                        name: "received~from",
+                                        type: "date"
+                                    }, {
+                                        name: "received~to",
+                                        type: "date"
+                                    }, {
                                         name: "pay_before~after",
                                         type: "date"
                                     }, {
                                         name: "pay_before~before",
+                                        type: "date"
+                                    }, {
+                                        name: "pay_before~from",
+                                        type: "date"
+                                    }, {
+                                        name: "pay_before~to",
                                         type: "date"
                                     }, {
                                         name: "pay_timestamp~after",
@@ -665,10 +689,22 @@ class ProfileRestControllerTest {
                                             name: "invoices.received~before"
                                         },
                                         {
+                                            name: "invoices.received~from"
+                                        },
+                                        {
+                                            name: "invoices.received~to"
+                                        },
+                                        {
                                             name: "invoices.pay_before~after"
                                         },
                                         {
                                             name: "invoices.pay_before~before"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~from"
+                                        },
+                                        {
+                                            name: "invoices.pay_before~to"
                                         },
                                         {
                                             name: "invoices.pay_timestamp~after"

@@ -368,6 +368,14 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(receivedBefore.getName()).isEqualTo("received~before");
                     assertThat(receivedBefore.getType()).isEqualTo("date");
                 },
+                receivedFrom -> {
+                    assertThat(receivedFrom.getName()).isEqualTo("received~from");
+                    assertThat(receivedFrom.getType()).isEqualTo("date");
+                },
+                receivedTo -> {
+                    assertThat(receivedTo.getName()).isEqualTo("received~to");
+                    assertThat(receivedTo.getType()).isEqualTo("date");
+                },
                 payBeforeAfter -> {
                     assertThat(payBeforeAfter.getName()).isEqualTo("pay_before~after");
                     assertThat(payBeforeAfter.getType()).isEqualTo("date");
@@ -375,6 +383,14 @@ class HalFormsTemplateGeneratorTest {
                 payBeforeBefore -> {
                     assertThat(payBeforeBefore.getName()).isEqualTo("pay_before~before");
                     assertThat(payBeforeBefore.getType()).isEqualTo("date");
+                },
+                payBeforeFrom -> {
+                    assertThat(payBeforeFrom.getName()).isEqualTo("pay_before~from");
+                    assertThat(payBeforeFrom.getType()).isEqualTo("date");
+                },
+                payBeforeTo -> {
+                    assertThat(payBeforeTo.getName()).isEqualTo("pay_before~to");
+                    assertThat(payBeforeTo.getType()).isEqualTo("date");
                 },
                 payTimestampAfter -> {
                     assertThat(payTimestampAfter.getName()).isEqualTo("pay_timestamp~after");
@@ -576,6 +592,14 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(invoicesReceivedBefore.getName()).isEqualTo("invoices.received~before");
                     assertThat(invoicesReceivedBefore.getType()).isEqualTo("date");
                 },
+                invoicesReceivedFrom -> {
+                    assertThat(invoicesReceivedFrom.getName()).isEqualTo("invoices.received~from");
+                    assertThat(invoicesReceivedFrom.getType()).isEqualTo("date");
+                },
+                invoicesReceivedTo -> {
+                    assertThat(invoicesReceivedTo.getName()).isEqualTo("invoices.received~to");
+                    assertThat(invoicesReceivedTo.getType()).isEqualTo("date");
+                },
                 invoicesPayBeforeAfter -> {
                     assertThat(invoicesPayBeforeAfter.getName()).isEqualTo("invoices.pay_before~after");
                     assertThat(invoicesPayBeforeAfter.getType()).isEqualTo("date");
@@ -583,6 +607,14 @@ class HalFormsTemplateGeneratorTest {
                 invoicesPayBeforeBefore -> {
                     assertThat(invoicesPayBeforeBefore.getName()).isEqualTo("invoices.pay_before~before");
                     assertThat(invoicesPayBeforeBefore.getType()).isEqualTo("date");
+                },
+                invoicesPayBeforeFrom -> {
+                    assertThat(invoicesPayBeforeFrom.getName()).isEqualTo("invoices.pay_before~from");
+                    assertThat(invoicesPayBeforeFrom.getType()).isEqualTo("date");
+                },
+                invoicesPayBeforeTo -> {
+                    assertThat(invoicesPayBeforeTo.getName()).isEqualTo("invoices.pay_before~to");
+                    assertThat(invoicesPayBeforeTo.getType()).isEqualTo("date");
                 },
                 invoicesPayTimestampAfter -> {
                     assertThat(invoicesPayTimestampAfter.getName()).isEqualTo("invoices.pay_timestamp~after");
