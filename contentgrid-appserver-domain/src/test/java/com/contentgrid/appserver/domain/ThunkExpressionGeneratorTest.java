@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -19,6 +20,7 @@ import com.contentgrid.appserver.application.model.relations.Relation.RelationEn
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -30,6 +32,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidParameterException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -42,6 +45,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -117,6 +121,16 @@ class ThunkExpressionGeneratorTest {
                     .build())
             .build();
 
+    private static final ContentAttribute CONTENT_ATTR = ContentAttribute.builder()
+            .name(AttributeName.of("content"))
+            .pathSegment(PathSegmentName.of("content"))
+            .linkName(LinkName.of("content"))
+            .idColumn(ColumnName.of("content__id"))
+            .filenameColumn(ColumnName.of("content__filename"))
+            .mimetypeColumn(ColumnName.of("content__mimetype"))
+            .lengthColumn(ColumnName.of("content__length"))
+            .build();
+
     private static final Entity testEntity = Entity.builder()
             .name(EntityName.of("testEntity"))
             .table(TableName.of("test_entity"))
@@ -130,6 +144,7 @@ class ThunkExpressionGeneratorTest {
             .attribute(DATE_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
+            .attribute(CONTENT_ATTR)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("count"))
@@ -259,6 +274,11 @@ class ThunkExpressionGeneratorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("shipment.destination"))
                     .attributePath(PropertyPath.of(RelationName.of("shipment"), AttributeName.of("destination")))
+                    .build())
+            .searchFilter(FullTextSearchContentAttributeSearchFilter.builder()
+                    .name(FilterName.of("content~fts"))
+                    .attribute(CONTENT_ATTR)
+                    .locale(Locale.ENGLISH)
                     .build())
             .build();
 
@@ -834,5 +854,28 @@ class ThunkExpressionGeneratorTest {
                 comparison.getLeftTerm()
         );
         assertEquals(Scalar.of("A unicorn"), comparison.getRightTerm());
+    }
+
+    @Test
+    void contentFullTextSearch() {
+        Map<String, List<String>> params = Map.of("content~fts", List.of("I am your father"));
+        var entity = testApplication.getEntityByName(EntityName.of("testEntity")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+
+        assertInstanceOf(StringComparison.ContentGridFullTextSearch.class, result);
+        StringComparison.ContentGridFullTextSearch comparison = (StringComparison.ContentGridFullTextSearch) result;
+
+        assertEquals(Locale.ENGLISH, comparison.getLocale());
+        // Check that left term of comparison is the correct reference to the hidden text attribute
+        String textAttrName = FullTextSearchContentAttributeSearchFilter.HIDDEN_EXTRACTED_TEXT_ATTRIBUTE_FORMAT.formatted(CONTENT_ATTR.getName());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path(textAttrName)
+                ),
+                comparison.getLeftTerm()
+        );
+        // Right term should be the search term
+        assertEquals(Scalar.of("I am your father"), comparison.getRightTerm());
     }
 }

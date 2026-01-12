@@ -6,6 +6,8 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.SyntheticAttributeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
@@ -17,6 +19,7 @@ import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -197,6 +200,24 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
+
+        // Look for any FullTextSearchContentAttributeSearchFilter defined on a content attribute of this entity.
+        // If these exist, create an attribute on the entity that will be used to store the content text.
+        searchFilters.forEach(
+                searchFilter -> {
+                    if (searchFilter instanceof FullTextSearchContentAttributeSearchFilter ftsContentFilter) {
+                        // Create a hidden attribute on this entity that will be used to store the extracted text.
+                        String attributeName = ftsContentFilter.getHiddenTextAttributeFormattedName();
+                        Attribute hiddenTextAttribute = SimpleAttribute.builder()
+                                .name(AttributeName.of(attributeName))
+                                .column(ColumnName.of(attributeName))
+                                .type(Type.TEXT)
+                                .flag(SyntheticAttributeFlag.INSTANCE)
+                                .build();
+                        this.attributes.put(AttributeName.of(attributeName), hiddenTextAttribute);
+                    }
+                }
+        );
     }
 
     /**
