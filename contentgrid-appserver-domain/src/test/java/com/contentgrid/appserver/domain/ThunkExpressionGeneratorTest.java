@@ -29,7 +29,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.exception.InvalidParameterException;
+import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -648,8 +648,8 @@ class ThunkExpressionGeneratorTest {
         Map<String, List<String>> params = new HashMap<>();
         params.put("count", List.of("not a number"));
 
-        InvalidParameterException exception = assertThrows(
-                InvalidParameterException.class,
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
@@ -663,8 +663,8 @@ class ThunkExpressionGeneratorTest {
         Map<String, List<String>> params = new HashMap<>();
         params.put("price", List.of("not a decimal"));
 
-        InvalidParameterException exception = assertThrows(
-                InvalidParameterException.class,
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
@@ -679,8 +679,8 @@ class ThunkExpressionGeneratorTest {
         Map<String, List<String>> params = new HashMap<>();
         params.put("event_date", List.of(value));
 
-        InvalidParameterException exception = assertThrows(
-                InvalidParameterException.class,
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
@@ -695,8 +695,8 @@ class ThunkExpressionGeneratorTest {
         Map<String, List<String>> params = new HashMap<>();
         params.put("arrival_timestamp", List.of(value));
 
-        InvalidParameterException exception = assertThrows(
-                InvalidParameterException.class,
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
@@ -710,8 +710,8 @@ class ThunkExpressionGeneratorTest {
         Map<String, List<String>> params = new HashMap<>();
         params.put("id", List.of("not a uuid"));
 
-        InvalidParameterException exception = assertThrows(
-                InvalidParameterException.class,
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 

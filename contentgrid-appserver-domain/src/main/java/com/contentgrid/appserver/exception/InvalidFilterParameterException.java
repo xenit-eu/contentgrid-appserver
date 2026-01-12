@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 @Getter
-public class InvalidParameterException extends IllegalArgumentException {
+public class InvalidFilterParameterException extends IllegalArgumentException {
     private final String entityName;
     @NonNull
     private final String filterName;
@@ -18,7 +18,7 @@ public class InvalidParameterException extends IllegalArgumentException {
     private static final String templateWithoutEntity = "Invalid argument for filter %s:"
             + " Could not convert value '%s' to %s";
 
-    public InvalidParameterException(String entityName, @NonNull String filterName, @NonNull Type type,
+    public InvalidFilterParameterException(String entityName, @NonNull String filterName, @NonNull Type type,
             String value, Throwable cause) {
         super(entityName == null
                 ? templateWithoutEntity.formatted(filterName, value, type)
@@ -31,13 +31,13 @@ public class InvalidParameterException extends IllegalArgumentException {
         this.value = value;
     }
 
-    public InvalidParameterException(@NonNull String filterName, @NonNull Type type, String value, Throwable cause) {
+    public InvalidFilterParameterException(@NonNull String filterName, @NonNull Type type, String value, Throwable cause) {
         this(null, filterName, type, value, cause);
     }
-    public InvalidParameterException(String entityName, @NonNull String filterName, @NonNull Type type, String value) {
+    public InvalidFilterParameterException(String entityName, @NonNull String filterName, @NonNull Type type, String value) {
         this(entityName, filterName, type, value, null);
     }
-    public InvalidParameterException(@NonNull String filterName, @NonNull Type type, String value) {
+    public InvalidFilterParameterException(@NonNull String filterName, @NonNull Type type, String value) {
         this(null, filterName, type, value, null);
     }
 }

@@ -14,7 +14,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
-import com.contentgrid.appserver.exception.InvalidParameterException;
+import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -37,7 +37,7 @@ public class ThunkExpressionGenerator {
 
     static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, List<String>> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
-        var collector = new ValidationExceptionCollector<>(InvalidParameterException.class);
+        var collector = new ValidationExceptionCollector<>(InvalidFilterParameterException.class);
 
         collector.use(() -> {
             for (Map.Entry<String, List<String>> entry : params.entrySet()) {
@@ -59,7 +59,7 @@ public class ThunkExpressionGenerator {
                     try {
                         pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
                     } catch (IllegalArgumentException e) {
-                        throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                        throw new InvalidFilterParameterException(entity.getName().getValue(), entry.getKey(),
                                 attribute.getType(), entry.getValue().toString(), e);
                     }
 
@@ -74,7 +74,7 @@ public class ThunkExpressionGenerator {
                                     parsedValue
                             ));
                         } catch (Exception e) {
-                            throw new InvalidParameterException(entity.getName().getValue(), entry.getKey(),
+                            throw new InvalidFilterParameterException(entity.getName().getValue(), entry.getKey(),
                                     attribute.getType(), value, e);
                         }
                     }
