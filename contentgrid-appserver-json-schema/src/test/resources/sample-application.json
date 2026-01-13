@@ -158,7 +158,7 @@
           "description": "Date when the employee was hired",
           "type": "simple",
           "columnName": "hire_date",
-          "dataType": "datetime"
+          "dataType": "date"
         },
         {
           "name": "salary",

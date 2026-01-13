@@ -297,6 +297,7 @@
             "double",
             "boolean",
             "text",
+            "date",
             "datetime",
             "uuid"
           ]
