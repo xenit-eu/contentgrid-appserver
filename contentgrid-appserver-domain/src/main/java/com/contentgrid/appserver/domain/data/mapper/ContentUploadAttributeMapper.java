@@ -4,7 +4,8 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentReference;
+import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
@@ -23,64 +24,119 @@ import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
 @RequiredArgsConstructor
-public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMapper {
+public class ContentUploadAttributeMapper
+    extends AbstractDescendingAttributeMapper
+{
 
-    private final ContentStore contentStore;
+    private final ContentStoreRegistry contentStoreRegistry;
 
     @Override
-    protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData) {
+    protected Optional<DataEntry> mapSimpleAttribute(
+        AttributePath path,
+        SimpleAttribute simpleAttribute,
+        DataEntry inputData
+    ) {
         return Optional.of(inputData);
     }
 
     @Override
-    protected Optional<DataEntry> mapCompositeAttribute(AttributePath path, CompositeAttribute compositeAttribute, DataEntry inputData) throws InvalidDataException {
-        var result = super.mapCompositeAttribute(path, compositeAttribute, inputData);
-        if(compositeAttribute instanceof ContentAttribute contentAttribute && inputData instanceof MapDataEntry mapDataEntry) {
+    protected Optional<DataEntry> mapCompositeAttribute(
+        AttributePath path,
+        CompositeAttribute compositeAttribute,
+        DataEntry inputData
+    ) throws InvalidDataException {
+        var result = super.mapCompositeAttribute(
+            path,
+            compositeAttribute,
+            inputData
+        );
+        if (
+            compositeAttribute instanceof ContentAttribute contentAttribute &&
+            inputData instanceof MapDataEntry mapDataEntry
+        ) {
             // Remove file id and size from attributes that can be set
             var blockedAttributes = Set.of(
-                    contentAttribute.getId().getName().getValue(),
-                    contentAttribute.getLength().getName().getValue()
+                contentAttribute.getId().getName().getValue(),
+                contentAttribute.getLength().getName().getValue()
             );
             var newMapBuilder = MapDataEntry.builder();
-            mapDataEntry.getItems()
-                    .entrySet()
-                    .stream()
-                    .filter(item -> !blockedAttributes.contains(item.getKey()))
-                    .forEach(entry -> newMapBuilder.item(entry.getKey(), entry.getValue()));
+            mapDataEntry
+                .getItems()
+                .entrySet()
+                .stream()
+                .filter(item -> !blockedAttributes.contains(item.getKey()))
+                .forEach(entry ->
+                    newMapBuilder.item(entry.getKey(), entry.getValue())
+                );
             return Optional.of(newMapBuilder.build());
         }
         return result;
     }
 
     @Override
-    protected Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute, DataEntry inputData) throws InvalidDataException {
-        if(attribute instanceof ContentAttribute contentAttribute && inputData instanceof FileDataEntry fileDataEntry) {
+    protected Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(
+        AttributePath path,
+        CompositeAttribute attribute,
+        DataEntry inputData
+    ) throws InvalidDataException {
+        if (
+            attribute instanceof ContentAttribute contentAttribute &&
+            inputData instanceof FileDataEntry fileDataEntry
+        ) {
             MimeType mimeType;
             try {
-                mimeType = MimeTypeUtils.parseMimeType(fileDataEntry.getContentType());
-                if(!mimeType.isConcrete()) {
-                    throw new InvalidMimeTypeException(fileDataEntry.getContentType(), "Must be concrete");
+                mimeType = MimeTypeUtils.parseMimeType(
+                    fileDataEntry.getContentType()
+                );
+                if (!mimeType.isConcrete()) {
+                    throw new InvalidMimeTypeException(
+                        fileDataEntry.getContentType(),
+                        "Must be concrete"
+                    );
                 }
             } catch (InvalidMimeTypeException invalidMimeTypeException) {
-                throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
+                throw new InvalidDataFormatException(
+                    DataType.of(FileDataEntry.class),
+                    invalidMimeTypeException
+                );
             }
             try {
-                var contentAccessor = contentStore.writeContent(fileDataEntry.getInputStream());
+                var contentAccessor = contentStoreRegistry
+                    .getWriteStore()
+                    .writeContent(fileDataEntry.getInputStream());
+
+                // Create reference with store ID
+                var contentRef = ContentReference.of(
+                    contentStoreRegistry.getWriteStoreId(),
+                    contentAccessor.getReference().getValue()
+                );
 
                 var builder = MapDataEntry.builder();
-                builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))
-                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(contentAccessor.getContentSize()))
-                        .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
+                builder
+                    .item(
+                        contentAttribute.getId().getName().getValue(),
+                        new StringDataEntry(contentRef.toStorageFormat())
+                    )
+                    .item(
+                        contentAttribute.getLength().getName().getValue(),
+                        new LongDataEntry(contentAccessor.getContentSize())
+                    )
+                    .item(
+                        contentAttribute.getMimetype().getName().getValue(),
+                        new StringDataEntry(mimeType.toString())
+                    );
 
-                if(fileDataEntry.getFilename() != null) {
-                    builder.item(contentAttribute.getFilename().getName().getValue(), new StringDataEntry(fileDataEntry.getFilename()));
+                if (fileDataEntry.getFilename() != null) {
+                    builder.item(
+                        contentAttribute.getFilename().getName().getValue(),
+                        new StringDataEntry(fileDataEntry.getFilename())
+                    );
                 }
 
                 return Optional.of(builder.build());
-            } catch (UnwritableContentException|IOException e) {
+            } catch (UnwritableContentException | IOException e) {
                 throw new RuntimeException(e);
             }
-
         }
         return Optional.of(inputData);
     }

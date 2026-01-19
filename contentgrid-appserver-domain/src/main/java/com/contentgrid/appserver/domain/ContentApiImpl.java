@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
@@ -38,84 +38,137 @@ import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
 public class ContentApiImpl implements ContentApi {
+
     private final DatamodelApiImpl datamodelApi;
-    private final ContentStore contentStore;
+    private final ContentStoreRegistry contentStoreRegistry;
 
     private AttributeDataContent extractContent(
-            @NonNull Application application,
-            @NonNull InternalEntityInstance entityData,
-            @NonNull AttributeName attributeName
+        @NonNull Application application,
+        @NonNull InternalEntityInstance entityData,
+        @NonNull AttributeName attributeName
     ) {
-        var contentAttribute = application.getRequiredEntityByName(entityData.getIdentity().getEntityName())
-                .getAttributeByName(attributeName)
-                .filter(ContentAttribute.class::isInstance)
-                .map(ContentAttribute.class::cast)
-                .orElseThrow(); // TODO: throw a properly typed exception when the wrong attribute name is given
+        var contentAttribute = application
+            .getRequiredEntityByName(entityData.getIdentity().getEntityName())
+            .getAttributeByName(attributeName)
+            .filter(ContentAttribute.class::isInstance)
+            .map(ContentAttribute.class::cast)
+            .orElseThrow(); // TODO: throw a properly typed exception when the wrong attribute name is given
 
         return new AttributeDataContent(
-                contentAttribute,
-                entityData.getByAttributeName(attributeName, CompositeAttributeData.class).orElse(null)
+            contentAttribute,
+            entityData
+                .getByAttributeName(attributeName, CompositeAttributeData.class)
+                .orElse(null)
         );
     }
 
     @Override
-    public Optional<Content> find(@NonNull Application application, @NonNull EntityName entityName,
-            @NonNull EntityId id, @NonNull AttributeName attributeName,
-            @NonNull AuthorizationContext authorizationContext) {
-
-        var entityData = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
-                .orElseThrow(() -> new EntityIdNotFoundException(entityName, id));
-        return Optional.of(extractContent(application, entityData, attributeName))
-                .filter(content -> content.getContentId().isPresent())
-                .map(Content.class::cast);
+    public Optional<Content> find(
+        @NonNull Application application,
+        @NonNull EntityName entityName,
+        @NonNull EntityId id,
+        @NonNull AttributeName attributeName,
+        @NonNull AuthorizationContext authorizationContext
+    ) {
+        var entityData = datamodelApi
+            .findById(
+                application,
+                EntityRequest.forEntity(entityName, id),
+                authorizationContext
+            )
+            .orElseThrow(() -> new EntityIdNotFoundException(entityName, id));
+        return Optional.of(
+            extractContent(application, entityData, attributeName)
+        )
+            .filter(content -> content.getContentId().isPresent())
+            .map(Content.class::cast);
     }
 
     @Override
-    public Content update(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
-            @NonNull DataEntry.FileDataEntry file, @NonNull AuthorizationContext authorizationContext
+    public Content update(
+        @NonNull Application application,
+        @NonNull EntityName entityName,
+        @NonNull EntityId id,
+        @NonNull AttributeName attributeName,
+        @NonNull VersionConstraint versionConstraint,
+        @NonNull DataEntry.FileDataEntry file,
+        @NonNull AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
-        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
-                authorizationContext);
+        var original = requireEntityWithConstraint(
+            application,
+            entityName,
+            id,
+            attributeName,
+            versionConstraint,
+            authorizationContext
+        );
 
-        var updated = datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
-                attributeName.getValue(), file
-        )), authorizationContext);
+        var updated = datamodelApi.updatePartial(
+            application,
+            original,
+            MapRequestInputData.fromMap(Map.of(attributeName.getValue(), file)),
+            authorizationContext
+        );
 
         return extractContent(application, updated, attributeName);
     }
 
     private InternalEntityInstance requireEntityWithConstraint(
-            Application application,
-            EntityName entityName,
-            EntityId id,
-            AttributeName attributeName,
-            VersionConstraint versionConstraint,
-            @NonNull AuthorizationContext authorizationContext) {
-        var original = datamodelApi.findById(application, EntityRequest.forEntity(entityName, id), authorizationContext)
-                .orElseThrow(() -> new EntityIdNotFoundException(
-                        entityName, id));
+        Application application,
+        EntityName entityName,
+        EntityId id,
+        AttributeName attributeName,
+        VersionConstraint versionConstraint,
+        @NonNull AuthorizationContext authorizationContext
+    ) {
+        var original = datamodelApi
+            .findById(
+                application,
+                EntityRequest.forEntity(entityName, id),
+                authorizationContext
+            )
+            .orElseThrow(() -> new EntityIdNotFoundException(entityName, id));
 
-        var contentVersion = extractContent(application, original, attributeName).getVersion();
+        var contentVersion = extractContent(
+            application,
+            original,
+            attributeName
+        ).getVersion();
 
-        if(!versionConstraint.isSatisfiedBy(contentVersion)) {
+        if (!versionConstraint.isSatisfiedBy(contentVersion)) {
             throw new UnsatisfiedVersionException(
-                    contentVersion,
-                    versionConstraint
+                contentVersion,
+                versionConstraint
             );
         }
         return original;
     }
 
     @Override
-    public void delete(@NonNull Application application, @NonNull EntityName entityName, @NonNull EntityId id,
-            @NonNull AttributeName attributeName, @NonNull VersionConstraint versionConstraint,
-            @NonNull AuthorizationContext authorizationContext) throws InvalidPropertyDataException {
-        var original = requireEntityWithConstraint(application, entityName, id, attributeName, versionConstraint,
-                authorizationContext);
-        datamodelApi.updatePartial(application, original, MapRequestInputData.fromMap(Map.of(
-                attributeName.getValue(), NullDataEntry.INSTANCE
-        )), authorizationContext);
+    public void delete(
+        @NonNull Application application,
+        @NonNull EntityName entityName,
+        @NonNull EntityId id,
+        @NonNull AttributeName attributeName,
+        @NonNull VersionConstraint versionConstraint,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws InvalidPropertyDataException {
+        var original = requireEntityWithConstraint(
+            application,
+            entityName,
+            id,
+            attributeName,
+            versionConstraint,
+            authorizationContext
+        );
+        datamodelApi.updatePartial(
+            application,
+            original,
+            MapRequestInputData.fromMap(
+                Map.of(attributeName.getValue(), NullDataEntry.INSTANCE)
+            ),
+            authorizationContext
+        );
     }
 
     // package-private for testing
@@ -134,47 +187,59 @@ public class ContentApiImpl implements ContentApi {
 
     @RequiredArgsConstructor
     private class AttributeDataContent implements Content {
+
         @NonNull
         private final ContentAttribute contentAttribute;
+
         private final CompositeAttributeData attributeData;
 
         @NonNull
         private final ContentRangeRequest contentRange;
 
         public AttributeDataContent(
-                ContentAttribute contentAttribute,
-                CompositeAttributeData attributeData
+            ContentAttribute contentAttribute,
+            CompositeAttributeData attributeData
         ) {
-            this(contentAttribute, attributeData, ContentRangeRequest.createRange(0));
+            this(
+                contentAttribute,
+                attributeData,
+                ContentRangeRequest.createRange(0)
+            );
         }
 
         protected Optional<ContentReference> getContentId() {
-            return Optional.ofNullable(getAttribute(contentAttribute.getId(), String.class))
-                    .map(ContentReference::of);
+            return Optional.ofNullable(
+                getAttribute(contentAttribute.getId(), String.class)
+            ).map(ContentReference::parse);
         }
 
         @SneakyThrows
         @Override
         public Content withByteRange(long start, long endInclusive) {
-            return new AttributeDataContent(contentAttribute, attributeData, ContentRangeRequest.createRange(start, endInclusive));
+            return new AttributeDataContent(
+                contentAttribute,
+                attributeData,
+                ContentRangeRequest.createRange(start, endInclusive)
+            );
         }
 
         private <T> T getAttribute(SimpleAttribute attribute, Class<T> type) {
-            if(attributeData == null) {
+            if (attributeData == null) {
                 return null;
             }
-            return (T)attributeData.getAttributeByName(attribute.getName())
-                    .map(SimpleAttributeData.class::cast)
-                    .orElseThrow()
-                    .getValue();
+            return (T) attributeData
+                .getAttributeByName(attribute.getName())
+                .map(SimpleAttributeData.class::cast)
+                .orElseThrow()
+                .getValue();
         }
 
         @Override
         public String getDescription() {
             return "ContentAttribute %s: '%s' [range: %s]".formatted(
-                    contentAttribute.getName(),
-                    getContentId().orElseThrow(),
-                    contentRange
+                contentAttribute.getName(),
+                getContentId().orElseThrow(),
+                contentRange
             );
         }
 
@@ -196,20 +261,26 @@ public class ContentApiImpl implements ContentApi {
         @Override
         public InputStream getInputStream() throws IOException {
             try {
-                var reader = contentStore.getReader(
-                        getContentId().orElseThrow(),
-                        contentRange.resolve(getLength())
-                );
+                var contentRef = getContentId().orElseThrow();
+                var reader = contentStoreRegistry
+                    .getStoreForReading(contentRef)
+                    .getReader(contentRef, contentRange.resolve(getLength()));
                 return reader.getContentInputStream();
-            } catch (UnreadableContentException | UnsatisfiableContentRangeException e) {
+            } catch (
+                UnreadableContentException
+                | UnsatisfiableContentRangeException e
+            ) {
                 throw new IOException(e);
             }
         }
 
         @Override
         public Version getVersion() {
-            var contentId = getAttribute(contentAttribute.getId(), String.class);
-            if(contentId == null) {
+            var contentId = getAttribute(
+                contentAttribute.getId(),
+                String.class
+            );
+            if (contentId == null) {
                 return Version.nonExisting();
             }
             // hash contentId, so it is not recognizable anymore in the exposed version
@@ -217,11 +288,7 @@ public class ContentApiImpl implements ContentApi {
             // which is a semantically-significant part of representation metadata (which we want to cover with the version)
             // A change in filename is not semantically-significant, as it does not affect the interpretation of the content.
             // Length is irrelevant, since the only way to change length is to upload new content, which changes the content id
-            return Version.exactly(hash(
-                    contentId,
-                    getMimeType()
-            ));
+            return Version.exactly(hash(contentId, getMimeType()));
         }
-
     }
 }

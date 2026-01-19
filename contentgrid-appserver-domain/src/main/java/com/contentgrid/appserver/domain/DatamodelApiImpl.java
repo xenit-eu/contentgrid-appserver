@@ -5,7 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
@@ -80,119 +80,189 @@ import lombok.extern.slf4j.Slf4j;
 public class DatamodelApiImpl implements DatamodelApi {
 
     private final QueryEngine queryEngine;
-    private final ContentStore contentStore;
+    private final ContentStoreRegistry contentStoreRegistry;
     private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
     private RequestInputDataMapper createInputDataMapper(
-            @NonNull Application application,
-            @NonNull EntityName entityName,
-            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
-            @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
+        @NonNull Application application,
+        @NonNull EntityName entityName,
+        @NonNull AttributeAndRelationMapper<
+            DataEntry,
+            Optional<DataEntry>,
+            DataEntry,
+            Optional<DataEntry>
+        > mapper,
+        @NonNull AttributeMapper<
+            Optional<DataEntry>,
+            Optional<DataEntry>
+        > auditMapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
 
-        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
-        var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
-
-        var combinedMapper = inputMapper
-                .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
-                .andThen(auditMapper)
-                // Validate constraints
-                .andThen(new OptionalFlatMapAdaptingMapper<>(
-                        AttributeAndRelationMapper.from(
-                                new AttributeValidationDataMapper(
-                                        new RequiredAttributeConstraintValidator(),
-                                        new AllowedValuesConstraintValidator()
-                                ),
-                                new RelationRequiredValidationDataMapper()
-                        )
-                ))
-                .andThen(new OptionalFlatMapAdaptingMapper<>(
-                        AttributeAndRelationMapper.from(
-                                new ContentUploadAttributeMapper(contentStore),
-                                (rel, value) -> Optional.of(value)
-                        )
-                ))
-                .andThen(queryEngineMapper);
-
-        return new RequestInputDataMapper(
-                entity.getAttributes(),
-                relations,
-                combinedMapper,
-                combinedMapper
+        var inputMapper = AttributeAndRelationMapper.from(
+            new RequestInputDataToDataEntryMapper()
+        );
+        var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(
+            AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper())
         );
 
+        var combinedMapper = inputMapper
+            .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
+            .andThen(auditMapper)
+            // Validate constraints
+            .andThen(
+                new OptionalFlatMapAdaptingMapper<>(
+                    AttributeAndRelationMapper.from(
+                        new AttributeValidationDataMapper(
+                            new RequiredAttributeConstraintValidator(),
+                            new AllowedValuesConstraintValidator()
+                        ),
+                        new RelationRequiredValidationDataMapper()
+                    )
+                )
+            )
+            .andThen(
+                new OptionalFlatMapAdaptingMapper<>(
+                    AttributeAndRelationMapper.from(
+                        new ContentUploadAttributeMapper(contentStoreRegistry),
+                        (rel, value) -> Optional.of(value)
+                    )
+                )
+            )
+            .andThen(queryEngineMapper);
+
+        return new RequestInputDataMapper(
+            entity.getAttributes(),
+            relations,
+            combinedMapper,
+            combinedMapper
+        );
     }
 
     private ResponseOutputDataMapper createOutputDataMapper(
-            @NonNull Application application,
-            @NonNull EntityName entityName
+        @NonNull Application application,
+        @NonNull EntityName entityName
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         return new ResponseOutputDataMapper(
-                entity.getAttributes(),
-                new AttributeDataToDataEntryMapper()
+            entity.getAttributes(),
+            new AttributeDataToDataEntryMapper()
         );
     }
 
     @Override
-    public ResultSlice findAll(@NonNull Application application, @NonNull Entity entity,
-            @NonNull Map<String, List<String>> params, @NonNull EncodedCursorPagination pagination,
-            @NonNull AuthorizationContext authorizationContext
-    )
-            throws InvalidThunkExpressionException {
-
+    public ResultSlice findAll(
+        @NonNull Application application,
+        @NonNull Entity entity,
+        @NonNull Map<String, List<String>> params,
+        @NonNull EncodedCursorPagination pagination,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws InvalidThunkExpressionException {
         var sort = pagination.getSort();
-        ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(application, entity, params);
+        ThunkExpression<Boolean> filter = ThunkExpressionGenerator.from(
+            application,
+            entity,
+            params
+        );
         var fullFilter = LogicalOperation.conjunction(
-                filter,
-                authorizationContext.predicate()
+            filter,
+            authorizationContext.predicate()
         );
         validateSortData(entity, sort);
 
-        var offsetData = convertPaginationToOffset(pagination, entity.getName(), params);
+        var offsetData = convertPaginationToOffset(
+            pagination,
+            entity.getName(),
+            params
+        );
 
         // Request one extra row, so we can see if it's present → there is a next page
-        var page = new OffsetData(offsetData.getLimit() + 1, offsetData.getOffset());
-        var result = queryEngine.findAll(application, entity, fullFilter, sort, page);
+        var page = new OffsetData(
+            offsetData.getLimit() + 1,
+            offsetData.getOffset()
+        );
+        var result = queryEngine.findAll(
+            application,
+            entity,
+            fullFilter,
+            sort,
+            page
+        );
         var hasNext = result.getEntities().size() > offsetData.getLimit();
 
-        PaginationControls controls = EncodedCursorSupport.makeControls(cursorCodec, pagination, entity.getName(),
-                params, hasNext);
+        PaginationControls controls = EncodedCursorSupport.makeControls(
+            cursorCodec,
+            pagination,
+            entity.getName(),
+            params,
+            hasNext
+        );
 
         // Get a total count of how many items match these params
-        var count = calculateCount(() -> queryEngine.count(application, entity, fullFilter),
-                offsetData, result.getEntities().size(), hasNext);
+        var count = calculateCount(
+            () -> queryEngine.count(application, entity, fullFilter),
+            offsetData,
+            result.getEntities().size(),
+            hasNext
+        );
 
-        var outputMapper = createOutputDataMapper(application, entity.getName());
+        var outputMapper = createOutputDataMapper(
+            application,
+            entity.getName()
+        );
 
-        var entities = result.getEntities()
-                .subList(0, Math.min(offsetData.getLimit(), result.getEntities().size()))
-                .stream()
-                .map(outputMapper::mapAttributes)
-                .toList();
+        var entities = result
+            .getEntities()
+            .subList(
+                0,
+                Math.min(offsetData.getLimit(), result.getEntities().size())
+            )
+            .stream()
+            .map(outputMapper::mapAttributes)
+            .toList();
 
         return new ResultSlice(entities, controls, count);
-
     }
 
-    private OffsetData convertPaginationToOffset(@NonNull EncodedCursorPagination encodedPagination, EntityName entityName, Map<String, List<String>> params) {
-        var pagination = (PageBasedPagination) cursorCodec.decodeCursor(encodedPagination.getCursorContext(), entityName, params);
-        return new OffsetData(pagination.getSize(), pagination.getPage() * pagination.getSize());
+    private OffsetData convertPaginationToOffset(
+        @NonNull EncodedCursorPagination encodedPagination,
+        EntityName entityName,
+        Map<String, List<String>> params
+    ) {
+        var pagination = (PageBasedPagination) cursorCodec.decodeCursor(
+            encodedPagination.getCursorContext(),
+            entityName,
+            params
+        );
+        return new OffsetData(
+            pagination.getSize(),
+            pagination.getPage() * pagination.getSize()
+        );
     }
 
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
             var name = field.getName();
-            entity.getSortableFieldByName(name).orElseThrow(() ->
-                    InvalidSortParameterException.invalidField(name.getValue(), entity.getName().getValue()));
+            entity
+                .getSortableFieldByName(name)
+                .orElseThrow(() ->
+                    InvalidSortParameterException.invalidField(
+                        name.getValue(),
+                        entity.getName().getValue()
+                    )
+                );
         }
     }
 
-    private ItemCount calculateCount(Supplier<ItemCount> countSupplier, OffsetData offsetData, long size, boolean hasNext) {
+    private ItemCount calculateCount(
+        Supplier<ItemCount> countSupplier,
+        OffsetData offsetData,
+        long size,
+        boolean hasNext
+    ) {
         var hasPrevious = offsetData.getOffset() > 0;
 
         if (!hasNext && !(hasPrevious && size == 0L)) {
@@ -204,7 +274,9 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         if (hasNext) {
             // There has to be a next page, adjust count to have at least one item on the next page
-            return result.orMinimally(offsetData.getOffset() + offsetData.getLimit() + 1L);
+            return result.orMinimally(
+                offsetData.getOffset() + offsetData.getLimit() + 1L
+            );
         } else {
             // There is no next page and there are also no results on this page (otherwise we returned exact result),
             // adjust count to have at most the amount on the previous page
@@ -214,280 +286,479 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public Optional<InternalEntityInstance> findById(
-            @NonNull Application application,
-            @NonNull EntityRequest entityRequest,
-            @NonNull AuthorizationContext authorizationContext
+        @NonNull Application application,
+        @NonNull EntityRequest entityRequest,
+        @NonNull AuthorizationContext authorizationContext
     ) {
-        var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
-        return queryEngine.findById(application, entityRequest, authorizationContext.predicate())
-                .map(outputMapper::mapAttributes);
+        var outputMapper = createOutputDataMapper(
+            application,
+            entityRequest.getEntityName()
+        );
+        return queryEngine
+            .findById(
+                application,
+                entityRequest,
+                authorizationContext.predicate()
+            )
+            .map(outputMapper::mapAttributes);
     }
 
     @Override
     public InternalEntityInstance create(
-            @NonNull Application application,
-            @NonNull EntityName entityName,
-            @NonNull RequestInputData requestData,
-            @NonNull AuthorizationContext authorizationContext
+        @NonNull Application application,
+        @NonNull EntityName entityName,
+        @NonNull RequestInputData requestData,
+        @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
-                application,
-                entityName,
-                // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
-                        // Validate that content attribute is not partially set
-                        .andThen(new OptionalFlatMapAdaptingMapper<>(
-                                AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(null)),
-                                        (rel, data) -> Optional.of(data)
-                                )
-                        ))
-                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock)
+            application,
+            entityName,
+            // All missing fields are regarded as null
+            FilterDataEntryMapper.missingAsNull()
+                // Validate that content attribute is not partially set
+                .andThen(
+                    new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                            new AttributeValidationDataMapper(
+                                new ContentAttributeModificationValidator(null)
+                            ),
+                            (rel, data) -> Optional.of(data)
+                        )
+                    )
+                ),
+            new AuditAttributeMapper(
+                Mode.CREATE,
+                authorizationContext.user(),
+                clock
+            )
         );
 
-        var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
+        var usageTrackingRequestData = new UsageTrackingRequestInputData(
+            requestData
+        );
 
-        var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
-        var attributes = exceptionCollector.use(() -> inputMapper.mapAttributes(usageTrackingRequestData));
-        var relations = exceptionCollector.use(() -> inputMapper.mapRelations(usageTrackingRequestData));
+        var exceptionCollector = new ValidationExceptionCollector<>(
+            InvalidPropertyDataException.class
+        );
+        var attributes = exceptionCollector.use(() ->
+            inputMapper.mapAttributes(usageTrackingRequestData)
+        );
+        var relations = exceptionCollector.use(() ->
+            inputMapper.mapRelations(usageTrackingRequestData)
+        );
         exceptionCollector.rethrow();
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
-        if(!unusedKeys.isEmpty()) {
+        if (!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
         var createData = EntityCreateData.builder()
-                .entityName(entityName)
-                .attributes(attributes)
-                .relations(relations)
-                .build();
+            .entityName(entityName)
+            .attributes(attributes)
+            .relations(relations)
+            .build();
 
         var outputMapper = createOutputDataMapper(application, entityName);
 
         CreateEventConsumer onCreate = new EventConsumerImpl(outputMapper);
-        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
-    }
-
-
-    @Override
-    public InternalEntityInstance update(@NonNull Application application,
-            @NonNull EntityInstance existingEntity, @NonNull RequestInputData data,
-            @NonNull AuthorizationContext authorizationContext
-    )
-            throws QueryEngineException, InvalidPropertyDataException {
-        var inputMapper = createInputDataMapper(
+        return outputMapper.mapAttributes(
+            queryEngine.create(
                 application,
-                existingEntity.getIdentity().getEntityName(),
-                // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
-                        // Validate that content attribute is not partially set
-                        .andThen(new OptionalFlatMapAdaptingMapper<>(
-                                AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
-                                        (rel, d) -> Optional.of(d)
-                                )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                createData,
+                authorizationContext.predicate(),
+                onCreate
+            )
         );
-
-        var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
-
-        var entityData = new EntityData(existingEntity.getIdentity(),
-                inputMapper.mapAttributes(usageTrackingRequestData));
-
-        var unusedKeys = usageTrackingRequestData.getUnusedKeys();
-        if(!unusedKeys.isEmpty()) {
-            log.warn("Unused request keys: {}", unusedKeys);
-        }
-
-        var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
-
-        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
-
-        return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
     @Override
-    public InternalEntityInstance updatePartial(@NonNull Application application,
-            @NonNull EntityInstance existingEntity,
-            @NonNull RequestInputData data,
-            @NonNull AuthorizationContext authorizationContext
+    public InternalEntityInstance update(
+        @NonNull Application application,
+        @NonNull EntityInstance existingEntity,
+        @NonNull RequestInputData data,
+        @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
-                application,
-                existingEntity.getIdentity().getEntityName(),
-                // Missing fields are omitted, so they are not updated
-                FilterDataEntryMapper.omitMissing()
-                        // Validate that content attribute is not partially set
-                        .andThen(new OptionalFlatMapAdaptingMapper<>(
-                                AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
-                                        (rel, d) -> Optional.of(d)
+            application,
+            existingEntity.getIdentity().getEntityName(),
+            // All missing fields are regarded as null
+            FilterDataEntryMapper.missingAsNull()
+                // Validate that content attribute is not partially set
+                .andThen(
+                    new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                            new AttributeValidationDataMapper(
+                                new ContentAttributeModificationValidator(
+                                    existingEntity
                                 )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                            ),
+                            (rel, d) -> Optional.of(d)
+                        )
+                    )
+                ),
+            new AuditAttributeMapper(
+                Mode.UPDATE,
+                authorizationContext.user(),
+                clock
+            )
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
 
-        var entityData = new EntityData(existingEntity.getIdentity(),
-                inputMapper.mapAttributes(usageTrackingRequestData));
+        var entityData = new EntityData(
+            existingEntity.getIdentity(),
+            inputMapper.mapAttributes(usageTrackingRequestData)
+        );
 
         var unusedKeys = usageTrackingRequestData.getUnusedKeys();
-        if(!unusedKeys.isEmpty()) {
+        if (!unusedKeys.isEmpty()) {
             log.warn("Unused request keys: {}", unusedKeys);
         }
 
-        var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
+        var outputMapper = createOutputDataMapper(
+            application,
+            existingEntity.getIdentity().getEntityName()
+        );
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+        var updateData = queryEngine.update(
+            application,
+            entityData,
+            authorizationContext.predicate(),
+            onUpdate
+        );
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
     @Override
-    public InternalEntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull AuthorizationContext authorizationContext)
-            throws EntityIdNotFoundException {
-        var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
+    public InternalEntityInstance updatePartial(
+        @NonNull Application application,
+        @NonNull EntityInstance existingEntity,
+        @NonNull RequestInputData data,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException, InvalidPropertyDataException {
+        var inputMapper = createInputDataMapper(
+            application,
+            existingEntity.getIdentity().getEntityName(),
+            // Missing fields are omitted, so they are not updated
+            FilterDataEntryMapper.omitMissing()
+                // Validate that content attribute is not partially set
+                .andThen(
+                    new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                            new AttributeValidationDataMapper(
+                                new ContentAttributeModificationValidator(
+                                    existingEntity
+                                )
+                            ),
+                            (rel, d) -> Optional.of(d)
+                        )
+                    )
+                ),
+            new AuditAttributeMapper(
+                Mode.UPDATE,
+                authorizationContext.user(),
+                clock
+            )
+        );
+
+        var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
+
+        var entityData = new EntityData(
+            existingEntity.getIdentity(),
+            inputMapper.mapAttributes(usageTrackingRequestData)
+        );
+
+        var unusedKeys = usageTrackingRequestData.getUnusedKeys();
+        if (!unusedKeys.isEmpty()) {
+            log.warn("Unused request keys: {}", unusedKeys);
+        }
+
+        var outputMapper = createOutputDataMapper(
+            application,
+            existingEntity.getIdentity().getEntityName()
+        );
+
+        UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
+        var updateData = queryEngine.update(
+            application,
+            entityData,
+            authorizationContext.predicate(),
+            onUpdate
+        );
+
+        return outputMapper.mapAttributes(updateData.getUpdated());
+    }
+
+    @Override
+    public InternalEntityInstance deleteEntity(
+        @NonNull Application application,
+        @NonNull EntityRequest entityRequest,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws EntityIdNotFoundException {
+        var outputMapper = createOutputDataMapper(
+            application,
+            entityRequest.getEntityName()
+        );
 
         DeleteEventConsumer onDelete = new EventConsumerImpl(outputMapper);
-        var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate(), onDelete)
-                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
+        var deleted = queryEngine
+            .delete(
+                application,
+                entityRequest,
+                authorizationContext.predicate(),
+                onDelete
+            )
+            .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
         return outputMapper.mapAttributes(deleted);
     }
 
     @Override
-    public boolean hasRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
-            @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
-        return queryEngine.isLinked(application, relationRequest, targetId, authorizationContext.predicate());
-    }
-
-    @Override
-    public Optional<RelationTarget> findRelationTarget(@NonNull Application application, @NonNull RelationRequest relationRequest,
-             @NonNull AuthorizationContext authorizationContext) throws QueryEngineException {
-        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
-        return queryEngine.findTarget(application, relationRequest, authorizationContext.predicate())
-                .map(entityIdAndVersion -> new RelationTarget(
-                        RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
-                                .withVersion(entityIdAndVersion.version()),
-                        EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), entityIdAndVersion.entityId())
-                ));
-    }
-
-    @Override
-    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
-            throws QueryEngineException {
-        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
-
-        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
-
-        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
-    }
-
-    @Override
-    public void deleteRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull AuthorizationContext authorizationContext)
-            throws QueryEngineException {
-        var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
-
-        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
-
-        queryEngine.unsetLink(application, relationRequest, authorizationContext.predicate(), onUnlink);
-    }
-
-    @Override
-    public void addRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
-            throws QueryEngineException {
-        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
-
-        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
-
-        queryEngine.addLinks(
-                application,
-                relation,
-                targetIds,
-                authorizationContext.predicate(),
-                onLink
+    public boolean hasRelationTarget(
+        @NonNull Application application,
+        @NonNull RelationRequest relationRequest,
+        @NonNull EntityId targetId,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        return queryEngine.isLinked(
+            application,
+            relationRequest,
+            targetId,
+            authorizationContext.predicate()
         );
     }
 
     @Override
-    public void removeRelationItems(@NonNull Application application, @NonNull RelationRequest relation, @NonNull Set<EntityId> targetIds, @NonNull AuthorizationContext authorizationContext)
-            throws QueryEngineException {
-        var outputMapper = createOutputDataMapper(application, relation.getEntityName());
+    public Optional<RelationTarget> findRelationTarget(
+        @NonNull Application application,
+        @NonNull RelationRequest relationRequest,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        var relation = application.getRequiredRelationForEntity(
+            relationRequest.getEntityName(),
+            relationRequest.getRelationName()
+        );
+        return queryEngine
+            .findTarget(
+                application,
+                relationRequest,
+                authorizationContext.predicate()
+            )
+            .map(entityIdAndVersion ->
+                new RelationTarget(
+                    RelationIdentity.forRelation(
+                        relationRequest.getEntityName(),
+                        relationRequest.getEntityId(),
+                        relationRequest.getRelationName()
+                    ).withVersion(entityIdAndVersion.version()),
+                    EntityIdentity.forEntity(
+                        relation.getTargetEndPoint().getEntity(),
+                        entityIdAndVersion.entityId()
+                    )
+                )
+            );
+    }
+
+    @Override
+    public void setRelation(
+        @NonNull Application application,
+        @NonNull RelationRequest relationRequest,
+        @NonNull EntityId targetId,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(
+            application,
+            relationRequest.getEntityName()
+        );
+
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
+
+        queryEngine.setLink(
+            application,
+            relationRequest,
+            targetId,
+            authorizationContext.predicate(),
+            onLink
+        );
+    }
+
+    @Override
+    public void deleteRelation(
+        @NonNull Application application,
+        @NonNull RelationRequest relationRequest,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(
+            application,
+            relationRequest.getEntityName()
+        );
+
+        UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
+
+        queryEngine.unsetLink(
+            application,
+            relationRequest,
+            authorizationContext.predicate(),
+            onUnlink
+        );
+    }
+
+    @Override
+    public void addRelationItems(
+        @NonNull Application application,
+        @NonNull RelationRequest relation,
+        @NonNull Set<EntityId> targetIds,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(
+            application,
+            relation.getEntityName()
+        );
+
+        LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
+
+        queryEngine.addLinks(
+            application,
+            relation,
+            targetIds,
+            authorizationContext.predicate(),
+            onLink
+        );
+    }
+
+    @Override
+    public void removeRelationItems(
+        @NonNull Application application,
+        @NonNull RelationRequest relation,
+        @NonNull Set<EntityId> targetIds,
+        @NonNull AuthorizationContext authorizationContext
+    ) throws QueryEngineException {
+        var outputMapper = createOutputDataMapper(
+            application,
+            relation.getEntityName()
+        );
 
         UnlinkEventConsumer onUnlink = new EventConsumerImpl(outputMapper);
 
         queryEngine.removeLinks(
-                application,
-                relation,
-                targetIds,
-                authorizationContext.predicate(),
-                onUnlink
+            application,
+            relation,
+            targetIds,
+            authorizationContext.predicate(),
+            onUnlink
         );
     }
 
     @RequiredArgsConstructor
     private static class ResponseOutputDataMapper {
-        private final List<Attribute> attributes;
-        private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
 
-        public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
-            var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(attributes.size());
+        private final List<Attribute> attributes;
+        private final AttributeMapper<
+            Optional<AttributeData>,
+            PlainDataEntry
+        > attributeMapper;
+
+        public InternalEntityInstance mapAttributes(
+            @NonNull EntityData entityData
+        ) {
+            var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(
+                attributes.size()
+            );
             for (var attribute : attributes) {
                 try {
                     if (!attribute.isIgnored()) {
                         data.put(
-                                attribute.getName().getValue(),
-                                attributeMapper.mapAttribute(attribute, entityData.getAttributeByName(attribute.getName()))
+                            attribute.getName().getValue(),
+                            attributeMapper.mapAttribute(
+                                attribute,
+                                entityData.getAttributeByName(
+                                    attribute.getName()
+                                )
+                            )
                         );
                     }
                 } catch (InvalidPropertyDataException e) {
                     throw new IllegalStateException(
-                            "Invalid data from storage for %s (attribute %s)".formatted(
-                                    entityData.getIdentity(),
-                                    attribute.getName()
-                            ),
-                            e
+                        "Invalid data from storage for %s (attribute %s)".formatted(
+                            entityData.getIdentity(),
+                            attribute.getName()
+                        ),
+                        e
                     );
                 }
             }
 
             return new InternalEntityInstance(
-                    entityData.getIdentity(),
-                    Collections.unmodifiableSequencedMap(data),
-                    entityData.getAttributes()
+                entityData.getIdentity(),
+                Collections.unmodifiableSequencedMap(data),
+                entityData.getAttributes()
             );
         }
     }
 
     @RequiredArgsConstructor
-    private final class EventConsumerImpl implements CreateEventConsumer, UpdateEventConsumer, DeleteEventConsumer,
-            LinkEventConsumer, UnlinkEventConsumer {
+    private final class EventConsumerImpl
+        implements
+            CreateEventConsumer,
+            UpdateEventConsumer,
+            DeleteEventConsumer,
+            LinkEventConsumer,
+            UnlinkEventConsumer
+    {
+
         private final ResponseOutputDataMapper outputMapper;
 
         public void onEntityCreate(Application app, EntityData data) {
-            domainEventDispatcher.dispatchCreate(app, outputMapper.mapAttributes(data));
+            domainEventDispatcher.dispatchCreate(
+                app,
+                outputMapper.mapAttributes(data)
+            );
         }
 
-        public void onEntityUpdate(Application app, EntityData oldData, EntityData newData) {
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        public void onEntityUpdate(
+            Application app,
+            EntityData oldData,
+            EntityData newData
+        ) {
+            domainEventDispatcher.dispatchUpdate(
+                app,
+                outputMapper.mapAttributes(oldData),
+                outputMapper.mapAttributes(newData)
+            );
         }
 
         public void onEntityDelete(Application app, EntityData data) {
-            domainEventDispatcher.dispatchDelete(app, outputMapper.mapAttributes(data));
+            domainEventDispatcher.dispatchDelete(
+                app,
+                outputMapper.mapAttributes(data)
+            );
         }
 
-        public void onLink(Application app, EntityData oldData, EntityData newData) {
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        public void onLink(
+            Application app,
+            EntityData oldData,
+            EntityData newData
+        ) {
+            domainEventDispatcher.dispatchUpdate(
+                app,
+                outputMapper.mapAttributes(oldData),
+                outputMapper.mapAttributes(newData)
+            );
         }
 
-        public void onUnlink(Application app, EntityData oldData, EntityData newData) {
-            domainEventDispatcher.dispatchUpdate(app, outputMapper.mapAttributes(oldData), outputMapper.mapAttributes(newData));
+        public void onUnlink(
+            Application app,
+            EntityData oldData,
+            EntityData newData
+        ) {
+            domainEventDispatcher.dispatchUpdate(
+                app,
+                outputMapper.mapAttributes(oldData),
+                outputMapper.mapAttributes(newData)
+            );
         }
     }
-
 }
