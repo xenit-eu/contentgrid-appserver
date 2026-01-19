@@ -12,8 +12,8 @@ import lombok.NonNull;
 public class DefaultContentStoreRegistry implements ContentStoreRegistry {
 
     private final Map<String, ContentStore> stores = new ConcurrentHashMap<>();
-    private volatile String writeStoreId;
-    private volatile ContentStore writeStore;
+    private final String writeStoreId;
+    private final ContentStore writeStore;
 
     /**
      * Create a registry with a single content store as the write store
@@ -66,33 +66,6 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
         return writeStoreId;
     }
 
-    /**
-     * Register an additional content store for reading
-     * @param storeId The store identifier
-     * @param store The content store
-     */
-    public void registerStore(
-        @NonNull String storeId,
-        @NonNull ContentStore store
-    ) {
-        stores.put(storeId, store);
-    }
-
-    /**
-     * Set the active write store
-     * @param storeId The identifier of the store to use for writing
-     * @throws IllegalArgumentException if the store ID is not registered
-     */
-    public void setWriteStore(@NonNull String storeId) {
-        ContentStore store = stores.get(storeId);
-        if (store == null) {
-            throw new IllegalArgumentException(
-                "Content store '" + storeId + "' is not registered"
-            );
-        }
-        this.writeStoreId = storeId;
-        this.writeStore = store;
-    }
 
     /**
      * Get all registered store IDs

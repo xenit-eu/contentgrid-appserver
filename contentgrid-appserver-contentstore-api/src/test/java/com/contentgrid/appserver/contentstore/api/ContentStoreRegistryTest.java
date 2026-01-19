@@ -60,46 +60,6 @@ class ContentStoreRegistryTest {
         assertThat(registry.getStore("nonexistent")).isEmpty();
     }
 
-    @Test
-    void testRegisterAdditionalStore() {
-        var primaryStore = mock(ContentStore.class);
-        var registry = new DefaultContentStoreRegistry("primary", primaryStore);
-
-        var newStore = mock(ContentStore.class);
-        registry.registerStore("secondary", newStore);
-
-        assertThat(registry.getStore("secondary")).contains(newStore);
-        assertThat(registry.getWriteStoreId()).isEqualTo("primary");
-        assertThat(registry.getWriteStore()).isSameAs(primaryStore);
-        assertThat(registry.getStoreIds()).containsExactlyInAnyOrder("primary", "secondary");
-    }
-
-    @Test
-    void testSetWriteStore() {
-        var store1 = mock(ContentStore.class);
-        var store2 = mock(ContentStore.class);
-        var stores = Map.of("store1", store1, "store2", store2);
-
-        var registry = new DefaultContentStoreRegistry("store1", stores);
-
-        assertThat(registry.getWriteStoreId()).isEqualTo("store1");
-        assertThat(registry.getWriteStore()).isSameAs(store1);
-
-        registry.setWriteStore("store2");
-
-        assertThat(registry.getWriteStoreId()).isEqualTo("store2");
-        assertThat(registry.getWriteStore()).isSameAs(store2);
-    }
-
-    @Test
-    void testSetWriteStoreToUnregisteredStore() {
-        var store = mock(ContentStore.class);
-        var registry = new DefaultContentStoreRegistry("primary", store);
-
-        assertThatThrownBy(() -> registry.setWriteStore("nonexistent"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Content store 'nonexistent' is not registered");
-    }
 
     @Test
     void testGetStoreForReadingWithoutStoreId() throws UnreadableContentException {
