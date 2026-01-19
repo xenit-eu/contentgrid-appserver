@@ -598,7 +598,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class PaginationParameterErrors {
 
         @Test
-        @Disabled("ACC-2416: returns 200 OK")
         void invalidSizeParameter_zero() throws Exception {
             mockMvc.perform(get("/customers?_size=0")
                             .accept(MediaType.APPLICATION_JSON)
@@ -612,7 +611,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         }
 
         @Test
-        @Disabled("ACC-2416: returns 500 - PSQLException: LIMIT must not be negative")
         void invalidSizeParameter_negative() throws Exception {
             mockMvc.perform(get("/customers?_size=-10")
                             .accept(MediaType.APPLICATION_JSON)
@@ -626,7 +624,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         }
 
         @Test
-        @Disabled("ACC-2416: returns 200 OK")
         void invalidSizeParameter_nonnumber() throws Exception {
             mockMvc.perform(get("/customers?_size=abc")
                             .accept(MediaType.APPLICATION_JSON)

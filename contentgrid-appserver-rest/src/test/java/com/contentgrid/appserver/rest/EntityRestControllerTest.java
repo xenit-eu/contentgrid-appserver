@@ -1086,8 +1086,15 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.page.total_items_exact", is(exact)));
         }
 
+        @Test
+        void testListEntityInstances_defaultPageSize() throws Exception {
+            mockMvc.perform(get("/products").accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page.size", is(20)));
+        }
+
         @ParameterizedTest
-        @CsvSource({",20", "5,5", "100,100", "1000,1000"})
+        @CsvSource({"5,5", "100,100", "1000,1000"})
         void testListEntityInstances_pageSize(String requestedSize, int actualSize) throws Exception {
             mockMvc.perform(get("/products?_size={size}", requestedSize).accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
@@ -1095,7 +1102,7 @@ class EntityRestControllerTest {
         }
 
         @ParameterizedTest
-        @CsvSource({"0", "-1", "-10", "", "abc", "1001", "10000"})
+        @CsvSource({"0", "-1", "-10", "abc", "1001", "10000"})
         void testListEntityInstances_pageSize_invalid(String requestedSize) throws Exception {
             createProduct(1);
             mockMvc.perform(get("/products?_size={size}", requestedSize).accept(MediaTypes.HAL_JSON))
