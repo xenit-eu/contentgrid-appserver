@@ -163,14 +163,16 @@ class ContentReferenceTest {
     void testToStringWithoutStoreId() {
         var reference = ContentReference.of("content-567");
 
-        assertThat(reference.toString()).isEqualTo("content-567");
+        assertThat(reference.getValue()).isEqualTo("content-567");
+        assertThat(reference.getStoreId()).isNull();
     }
 
     @Test
     void testToStringWithStoreId() {
         var reference = ContentReference.of("mystore", "content-890");
 
-        assertThat(reference.toString()).isEqualTo("mystore:content-890");
+        assertThat(reference.getStoreId()).isEqualTo("mystore");
+        assertThat(reference.getValue()).isEqualTo("content-890");
     }
 
     @Test

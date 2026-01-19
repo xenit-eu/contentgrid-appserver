@@ -3,16 +3,18 @@ package com.contentgrid.appserver.contentstore.api;
 import java.io.Serializable;
 import java.util.Objects;
 import lombok.NonNull;
+import lombok.Value;
 
 /**
  * Reference to a content object, optionally associated with a specific content store
  */
-public final class ContentReference implements Serializable {
+@Value
+public class ContentReference implements Serializable {
 
     @NonNull
-    private final String value;
+    String value;
 
-    private final String storeId;
+    String storeId;
 
     private ContentReference(@NonNull String value, String storeId) {
         this.value = Objects.requireNonNull(value, "value");
@@ -77,40 +79,4 @@ public final class ContentReference implements Serializable {
         return value;
     }
 
-    /**
-     * Get the content value (without store ID)
-     * @return The content identifier
-     */
-    @NonNull
-    public String getValue() {
-        return value;
-    }
-
-    /**
-     * Get the store ID, or null if not specified
-     * @return The store identifier, or null
-     */
-    public String getStoreId() {
-        return storeId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ContentReference that = (ContentReference) o;
-        return (
-            value.equals(that.value) && Objects.equals(storeId, that.storeId)
-        );
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, storeId);
-    }
-
-    @Override
-    public String toString() {
-        return toStorageFormat();
-    }
 }
