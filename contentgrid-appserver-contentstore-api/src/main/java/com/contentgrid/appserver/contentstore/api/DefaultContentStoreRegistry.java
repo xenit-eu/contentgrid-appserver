@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.contentstore.api;
 
-import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
