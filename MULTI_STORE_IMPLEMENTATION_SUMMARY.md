@@ -4,13 +4,17 @@
 
 This implementation adds support for using multiple content stores simultaneously in the ContentGrid AppServer. Previously, only a single content store could be used at a time. Now, multiple stores can be configured with one designated as the active write store, while others remain available for reading existing content.
 
+**Key Design**: `ContentStoreRegistry` implements the `ContentStore` interface, providing a transparent drop-in replacement. No code changes are required in existing components - they continue to use `ContentStore` while benefiting from multi-store support.
+
 ## Key Features
 
+- **Transparent Design**: `ContentStoreRegistry` implements `ContentStore` - no code changes needed
 - **Multiple Content Stores**: Support for any number of content stores registered with unique identifiers
 - **Single Write Store**: One store is designated as active for all write operations
 - **Store-Aware References**: Content references now include the store ID where the content is located
 - **Backward Compatible**: Existing code and content references continue to work without modification
 - **Flexible Configuration**: Stores can be added dynamically at runtime
+- **Automatic Routing**: Read/write/delete operations automatically routed to correct stores
 
 ## Components Changed
 
@@ -29,13 +33,20 @@ This implementation adds support for using multiple content stores simultaneousl
 
 **Location**: `contentgrid-appserver-contentstore-api/src/main/java/com/contentgrid/appserver/contentstore/api/ContentStoreRegistry.java`
 
-**Purpose**: Manages multiple content stores and provides routing logic
+**Purpose**: Extends `ContentStore` interface to manage multiple content stores with transparent routing
+
+**Key Design**: Implements `ContentStore` interface, providing default implementations that route operations to the appropriate underlying stores.
 
 **Key Methods**:
-- `getStore(String storeId)`: Retrieve a specific store by ID
-- `getWriteStore()`: Get the active write store
-- `getWriteStoreId()`: Get the ID of the active write store
-- `getStoreForReading(ContentReference)`: Automatically route to the correct store based on reference
+- **ContentStore methods** (inherited):
+  - `getReader(ContentReference, ResolvedContentRange)`: Routes to correct store based on reference
+  - `writeContent(InputStream)`: Delegates to active write store
+  - `remove(ContentReference)`: Routes to correct store based on reference
+- **Registry-specific methods**:
+  - `getStore(String storeId)`: Retrieve a specific store by ID
+  - `getWriteStore()`: Get the active write store
+  - `getWriteStoreId()`: Get the ID of the active write store
+  - `getStoreForReading(ContentReference)`: Get store for reading a specific reference
 
 ### 3. DefaultContentStoreRegistry (New)
 
@@ -50,39 +61,47 @@ This implementation adds support for using multiple content stores simultaneousl
 - `setWriteStore(String)`: Change the active write store
 - `getStoreIds()`: List all registered store IDs
 
-### 4. ContentUploadAttributeMapper (Updated)
+### 4. ContentUploadAttributeMapper (No Changes Required)
 
 **Location**: `contentgrid-appserver-domain/src/main/java/com/contentgrid/appserver/domain/data/mapper/ContentUploadAttributeMapper.java`
 
-**Changes**:
-- Now uses `ContentStoreRegistry` instead of `ContentStore`
-- Writes content to the active write store via `registry.getWriteStore()`
-- Stores references in format `"storeId:contentId"` including the write store ID
+**Changes**: None - continues to use `ContentStore` interface
 
-### 5. ContentApiImpl (Updated)
+**How it works**:
+- Writes content using `contentStore.writeContent()` - no changes needed
+- The registry (injected as `ContentStore`) automatically writes to the active store
+- The returned `ContentAccessor` has a reference with store ID automatically included
+
+### 5. ContentApiImpl (No Changes Required)
 
 **Location**: `contentgrid-appserver-domain/src/main/java/com/contentgrid/appserver/domain/ContentApiImpl.java`
 
-**Changes**:
-- Now uses `ContentStoreRegistry` instead of `ContentStore`
-- Parses stored references using `ContentReference.parse()`
-- Routes read requests to correct store via `registry.getStoreForReading()`
+**Changes**: None - continues to use `ContentStore` interface
 
-### 6. DatamodelApiImpl (Updated)
+**How it works**:
+- Parses stored references using `ContentReference.parse()`
+- Reads content using `contentStore.getReader()` - no changes needed
+- The registry (injected as `ContentStore`) automatically routes to the correct store
+
+### 6. DatamodelApiImpl (No Changes Required)
 
 **Location**: `contentgrid-appserver-domain/src/main/java/com/contentgrid/appserver/domain/DatamodelApiImpl.java`
 
-**Changes**:
-- Constructor now accepts `ContentStoreRegistry` instead of `ContentStore`
-- Passes registry to `ContentUploadAttributeMapper`
+**Changes**: None - continues to use `ContentStore` interface
+
+**How it works**:
+- Constructor accepts `ContentStore` as before
+- The registry is injected as `ContentStore`, providing transparent multi-store support
 
 ### 7. ContentGridDomainAutoConfiguration (Updated)
 
 **Location**: `contentgrid-appserver-autoconfigure/src/main/java/com/contentgrid/appserver/autoconfigure/domain/ContentGridDomainAutoConfiguration.java`
 
 **Changes**:
-- Creates `ContentStoreRegistry` bean wrapping the primary `ContentStore` with ID "default"
-- Injects registry into `DatamodelApiImpl` and `ContentApiImpl`
+- Creates a `@Primary` `ContentStore` bean that is actually a `DefaultContentStoreRegistry`
+- Wraps the original `ContentStore` with store ID "default"
+- The registry is injected everywhere as `ContentStore`, providing transparent multi-store support
+- All existing components receive the registry without knowing about it
 
 ## Storage Format
 
@@ -95,12 +114,14 @@ When reading, references without a store ID default to the current write store f
 
 ## Backward Compatibility
 
-The implementation is fully backward compatible:
+The implementation is fully backward compatible and transparent:
 
-1. **Existing Code**: No changes required to existing application code
+1. **Existing Code**: Zero changes required - registry implements `ContentStore` interface
 2. **Existing Data**: Content references without store IDs continue to work
 3. **Single Store**: Default configuration creates a registry with one store named "default"
 4. **API Compatibility**: All existing ContentStore methods remain unchanged
+5. **Transparent Operation**: Components don't know they're using a registry - it's injected as `ContentStore`
+6. **Domain Layer**: Unchanged - continues using `ContentStore` interface
 
 ## Migration Scenarios
 
@@ -165,15 +186,18 @@ public class MultiStoreConfiguration {
     
     @Bean
     @Primary
-    public ContentStoreRegistry contentStoreRegistry(
+    public ContentStore contentStoreRegistry(
             @Qualifier("primaryStore") ContentStore primaryStore,
-            @Qualifier("archiveStore") ContentStore archiveStore
+            @Qualifier("archiveStore") ContentStore archiveStore,
+            @Qualifier("legacyStore") ContentStore legacyStore
     ) {
         var stores = Map.of(
             "primary", primaryStore,
-            "archive", archiveStore
+            "archive", archiveStore,
+            "legacy", legacyStore
         );
         
+        // Return as ContentStore - it's a transparent drop-in replacement
         return new DefaultContentStoreRegistry("primary", stores);
     }
     
@@ -201,23 +225,34 @@ public class MultiStoreConfiguration {
 
 ## Design Decisions
 
+### Why Have ContentStoreRegistry Implement ContentStore?
+
+- **Zero Code Changes**: Existing code continues to work without modification
+- **Transparent Operation**: Components don't need to know about multi-store support
+- **Type Safety**: Strong typing ensures correct usage
+- **Gradual Migration**: Can switch to multi-store without refactoring
+- **Encapsulation**: Multi-store complexity hidden behind familiar interface
+
 ### Why Include Store ID in Reference?
 
 - **Explicit Routing**: No ambiguity about where content is stored
 - **Migration Safety**: Content references remain valid even after changing write store
 - **Auditability**: Can track which store contains which content
+- **Automatic Routing**: Registry uses store ID to route operations automatically
 
 ### Why Parse Format "storeId:value"?
 
 - **Simple**: Easy to parse and understand
 - **Compact**: Minimal storage overhead
 - **Safe**: Colon is not typically used in content IDs
+- **Human Readable**: Easy to identify which store contains content
 
 ### Why Default to Write Store for Missing Store ID?
 
 - **Backward Compatibility**: Existing references continue to work
 - **Migration Path**: Gradual migration without breaking existing data
 - **Simplicity**: No special handling needed for legacy data
+- **Transparent Upgrade**: Old references work immediately after enabling multi-store
 
 ## Future Enhancements
 

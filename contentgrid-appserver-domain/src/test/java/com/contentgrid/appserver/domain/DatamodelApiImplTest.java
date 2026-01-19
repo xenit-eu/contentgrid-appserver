@@ -192,11 +192,9 @@ class DatamodelApiImplTest {
 
     @BeforeEach
     void setup() {
-        ContentStoreRegistry contentStoreRegistry =
-            new DefaultContentStoreRegistry("default", contentStore);
         datamodelApi = new DatamodelApiImpl(
             queryEngine,
-            contentStoreRegistry,
+            contentStore,
             domainEventDispatcher,
             codec,
             clock

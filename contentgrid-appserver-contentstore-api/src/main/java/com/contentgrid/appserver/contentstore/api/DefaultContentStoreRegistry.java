@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.contentstore.api;
 
+import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,8 +22,8 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
      * @param writeStore The content store to use for writing
      */
     public DefaultContentStoreRegistry(
-            @NonNull String writeStoreId,
-            @NonNull ContentStore writeStore
+        @NonNull String writeStoreId,
+        @NonNull ContentStore writeStore
     ) {
         this.writeStoreId = writeStoreId;
         this.writeStore = writeStore;
@@ -35,12 +37,12 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
      * @throws IllegalArgumentException if writeStoreId is not in the stores map
      */
     public DefaultContentStoreRegistry(
-            @NonNull String writeStoreId,
-            @NonNull Map<String, ContentStore> stores
+        @NonNull String writeStoreId,
+        @NonNull Map<String, ContentStore> stores
     ) {
         if (!stores.containsKey(writeStoreId)) {
             throw new IllegalArgumentException(
-                    "Write store ID '" + writeStoreId + "' not found in stores map"
+                "Write store ID '" + writeStoreId + "' not found in stores map"
             );
         }
         this.writeStoreId = writeStoreId;
@@ -70,7 +72,10 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
      * @param storeId The store identifier
      * @param store The content store
      */
-    public void registerStore(@NonNull String storeId, @NonNull ContentStore store) {
+    public void registerStore(
+        @NonNull String storeId,
+        @NonNull ContentStore store
+    ) {
         stores.put(storeId, store);
     }
 
@@ -83,7 +88,7 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
         ContentStore store = stores.get(storeId);
         if (store == null) {
             throw new IllegalArgumentException(
-                    "Content store '" + storeId + "' is not registered"
+                "Content store '" + storeId + "' is not registered"
             );
         }
         this.writeStoreId = storeId;
@@ -96,5 +101,58 @@ public class DefaultContentStoreRegistry implements ContentStoreRegistry {
      */
     public java.util.Set<String> getStoreIds() {
         return java.util.Collections.unmodifiableSet(stores.keySet());
+    }
+
+    /**
+     * Override writeContent to wrap the returned ContentAccessor with a reference
+     * that includes the write store ID.
+     */
+    @Override
+    public ContentAccessor writeContent(InputStream inputStream)
+        throws UnwritableContentException {
+        ContentAccessor originalAccessor = writeStore.writeContent(inputStream);
+
+        // Wrap the reference to include the store ID
+        ContentReference referenceWithStoreId = ContentReference.of(
+            writeStoreId,
+            originalAccessor.getReference().getValue()
+        );
+
+        return new ContentAccessorWithStoreId(
+            originalAccessor,
+            referenceWithStoreId
+        );
+    }
+
+    /**
+     * Wrapper for ContentAccessor that overrides the reference to include store ID
+     */
+    private static class ContentAccessorWithStoreId implements ContentAccessor {
+
+        private final ContentAccessor delegate;
+        private final ContentReference referenceWithStoreId;
+
+        ContentAccessorWithStoreId(
+            ContentAccessor delegate,
+            ContentReference referenceWithStoreId
+        ) {
+            this.delegate = delegate;
+            this.referenceWithStoreId = referenceWithStoreId;
+        }
+
+        @Override
+        public ContentReference getReference() {
+            return referenceWithStoreId;
+        }
+
+        @Override
+        public long getContentSize() {
+            return delegate.getContentSize();
+        }
+
+        @Override
+        public String getDescription() {
+            return delegate.getDescription();
+        }
     }
 }

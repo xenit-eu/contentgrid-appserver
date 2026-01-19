@@ -344,7 +344,7 @@ class MultiStoreContentIntegrationTest {
         );
     }
 
-    private ContentReader mockReader(String content) throws IOException {
+    private ContentReader mockReader(String content) throws Exception {
         var reader = mock(ContentReader.class);
         var stream = new ByteArrayInputStream(
             content.getBytes(StandardCharsets.UTF_8)

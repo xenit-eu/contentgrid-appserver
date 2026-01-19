@@ -3,7 +3,6 @@ package com.contentgrid.appserver.autoconfigure.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
 import com.contentgrid.appserver.contentstore.api.DefaultContentStoreRegistry;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
@@ -19,6 +18,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration(after = { ContentGridEventsAutoConfiguration.class })
 @ConditionalOnClass({ DatamodelApiImpl.class })
@@ -56,8 +56,10 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
+    @Primary
     @ConditionalOnMissingBean
-    ContentStoreRegistry contentStoreRegistry(ContentStore contentStore) {
+    ContentStore contentStoreRegistry(ContentStore contentStore) {
+        // Wrap the ContentStore in a registry for multi-store support
         // Use "default" as the store ID for the primary content store
         return new DefaultContentStoreRegistry("default", contentStore);
     }
@@ -65,14 +67,14 @@ public class ContentGridDomainAutoConfiguration {
     @Bean
     DatamodelApiImpl datamodelApi(
         QueryEngine queryEngine,
-        ContentStoreRegistry contentStoreRegistry,
+        ContentStore contentStore,
         DomainEventDispatcher dispatcher,
         CursorCodec cursorCodec,
         Clock clock
     ) {
         return new DatamodelApiImpl(
             queryEngine,
-            contentStoreRegistry,
+            contentStore,
             dispatcher,
             cursorCodec,
             clock
@@ -82,9 +84,9 @@ public class ContentGridDomainAutoConfiguration {
     @Bean
     ContentApi contentApi(
         DatamodelApiImpl datamodelApi,
-        ContentStoreRegistry contentStoreRegistry
+        ContentStore contentStore
     ) {
-        return new ContentApiImpl(datamodelApi, contentStoreRegistry);
+        return new ContentApiImpl(datamodelApi, contentStore);
     }
 
     @Bean

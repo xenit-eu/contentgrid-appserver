@@ -6,7 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
-import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
@@ -40,7 +40,7 @@ import lombok.SneakyThrows;
 public class ContentApiImpl implements ContentApi {
 
     private final DatamodelApiImpl datamodelApi;
-    private final ContentStoreRegistry contentStoreRegistry;
+    private final ContentStore contentStore;
 
     private AttributeDataContent extractContent(
         @NonNull Application application,
@@ -262,9 +262,10 @@ public class ContentApiImpl implements ContentApi {
         public InputStream getInputStream() throws IOException {
             try {
                 var contentRef = getContentId().orElseThrow();
-                var reader = contentStoreRegistry
-                    .getStoreForReading(contentRef)
-                    .getReader(contentRef, contentRange.resolve(getLength()));
+                var reader = contentStore.getReader(
+                    contentRef,
+                    contentRange.resolve(getLength())
+                );
                 return reader.getContentInputStream();
             } catch (
                 UnreadableContentException

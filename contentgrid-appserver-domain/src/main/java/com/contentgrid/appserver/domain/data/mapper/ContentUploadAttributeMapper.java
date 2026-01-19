@@ -4,8 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.contentstore.api.ContentReference;
-import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
@@ -28,7 +27,7 @@ public class ContentUploadAttributeMapper
     extends AbstractDescendingAttributeMapper
 {
 
-    private final ContentStoreRegistry contentStoreRegistry;
+    private final ContentStore contentStore;
 
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(
@@ -101,21 +100,17 @@ public class ContentUploadAttributeMapper
                 );
             }
             try {
-                var contentAccessor = contentStoreRegistry
-                    .getWriteStore()
-                    .writeContent(fileDataEntry.getInputStream());
-
-                // Create reference with store ID
-                var contentRef = ContentReference.of(
-                    contentStoreRegistry.getWriteStoreId(),
-                    contentAccessor.getReference().getValue()
+                var contentAccessor = contentStore.writeContent(
+                    fileDataEntry.getInputStream()
                 );
 
                 var builder = MapDataEntry.builder();
                 builder
                     .item(
                         contentAttribute.getId().getName().getValue(),
-                        new StringDataEntry(contentRef.toStorageFormat())
+                        new StringDataEntry(
+                            contentAccessor.getReference().toStorageFormat()
+                        )
                     )
                     .item(
                         contentAttribute.getLength().getName().getValue(),

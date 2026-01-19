@@ -4,12 +4,23 @@
 
 The ContentGrid AppServer now supports using multiple content stores simultaneously. This allows you to:
 
+- **Transparent multi-store support**: `ContentStoreRegistry` implements `ContentStore` interface - no code changes needed
 - **Read from multiple stores**: Access content stored in different locations (e.g., legacy storage, new storage, archive storage)
 - **Write to a single active store**: All new content is written to one designated "write store"
 - **Migrate between stores**: Gradually migrate content from old to new storage systems without downtime
 - **Store-aware references**: Each content object includes a reference to its storage location
 
 ## How It Works
+
+### Transparent ContentStore Implementation
+
+`ContentStoreRegistry` implements the `ContentStore` interface, acting as a transparent facade over multiple stores:
+
+- **Drop-in replacement**: No code changes needed - existing code works as-is
+- **Automatic routing**: Read/write/delete operations are automatically routed to the correct store
+- **Write operations**: Delegated to the active write store, with store ID automatically included in references
+- **Read operations**: Automatically routed based on store ID in the content reference
+- **Delete operations**: Routed to the store specified in the content reference
 
 ### Content Reference Format
 
@@ -22,17 +33,17 @@ When a content reference doesn't specify a store ID, the system uses the current
 
 ### ContentStoreRegistry
 
-The `ContentStoreRegistry` manages multiple content stores:
+The `ContentStoreRegistry` extends `ContentStore` and manages multiple content stores:
 
 - **Multiple stores**: Register any number of content stores with unique IDs
 - **One write store**: Exactly one store is designated as the active write store
-- **Automatic routing**: Reads are automatically routed to the correct store based on the content reference
+- **Transparent operation**: All ContentStore methods work seamlessly across multiple stores
 
 ## Configuration
 
 ### Single Store (Default Behavior)
 
-By default, the system creates a registry with a single store named "default":
+By default, the system automatically wraps your configured ContentStore in a registry with store ID "default":
 
 ```yaml
 contentgrid:
@@ -44,11 +55,11 @@ contentgrid:
         path: /var/contentgrid/content
 ```
 
-This configuration is automatically wrapped in a `DefaultContentStoreRegistry`.
+This configuration is automatically wrapped in a `DefaultContentStoreRegistry` as the primary `ContentStore` bean. Your existing code continues to work without any changes.
 
 ### Multiple Stores
 
-To use multiple stores, create a custom `ContentStoreRegistry` bean:
+To use multiple stores, create a custom `ContentStoreRegistry` bean as the primary `ContentStore`:
 
 ```java
 @Configuration
@@ -56,7 +67,7 @@ public class MultiStoreConfiguration {
     
     @Bean
     @Primary
-    public ContentStoreRegistry contentStoreRegistry(
+    public ContentStore contentStoreRegistry(
             @Qualifier("primaryStore") ContentStore primaryStore,
             @Qualifier("archiveStore") ContentStore archiveStore,
             @Qualifier("legacyStore") ContentStore legacyStore
@@ -68,6 +79,7 @@ public class MultiStoreConfiguration {
         );
         
         // "primary" is the active write store
+        // This registry implements ContentStore, so it's a drop-in replacement
         return new DefaultContentStoreRegistry("primary", stores);
     }
     
@@ -91,20 +103,26 @@ public class MultiStoreConfiguration {
 }
 ```
 
+**Important**: The registry is injected as a `ContentStore`, so all existing code using `ContentStore` works without modification.
+
 ### Dynamic Store Registration
 
-You can also register stores dynamically at runtime:
+You can also register stores dynamically at runtime. Since the registry is typically injected as `ContentStore`, you need to cast it:
 
 ```java
 @Autowired
-private DefaultContentStoreRegistry contentStoreRegistry;
+private ContentStore contentStore;
 
 public void addNewStore(String storeId, ContentStore store) {
-    contentStoreRegistry.registerStore(storeId, store);
+    if (contentStore instanceof DefaultContentStoreRegistry registry) {
+        registry.registerStore(storeId, store);
+    }
 }
 
 public void switchWriteStore(String newStoreId) {
-    contentStoreRegistry.setWriteStore(newStoreId);
+    if (contentStore instanceof DefaultContentStoreRegistry registry) {
+        registry.setWriteStore(newStoreId);
+    }
 }
 ```
 
@@ -112,21 +130,19 @@ public void switchWriteStore(String newStoreId) {
 
 ### Writing Content
 
-New content is always written to the active write store:
+Writing content works exactly as before - no code changes needed:
 
 ```java
 @Autowired
-private ContentStoreRegistry registry;
+private ContentStore contentStore;
 
 public void uploadContent(InputStream content) {
     // Writes to the active write store
-    var accessor = registry.getWriteStore().writeContent(content);
+    // The registry automatically includes the store ID in the reference
+    var accessor = contentStore.writeContent(content);
     
-    // The reference includes the write store ID
-    var reference = ContentReference.of(
-        registry.getWriteStoreId(),
-        accessor.getReference().getValue()
-    );
+    // The reference automatically includes the write store ID
+    var reference = accessor.getReference();
     
     // Store reference as: "primary:abc123def456"
     String storedValue = reference.toStorageFormat();
@@ -135,21 +151,23 @@ public void uploadContent(InputStream content) {
 
 ### Reading Content
 
-Reading automatically uses the correct store based on the reference:
+Reading content also works exactly as before - routing is automatic:
 
 ```java
+@Autowired
+private ContentStore contentStore;
+
 public InputStream readContent(String storedReference) {
     // Parse the stored reference
     var reference = ContentReference.parse(storedReference);
     
-    // Get the appropriate store (based on store ID in reference)
-    var store = registry.getStoreForReading(reference);
-    
-    // Read the content
-    var reader = store.getReader(reference, contentRange);
+    // Read the content - registry automatically routes to correct store
+    var reader = contentStore.getReader(reference, contentRange);
     return reader.getContentInputStream();
 }
 ```
+
+**Key Point**: Your existing code using `ContentStore` continues to work without any changes. The registry transparently handles routing to multiple stores.
 
 ### Migration Example
 
@@ -161,7 +179,7 @@ public class MigrationConfiguration {
     
     @Bean
     @Primary
-    public ContentStoreRegistry contentStoreRegistry() {
+    public ContentStore contentStoreRegistry() {
         var oldStore = new FilesystemContentStore(Paths.get("/old/storage"));
         var newStore = new S3ContentStore(/* ... */);
         
@@ -172,16 +190,17 @@ public class MigrationConfiguration {
         
         // New content goes to "new-s3"
         // Old content can still be read from "old-fs"
+        // Return as ContentStore for transparent operation
         return new DefaultContentStoreRegistry("new-s3", stores);
     }
 }
 ```
 
-Now:
-- New uploads go to the S3 store with references like `new-s3:abc123`
+Now all your existing code continues to work:
+- New uploads automatically go to the S3 store with references like `new-s3:abc123`
 - Old content references without store IDs are read from `new-s3` (current write store)
-- Old content references with `old-fs:` prefix are read from the filesystem store
-- You can migrate content gradually in the background
+- Old content references with `old-fs:` prefix are automatically read from the filesystem store
+- You can migrate content gradually in the background using standard ContentStore operations
 
 ## Migration Strategies
 
@@ -296,43 +315,49 @@ reference.getStoreId()  // Returns "store-id" or null
 ### ContentStoreRegistry
 
 ```java
-// Get a specific store
-Optional<ContentStore> getStore(String storeId)
+// Implements ContentStore interface
+ContentReader getReader(ContentReference ref, ResolvedContentRange range)
+ContentAccessor writeContent(InputStream inputStream)
+void remove(ContentReference contentReference)
 
-// Get the active write store
+// Additional registry-specific methods
+Optional<ContentStore> getStore(String storeId)
 ContentStore getWriteStore()
 String getWriteStoreId()
-
-// Get store for reading a reference
 ContentStore getStoreForReading(ContentReference ref)
 ```
 
 ### DefaultContentStoreRegistry
 
 ```java
-// Create with single store
-new DefaultContentStoreRegistry("store-id", contentStore)
+// Create with single store (implements ContentStore)
+ContentStore registry = new DefaultContentStoreRegistry("store-id", contentStore)
 
-// Create with multiple stores
-new DefaultContentStoreRegistry("write-store-id", storeMap)
+// Create with multiple stores (implements ContentStore)
+ContentStore registry = new DefaultContentStoreRegistry("write-store-id", storeMap)
 
-// Register additional store
-registerStore("store-id", contentStore)
-
-// Change write store
-setWriteStore("new-write-store-id")
-
-// Get all store IDs
-Set<String> getStoreIds()
+// Cast to access registry-specific methods
+if (contentStore instanceof DefaultContentStoreRegistry registry) {
+    // Register additional store
+    registry.registerStore("store-id", contentStore)
+    
+    // Change write store
+    registry.setWriteStore("new-write-store-id")
+    
+    // Get all store IDs
+    Set<String> storeIds = registry.getStoreIds()
+}
 ```
 
 ## Backward Compatibility
 
-The implementation is fully backward compatible:
+The implementation is fully backward compatible and transparent:
 
+- **Zero code changes**: Existing code using `ContentStore` works as-is
 - **Old references** (without store ID) continue to work
-- **Single store** configuration works unchanged
-- **Legacy code** doesn't need updates
+- **Single store** configuration works unchanged - automatically wrapped in registry
+- **Legacy code** doesn't need updates - registry implements `ContentStore` interface
 - **Database migration** is not required
+- **Transparent operation**: All routing happens automatically behind the scenes
 
 Old content references without a store ID are automatically routed to the current write store, ensuring seamless operation during and after migration.

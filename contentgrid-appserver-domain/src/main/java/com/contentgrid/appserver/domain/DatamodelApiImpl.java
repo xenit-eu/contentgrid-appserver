@@ -5,7 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.contentstore.api.ContentStoreRegistry;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
@@ -80,7 +80,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DatamodelApiImpl implements DatamodelApi {
 
     private final QueryEngine queryEngine;
-    private final ContentStoreRegistry contentStoreRegistry;
+    private final ContentStore contentStore;
     private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
@@ -127,7 +127,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             .andThen(
                 new OptionalFlatMapAdaptingMapper<>(
                     AttributeAndRelationMapper.from(
-                        new ContentUploadAttributeMapper(contentStoreRegistry),
+                        new ContentUploadAttributeMapper(contentStore),
                         (rel, value) -> Optional.of(value)
                     )
                 )
