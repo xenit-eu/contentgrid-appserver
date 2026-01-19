@@ -20,8 +20,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-@AutoConfiguration(after = { ContentGridEventsAutoConfiguration.class })
-@ConditionalOnClass({ DatamodelApiImpl.class })
+@AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
+@ConditionalOnClass({DatamodelApiImpl.class})
 public class ContentGridDomainAutoConfiguration {
 
     @Bean
@@ -35,23 +35,13 @@ public class ContentGridDomainAutoConfiguration {
     DomainEventDispatcher noopDomainEventDispatcher() {
         return new DomainEventDispatcher() {
             @Override
-            public void dispatchCreate(
-                Application application,
-                EntityInstance instance
-            ) {}
+            public void dispatchCreate(Application application, EntityInstance instance) {}
 
             @Override
-            public void dispatchUpdate(
-                Application application,
-                EntityInstance oldInstance,
-                EntityInstance newInstance
-            ) {}
+            public void dispatchUpdate(Application application, EntityInstance oldInstance, EntityInstance newInstance) {}
 
             @Override
-            public void dispatchDelete(
-                Application application,
-                EntityInstance instance
-            ) {}
+            public void dispatchDelete(Application application, EntityInstance instance) {}
         };
     }
 
@@ -65,34 +55,18 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    DatamodelApiImpl datamodelApi(
-        QueryEngine queryEngine,
-        ContentStore contentStore,
-        DomainEventDispatcher dispatcher,
-        CursorCodec cursorCodec,
-        Clock clock
-    ) {
-        return new DatamodelApiImpl(
-            queryEngine,
-            contentStore,
-            dispatcher,
-            cursorCodec,
-            clock
-        );
+    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
+            CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
     }
 
     @Bean
-    ContentApi contentApi(
-        DatamodelApiImpl datamodelApi,
-        ContentStore contentStore
-    ) {
+    ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStore contentStore) {
         return new ContentApiImpl(datamodelApi, contentStore);
     }
 
     @Bean
     CursorCodec cursorCodec() {
-        return new RequestIntegrityCheckCursorCodec(
-            new SimplePageBasedCursorCodec()
-        );
+        return new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
     }
 }
