@@ -97,16 +97,15 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
         var collector = new ValidationExceptionCollector<>(InvalidPaginationParameterException.class);
         var parsedSize = parameters.getValue(SIZE_NAME, size -> collector.use(() -> {
             try {
-                var result = Integer.parseInt(size);
-                if (result <= 0) {
-                    throw new InvalidPaginationParameterException(SIZE_NAME, size, "Value must be positive");
-                } else if (result > MAX_PAGE_SIZE) {
+                var result = Integer.parseUnsignedInt(size);
+                if (result < 1 || result > MAX_PAGE_SIZE) {
                     throw new InvalidPaginationParameterException(SIZE_NAME, size,
-                            "Value can be at most %s".formatted(MAX_PAGE_SIZE));
+                            "Value must be between 1 and %s".formatted(MAX_PAGE_SIZE));
                 }
                 return result;
             } catch (NumberFormatException e) {
-                throw new InvalidPaginationParameterException(SIZE_NAME, size, "Value must be a positive integer");
+                throw new InvalidPaginationParameterException(SIZE_NAME, size,
+                        "Value must be between 1 and %s".formatted(MAX_PAGE_SIZE));
             }
         }), DEFAULT_PAGE_SIZE);
         collector.rethrow();
