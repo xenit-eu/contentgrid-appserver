@@ -13,6 +13,7 @@ import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
+import com.contentgrid.appserver.exception.InvalidPaginationParameterException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -168,7 +169,7 @@ public class ContentGridExceptionHandler {
     }
 
     @ExceptionHandler
-    ResponseEntity<Problem> handleInvalidParameterException(@NonNull InvalidFilterParameterException exception) {
+    ResponseEntity<Problem> handleInvalidFilterParameterException(@NonNull InvalidFilterParameterException exception) {
         return createResponse(
                 problemFactory.createProblem(ProblemType.INVALID_FILTER_PARAMETER_FORMAT)
                         .withStatus(HttpStatus.BAD_REQUEST)
@@ -182,6 +183,19 @@ public class ContentGridExceptionHandler {
                                         ))
                                         .toList(),
                                 "property", exception.getFilterName(),
+                                "invalid_value", exception.getValue()
+                        ))
+        );
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleInvalidPaginationParameterException(@NonNull InvalidPaginationParameterException exception) {
+        return createResponse(
+                problemFactory.createProblem(ProblemType.INVALID_PAGINATION_PARAMETER)
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .withDetail(exception.getMessage())
+                        .withProperties(Map.of(
+                                "query_parameter", exception.getParameter(),
                                 "invalid_value", exception.getValue()
                         ))
         );

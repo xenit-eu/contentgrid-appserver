@@ -1085,6 +1085,31 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.page.total_items_estimate", is(exact)))
                     .andExpect(jsonPath("$.page.total_items_exact", is(exact)));
         }
+
+        @Test
+        void testListEntityInstances_defaultPageSize() throws Exception {
+            mockMvc.perform(get("/products").accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page.size", is(20)));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"5,5", "100,100", "1000,1000"})
+        void testListEntityInstances_pageSize(String requestedSize, int actualSize) throws Exception {
+            mockMvc.perform(get("/products?_size={size}", requestedSize).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page.size", is(actualSize)));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"0", "-1", "-10", "abc", "1001", "10000"})
+        void testListEntityInstances_pageSize_invalid(String requestedSize) throws Exception {
+            createProduct(1);
+            mockMvc.perform(get("/products?_size={size}", requestedSize).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/pagination"));
+        }
     }
 
     @Nested

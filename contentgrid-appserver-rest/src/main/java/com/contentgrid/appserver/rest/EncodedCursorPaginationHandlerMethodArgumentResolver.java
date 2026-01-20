@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
+import com.contentgrid.appserver.exception.InvalidPaginationParameterException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
@@ -34,6 +35,7 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
     public static final String SORT_NAME = "_sort";
 
     private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 1000;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -85,9 +87,31 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
     @Override
     public EncodedCursorPagination create(PaginationParameters parameters) {
         var cursor = parameters.getValue(CURSOR_NAME, Function.identity(), null);
-        var size = parameters.getInteger(SIZE_NAME, DEFAULT_PAGE_SIZE);
+        var size = parseSize(parameters);
         var sort = parseSortData(parameters);
         return new EncodedCursorPagination(cursor, size, sort);
+    }
+
+    private int parseSize(PaginationParameters parameters) {
+        // Use a collector to prevent parameter.getValue() returning the default value if it
+        // encounters a RuntimeException. The Exception is rethrown outside the lambda expression.
+        var collector = new ValidationExceptionCollector<>(InvalidPaginationParameterException.class);
+        var parsedSize = parameters.getValue(SIZE_NAME, size -> collector.use(() -> {
+            try {
+                var result = Integer.parseUnsignedInt(size);
+                if (result < 1 || result > MAX_PAGE_SIZE) {
+                    throw new InvalidPaginationParameterException(SIZE_NAME, size,
+                            "Value must be between 1 and %s".formatted(MAX_PAGE_SIZE));
+                }
+                return result;
+            } catch (NumberFormatException e) {
+                throw new InvalidPaginationParameterException(SIZE_NAME, size,
+                        "Value must be between 1 and %s".formatted(MAX_PAGE_SIZE));
+            }
+        }), DEFAULT_PAGE_SIZE);
+        // Rethrow outside lambda expression if exception was thrown.
+        collector.rethrow();
+        return parsedSize;
     }
 
     private SortData parseSortData(PaginationParameters parameters) {
