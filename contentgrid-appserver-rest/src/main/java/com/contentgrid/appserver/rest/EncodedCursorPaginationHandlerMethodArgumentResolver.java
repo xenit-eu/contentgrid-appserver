@@ -93,7 +93,8 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
     }
 
     private int parseSize(PaginationParameters parameters) {
-        // Use a collector to catch multiple InvalidPageParameterExceptions
+        // Use a collector to prevent parameter.getValue() returning the default value if it
+        // encounters a RuntimeException. The Exception is rethrown outside the lambda expression.
         var collector = new ValidationExceptionCollector<>(InvalidPaginationParameterException.class);
         var parsedSize = parameters.getValue(SIZE_NAME, size -> collector.use(() -> {
             try {
@@ -108,6 +109,7 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
                         "Value must be between 1 and %s".formatted(MAX_PAGE_SIZE));
             }
         }), DEFAULT_PAGE_SIZE);
+        // Rethrow outside lambda expression if exception was thrown.
         collector.rethrow();
         return parsedSize;
     }
