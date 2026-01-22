@@ -4,6 +4,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -1581,7 +1582,8 @@ class EntityRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}")
                             .header(HttpHeaders.IF_MATCH, "*"))
-                    .andExpect(status().isNoContent());
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().doesNotExist(HttpHeaders.ETAG));
         }
 
         @ParameterizedTest
@@ -1607,13 +1609,9 @@ class EntityRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}")
                             .header(HttpHeaders.IF_MATCH, response.getHeader(HttpHeaders.ETAG)))
-                    .andExpect(status().isNoContent());
-
-            // Verify e-tag changed
-            mockMvc.perform(get(url)
-                            .accept(MediaType.APPLICATION_JSON)
-                            .header(HttpHeaders.IF_NONE_MATCH, response.getHeader(HttpHeaders.ETAG)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent())
+                    // Verify e-tag changed
+                    .andExpect(header().string(HttpHeaders.ETAG, not(response.getHeader(HttpHeaders.ETAG))));
         }
     }
 
