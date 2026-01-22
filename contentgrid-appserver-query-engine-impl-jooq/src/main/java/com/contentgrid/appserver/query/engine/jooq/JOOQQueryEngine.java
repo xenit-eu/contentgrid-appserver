@@ -381,23 +381,23 @@ public class JOOQQueryEngine implements QueryEngine {
                         .fetchOptionalMap()
                         .map(result -> EntityDataMapper.from(entity, result))
                         .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
+
+                // When the update is done properly, the value of the new version field will be one higher
+                // than the previous value, so restore it back to the previous value to check against the requested version
+                var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
+
+                // If the update was done, and it has violated the version requirement, throw an exception.
+                // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
+                // so the update will not actually be committed
+                if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
+                    throw new UnsatisfiedVersionException(
+                            data.getIdentity().getVersion(),
+                            previousVersion
+                    );
+                }
+
+                assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
             }
-
-            // When the update is done properly, the value of the new version field will be one higher
-            // than the previous value, so restore it back to the previous value to check against the requested version
-            var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
-
-            // If the update was done, and it has violated the version requirement, throw an exception.
-            // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
-            // so the update will not actually be committed
-            if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
-                throw new UnsatisfiedVersionException(
-                        data.getIdentity().getVersion(),
-                        previousVersion
-                );
-            }
-
-            assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
             updateEventConsumer.onEntityUpdate(application, oldValue, newValue);
 
