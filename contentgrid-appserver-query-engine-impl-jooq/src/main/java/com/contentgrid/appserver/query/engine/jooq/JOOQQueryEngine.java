@@ -355,11 +355,6 @@ public class JOOQQueryEngine implements QueryEngine {
             updatedFields.set(pair.field(), pair.value());
         }
 
-        if(!updatedFields.changed()) {
-            // Check that at least one field is updated
-            throw new IllegalInputDataException("Provided data is empty");
-        }
-
         var update = dslContext.update(table)
                 .set(updatedFields);
 
@@ -376,14 +371,17 @@ public class JOOQQueryEngine implements QueryEngine {
             // If previous value was not found with an update, the user does not have permission to update the object
             // so we act as if it does not exist at all
             var oldValue = getByIdRequired(application, data.getIdentity().toRequest(), permitUpdatePredicate);
+            var newValue = oldValue;
 
-            var finalUpdate = update;
-            var newValue = DslContextUtils.executeInSavepoint(dslContext, () -> finalUpdate
-                    .where(primaryKey.eq(id.getValue()))
-                    .returning(attributeFields)
-                    .fetchOptionalMap()
-                    .map(result -> EntityDataMapper.from(entity, result))
-                    .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
+            if (update.isExecutable()) {
+                var finalUpdate = update;
+                newValue = DslContextUtils.executeInSavepoint(dslContext, () -> finalUpdate
+                        .where(primaryKey.eq(id.getValue()))
+                        .returning(attributeFields)
+                        .fetchOptionalMap()
+                        .map(result -> EntityDataMapper.from(entity, result))
+                        .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
+            }
 
             // When the update is done properly, the value of the new version field will be one higher
             // than the previous value, so restore it back to the previous value to check against the requested version
