@@ -1411,8 +1411,49 @@ class EntityRestControllerTest {
                     .andExpect(status().isNoContent());
         }
 
-        @Test
-        void testUpdateMissingContentMimetype_http400() throws Exception {
+        static Stream<Arguments> testUpdateMissingContentMimetype_http400() {
+            return Stream.of(
+                    Arguments.argumentSet("Mimetype missing", """
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "filename": "IMG_789.png"
+                              }
+                            }
+                            """), Arguments.argumentSet("Mimetype null", """
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {
+                                "filename": "IMG_789.png",
+                                "mimetype": null
+                              }
+                            }
+                            """), Arguments.argumentSet("Empty content", """
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": {}
+                            }
+                            """), Arguments.argumentSet("Content null", """
+                            {
+                              "name": "My product",
+                              "price": 120,
+                              "picture": null
+                            }
+                            """), Arguments.argumentSet("Content missing", """
+                            {
+                              "name": "My product",
+                              "price": 120
+                            }
+                            """)
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void testUpdateMissingContentMimetype_http400(String body) throws Exception {
             // create product with content
             var productResponse = mockMvc.perform(multipart("/products")
                             .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
@@ -1429,15 +1470,7 @@ class EntityRestControllerTest {
             // Update product
             mockMvc.perform(put(productResponse.getRedirectedUrl())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                            {
-                              "name": "My product",
-                              "price": 120,
-                              "picture": {
-                                "filename": "IMG_789.png"
-                              }
-                            }
-                            """))
+                            .content(body))
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
                                     .withTitle("Mandatory field")
