@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -60,6 +61,17 @@ public abstract class AbstractDescendingAttributeMapper implements AttributeMapp
             }
             collector.rethrow();
             return Optional.of(builder.build());
+        } else if (inputData instanceof NullDataEntry nullDataEntry) {
+            // Also handle the case when inputData is null, so that exceptions can be thrown.
+            // At this point, MissingDataEntry is already converted to NullDataEntry for create/update
+            // and left out for partial update. We don't need to handle missing entries for partial update
+            // since those are not touched at all.
+            var collector = new ValidationExceptionCollector<>(InvalidDataException.class);
+            for (var attribute : compositeAttribute.getAttributes()) {
+                collector.use(() -> mapAttribute(path.withSuffix(attribute.getName()), attribute, nullDataEntry));
+            }
+            collector.rethrow();
+            return Optional.of(nullDataEntry); // keep nullDataEntry
         } else {
             return mapCompositeAttributeUnsupportedDatatype(path, compositeAttribute, inputData);
         }
