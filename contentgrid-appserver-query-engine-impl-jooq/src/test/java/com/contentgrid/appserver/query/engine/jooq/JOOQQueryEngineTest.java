@@ -1493,6 +1493,10 @@ class JOOQQueryEngineTest {
                                         .value("new_filename")
                                         .build())
                                 .build())
+                        .build(),
+                EntityData.builder()
+                        .name(PERSON.getName())
+                        .id(BOB_ID)
                         .build()
         );
     }
@@ -1609,11 +1613,6 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_IS_PAID.getName())
                                 .value("invalid_boolean") // String instead of boolean
                                 .build())
-                        .build()),
-                Arguments.argumentSet("Empty data", IllegalInputDataException.class,
-                        EntityData.builder()
-                        .name(PERSON.getName())
-                        .id(BOB_ID)
                         .build()),
                 Arguments.argumentSet("No SimpleAttributeData provided in CompositeAttributeData", IllegalInputDataException.class,
                         EntityData.builder()

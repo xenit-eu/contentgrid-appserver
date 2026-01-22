@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -412,6 +413,39 @@ class EntityRestControllerTest {
                                     .withProperty("picture")
                             )
                     );
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void succeedToCreateEntityWithRelationsOnly(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
+            var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
+            var url = mockMvc.perform(mediaTypeConfiguration.configure(post("/orders"), Map.of(
+                            "invoice", invoiceUrl,
+                            "products", List.of(productUrl)
+                    )))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.LOCATION);
+
+            mockMvc.perform(get(url).accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void succeedToCreateEntityWithoutProperties(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            var url = mockMvc.perform(mediaTypeConfiguration.configure(post("/empties"), Map.of()))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse()
+                    .getHeader("Location");
+
+            mockMvc.perform(get(url).accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
         }
     }
 
@@ -1351,7 +1385,7 @@ class EntityRestControllerTest {
         }
 
         @Test
-        void testUpdateContentFilenameAndMimetype_http200() throws Exception {
+        void testUpdateContentFilenameAndMimetype_http204() throws Exception {
             // create product with content
             var productResponse = mockMvc.perform(multipart("/products")
                             .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
@@ -1382,7 +1416,7 @@ class EntityRestControllerTest {
         }
 
         @Test
-        void testUpdateMissingContentFilename_http200() throws Exception {
+        void testUpdateMissingContentFilename_http204() throws Exception {
             // create product with content
             var productResponse = mockMvc.perform(multipart("/products")
                             .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
@@ -1479,6 +1513,53 @@ class EntityRestControllerTest {
                     );
         }
 
+        @ParameterizedTest
+        @CsvSource({"PUT", "PATCH"})
+        void testUpdateEntityWithoutAttributes_http204(HttpMethod method) throws Exception {
+            // Create order
+            var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
+            var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
+            var url = mockMvc.perform(post("/orders")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("invoice", invoiceUrl)
+                            .param("products", productUrl))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.LOCATION);
+
+            // Update order
+            mockMvc.perform(request(method, url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}")
+                            .with(jwt().jwt(jwt -> jwt.subject("alice@example.com")
+                                    .claim("name", "Alice"))))
+                    .andExpect(status().isNoContent());
+
+            // Request order and verify audit metadata updated
+            mockMvc.perform(get(url))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.created_by", is("user")))
+                    .andExpect(jsonPath("$.modified_by", is("Alice")));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"PUT", "PATCH"})
+        void testUpdateEntityWithoutAttributesAndRelations_http204(HttpMethod method) throws Exception {
+            // Create empty entity
+            var url = mockMvc.perform(post( "/empties")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.LOCATION);
+
+            // Update empty entity
+            mockMvc.perform(request(method, url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isNoContent());
+        }
     }
 
     @Nested
@@ -1603,6 +1684,48 @@ class EntityRestControllerTest {
                     .andExpect(header().string(HttpHeaders.ETAG, createResponse.getHeader(HttpHeaders.ETAG)))
                     .andExpect(jsonPath("$.number").value("123"))
                     .andExpect(jsonPath("$.amount").value("150"));
+        }
+
+        @Test
+        void testDeleteEntityWithoutAttributes() throws Exception {
+            // Create order
+            var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
+            var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
+            var url = mockMvc.perform(post("/orders")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("invoice", invoiceUrl)
+                            .param("products", productUrl))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.LOCATION);
+
+            // Delete order
+            mockMvc.perform(delete(url))
+                    .andExpect(status().isNoContent());
+
+            // Verify order deleted
+            mockMvc.perform(get(url))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void testDeleteEntityWithoutAttributesAndRelations() throws Exception {
+            // Create empty entity
+            var url = mockMvc.perform(post( "/empties")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.LOCATION);
+
+            // Delete empty entity
+            mockMvc.perform(delete(url))
+                    .andExpect(status().isNoContent());
+
+            // Verify entity deleted
+            mockMvc.perform(get(url))
+                    .andExpect(status().isNotFound());
         }
     }
 
