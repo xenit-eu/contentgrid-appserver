@@ -437,15 +437,30 @@ class EntityRestControllerTest {
         @ParameterizedTest
         @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
         void succeedToCreateEntityWithoutProperties(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
-            var url = mockMvc.perform(mediaTypeConfiguration.configure(post("/empties"), Map.of()))
+            var url = mockMvc.perform(mediaTypeConfiguration.configure(post("/empties-without-etag"), Map.of()))
                     .andExpect(status().isCreated())
                     .andExpect(header().doesNotExist(HttpHeaders.ETAG))
                     .andReturn()
                     .getResponse()
-                    .getHeader("Location");
+                    .getHeader(HttpHeaders.LOCATION);
 
             mockMvc.perform(get(url).accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk());
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void succeedToCreateEntityWithETagOnly(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            var response = mockMvc.perform(mediaTypeConfiguration.configure(post("/empties-with-etag"), Map.of()))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse();
+
+            mockMvc.perform(get(response.getHeader(HttpHeaders.LOCATION))
+                            .accept(MediaType.APPLICATION_JSON)
+                            .header(HttpHeaders.IF_NONE_MATCH, response.getHeader(HttpHeaders.ETAG)))
+                    .andExpect(status().isNotModified());
         }
     }
 
@@ -1545,20 +1560,60 @@ class EntityRestControllerTest {
 
         @ParameterizedTest
         @CsvSource({"PUT", "PATCH"})
-        void testUpdateEntityWithoutAttributesAndRelations_http204(HttpMethod method) throws Exception {
+        void testUpdateEntityWithoutProperties_http204(HttpMethod method) throws Exception {
             // Create empty entity
-            var url = mockMvc.perform(post( "/empties")
+            var url = mockMvc.perform(post( "/empties-without-etag")
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse()
                     .getHeader(HttpHeaders.LOCATION);
 
+            // Attempt to update empty entity with invalid if-match
+            mockMvc.perform(request(method, url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}")
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
+
+            // Update empty entity (use valid if-match)
+            mockMvc.perform(request(method, url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}")
+                            .header(HttpHeaders.IF_MATCH, "*"))
+                    .andExpect(status().isNoContent());
+        }
+
+        @ParameterizedTest
+        @CsvSource({"PUT", "PATCH"})
+        void testUpdateEntityWithETagOnly_http204(HttpMethod method) throws Exception {
+            // Create empty entity
+            var response = mockMvc.perform(post( "/empties-with-etag")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+            var url = response.getHeader(HttpHeaders.LOCATION);
+
+            // Attempt to update empty entity with invalid if-match
+            mockMvc.perform(request(method, url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}")
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
+
             // Update empty entity
             mockMvc.perform(request(method, url)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{}"))
+                            .content("{}")
+                            .header(HttpHeaders.IF_MATCH, response.getHeader(HttpHeaders.ETAG)))
                     .andExpect(status().isNoContent());
+
+            // Verify e-tag changed
+            mockMvc.perform(get(url)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .header(HttpHeaders.IF_NONE_MATCH, response.getHeader(HttpHeaders.ETAG)))
+                    .andExpect(status().isOk());
         }
     }
 
@@ -1710,17 +1765,48 @@ class EntityRestControllerTest {
         }
 
         @Test
-        void testDeleteEntityWithoutAttributesAndRelations() throws Exception {
+        void testDeleteEntityWithoutProperties() throws Exception {
             // Create empty entity
-            var url = mockMvc.perform(post( "/empties")
+            var url = mockMvc.perform(post( "/empties-without-etag")
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse()
                     .getHeader(HttpHeaders.LOCATION);
 
+            // Attempt to delete empty entity with invalid if-match
+            mockMvc.perform(delete(url)
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
+
             // Delete empty entity
-            mockMvc.perform(delete(url))
+            mockMvc.perform(delete(url)
+                            .header(HttpHeaders.IF_MATCH, "*"))
+                    .andExpect(status().isNoContent());
+
+            // Verify entity deleted
+            mockMvc.perform(get(url))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void testDeleteEntityWithETagOnly() throws Exception {
+            // Create empty entity
+            var response = mockMvc.perform(post( "/empties-with-etag")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse();
+            var url = response.getHeader(HttpHeaders.LOCATION);
+
+            // Attempt to delete empty entity with invalid if-match
+            mockMvc.perform(delete(url)
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
+
+            // Delete empty entity
+            mockMvc.perform(delete(url)
+                            .header(HttpHeaders.IF_MATCH, response.getHeader(HttpHeaders.ETAG)))
                     .andExpect(status().isNoContent());
 
             // Verify entity deleted

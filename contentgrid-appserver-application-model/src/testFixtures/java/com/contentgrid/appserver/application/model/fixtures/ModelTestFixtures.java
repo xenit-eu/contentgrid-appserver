@@ -744,19 +744,42 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
-    public static final SimpleAttribute EMPTY_ID = SimpleAttribute.builder()
-            .name(AttributeName.of("empty_id"))
-            .column(ColumnName.of("empty_id"))
+    public static final SimpleAttribute EMPTY_WITHOUT_ETAG_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("empty_without_etag_id"))
+            .column(ColumnName.of("empty_without_etag_id"))
             .type(Type.UUID)
             .flag(ReadOnlyFlag.INSTANCE)
             .build();
 
-    public static final Entity EMPTY = Entity.builder()
-            .name(EntityName.of("empty"))
-            .table(TableName.of("empty"))
-            .pathSegment(PathSegmentName.of("empties"))
-            .linkName(LinkName.of("empty"))
-            .primaryKey(EMPTY_ID)
+    public static final Entity EMPTY_WITHOUT_ETAG = Entity.builder()
+            .name(EntityName.of("empty-without-etag"))
+            .table(TableName.of("empty_without_etag"))
+            .pathSegment(PathSegmentName.of("empties-without-etag"))
+            .linkName(LinkName.of("empty-without-etag"))
+            .primaryKey(EMPTY_WITHOUT_ETAG_ID)
+            .build();
+
+    public static final SimpleAttribute EMPTY_WITH_ETAG_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("empty_with_etag_id"))
+            .column(ColumnName.of("empty_with_etag_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute EMPTY_WITH_ETAG_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("_version"))
+            .column(ColumnName.of("_version"))
+            .type(Type.LONG)
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
+    public static final Entity EMPTY_WITH_ETAG = Entity.builder()
+            .name(EntityName.of("empty-with-etag"))
+            .table(TableName.of("empty_with_etag"))
+            .pathSegment(PathSegmentName.of("empties-with-etag"))
+            .linkName(LinkName.of("empty-with-etag"))
+            .primaryKey(EMPTY_WITH_ETAG_ID)
+            .attribute(EMPTY_WITH_ETAG_VERSION)
             .build();
 
     public static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
@@ -886,7 +909,8 @@ public class ModelTestFixtures {
             .entity(PERSON)
             .entity(PRODUCT)
             .entity(ORDER)
-            .entity(EMPTY)
+            .entity(EMPTY_WITHOUT_ETAG)
+            .entity(EMPTY_WITH_ETAG)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
