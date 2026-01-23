@@ -114,13 +114,12 @@ class AlfrescoCompatibleEncryptionEngineTest
         public ContentReader getEncryptedReader(ResolvedContentRange resolvedContentRange) {
             var encryptedReader = getEncryptedReader();
             // The resolved content range must match the size of the encrypted reader
-            /*assertThat(resolvedContentRange.getContentSize())
+            assertThat(resolvedContentRange.getContentSize())
                     .isEqualTo(encryptedSize)
                     .isEqualTo(encryptedReader.getContentSize());
-
-             */
             return encryptedReader;
         }
+
     }
 
     // engine is stateless
@@ -187,7 +186,9 @@ class AlfrescoCompatibleEncryptionEngineTest
                 ContentRangeRequest.createRange(encryptedResource.getStartByte())
                         .resolve(encryptedResource.getDecryptedSize())
         );
-        assertThat(reader.getContentSize()).isEqualTo(encryptedResource.getEncryptedSize());
+        // The size of the reader is the *decrypted* size (because that is stored in the database and shown to the user)
+        assertThat(reader.getContentSize()).isEqualTo(encryptedResource.getDecryptedSize());
+        // But the content reference is of course the same as the encrypted content (because that's what is stored in the database)
         assertThat(reader.getReference()).isEqualTo(encryptedResource.getEncryptedReader().getReference());
         assertThat(reader.getDescription()).isEqualTo("Decrypted " + encryptedResource.getEncryptedReader().getDescription());
 
