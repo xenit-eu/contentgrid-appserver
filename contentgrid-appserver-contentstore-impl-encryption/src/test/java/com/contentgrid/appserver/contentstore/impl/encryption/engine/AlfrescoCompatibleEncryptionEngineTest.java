@@ -158,7 +158,8 @@ class AlfrescoCompatibleEncryptionEngineTest
 
         ResolvedContentRange contentRange = ResolvedContentRange.fullRange(encryptedResource.getDecryptedSize());
 
-        assertThatThrownBy(() -> engine.decrypt(encryptedResource::getEncryptedReader, params, contentRange)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> engine.decrypt(encryptedResource::getEncryptedReader, params, contentRange))
+                .hasRootCauseInstanceOf(UnsupportedOperationException.class);
     }
 
     @ParameterizedTest

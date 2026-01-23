@@ -83,14 +83,14 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     }
 
     private Cipher initializeCipher(EncryptionParameters parameters)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
+            throws CryptoInitializationFailureException {
         String algorithm = parameters.getAlgorithm().getValue();
         if (!algorithm.startsWith(ALFRESCO_ALG_PREFIX)) {
-            throw new UnsupportedOperationException("Not an Alfresco-compatible encryption algorithm");
+            throw new CryptoInitializationFailureException(new UnsupportedOperationException("Not an Alfresco-compatible encryption algorithm"));
         }
         algorithm = algorithm.substring(ALFRESCO_ALG_PREFIX.length());
-        Cipher cipher = Cipher.getInstance(algorithm);
         try {
+            Cipher cipher = Cipher.getInstance(algorithm);
             Key key = new SecretKey(parameters.getSecretKey(), algorithm);
             int blockSize = cipher.getBlockSize();
             if (blockSize == 0) {
@@ -106,25 +106,22 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
                 // This is fine because this decryption engine is strictly a migration tool.
                 cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(new byte[blockSize]));
             }
+            return cipher;
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            throw new CryptoInitializationFailureException(e);
         } finally {
             // After cipher init, the cipher should manage its own copy of the key
             // So the encryption parameters can be destroyed now
             parameters.destroy();
         }
 
-        return cipher;
     }
 
     @Override
     public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
             throws UnreadableContentException, CryptoInitializationFailureException {
-        Cipher cipher;
-        try {
-            cipher = initializeCipher(encryptionParameters);
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
-                 InvalidKeyException e) {
-            throw new CryptoInitializationFailureException(e);
-        }
+        Cipher cipher = initializeCipher(encryptionParameters);
         // Always read full content, then skip part of the decrypted content if a range was requested.
         // This is fine because the Alfresco decryption engine is strictly for migrating data
         var blockSize = cipher.getBlockSize();

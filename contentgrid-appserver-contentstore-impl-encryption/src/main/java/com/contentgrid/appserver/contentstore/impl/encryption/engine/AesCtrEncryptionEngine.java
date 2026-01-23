@@ -74,32 +74,29 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     private Cipher initializeCipher(EncryptionParameters parameters, boolean forEncryption)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
-        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            throws CryptoInitializationFailureException {
         try {
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
             cipher.init(
                     forEncryption ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE,
                     new SecretKey(parameters.getSecretKey(), "AES"),
                     new IvParameterSpec(parameters.getInitializationVector())
             );
+            return cipher;
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            throw new CryptoInitializationFailureException(e);
         } finally {
             // After cipher init, the cipher should manage its own copy of the key
             // So the encryption parameters can be destroyed now
             parameters.destroy();
         }
-
-        return cipher;
     }
 
     @Override
     public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters)
             throws CryptoInitializationFailureException {
-        try {
-            return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
-                 InvalidKeyException e) {
-            throw new CryptoInitializationFailureException(e);
-        }
+        return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
     }
 
     @Override
@@ -107,7 +104,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
             CiphertextReaderSupplier ciphertextReaderSupplier,
             EncryptionParameters encryptionParameters,
             ResolvedContentRange contentRange
-    ) throws UnreadableContentException {
+    ) throws UnreadableContentException, CryptoInitializationFailureException {
         var blockStartOffset = calculateBlockOffset(contentRange.getStartByte());
 
         var adjustedIv = adjustIvForOffset(encryptionParameters.getInitializationVector(), blockStartOffset);
@@ -122,13 +119,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
 
         var ciphertextContentReader = ciphertextReaderSupplier.getReader(contentRange);
 
-        Cipher cipher = null;
-        try {
-            cipher = initializeCipher(adjustedParameters, false);
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
-                 InvalidKeyException e) {
-            throw new UndecryptableContentException(ciphertextContentReader.getReference(), e);
-        }
+        var cipher = initializeCipher(adjustedParameters, false);
 
         return new DecryptingContentReader(
                 ciphertextContentReader,

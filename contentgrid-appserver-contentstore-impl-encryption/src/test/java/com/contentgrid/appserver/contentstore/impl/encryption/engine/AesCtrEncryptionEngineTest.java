@@ -86,7 +86,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     }
 
     @Test
-    void decryptTestVector() throws UnreadableContentException {
+    void decryptTestVector() throws UnreadableContentException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var keyBytes = KeyBytes.copy(KEY);
@@ -168,7 +168,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     @ParameterizedTest
     @MethodSource
     void decryptPartial(ContentRangeRequest rangeRequest)
-            throws UnsatisfiableContentRangeException, UnreadableContentException, IOException {
+            throws UnsatisfiableContentRangeException, UnreadableContentException, IOException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var decryptionParams = new EncryptionParameters(
