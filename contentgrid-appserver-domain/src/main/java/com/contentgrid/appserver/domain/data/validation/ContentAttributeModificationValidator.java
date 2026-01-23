@@ -45,7 +45,8 @@ public class ContentAttributeModificationValidator implements Validator {
                     }
                 }
             } else if (hasContent && dataEntry instanceof NullDataEntry) {
-                // TODO: mark content for deletion, it can only be deleted after transaction has completed
+                // TODO: mark content for deletion, it can only be deleted in ContentStore
+                //  after database transaction has completed
             }
         }
 
