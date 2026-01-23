@@ -10,4 +10,12 @@ public class UnencryptableContentException extends UnwritableContentException {
         super(reference, "Can not encrypt: %s".formatted(message));
     }
 
+    public UnencryptableContentException(
+            @NonNull ContentReference reference,
+            @NonNull Throwable cause
+    ) {
+        this(reference, cause.getMessage());
+        initCause(cause);
+    }
+
 }

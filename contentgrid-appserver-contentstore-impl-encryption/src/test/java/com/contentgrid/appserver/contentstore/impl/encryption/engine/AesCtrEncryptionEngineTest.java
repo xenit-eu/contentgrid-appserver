@@ -8,6 +8,7 @@ import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.encryption.testing.AbstractEncryptionEngineTest;
@@ -61,7 +62,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     }
 
     @Test
-    void encryptTestVector() throws IOException {
+    void encryptTestVector() throws IOException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var keyBytes = KeyBytes.copy(KEY);
@@ -85,7 +86,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     }
 
     @Test
-    void decryptTestVector() throws UnreadableContentException {
+    void decryptTestVector() throws UnreadableContentException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var keyBytes = KeyBytes.copy(KEY);
@@ -113,7 +114,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     @ParameterizedTest
     @MethodSource
     void decryptPartialWeirdIV(byte[] iv)
-            throws IOException, UnsatisfiableContentRangeException, UnreadableContentException {
+            throws IOException, UnsatisfiableContentRangeException, UnreadableContentException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var encryptionParams = new EncryptionParameters(
@@ -167,7 +168,7 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     @ParameterizedTest
     @MethodSource
     void decryptPartial(ContentRangeRequest rangeRequest)
-            throws UnsatisfiableContentRangeException, UnreadableContentException, IOException {
+            throws UnsatisfiableContentRangeException, UnreadableContentException, IOException, CryptoInitializationFailureException {
         var engine = new AesCtrEncryptionEngine(128);
 
         var decryptionParams = new EncryptionParameters(

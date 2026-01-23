@@ -4,7 +4,7 @@ import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
-import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 
 import java.io.InputStream;
@@ -83,14 +83,14 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     }
 
     private Cipher initializeCipher(EncryptionParameters parameters)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
+            throws CryptoInitializationFailureException {
         String algorithm = parameters.getAlgorithm().getValue();
         if (!algorithm.startsWith(ALFRESCO_ALG_PREFIX)) {
-            throw new UnsupportedOperationException("Not an Alfresco-compatible encryption algorithm");
+            throw new CryptoInitializationFailureException(new UnsupportedOperationException("Not an Alfresco-compatible encryption algorithm"));
         }
         algorithm = algorithm.substring(ALFRESCO_ALG_PREFIX.length());
-        Cipher cipher = Cipher.getInstance(algorithm);
         try {
+            Cipher cipher = Cipher.getInstance(algorithm);
             Key key = new SecretKey(parameters.getSecretKey(), algorithm);
             int blockSize = cipher.getBlockSize();
             if (blockSize == 0) {
@@ -106,30 +106,37 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
                 // This is fine because this decryption engine is strictly a migration tool.
                 cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(new byte[blockSize]));
             }
+            return cipher;
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            throw new CryptoInitializationFailureException(e);
         } finally {
             // After cipher init, the cipher should manage its own copy of the key
             // So the encryption parameters can be destroyed now
             parameters.destroy();
         }
 
-        return cipher;
     }
 
     @Override
-    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange) throws UnreadableContentException {
+    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
+            throws UnreadableContentException, CryptoInitializationFailureException {
+        Cipher cipher = initializeCipher(encryptionParameters);
         // Always read full content, then skip part of the decrypted content if a range was requested.
         // This is fine because the Alfresco decryption engine is strictly for migrating data
-        ResolvedContentRange fullRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
-        ContentReader rawReader = cipherTextReaderSupplier.getReader(fullRange);
-        Cipher cipher;
-        try {
-            cipher = initializeCipher(encryptionParameters);
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
-                 InvalidKeyException e) {
-            throw new UndecryptableContentException(rawReader.getReference(), e);
+        var blockSize = cipher.getBlockSize();
+        var encryptedRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
+        if (blockSize > 0) {
+            // For encryption modes with a block size, the encrypted content size is always a multiple of the block size.
+            // If the unencrypted size ends on exactly a block boundary,
+            // PKCS5Padding defines that another block is added full of padding.
+            // We can calculate this without condition by rounding down the division and adding an additional block
+            var numBlocks = Math.floorDiv(contentRange.getContentSize(), blockSize) + 1;
+            encryptedRange = ResolvedContentRange.fullRange(numBlocks * blockSize);
         }
 
-        return new DecryptingContentReader(rawReader, cipher);
+        var rawReader = cipherTextReaderSupplier.getReader(encryptedRange);
+        return new DecryptingContentReader(rawReader, cipher, contentRange.getContentSize());
     }
 
     @RequiredArgsConstructor
@@ -137,6 +144,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         private final ContentReader delegate;
         private final Cipher cipher;
+        private final long unencryptedSize;
 
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
@@ -154,7 +162,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         @Override
         public long getContentSize() {
-            return delegate.getContentSize();
+            return unencryptedSize;
         }
 
         @Override

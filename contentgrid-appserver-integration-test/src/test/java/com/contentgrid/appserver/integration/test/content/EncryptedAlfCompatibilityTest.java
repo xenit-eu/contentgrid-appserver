@@ -132,8 +132,6 @@ class EncryptedAlfCompatibilityTest {
 
     private static final long[] DECRYPTED_SIZES = { 6094l, 4240l, 4117l, 4162l, 1001l, 2859l, 5853l };
 
-    private static final long[] ENCRYPTED_SIZES = { 6096l, 4256l, 4128l, 4176l, 1008l, 2864l, 5856l };
-    
     private static final long[] START_BYTES = { 128l, 3096l, 1234l, 3210l, 512l, 1536l, 4096l };
 
     private static final List<Arguments> simulateContentMigrationAndAccess;
@@ -141,7 +139,7 @@ class EncryptedAlfCompatibilityTest {
         simulateContentMigrationAndAccess = new ArrayList<>();
         for (int i = 0; i < KEYS.length; i++)
         {
-            simulateContentMigrationAndAccess.add(Arguments.of(ALGORITHMS[i], KEYS[i], RESOURCES[i], DECRYPTED_SIZES[i], ENCRYPTED_SIZES[i], START_BYTES[i]));
+            simulateContentMigrationAndAccess.add(Arguments.of(ALGORITHMS[i], KEYS[i], RESOURCES[i], DECRYPTED_SIZES[i], START_BYTES[i]));
         }
     }
 
@@ -207,7 +205,7 @@ class EncryptedAlfCompatibilityTest {
 
     @ParameterizedTest
     @FieldSource
-    void simulateContentMigrationAndAccess(String alg, String keyHex, String resource, long decryptedSize, long encryptedSize,
+    void simulateContentMigrationAndAccess(String alg, String keyHex, String resource, long decryptedSize,
             long startByte) throws Exception
     {
         // it is not possible to use ReST API to create migrated content
@@ -237,7 +235,7 @@ class EncryptedAlfCompatibilityTest {
                 .attribute(new SimpleAttributeData<>(AttributeName.of("id"), written.getReference().getValue()))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("filename"), fileName))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("mimetype"), "text/plain"))
-                .attribute(new SimpleAttributeData<>(AttributeName.of("length"), encryptedSize))
+                .attribute(new SimpleAttributeData<>(AttributeName.of("length"), decryptedSize))
                 .build();
         var entity = EntityCreateData.builder()
                 .entityName(EntityName.of("employee"))
@@ -249,7 +247,16 @@ class EncryptedAlfCompatibilityTest {
         EntityData entityData = queryEngine.create(APPLICATION, entity, PERMIT_ALWAYS, NONE_EVENTS);
         String id = entityData.getId().getValue().toString();
 
-        // use RestAPI to read
+        // Read the full file using the REST API
+        client.get()
+                .uri("/employees/" + id + "/file", port)
+                .accept(MediaType.ALL)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentLength(decryptedSize)
+                .expectBody(byte[].class).isEqualTo(EncryptedAlfCompatibilityTest.class.getResourceAsStream(decryptedResource).readAllBytes());
+
+        // Read a part of the file using the REST API
         var start = startByte;
         var end = startByte + (decryptedSize - startByte) / 2;
 
