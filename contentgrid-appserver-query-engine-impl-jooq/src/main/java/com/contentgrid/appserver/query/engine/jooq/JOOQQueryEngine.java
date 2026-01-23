@@ -355,11 +355,6 @@ public class JOOQQueryEngine implements QueryEngine {
             updatedFields.set(pair.field(), pair.value());
         }
 
-        if(!updatedFields.changed()) {
-            // Check that at least one field is updated
-            throw new IllegalInputDataException("Provided data is empty");
-        }
-
         var update = dslContext.update(table)
                 .set(updatedFields);
 
@@ -376,30 +371,33 @@ public class JOOQQueryEngine implements QueryEngine {
             // If previous value was not found with an update, the user does not have permission to update the object
             // so we act as if it does not exist at all
             var oldValue = getByIdRequired(application, data.getIdentity().toRequest(), permitUpdatePredicate);
+            var newValue = oldValue;
 
-            var finalUpdate = update;
-            var newValue = DslContextUtils.executeInSavepoint(dslContext, () -> finalUpdate
-                    .where(primaryKey.eq(id.getValue()))
-                    .returning(attributeFields)
-                    .fetchOptionalMap()
-                    .map(result -> EntityDataMapper.from(entity, result))
-                    .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
+            if (update.isExecutable()) {
+                var finalUpdate = update;
+                newValue = DslContextUtils.executeInSavepoint(dslContext, () -> finalUpdate
+                        .where(primaryKey.eq(id.getValue()))
+                        .returning(attributeFields)
+                        .fetchOptionalMap()
+                        .map(result -> EntityDataMapper.from(entity, result))
+                        .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
 
-            // When the update is done properly, the value of the new version field will be one higher
-            // than the previous value, so restore it back to the previous value to check against the requested version
-            var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
+                // When the update is done properly, the value of the new version field will be one higher
+                // than the previous value, so restore it back to the previous value to check against the requested version
+                var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
 
-            // If the update was done, and it has violated the version requirement, throw an exception.
-            // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
-            // so the update will not actually be committed
-            if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
-                throw new UnsatisfiedVersionException(
-                        data.getIdentity().getVersion(),
-                        previousVersion
-                );
+                // If the update was done, and it has violated the version requirement, throw an exception.
+                // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
+                // so the update will not actually be committed
+                if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
+                    throw new UnsatisfiedVersionException(
+                            data.getIdentity().getVersion(),
+                            previousVersion
+                    );
+                }
+
+                assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
             }
-
-            assertPermission(application, newValue.getIdentity().toRequest(), permitUpdatePredicate);
 
             updateEventConsumer.onEntityUpdate(application, oldValue, newValue);
 

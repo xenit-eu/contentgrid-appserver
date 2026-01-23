@@ -659,6 +659,129 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
+    public static final SimpleAttribute ORDER_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("order_id"))
+            .column(ColumnName.of("order_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute ORDER_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("_version"))
+            .type(Type.LONG)
+            .column(ColumnName.of("_version"))
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute ORDER_CREATED_AT = SimpleAttribute.builder()
+            .name(AttributeName.of("created_at"))
+            .type(Type.DATETIME)
+            .column(ColumnName.of("created_at"))
+            .flag(CreatedDateFlag.INSTANCE)
+            .build();
+
+    public static final UserAttribute ORDER_CREATED_BY = UserAttribute.builder()
+            .name(AttributeName.of("created_by"))
+            .usernameColumn(ColumnName.of("created_by__name"))
+            .namespaceColumn(ColumnName.of("created_by__ns"))
+            .idColumn(ColumnName.of("created_by__id"))
+            .flag(CreatorFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute ORDER_MODIFIED_AT = SimpleAttribute.builder()
+            .name(AttributeName.of("modified_at"))
+            .type(Type.DATETIME)
+            .column(ColumnName.of("modified_at"))
+            .flag(ModifiedDateFlag.INSTANCE)
+            .build();
+
+    public static final UserAttribute ORDER_MODIFIED_BY = UserAttribute.builder()
+            .name(AttributeName.of("modified_by"))
+            .usernameColumn(ColumnName.of("modified_by__name"))
+            .namespaceColumn(ColumnName.of("modified_by__ns"))
+            .idColumn(ColumnName.of("modified_by__id"))
+            .flag(ModifierFlag.INSTANCE)
+            .build();
+
+    public static final Entity ORDER = Entity.builder()
+            .name(EntityName.of("order"))
+            .table(TableName.of("order"))
+            .pathSegment(PathSegmentName.of("orders"))
+            .linkName(LinkName.of("order"))
+            .primaryKey(ORDER_ID)
+            .attribute(ORDER_VERSION)
+            .attribute(ORDER_CREATED_AT)
+            .attribute(ORDER_CREATED_BY)
+            .attribute(ORDER_MODIFIED_AT)
+            .attribute(ORDER_MODIFIED_BY)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .name(FilterName.of("created_at~after"))
+                    .operation(Operation.GREATER_THAN)
+                    .attribute(ORDER_CREATED_AT)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .name(FilterName.of("created_at~before"))
+                    .operation(Operation.LESS_THAN)
+                    .attribute(ORDER_CREATED_AT)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .name(FilterName.of("modified_at~after"))
+                    .operation(Operation.GREATER_THAN)
+                    .attribute(ORDER_MODIFIED_AT)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .name(FilterName.of("modified_at~before"))
+                    .operation(Operation.LESS_THAN)
+                    .attribute(ORDER_MODIFIED_AT)
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("created_at"))
+                    .propertyPath(PropertyPath.of(ORDER_CREATED_AT.getName()))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("modified_at"))
+                    .propertyPath(PropertyPath.of(ORDER_MODIFIED_AT.getName()))
+                    .build())
+            .build();
+
+    public static final SimpleAttribute EMPTY_WITHOUT_ETAG_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("empty_without_etag_id"))
+            .column(ColumnName.of("empty_without_etag_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
+    public static final Entity EMPTY_WITHOUT_ETAG = Entity.builder()
+            .name(EntityName.of("empty-without-etag"))
+            .table(TableName.of("empty_without_etag"))
+            .pathSegment(PathSegmentName.of("empties-without-etag"))
+            .linkName(LinkName.of("empty-without-etag"))
+            .primaryKey(EMPTY_WITHOUT_ETAG_ID)
+            .build();
+
+    public static final SimpleAttribute EMPTY_WITH_ETAG_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("empty_with_etag_id"))
+            .column(ColumnName.of("empty_with_etag_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute EMPTY_WITH_ETAG_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("_version"))
+            .column(ColumnName.of("_version"))
+            .type(Type.LONG)
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
+    public static final Entity EMPTY_WITH_ETAG = Entity.builder()
+            .name(EntityName.of("empty-with-etag"))
+            .table(TableName.of("empty_with_etag"))
+            .pathSegment(PathSegmentName.of("empties-with-etag"))
+            .linkName(LinkName.of("empty-with-etag"))
+            .primaryKey(EMPTY_WITH_ETAG_ID)
+            .attribute(EMPTY_WITH_ETAG_VERSION)
+            .build();
+
     public static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
             .sourceEndPoint(RelationEndPoint.builder()
                     .entity(INVOICE.getName())
@@ -749,15 +872,51 @@ public class ModelTestFixtures {
 
     public static final ManyToManyRelation PRODUCT_INVOICES = INVOICE_PRODUCTS.inverse();
 
+    public static final ManyToOneRelation ORDER_INVOICE = ManyToOneRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ORDER.getName())
+                    .name(RelationName.of("invoice"))
+                    .pathSegment(PathSegmentName.of("invoice"))
+                    .linkName(LinkName.of("invoice"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(INVOICE.getName())
+                    .flag(HiddenEndpointFlag.INSTANCE)
+                    .build())
+            .targetReference(ColumnName.of("invoice"))
+            .build();
+
+    public static final ManyToManyRelation ORDER_PRODUCTS = ManyToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(ORDER.getName())
+                    .name(RelationName.of("products"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .linkName(LinkName.of("products"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(PRODUCT.getName())
+                    .name(RelationName.of("__inverse_order__products"))
+                    .flag(HiddenEndpointFlag.INSTANCE)
+                    .build())
+            .joinTable(TableName.of("order__products"))
+            .sourceReference(ColumnName.of("order_id"))
+            .targetReference(ColumnName.of("product_id"))
+            .build();
+
     public static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("demo-application"))
             .entity(INVOICE)
             .entity(PERSON)
             .entity(PRODUCT)
+            .entity(ORDER)
+            .entity(EMPTY_WITHOUT_ETAG)
+            .entity(EMPTY_WITH_ETAG)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
             .relation(PERSON_CHILDREN)
             .relation(INVOICE_PRODUCTS)
+            .relation(ORDER_INVOICE)
+            .relation(ORDER_PRODUCTS)
             .build();
 }

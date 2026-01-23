@@ -1493,6 +1493,19 @@ class JOOQQueryEngineTest {
                                         .value("new_filename")
                                         .build())
                                 .build())
+                        .build(),
+                // Empty attributes in EntityData
+                EntityData.builder()
+                        .name(PERSON.getName())
+                        .id(BOB_ID)
+                        .build(),
+                // Empty attributes in CompositeAttributeData
+                EntityData.builder()
+                        .name(INVOICE.getName())
+                        .id(INVOICE1_ID)
+                        .attribute(CompositeAttributeData.builder()
+                                .name(INVOICE_CONTENT.getName())
+                                .build())
                         .build()
         );
     }
@@ -1608,19 +1621,6 @@ class JOOQQueryEngineTest {
                         .attribute(SimpleAttributeData.builder()
                                 .name(INVOICE_IS_PAID.getName())
                                 .value("invalid_boolean") // String instead of boolean
-                                .build())
-                        .build()),
-                Arguments.argumentSet("Empty data", IllegalInputDataException.class,
-                        EntityData.builder()
-                        .name(PERSON.getName())
-                        .id(BOB_ID)
-                        .build()),
-                Arguments.argumentSet("No SimpleAttributeData provided in CompositeAttributeData", IllegalInputDataException.class,
-                        EntityData.builder()
-                        .name(INVOICE.getName())
-                        .id(INVOICE1_ID)
-                        .attribute(CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName()) // No attributes
                                 .build())
                         .build())
                 // TODO: ACC-2051: provide audit_metadata/readonly attribute
