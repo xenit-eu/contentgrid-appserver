@@ -116,19 +116,29 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     }
 
     @Override
-    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange) throws UnreadableContentException {
-        // Always read full content, then skip part of the decrypted content if a range was requested.
-        // This is fine because the Alfresco decryption engine is strictly for migrating data
-        ResolvedContentRange fullRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
-        ContentReader rawReader = cipherTextReaderSupplier.getReader(fullRange);
+    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
+            throws UnreadableContentException, CryptoInitializationFailureException {
         Cipher cipher;
         try {
             cipher = initializeCipher(encryptionParameters);
         } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
                  InvalidKeyException e) {
-            throw new UndecryptableContentException(rawReader.getReference(), e);
+            throw new CryptoInitializationFailureException(e);
+        }
+        // Always read full content, then skip part of the decrypted content if a range was requested.
+        // This is fine because the Alfresco decryption engine is strictly for migrating data
+        var blockSize = cipher.getBlockSize();
+        var encryptedRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
+        if (blockSize > 0) {
+            // For encryption modes with a block size, the encrypted content size is always a multiple of the block size.
+            // If the unencrypted size ends on exactly a block boundary,
+            // PKCS5Padding defines that another block is added full of padding.
+            // We can calculate this without condition by rounding down the division and adding an additional block
+            var numBlocks = Math.floorDiv(contentRange.getContentSize(), blockSize) + 1;
+            encryptedRange = ResolvedContentRange.fullRange(numBlocks * blockSize);
         }
 
+        var rawReader = cipherTextReaderSupplier.getReader(encryptedRange);
         return new DecryptingContentReader(rawReader, cipher);
     }
 
