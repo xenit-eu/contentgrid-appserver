@@ -3,6 +3,7 @@ package com.contentgrid.appserver.contentstore.impl.encryption.engine;
 import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import java.io.InputStream;
 import javax.security.auth.Destroyable;
@@ -32,7 +33,7 @@ public interface ContentEncryptionEngine {
      * @param encryptionParameters Parameters for the encryption algorithm
      * @return A stream that contains the encrypted content
      */
-    InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters);
+    InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) throws CryptoInitializationFailureException;
 
     /**
      * Decrypt an encrypted content stream
@@ -45,7 +46,7 @@ public interface ContentEncryptionEngine {
             CiphertextReaderSupplier cipherTextReaderSupplier,
             EncryptionParameters encryptionParameters,
             ResolvedContentRange contentRange
-    ) throws UnreadableContentException;
+    ) throws UnreadableContentException, CryptoInitializationFailureException;
 
     /**
      * Content-specific parameters for the encryption algorithm

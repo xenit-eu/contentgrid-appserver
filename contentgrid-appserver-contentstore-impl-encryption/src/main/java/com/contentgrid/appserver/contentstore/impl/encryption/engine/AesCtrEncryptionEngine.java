@@ -4,6 +4,7 @@ import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
@@ -27,7 +28,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 
 /**
  * Symmetric data encryption engine using AES-CTR encryption mode
@@ -92,9 +92,14 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    @SneakyThrows
-    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) {
-        return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
+    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters)
+            throws CryptoInitializationFailureException {
+        try {
+            return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            throw new CryptoInitializationFailureException(e);
+        }
     }
 
     @Override

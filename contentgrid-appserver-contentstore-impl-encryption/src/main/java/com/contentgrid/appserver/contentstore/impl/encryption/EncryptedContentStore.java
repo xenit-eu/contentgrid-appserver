@@ -67,12 +67,16 @@ public class EncryptedContentStore implements ContentStore {
             throw createUndecryptableContentException(contentReference, encryptedDEKs, null);
         }
 
-        return decryptionConfig.encryptionEngine()
-                .decrypt(
-                        range -> delegate.getReader(contentReference, range),
-                        decryptionConfig.encryptionParameters(),
-                        contentRange
-                );
+        try {
+            return decryptionConfig.encryptionEngine()
+                    .decrypt(
+                            range -> delegate.getReader(contentReference, range),
+                            decryptionConfig.encryptionParameters(),
+                            contentRange
+                    );
+        } catch (CryptoInitializationFailureException e) {
+            throw new UndecryptableContentException(contentReference, e.getCause());
+        }
     }
 
     private UndecryptableContentException createUndecryptableContentException(
@@ -115,7 +119,7 @@ public class EncryptedContentStore implements ContentStore {
         try {
             encryptionEngine = encryptionEngines.getFirst();
         } catch (NoSuchElementException ex) {
-            var e = new UnencryptableContentException(ContentReference.of("<unknown>"), "No encryption engine available");
+            var e = new UnencryptableContentException(ContentReference.UNKNOWN, "No encryption engine available");
             e.initCause(ex);
             throw e;
         }
@@ -134,8 +138,13 @@ public class EncryptedContentStore implements ContentStore {
 
         var countingInputStream = new CountingInputStream(inputStream);
 
-        var contentAccessor = delegate.writeContent(
-                encryptionEngine.encrypt(countingInputStream, encryptionParameters));
+        ContentAccessor contentAccessor;
+        try {
+            contentAccessor = delegate.writeContent(
+                    encryptionEngine.encrypt(countingInputStream, encryptionParameters));
+        } catch (CryptoInitializationFailureException e) {
+            throw new UnencryptableContentException(ContentReference.UNKNOWN, e);
+        }
         try {
             dataEncryptionKeyAccessor.addKeys(contentAccessor.getReference(), encryptedDeks);
         } finally {

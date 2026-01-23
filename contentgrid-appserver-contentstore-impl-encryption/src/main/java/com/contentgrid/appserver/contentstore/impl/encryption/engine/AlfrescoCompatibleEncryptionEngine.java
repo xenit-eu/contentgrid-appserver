@@ -4,7 +4,7 @@ import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
-import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 
 import java.io.InputStream;

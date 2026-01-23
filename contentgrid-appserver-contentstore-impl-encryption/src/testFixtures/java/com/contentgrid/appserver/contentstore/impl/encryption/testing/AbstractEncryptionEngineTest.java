@@ -6,6 +6,7 @@ import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
+import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.contentstore.impl.utils.EmulatedRangedContentReader;
@@ -41,7 +42,8 @@ public abstract class AbstractEncryptionEngineTest {
         assertThat(getContentEncryptionEngine().supports(params.getAlgorithm())).isTrue();
     }
 
-    private ByteArrayOutputStream encrypt(EncryptionParameters params) throws IOException {
+    private ByteArrayOutputStream encrypt(EncryptionParameters params)
+            throws IOException, CryptoInitializationFailureException {
         // Copy, because secret key gets destroyed during encryption
         var keyCopy = params.getSecretKey().clone();
         var encryptParams = new EncryptionParameters(
@@ -66,7 +68,7 @@ public abstract class AbstractEncryptionEngineTest {
     }
 
     @Test
-    void encryptAndDecrypt() throws IOException, UnreadableContentException {
+    void encryptAndDecrypt() throws IOException, UnreadableContentException, CryptoInitializationFailureException {
         var params = getContentEncryptionEngine().createNewParameters();
 
         var encryptedStream = encrypt(params);
@@ -99,7 +101,7 @@ public abstract class AbstractEncryptionEngineTest {
     @ParameterizedTest
     @MethodSource
     void decryptPartialRange(ContentRangeRequest range)
-            throws IOException, UnsatisfiableContentRangeException, UnreadableContentException {
+            throws IOException, UnsatisfiableContentRangeException, UnreadableContentException, CryptoInitializationFailureException {
         var params = getContentEncryptionEngine().createNewParameters();
 
         var encryptedStream = encrypt(params);

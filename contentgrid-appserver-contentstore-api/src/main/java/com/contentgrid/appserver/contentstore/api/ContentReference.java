@@ -9,6 +9,12 @@ import lombok.Value;
  */
 @Value(staticConstructor = "of")
 public class ContentReference implements Serializable {
+
+    /**
+     * Static value used when the referenced content object is unknown
+     */
+    public static final ContentReference UNKNOWN = ContentReference.of("<UNKNOWN>");
+
     @NonNull
     String value;
 }
