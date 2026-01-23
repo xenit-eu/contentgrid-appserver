@@ -220,7 +220,11 @@ class PermissionsPropagationTest {
         var content = Map.of(
                 "number", UUID.randomUUID().toString(),
                 "amount", AMOUNT_THRESHOLD_ALWAYS_ALLOWED.toPlainString(),
-                "confidentiality", "public"
+                "confidentiality", "public",
+                "content", Map.of(
+                        "filename", "renamed-file.pdf",
+                        "mimetype", "application/pdf"
+                )
         );
 
         mockMvc.perform(request(method, invoice)
@@ -243,7 +247,11 @@ class PermissionsPropagationTest {
         var content = Map.of(
                 "number", UUID.randomUUID().toString(),
                 "amount", AMOUNT_THRESHOLD_FOR_TEST.toPlainString(),
-                "confidentiality", "public"
+                "confidentiality", "public",
+                "content", Map.of(
+                        "filename", "renamed-file.pdf",
+                        "mimetype", "application/pdf"
+                )
         );
 
         mockMvc.perform(request(method, invoice)
