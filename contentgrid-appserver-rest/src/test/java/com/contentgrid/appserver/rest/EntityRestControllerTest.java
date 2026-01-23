@@ -1492,6 +1492,22 @@ class EntityRestControllerTest {
             private static final String MISSING = "";
             private static final String NULL = "null";
 
+            private String createProduct(boolean hasContent) throws Exception {
+                var requestBuilder = multipart("/products");
+                if (hasContent) {
+                    requestBuilder = requestBuilder.file(new MockMultipartFile(
+                            "picture", "IMG_456.jpg", "application/jpeg", InputStream.nullInputStream()
+                    ));
+                }
+                return mockMvc.perform(requestBuilder
+                                .param("name", "My product")
+                                .param("price", "120"))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getRedirectedUrl();
+            }
+
             static Stream<Arguments> testUpdateContentFilenameAndMimetype_http204() {
                 var originalFilename = "IMG_456.jpg";
                 var originalMimetype = "application/jpeg";
@@ -1529,17 +1545,7 @@ class EntityRestControllerTest {
                     String actualMimetype
             ) throws Exception {
                 // create product with content
-                var productResponse = mockMvc.perform(multipart("/products")
-                                .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                        InputStream.nullInputStream()))
-                                .param("name", "My product")
-                                .param("price", "120"))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                        .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                        .andExpect(jsonPath("$.picture.length", is(0)))
-                        .andReturn()
-                        .getResponse();
+                var url = createProduct(true);
 
                 // Construct data for update
                 var picture = new HashMap<String, String>();
@@ -1552,14 +1558,13 @@ class EntityRestControllerTest {
                 var data = Map.of("name", "My product", "price", 120, "picture", picture);
 
                 // Update product
-                mockMvc.perform(request(method, productResponse.getRedirectedUrl())
+                mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update was successful
-                mockMvc.perform(get(productResponse.getRedirectedUrl())
-                                .accept(MediaTypes.HAL_JSON))
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
                         .andExpect(status().isOk())
                         .andExpect(NULL.equals(actualFilename) ?
                                 jsonPath("$.picture.filename", nullValue()) :
@@ -1594,17 +1599,7 @@ class EntityRestControllerTest {
                     String requestedMimetype
             ) throws Exception {
                 // create product with content
-                var productResponse = mockMvc.perform(multipart("/products")
-                                .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                        InputStream.nullInputStream()))
-                                .param("name", "My product")
-                                .param("price", "120"))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                        .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                        .andExpect(jsonPath("$.picture.length", is(0)))
-                        .andReturn()
-                        .getResponse();
+                var url = createProduct(true);
 
                 // Construct data for update
                 var picture = new HashMap<String, String>();
@@ -1617,7 +1612,7 @@ class EntityRestControllerTest {
                 var data = Map.of("name", "Renamed product", "price", 120, "picture", picture);
 
                 // Update product -> should fail
-                mockMvc.perform(request(method, productResponse.getRedirectedUrl())
+                mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(data)))
                         .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
@@ -1629,8 +1624,7 @@ class EntityRestControllerTest {
                                 ));
 
                 // Verify update did not succeed
-                mockMvc.perform(get(productResponse.getRedirectedUrl())
-                                .accept(MediaTypes.HAL_JSON))
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.name", is("My product"))) // was not renamed
                         .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
@@ -1661,13 +1655,7 @@ class EntityRestControllerTest {
                     HttpMethod method, boolean filenameNull, boolean mimetypeNull, boolean onContent
             ) throws Exception {
                 // create product without content
-                var productResponse = mockMvc.perform(multipart("/products")
-                                .param("name", "My product")
-                                .param("price", "120"))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.picture", nullValue()))
-                        .andReturn()
-                        .getResponse();
+                var url = createProduct(false);
 
                 // Construct data for update
                 var data = new HashMap<String, Object>();
@@ -1691,14 +1679,13 @@ class EntityRestControllerTest {
                 }
 
                 // Update product
-                mockMvc.perform(request(method, productResponse.getRedirectedUrl())
+                mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update did not modify content
-                mockMvc.perform(get(productResponse.getRedirectedUrl())
-                                .accept(MediaTypes.HAL_JSON))
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.picture", nullValue()));
             }
@@ -1733,13 +1720,7 @@ class EntityRestControllerTest {
                     HttpMethod method, String filename, String mimetype
             ) throws Exception {
                 // create product without content
-                var productResponse = mockMvc.perform(multipart("/products")
-                                .param("name", "My product")
-                                .param("price", "120"))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.picture", nullValue()))
-                        .andReturn()
-                        .getResponse();
+                var url = createProduct(false);
 
                 // Construct data for update
                 var picture = new HashMap<String, String>();
@@ -1752,7 +1733,7 @@ class EntityRestControllerTest {
                 var data = Map.of("name", "Renamed product", "price", 120, "picture", picture);
 
                 // Update product -> should fail
-                mockMvc.perform(request(method, productResponse.getRedirectedUrl())
+                mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(data)))
                         .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
@@ -1766,8 +1747,7 @@ class EntityRestControllerTest {
                         );
 
                 // Verify update did not succeed
-                mockMvc.perform(get(productResponse.getRedirectedUrl())
-                                .accept(MediaTypes.HAL_JSON))
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.name", is("My product"))) // was not renamed
                         .andExpect(jsonPath("$.picture", nullValue()));
@@ -1785,17 +1765,7 @@ class EntityRestControllerTest {
             @MethodSource
             void testUpdateContentNull_shouldDeleteContent_http204(HttpMethod method, boolean isNull) throws Exception {
                 // create product with content
-                var productResponse = mockMvc.perform(multipart("/products")
-                                .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                        InputStream.nullInputStream()))
-                                .param("name", "My product")
-                                .param("price", "120"))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                        .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                        .andExpect(jsonPath("$.picture.length", is(0)))
-                        .andReturn()
-                        .getResponse();
+                var url = createProduct(true);
 
                 // Construct data for update
                 var data = new HashMap<String, Object>();
@@ -1806,19 +1776,18 @@ class EntityRestControllerTest {
                 }
 
                 // Update product
-                mockMvc.perform(request(method, productResponse.getRedirectedUrl())
+                mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update deleted content
-                mockMvc.perform(get(productResponse.getRedirectedUrl())
-                                .accept(MediaTypes.HAL_JSON))
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.picture", nullValue()));
 
                 // Verify content url as well
-                mockMvc.perform(get(productResponse.getRedirectedUrl() + "/picture"))
+                mockMvc.perform(get(url + "/picture"))
                         .andExpect(status().isNotFound());
             }
         }
