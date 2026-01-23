@@ -139,7 +139,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
         }
 
         var rawReader = cipherTextReaderSupplier.getReader(encryptedRange);
-        return new DecryptingContentReader(rawReader, cipher);
+        return new DecryptingContentReader(rawReader, cipher, contentRange.getContentSize());
     }
 
     @RequiredArgsConstructor
@@ -147,6 +147,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         private final ContentReader delegate;
         private final Cipher cipher;
+        private final long unencryptedSize;
 
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
@@ -164,7 +165,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         @Override
         public long getContentSize() {
-            return delegate.getContentSize();
+            return unencryptedSize;
         }
 
         @Override
