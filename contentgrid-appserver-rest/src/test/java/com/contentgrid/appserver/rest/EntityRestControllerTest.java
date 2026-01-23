@@ -1400,135 +1400,6 @@ class EntityRestControllerTest {
             ;
         }
 
-        @Test
-        void testUpdateContentFilenameAndMimetype_http204() throws Exception {
-            // create product with content
-            var productResponse = mockMvc.perform(multipart("/products")
-                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                    InputStream.nullInputStream()))
-                            .param("name", "My product")
-                            .param("price", "120"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                    .andExpect(jsonPath("$.picture.length", is(0)))
-                    .andReturn()
-                    .getResponse();
-
-            // Update product
-            mockMvc.perform(put(productResponse.getRedirectedUrl())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""
-                            {
-                              "name": "My product",
-                              "price": 120,
-                              "picture": {
-                                "filename": "IMG_789.png",
-                                "mimetype": "application/png"
-                              }
-                            }
-                            """))
-                    .andExpect(status().isNoContent());
-        }
-
-        @Test
-        void testUpdateMissingContentFilename_http204() throws Exception {
-            // create product with content
-            var productResponse = mockMvc.perform(multipart("/products")
-                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                    InputStream.nullInputStream()))
-                            .param("name", "My product")
-                            .param("price", "120"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                    .andExpect(jsonPath("$.picture.length", is(0)))
-                    .andReturn()
-                    .getResponse();
-
-            // Update product
-            mockMvc.perform(put(productResponse.getRedirectedUrl())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                            {
-                              "name": "My product",
-                              "price": 120,
-                              "picture": {
-                                "mimetype": "application/png"
-                              }
-                            }
-                            """))
-                    .andExpect(status().isNoContent());
-        }
-
-        @Test
-        void testUpdateMissingContentMimetype_http400() throws Exception {
-            // create product with content
-            var productResponse = mockMvc.perform(multipart("/products")
-                            .file(new MockMultipartFile("picture", "IMG_456.jpg", "application/jpeg",
-                                    InputStream.nullInputStream()))
-                            .param("name", "My product")
-                            .param("price", "120"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
-                    .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
-                    .andExpect(jsonPath("$.picture.length", is(0)))
-                    .andReturn()
-                    .getResponse();
-
-            // Update product
-            mockMvc.perform(put(productResponse.getRedirectedUrl())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                            {
-                              "name": "My product",
-                              "price": 120,
-                              "picture": {
-                                "filename": "IMG_789.png"
-                              }
-                            }
-                            """))
-                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
-                                    .withTitle("Mandatory field")
-                                    .withDetail("A value must be present, but it is missing or empty")
-                                    .withProperty("picture.mimetype")
-                            ));
-        }
-
-        @Test
-        void testUpdateContentFilenameAndMimetype_missingContent_http400() throws Exception {
-            // Create valid product without picture
-            var productResponse = mockMvc.perform(multipart("/products")
-                            .param("name", "My product")
-                            .param("price", "120"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.picture.length").doesNotExist())
-                    .andReturn()
-                    .getResponse();
-
-            // Update product
-            mockMvc.perform(put(productResponse.getRedirectedUrl())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                            {
-                              "name": "My product",
-                              "price": 120,
-                              "picture": {
-                                "filename": "IMG_789.png",
-                                "mimetype": "application/png"
-                              }
-                            }
-                            """))
-                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
-                                    .withTitle("No content present")
-                                    .withDetail("Content attributes can not be set when there is no content present")
-                                    .withProperty("picture")
-                            )
-                    );
-        }
-
         @ParameterizedTest
         @CsvSource({"PUT", "PATCH"})
         void testUpdateEntityWithoutAttributes_http204(HttpMethod method) throws Exception {
@@ -1612,6 +1483,313 @@ class EntityRestControllerTest {
                     .andExpect(status().isNoContent())
                     // Verify e-tag changed
                     .andExpect(header().string(HttpHeaders.ETAG, not(response.getHeader(HttpHeaders.ETAG))));
+        }
+
+        @Nested
+        class ContentAttribute {
+
+            // Use these constants because values must be non-null in Arguments
+            private static final String MISSING = "";
+            private static final String NULL = "null";
+
+            private String createProduct(boolean hasContent) throws Exception {
+                var requestBuilder = multipart("/products");
+                if (hasContent) {
+                    requestBuilder = requestBuilder.file(new MockMultipartFile(
+                            "picture", "IMG_456.jpg", "application/jpeg", InputStream.nullInputStream()
+                    ));
+                }
+                return mockMvc.perform(requestBuilder
+                                .param("name", "My product")
+                                .param("price", "120"))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getRedirectedUrl();
+            }
+
+            static Stream<Arguments> testUpdateContentFilenameAndMimetype_http204() {
+                var originalFilename = "IMG_456.jpg";
+                var originalMimetype = "application/jpeg";
+                var requestedFilename = "IMG_789.png";
+                var requestedMimetype = "application/png";
+                return Stream.of(
+                        Arguments.argumentSet("PUT filename and mimetype present", HttpMethod.PUT,
+                                requestedFilename, requestedMimetype, requestedFilename, requestedMimetype),
+                        Arguments.argumentSet("PUT filename null and mimetype present", HttpMethod.PUT,
+                                NULL, requestedMimetype, NULL, requestedMimetype),
+                        Arguments.argumentSet("PUT filename missing and mimetype present", HttpMethod.PUT,
+                                MISSING, requestedMimetype, NULL, requestedMimetype),
+                        Arguments.argumentSet("PATCH filename and mimetype present", HttpMethod.PATCH,
+                                requestedFilename, requestedMimetype, requestedFilename, requestedMimetype),
+                        Arguments.argumentSet("PATCH filename null and mimetype present", HttpMethod.PATCH,
+                                NULL, requestedMimetype, NULL, requestedMimetype),
+                        Arguments.argumentSet("PATCH filename missing and mimetype present", HttpMethod.PATCH,
+                                MISSING, requestedMimetype, originalFilename, requestedMimetype),
+                        Arguments.argumentSet("PATCH filename present and mimetype missing", HttpMethod.PATCH,
+                                requestedFilename, MISSING, requestedFilename, originalMimetype),
+                        Arguments.argumentSet("PATCH filename null and mimetype missing", HttpMethod.PATCH,
+                                NULL, MISSING, NULL, originalMimetype),
+                        Arguments.argumentSet("PATCH filename and mimetype missing", HttpMethod.PATCH,
+                                MISSING, MISSING, originalFilename, originalMimetype)
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource
+            void testUpdateContentFilenameAndMimetype_http204(
+                    HttpMethod method,
+                    String requestedFilename,
+                    String requestedMimetype,
+                    String actualFilename,
+                    String actualMimetype
+            ) throws Exception {
+                // create product with content
+                var url = createProduct(true);
+
+                // Construct data for update
+                var picture = new HashMap<String, String>();
+                if (!MISSING.equals(requestedFilename)) {
+                    picture.put("filename", NULL.equals(requestedFilename) ? null : requestedFilename);
+                }
+                if (!MISSING.equals(requestedMimetype)) {
+                    picture.put("mimetype", NULL.equals(requestedMimetype) ? null : requestedMimetype);
+                }
+                var data = Map.of("name", "My product", "price", 120, "picture", picture);
+
+                // Update product
+                mockMvc.perform(request(method, url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(data)))
+                        .andExpect(status().isNoContent());
+
+                // Verify update was successful
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(NULL.equals(actualFilename) ?
+                                jsonPath("$.picture.filename", nullValue()) :
+                                jsonPath("$.picture.filename", is(actualFilename))
+                        )
+                        .andExpect(NULL.equals(actualMimetype) ?
+                                jsonPath("$.picture.mimetype", nullValue()) :
+                                jsonPath("$.picture.mimetype", is(actualMimetype))
+                        );
+            }
+
+            static Stream<Arguments> testUpdateMissingContentMimetype_http400() {
+                var filename = "IMG_789.png";
+                return Stream.of(
+                        Arguments.argumentSet("PUT filename present and mimetype null", HttpMethod.PUT, filename, NULL),
+                        Arguments.argumentSet("PUT filename and mimetype null", HttpMethod.PUT, NULL, NULL),
+                        Arguments.argumentSet("PUT filename missing and mimetype null", HttpMethod.PUT, MISSING, NULL),
+                        Arguments.argumentSet("PUT filename present and mimetype missing", HttpMethod.PUT, filename, MISSING),
+                        Arguments.argumentSet("PUT filename null and mimetype missing", HttpMethod.PUT, NULL, MISSING),
+                        Arguments.argumentSet("PUT filename and mimetype missing", HttpMethod.PUT, MISSING, MISSING),
+                        Arguments.argumentSet("PATCH filename present and mimetype null", HttpMethod.PATCH, filename, NULL),
+                        Arguments.argumentSet("PATCH filename and mimetype null", HttpMethod.PATCH, NULL, NULL),
+                        Arguments.argumentSet("PATCH filename missing and mimetype null", HttpMethod.PATCH, MISSING, NULL)
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource
+            void testUpdateMissingContentMimetype_http400(
+                    HttpMethod method,
+                    String requestedFilename,
+                    String requestedMimetype
+            ) throws Exception {
+                // create product with content
+                var url = createProduct(true);
+
+                // Construct data for update
+                var picture = new HashMap<String, String>();
+                if (!MISSING.equals(requestedFilename)) {
+                    picture.put("filename", NULL.equals(requestedFilename) ? null : requestedFilename);
+                }
+                if (!MISSING.equals(requestedMimetype)) {
+                    picture.put("mimetype", NULL.equals(requestedMimetype) ? null : requestedMimetype);
+                }
+                var data = Map.of("name", "Renamed product", "price", 120, "picture", picture);
+
+                // Update product -> should fail
+                mockMvc.perform(request(method, url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(data)))
+                        .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                                .withError(
+                                        e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
+                                                .withTitle("Mandatory field")
+                                                .withDetail("A value must be present, but it is missing or empty")
+                                                .withProperty("picture.mimetype")
+                                ));
+
+                // Verify update did not succeed
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.name", is("My product"))) // was not renamed
+                        .andExpect(jsonPath("$.picture.filename", is("IMG_456.jpg")))
+                        .andExpect(jsonPath("$.picture.mimetype", is("application/jpeg")))
+                        .andExpect(jsonPath("$.picture.length", is(0)));
+            }
+
+            static Stream<Arguments> testUpdateMissingContentFilenameAndMimetype_noContent_http204() {
+                return Stream.of(
+                        Arguments.argumentSet("PUT filename and mimetype null", HttpMethod.PUT, true, true, false),
+                        Arguments.argumentSet("PUT filename null and mimetype missing", HttpMethod.PUT, true, false, false),
+                        Arguments.argumentSet("PUT filename missing and mimetype null", HttpMethod.PUT, false, true, false),
+                        Arguments.argumentSet("PUT filename and mimetype missing", HttpMethod.PUT, false, false, false),
+                        Arguments.argumentSet("PUT content null", HttpMethod.PUT, true, true, true),
+                        Arguments.argumentSet("PUT content missing", HttpMethod.PUT, false, false, true),
+                        Arguments.argumentSet("PATCH filename and mimetype null", HttpMethod.PATCH, true, true, false),
+                        Arguments.argumentSet("PATCH filename null and mimetype missing", HttpMethod.PATCH, true, false, false),
+                        Arguments.argumentSet("PATCH filename missing and mimetype null", HttpMethod.PATCH, false, true, false),
+                        Arguments.argumentSet("PATCH filename and mimetype missing", HttpMethod.PATCH, false, false, false),
+                        Arguments.argumentSet("PATCH content null", HttpMethod.PATCH, true, true, true),
+                        Arguments.argumentSet("PATCH content missing", HttpMethod.PATCH, false, false, true)
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource
+            void testUpdateMissingContentFilenameAndMimetype_noContent_http204(
+                    HttpMethod method, boolean filenameNull, boolean mimetypeNull, boolean onContent
+            ) throws Exception {
+                // create product without content
+                var url = createProduct(false);
+
+                // Construct data for update
+                var data = new HashMap<String, Object>();
+                data.put("name", "My product");
+                data.put("price", 120);
+                if (onContent) {
+                    // Make picture null or missing instead of content metadata fields
+                    if (filenameNull) {
+                        data.put("picture", null);
+                    }
+                } else {
+                    // Construct picture for update
+                    var picture = new HashMap<String, String>();
+                    if (filenameNull) {
+                        picture.put("filename", null);
+                    }
+                    if (mimetypeNull) {
+                        picture.put("mimetype", null);
+                    }
+                    data.put("picture", picture);
+                }
+
+                // Update product
+                mockMvc.perform(request(method, url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(data)))
+                        .andExpect(status().isNoContent());
+
+                // Verify update did not modify content
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.picture", nullValue()));
+            }
+
+            static Stream<Arguments> testUpdateContentFilenameAndMimetype_noContent_http400() {
+                var filename = "IMG_789.png";
+                var mimetype = "application/png";
+                return Stream.of(
+                        Arguments.argumentSet("PUT filename and mimetype present", HttpMethod.PUT, filename, mimetype),
+                        Arguments.argumentSet("PUT filename null and mimetype present", HttpMethod.PUT, NULL, mimetype),
+                        Arguments.argumentSet("PUT filename missing and mimetype present", HttpMethod.PUT, MISSING,
+                                mimetype),
+                        Arguments.argumentSet("PUT filename present and mimetype null", HttpMethod.PUT, filename, NULL),
+                        Arguments.argumentSet("PUT filename present and mimetype missing", HttpMethod.PUT, filename,
+                                MISSING),
+                        Arguments.argumentSet("PATCH filename and mimetype present", HttpMethod.PATCH, filename,
+                                mimetype),
+                        Arguments.argumentSet("PATCH filename null and mimetype present", HttpMethod.PATCH, NULL,
+                                mimetype),
+                        Arguments.argumentSet("PATCH filename missing and mimetype present", HttpMethod.PATCH, MISSING,
+                                mimetype),
+                        Arguments.argumentSet("PATCH filename present and mimetype null", HttpMethod.PATCH, filename,
+                                NULL),
+                        Arguments.argumentSet("PATCH filename present and mimetype missing", HttpMethod.PATCH, filename,
+                                MISSING)
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource
+            void testUpdateContentFilenameAndMimetype_noContent_http400(
+                    HttpMethod method, String filename, String mimetype
+            ) throws Exception {
+                // create product without content
+                var url = createProduct(false);
+
+                // Construct data for update
+                var picture = new HashMap<String, String>();
+                if (!MISSING.equals(filename)) {
+                    picture.put("filename", NULL.equals(filename) ? null : filename);
+                }
+                if (!MISSING.equals(mimetype)) {
+                    picture.put("mimetype", NULL.equals(mimetype) ? null : mimetype);
+                }
+                var data = Map.of("name", "Renamed product", "price", 120, "picture", picture);
+
+                // Update product -> should fail
+                mockMvc.perform(request(method, url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(data)))
+                        .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                                .withError(e -> e.withType(
+                                                "https://contentgrid.cloud/problems/input/validation/no-content")
+                                        .withTitle("No content present")
+                                        .withDetail(
+                                                "Content attributes can not be set when there is no content present")
+                                        .withProperty("picture")
+                                )
+                        );
+
+                // Verify update did not succeed
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.name", is("My product"))) // was not renamed
+                        .andExpect(jsonPath("$.picture", nullValue()));
+            }
+
+            static Stream<Arguments> testUpdateContentNull_shouldDeleteContent_http204() {
+                return Stream.of(
+                        Arguments.argumentSet("PUT content missing", HttpMethod.PUT, false),
+                        Arguments.argumentSet("PUT content null", HttpMethod.PUT, true),
+                        Arguments.argumentSet("PATCH content null", HttpMethod.PATCH, true)
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource
+            void testUpdateContentNull_shouldDeleteContent_http204(HttpMethod method, boolean isNull) throws Exception {
+                // create product with content
+                var url = createProduct(true);
+
+                // Construct data for update
+                var data = new HashMap<String, Object>();
+                data.put("name", "My product");
+                data.put("price", 120);
+                if (isNull) {
+                    data.put("picture", null);
+                }
+
+                // Update product
+                mockMvc.perform(request(method, url)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(data)))
+                        .andExpect(status().isNoContent());
+
+                // Verify update deleted content
+                mockMvc.perform(get(url).accept(MediaTypes.HAL_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.picture", nullValue()));
+
+                // Verify content url as well
+                mockMvc.perform(get(url + "/picture"))
+                        .andExpect(status().isNotFound());
+            }
         }
     }
 
