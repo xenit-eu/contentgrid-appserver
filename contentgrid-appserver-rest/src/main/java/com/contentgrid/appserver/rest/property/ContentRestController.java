@@ -163,7 +163,7 @@ public class ContentRestController {
                 .max()
                 .orElseThrow();
 
-        if(start > content.getLength()) {
+        if(start >= content.getLength()) {
             throw new UnsatisfiableRangeHttpException(content.getLength());
         }
 
