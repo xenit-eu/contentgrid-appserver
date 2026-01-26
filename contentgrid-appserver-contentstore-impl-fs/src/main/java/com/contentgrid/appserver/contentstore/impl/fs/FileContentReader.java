@@ -13,8 +13,8 @@ public class FileContentReader extends FileContentAccessor implements ContentRea
     @NonNull
     Path path;
 
-    public FileContentReader(Path path, ContentReference contentReference, long contentSize) {
-        super(contentReference, contentSize);
+    public FileContentReader(Path path, ContentReference contentReference) {
+        super(contentReference);
         this.path = path;
     }
 

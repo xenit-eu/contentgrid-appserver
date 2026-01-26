@@ -33,10 +33,7 @@ class ContentRangeRequestTest {
     @Test
     void suffixRangeOutOfBounds() throws UnsatisfiableContentRangeException {
         var range = ContentRangeRequest.createSuffixRange(50).resolve(10);
-        assertEquals(0, range.getStartByte());
-        assertEquals(9, range.getEndByteInclusive());
-        assertEquals(10, range.getContentSize());
-        assertEquals(10, range.getRangeSize());
+        assertNull(range);
     }
 
     @Test

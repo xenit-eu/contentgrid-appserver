@@ -18,7 +18,7 @@ public interface ContentStore {
      * If the content is shorter than the end of the range, the content reader will restrict the request to the end of the range
      *
      * @param contentReference The content reference to obtain a reader for
-     * @param contentRange The range of the content that is requested to be read.
+     * @param contentRange The range of the content that is requested to be read, or null if no range was requested.
      * @throws UnreadableContentException When the content can not be read from the reference for any reason
      * @return Reader for accessing content stored in this content reference
      */

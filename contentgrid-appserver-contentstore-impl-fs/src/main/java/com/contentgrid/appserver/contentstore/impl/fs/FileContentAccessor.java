@@ -12,7 +12,6 @@ class FileContentAccessor implements ContentAccessor {
 
     @NonNull
     private final ContentReference reference;
-    private final long contentSize;
 
     @Override
     public String getDescription() {

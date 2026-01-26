@@ -102,7 +102,7 @@ class ContentApiImplTest {
             }
         });
 
-        Mockito.verify(contentStore).getReader(ContentReference.of("content.bin"), ResolvedContentRange.fullRange(140));
+        Mockito.verify(contentStore).getReader(ContentReference.of("content.bin"), null);
     }
 
     @Test

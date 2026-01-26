@@ -10,6 +10,7 @@ dependencies {
     api 'com.contentgrid.hateoas:contentgrid-pagination-api'
     api 'com.fasterxml.jackson.core:jackson-core'
 
+    implementation project(':contentgrid-appserver-contentstore-impl-utils')
     implementation 'org.slf4j:slf4j-api'
     implementation project(':contentgrid-appserver-contentstore-api')
     implementation 'org.springframework:spring-core'

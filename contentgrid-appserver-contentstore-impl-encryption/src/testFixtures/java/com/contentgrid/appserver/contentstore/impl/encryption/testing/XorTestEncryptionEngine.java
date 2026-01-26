@@ -64,11 +64,6 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
             }
 
             @Override
-            public long getContentSize() {
-                return reader.getContentSize();
-            }
-
-            @Override
             public String getDescription() {
                 return "Decrypted "+reader.getDescription();
             }

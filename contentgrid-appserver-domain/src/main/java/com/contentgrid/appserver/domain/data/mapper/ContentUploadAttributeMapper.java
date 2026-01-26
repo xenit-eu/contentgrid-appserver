@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.contentstore.impl.utils.CountingInputStream;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
@@ -65,11 +66,12 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
                 throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
             }
             try {
-                var contentAccessor = contentStore.writeContent(fileDataEntry.getInputStream());
+                var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
+                var contentAccessor = contentStore.writeContent(inputStream);
 
                 var builder = MapDataEntry.builder();
                 builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))
-                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(contentAccessor.getContentSize()))
+                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(inputStream.getSize()))
                         .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
 
                 if(fileDataEntry.getFilename() != null) {

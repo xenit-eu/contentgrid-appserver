@@ -13,7 +13,6 @@ import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncrypt
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;
-import com.contentgrid.appserver.contentstore.impl.utils.CountingInputStream;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,12 +135,10 @@ public class EncryptedContentStore implements ContentStore {
             throw new NoEncryptableDataEncryptionKeysException(ContentReference.of("<unknown>"));
         }
 
-        var countingInputStream = new CountingInputStream(inputStream);
-
         ContentAccessor contentAccessor;
         try {
             contentAccessor = delegate.writeContent(
-                    encryptionEngine.encrypt(countingInputStream, encryptionParameters));
+                    encryptionEngine.encrypt(inputStream, encryptionParameters));
         } catch (CryptoInitializationFailureException e) {
             throw new UnencryptableContentException(ContentReference.UNKNOWN, e);
         }
@@ -150,7 +147,7 @@ public class EncryptedContentStore implements ContentStore {
         } finally {
             encryptedDeks.forEach(StoredDataEncryptionKey::destroy);
         }
-        return new EncryptedContentAccessor(contentAccessor, countingInputStream.getSize());
+        return new EncryptedContentAccessor(contentAccessor);
     }
 
     @Override

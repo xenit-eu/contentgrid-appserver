@@ -122,21 +122,24 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
             throws UnreadableContentException, CryptoInitializationFailureException {
         Cipher cipher = initializeCipher(encryptionParameters);
-        // Always read full content, then skip part of the decrypted content if a range was requested.
-        // This is fine because the Alfresco decryption engine is strictly for migrating data
-        var blockSize = cipher.getBlockSize();
-        var encryptedRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
-        if (blockSize > 0) {
-            // For encryption modes with a block size, the encrypted content size is always a multiple of the block size.
-            // If the unencrypted size ends on exactly a block boundary,
-            // PKCS5Padding defines that another block is added full of padding.
-            // We can calculate this without condition by rounding down the division and adding an additional block
-            var numBlocks = Math.floorDiv(contentRange.getContentSize(), blockSize) + 1;
-            encryptedRange = ResolvedContentRange.fullRange(numBlocks * blockSize);
+        ResolvedContentRange encryptedRange = null;
+        if (contentRange != null) {
+            // Always read full content, then skip part of the decrypted content if a range was requested.
+            // This is fine because the Alfresco decryption engine is strictly for migrating data
+            var blockSize = cipher.getBlockSize();
+            encryptedRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
+            if (blockSize > 0) {
+                // For encryption modes with a block size, the encrypted content size is always a multiple of the block size.
+                // If the unencrypted size ends on exactly a block boundary,
+                // PKCS5Padding defines that another block is added full of padding.
+                // We can calculate this without condition by rounding down the division and adding an additional block
+                var numBlocks = Math.floorDiv(contentRange.getContentSize(), blockSize) + 1;
+                encryptedRange = ResolvedContentRange.fullRange(numBlocks * blockSize);
+            }
         }
 
         var rawReader = cipherTextReaderSupplier.getReader(encryptedRange);
-        return new DecryptingContentReader(rawReader, cipher, contentRange.getContentSize());
+        return new DecryptingContentReader(rawReader, cipher);
     }
 
     @RequiredArgsConstructor
@@ -144,7 +147,6 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
 
         private final ContentReader delegate;
         private final Cipher cipher;
-        private final long unencryptedSize;
 
         @Override
         public InputStream getContentInputStream() throws UnreadableContentException {
@@ -158,11 +160,6 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
         @Override
         public ContentReference getReference() {
             return delegate.getReference();
-        }
-
-        @Override
-        public long getContentSize() {
-            return unencryptedSize;
         }
 
         @Override

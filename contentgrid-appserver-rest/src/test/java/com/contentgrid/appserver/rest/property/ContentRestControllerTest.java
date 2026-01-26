@@ -175,8 +175,7 @@ class ContentRestControllerTest {
                     .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
 
             Mockito.verify(contentStoreSpy).getReader(Mockito.any(), Mockito.assertArg(range -> {
-                assertThat(range.getStartByte()).isEqualTo(0);
-                assertThat(range.getRangeSize()).isEqualTo(INVOICE_CONTENT_FILE.getSize());
+                assertThat(range).isNull();
             }));
             Mockito.verifyNoMoreInteractions(contentStoreSpy);
 

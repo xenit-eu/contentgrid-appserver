@@ -27,14 +27,6 @@ public class MockContentReader implements ContentReader {
     }
 
     @Override
-    public long getContentSize() {
-        if(data == null) {
-            return -1;
-        }
-        return data.length;
-    }
-
-    @Override
     public String getDescription() {
         return "Mock reader %s".formatted(reference);
     }

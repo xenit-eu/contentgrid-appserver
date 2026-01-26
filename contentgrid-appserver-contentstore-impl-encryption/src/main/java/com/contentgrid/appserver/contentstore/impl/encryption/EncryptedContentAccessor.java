@@ -11,8 +11,6 @@ class EncryptedContentAccessor implements ContentAccessor {
 
     @NonNull
     private final ContentAccessor accessor;
-    @Getter
-    private final long contentSize;
 
     @Override
     public ContentReference getReference() {
