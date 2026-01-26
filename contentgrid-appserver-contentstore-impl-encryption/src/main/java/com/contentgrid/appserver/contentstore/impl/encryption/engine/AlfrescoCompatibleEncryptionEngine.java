@@ -19,6 +19,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngine {
@@ -37,7 +38,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     );
 
     @Override
-    public boolean supports(DataEncryptionAlgorithm algorithm) {
+    public boolean supports(@NonNull DataEncryptionAlgorithm algorithm) {
         boolean supported = true;
 
         // alfresco-simple-content-stores supports arbitrary algorithms, though only symmetric ones
@@ -78,7 +79,7 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     }
 
     @Override
-    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) {
+    public InputStream encrypt(@NonNull InputStream plaintextStream, @NonNull EncryptionParameters encryptionParameters) {
         throw new UnsupportedOperationException("Alfresco-compatible encryption engine can only be used for decryption");
     }
 
@@ -119,8 +120,11 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
     }
 
     @Override
-    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier, EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
-            throws UnreadableContentException, CryptoInitializationFailureException {
+    public ContentReader decrypt(
+            @NonNull CiphertextReaderSupplier cipherTextReaderSupplier,
+            @NonNull EncryptionParameters encryptionParameters,
+            ResolvedContentRange contentRange
+    ) throws UnreadableContentException, CryptoInitializationFailureException {
         Cipher cipher = initializeCipher(encryptionParameters);
         ResolvedContentRange encryptedRange = null;
         if (contentRange != null) {

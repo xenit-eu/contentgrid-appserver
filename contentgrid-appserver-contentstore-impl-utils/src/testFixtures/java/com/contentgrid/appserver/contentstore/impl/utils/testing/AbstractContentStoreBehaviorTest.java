@@ -30,10 +30,7 @@ public abstract class AbstractContentStoreBehaviorTest {
         var contentStore = getContentStore();
         var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
-        var reader = contentStore.getReader(
-                contentAccessor.getReference(),
-                null
-        );
+        var reader = contentStore.getReader(contentAccessor.getReference());
 
         try(var inputStream = reader.getContentInputStream()) {
             assertArrayEquals(TEST_BYTES, inputStream.readAllBytes());
@@ -53,10 +50,7 @@ public abstract class AbstractContentStoreBehaviorTest {
         contentStore.remove(contentAccessor.getReference());
 
         assertThrows(UnreadableContentException.class, () -> {
-            contentStore.getReader(
-                            contentAccessor.getReference(),
-                            null
-                    )
+            contentStore.getReader(contentAccessor.getReference())
                     .getContentInputStream();
         });
     }

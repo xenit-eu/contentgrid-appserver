@@ -58,7 +58,7 @@ public class S3ContentStore implements ContentStore {
 
     @Override
     @SneakyThrows(InterruptedException.class)
-    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+    public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
 
         try {
@@ -92,7 +92,7 @@ public class S3ContentStore implements ContentStore {
     }
 
     @Override
-    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         try {
             client.putObject(PutObjectArgs.builder()
@@ -109,7 +109,7 @@ public class S3ContentStore implements ContentStore {
     }
 
     @Override
-    public void remove(ContentReference contentReference) throws UnwritableContentException {
+    public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
             client.removeObject(RemoveObjectArgs.builder()
                             .bucket(bucketName)

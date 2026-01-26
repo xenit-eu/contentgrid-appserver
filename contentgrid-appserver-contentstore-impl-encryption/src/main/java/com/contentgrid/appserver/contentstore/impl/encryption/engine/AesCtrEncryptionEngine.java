@@ -26,6 +26,7 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -55,7 +56,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public boolean supports(DataEncryptionAlgorithm algorithm) {
+    public boolean supports(@NonNull DataEncryptionAlgorithm algorithm) {
         return Objects.equals(algorithm, ALGORITHM) || Objects.equals(algorithm, LEGACY_ALGORITHM);
     }
 
@@ -93,15 +94,15 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters)
+    public InputStream encrypt(@NonNull InputStream plaintextStream, @NonNull EncryptionParameters encryptionParameters)
             throws CryptoInitializationFailureException {
         return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
     }
 
     @Override
     public ContentReader decrypt(
-            CiphertextReaderSupplier ciphertextReaderSupplier,
-            EncryptionParameters encryptionParameters,
+            @NonNull CiphertextReaderSupplier ciphertextReaderSupplier,
+            @NonNull EncryptionParameters encryptionParameters,
             ResolvedContentRange contentRange
     ) throws UnreadableContentException, CryptoInitializationFailureException {
         var blockStartOffset = calculateBlockOffset(contentRange);

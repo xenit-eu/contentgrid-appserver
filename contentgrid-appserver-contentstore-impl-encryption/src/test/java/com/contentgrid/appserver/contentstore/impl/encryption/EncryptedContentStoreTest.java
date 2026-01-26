@@ -255,7 +255,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
 
     private static ContentReader readerFor(ContentStore contentStore, ContentAccessor accessor)
             throws UnreadableContentException {
-        return contentStore.getReader(accessor.getReference(), null);
+        return contentStore.getReader(accessor.getReference());
     }
 
     private static class EncryptOnlyDataEncryptionKeyWrapper implements DataEncryptionKeyWrapper {

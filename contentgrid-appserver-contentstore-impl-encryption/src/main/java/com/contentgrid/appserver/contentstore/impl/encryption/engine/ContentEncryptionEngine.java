@@ -8,6 +8,7 @@ import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import java.io.InputStream;
 import javax.security.auth.Destroyable;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -18,7 +19,7 @@ public interface ContentEncryptionEngine {
     /**
      * Checks if this engine supports the encryption algorithm
      */
-    boolean supports(DataEncryptionAlgorithm algorithm);
+    boolean supports(@NonNull DataEncryptionAlgorithm algorithm);
 
     /**
      * Creates a new set of encryption parameters for encrypting
@@ -33,7 +34,8 @@ public interface ContentEncryptionEngine {
      * @param encryptionParameters Parameters for the encryption algorithm
      * @return A stream that contains the encrypted content
      */
-    InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) throws CryptoInitializationFailureException;
+    InputStream encrypt(@NonNull InputStream plaintextStream, @NonNull EncryptionParameters encryptionParameters)
+            throws CryptoInitializationFailureException;
 
     /**
      * Decrypt an encrypted content stream
@@ -43,8 +45,8 @@ public interface ContentEncryptionEngine {
      * @return A stream of unencrypted content
      */
     ContentReader decrypt(
-            CiphertextReaderSupplier cipherTextReaderSupplier,
-            EncryptionParameters encryptionParameters,
+            @NonNull CiphertextReaderSupplier cipherTextReaderSupplier,
+            @NonNull EncryptionParameters encryptionParameters,
             ResolvedContentRange contentRange
     ) throws UnreadableContentException, CryptoInitializationFailureException;
 

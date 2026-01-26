@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -44,7 +45,7 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     @Override
-    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+    public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
         var encryptedDEKs = dataEncryptionKeyAccessor.findAllKeys(contentReference);
         if(encryptedDEKs.isEmpty()) {
@@ -113,7 +114,7 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     @Override
-    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         ContentEncryptionEngine encryptionEngine;
         try {
             encryptionEngine = encryptionEngines.getFirst();
@@ -151,7 +152,7 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     @Override
-    public void remove(ContentReference contentReference) throws UnwritableContentException {
+    public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         dataEncryptionKeyAccessor.clearKeys(contentReference);
         delegate.remove(contentReference);
     }
