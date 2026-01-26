@@ -52,9 +52,13 @@ public class RabbitMqEventHandlers implements DomainEventDispatcher {
         var payloadString = objectMapper.valueToTree(payload).toString();
         Message message = MessageBuilder
                 .withBody(payloadString.getBytes(StandardCharsets.UTF_8))
-                .setContentType(MessageProperties.CONTENT_TYPE_JSON)
+                .setContentType(MessageProperties.CONTENT_TYPE_TEXT_PLAIN)
+                .setContentEncoding("UTF-8")
                 .setHeader("trigger", trigger)
                 .setHeader("entity", entity)
+                .setHeader("application_id", contentGridProps.getSystem().getApplicationId())
+                .setHeader("deployment_id", contentGridProps.getSystem().getDeploymentId())
+                .setHeader("webhookConfigUrl", contentGridProps.getEvents().getWebhookConfigUrl())
                 .build();
         var routingKey = contentGridProps.getEvents().getRabbitmq().getRoutingKey();
         rabbitTemplate.send(routingKey, message);

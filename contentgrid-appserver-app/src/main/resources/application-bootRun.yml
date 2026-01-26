@@ -9,9 +9,12 @@ contentgrid:
     query-engine.bootstrap-tables: true
     content-store.type: ephemeral
   system:
+    application-id: dece6818-fab2-11f0-aa04-17747aaadf5e
+    deployment-id: e5708fca-fab2-11f0-ab48-1b1797482fc9
     policyPackage: xfb0e9318f3894300a64edba3532e6ac0
   events:
     rabbitmq.enabled: false
+    webhook-config-url: http://localhost:${management.server.port}/actuator/webhooks
 
 spring:
   autoconfigure:

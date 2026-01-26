@@ -39,9 +39,17 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.thunx.abac.source=none",
         "contentgrid.appserver.content-store.type=ephemeral",
         "spring.rabbitmq.host=foo",
+        "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
+        "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,
+        "contentgrid.events.webhook-config-url="+RabbitMqEventHandlersTest.CONFIG_URL
+
 })
 @AutoConfigureMockMvc
 class RabbitMqEventHandlersTest {
+
+    public static final String APP_ID = "fb84de64-faae-11f0-b1cb-1be78580b649";
+    public static final String DEPLOYMENT_ID = "0b682b92-faaf-11f0-b95e-376e533e6c92";
+    public static final String CONFIG_URL = "http://localhost:8080";
 
     @Autowired
     private MockMvc mockMvc;
@@ -98,6 +106,15 @@ class RabbitMqEventHandlersTest {
         var headers = message.getMessageProperties().getHeaders();
         assertThat(headers).containsEntry("trigger", "create");
         assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
+
+        // Used by slingshot for reading the message
+        assertThat(message.getMessageProperties().getContentType()).isEqualTo("text/plain");
+        assertThat(message.getMessageProperties().getContentEncoding()).isEqualTo("UTF-8");
+        // Used by slingshot for constructing the outgoing request
+        assertThat(headers).containsEntry("application_id", APP_ID);
+        assertThat(headers).containsEntry("deployment_id", DEPLOYMENT_ID);
+        // Used by slingshot for fetching the target URLs
+        assertThat(headers).containsEntry("webhookConfigUrl", CONFIG_URL);
 
         var mapper = new ObjectMapper();
         var expected = mapper.readTree(CREATED.replaceAll("<id>", created.getEntityId().getValue().toString()));
