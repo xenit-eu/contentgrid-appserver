@@ -230,6 +230,32 @@ class ContentRestControllerTest {
         }
 
         @Test
+        void get_if_match_ok() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+            var eTag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.ETAG);
+
+            mockMvc.perform(get("/invoices/{id}/content", invoiceId)
+                            .header(HttpHeaders.IF_MATCH, eTag))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                    .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
+        }
+
+        @Test
+        void get_if_match_precondition_failed() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+            mockMvc.perform(get("/invoices/{id}/content", invoiceId)
+                            .header(HttpHeaders.IF_MATCH, "\"xyz\""))
+                    .andExpect(status().isPreconditionFailed());
+        }
+
+        @Test
         void get_range_success() throws Exception {
             String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
 
@@ -461,6 +487,55 @@ class ContentRestControllerTest {
             // for a HEAD request, nothing got read from the content store
             Mockito.verifyNoInteractions(contentStoreSpy);
         }
+
+        @Test
+        void head_if_none_match_notModified() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+            var eTag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.ETAG);
+
+            mockMvc.perform(head("/invoices/{id}/content", invoiceId)
+                    .header(HttpHeaders.IF_NONE_MATCH, eTag)
+            ).andExpect(status().isNotModified());
+        }
+
+        @Test
+        void head_if_none_match_ok() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+            mockMvc.perform(head("/invoices/{id}/content", invoiceId)
+                            .header(HttpHeaders.IF_NONE_MATCH, "\"xyz\"")
+                    ).andExpect(status().isOk());
+        }
+
+        @Test
+        void head_if_match_ok() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+            var eTag = mockMvc.perform(head("/invoices/{id}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.ETAG);
+
+            mockMvc.perform(head("/invoices/{id}/content", invoiceId)
+                            .header(HttpHeaders.IF_MATCH, eTag))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void head_if_match_precondition_failed() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+            mockMvc.perform(head("/invoices/{id}/content", invoiceId)
+                            .header(HttpHeaders.IF_MATCH, "\"xyz\""))
+                    .andExpect(status().isPreconditionFailed());
+        }
+
     }
 
     @Nested
