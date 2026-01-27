@@ -484,8 +484,10 @@ class RelationRestControllerTest {
         @ParameterizedTest
         @CsvSource({
                 "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing", // non-existing relation
+                "/invoices/invalid-id/previous-invoice", // invalid entity id
                 "/non-existing/01234567-89ab-cdef-0123-456789abcdef/previous-invoice", // non-existing entity
                 "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing/01234567-89ab-cdef-0123-456789abcdef", // non-existing relation
+                "/invoices/01234567-89ab-cdef-0123-456789abcdef/products/invalid-id", // invalid relation item id
         })
         void followRelationInvalidUrl(String url) throws Exception {
             mockMvc.perform(get(url))

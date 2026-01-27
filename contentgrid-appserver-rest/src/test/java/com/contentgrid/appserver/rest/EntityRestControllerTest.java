@@ -690,6 +690,28 @@ class EntityRestControllerTest {
         }
 
         @Test
+        void testGetInvalidEntityIdFormat() throws Exception {
+            String nonExistentId = "invalid-id";
+
+            mockMvc.perform(get("/products/" + nonExistentId))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
+                    );
+        }
+
+        @Test
+        void testGetInvalidEntityAndId() throws Exception {
+            mockMvc.perform(get("/porfile/products")) // Typo in url
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
+                    );
+        }
+
+        @Test
         void testGetNonExistentEntityType() throws Exception {
             String nonExistentId = UUID.randomUUID().toString();
 
@@ -1255,7 +1277,15 @@ class EntityRestControllerTest {
                                     .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                                     .withTitle("Entity item not found")
+                    );
 
+            mockMvc.perform(put("/products/invalid-id")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updatedProduct)))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
                     );
         }
 
@@ -1846,6 +1876,18 @@ class EntityRestControllerTest {
             String someId = UUID.randomUUID().toString();
 
             mockMvc.perform(delete("/foobars/" + someId))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withTitle("Entity or resource not found")
+                    );
+        }
+
+        @Test
+        void testDeleteInvalidEntityId() throws Exception {
+            String invalidId = "invalid-id";
+
+            mockMvc.perform(delete("/products/" + invalidId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
