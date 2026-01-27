@@ -128,14 +128,12 @@ public class TransactionalQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
+    public EntityIdAndVersion setLink(@NonNull Application application, @NonNull RelationRequest relationRequest,
             @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
             @NonNull LinkEventConsumer linkEventConsumer)
             throws QueryEngineException {
-        runInWriteTransaction(() -> {
-            delegate.setLink(application, relationRequest, targetId, permitUpdatePredicate, linkEventConsumer);
-            return null;
-        });
+        return runInWriteTransaction(() ->
+                delegate.setLink(application, relationRequest, targetId, permitUpdatePredicate, linkEventConsumer));
     }
 
     @Override

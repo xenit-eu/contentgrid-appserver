@@ -200,9 +200,11 @@ public interface DatamodelApi {
      * @param application the application context
      * @param relation the relation to set
      * @param targetId the primary key of the target entity to link
+     * @param authorizationContext the authorization predicate and user information
+     * @return the updated target entity
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
+    RelationTarget setRelation(@NonNull Application application, @NonNull RelationRequest relation, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.

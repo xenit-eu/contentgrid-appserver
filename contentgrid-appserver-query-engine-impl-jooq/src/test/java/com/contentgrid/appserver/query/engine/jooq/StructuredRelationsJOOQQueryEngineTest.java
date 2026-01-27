@@ -318,9 +318,11 @@ class StructuredRelationsJOOQQueryEngineTest {
                 .map(EntityIdAndVersion::version)
                 .orElse(Version.nonExisting());
 
-        queryEngine.setLink(app, relationRequest.withVersionConstraint(relationVersion), target.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+        var updated = queryEngine.setLink(app, relationRequest.withVersionConstraint(relationVersion), target.getId(), PERMIT_ALWAYS, NONE_EVENTS);
 
         assertThatLinked(app, relation, source.getIdentity(), target.getIdentity());
+        assertThat(updated.entityId()).isEqualTo(target.getId());
+        assertThat(updated.version()).isNotEqualTo(relationVersion);
     }
 
     @ParameterizedTest
@@ -381,6 +383,67 @@ class StructuredRelationsJOOQQueryEngineTest {
 
         assertThatLinked(app, relation, source.getIdentity(), newTarget.getIdentity());
         assertThatNotLinked(app, relation, source.getIdentity(), target.getIdentity());
+    }
+
+    @ParameterizedTest
+    @MethodSource("toOneRelations")
+    void linkRelation_relink_versionCheck_success(Relation relation) {
+        assumeThat(relation.getTargetEndPoint().isRequired())
+                .as("if target has a required relation, an item would already be linked and can't be overwritten from the source side")
+                .isFalse();
+
+        var app = createModel(relation);
+
+        var source = createItem(app, relation.getSourceEndPoint().getEntity());
+        var target = createItem(app, relation.getTargetEndPoint().getEntity());
+
+        var relationRequest = RelationRequest.forRelation(source.getIdentity(), relation.getSourceEndPoint().getName());
+
+        var relationVersion = queryEngine.findTarget(app, relationRequest, PERMIT_ALWAYS)
+                .map(EntityIdAndVersion::version)
+                .orElse(Version.nonExisting());
+
+        var updated = queryEngine.setLink(app, relationRequest.withVersionConstraint(relationVersion), target.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+
+        var newTarget = createItem(app, relation.getTargetEndPoint().getEntity());
+
+        queryEngine.setLink(app, relationRequest.withVersionConstraint(updated.version()), newTarget.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+
+        assertThatLinked(app, relation, source.getIdentity(), newTarget.getIdentity());
+        assertThatNotLinked(app, relation, source.getIdentity(), target.getIdentity());
+    }
+
+    @ParameterizedTest
+    @MethodSource("toOneRelations")
+    void linkRelation_relink_versionCheck_failure(Relation relation) {
+        assumeThat(relation.getTargetEndPoint().isRequired())
+                .as("if target has a required relation, an item would already be linked and can't be overwritten from the source side")
+                .isFalse();
+
+        var app = createModel(relation);
+
+        var source = createItem(app, relation.getSourceEndPoint().getEntity());
+        var target = createItem(app, relation.getTargetEndPoint().getEntity());
+
+        var relationRequest = RelationRequest.forRelation(source.getIdentity(), relation.getSourceEndPoint().getName());
+
+        var relationVersion = queryEngine.findTarget(app, relationRequest, PERMIT_ALWAYS)
+                .map(EntityIdAndVersion::version)
+                .orElse(Version.nonExisting());
+
+        var updated = queryEngine.setLink(app, relationRequest.withVersionConstraint(relationVersion), target.getId(), PERMIT_ALWAYS, NONE_EVENTS);
+
+        var newTarget = createItem(app, relation.getTargetEndPoint().getEntity());
+
+        // Try to update again with the same version
+        assertThatThrownBy(() -> queryEngine.setLink(app, relationRequest.withVersionConstraint(relationVersion), newTarget.getId(), PERMIT_ALWAYS, NONE_EVENTS))
+                .isInstanceOfSatisfying(UnsatisfiedVersionException.class, ex -> {
+                    assertThat(ex.getActualVersion()).isEqualTo(updated.version());
+                    assertThat(ex.getRequestedVersion()).isEqualTo(relationVersion);
+                });
+
+        assertThatNotLinked(app, relation, source.getIdentity(), newTarget.getIdentity());
+        assertThatLinked(app, relation, source.getIdentity(), target.getIdentity());
     }
 
     @ParameterizedTest

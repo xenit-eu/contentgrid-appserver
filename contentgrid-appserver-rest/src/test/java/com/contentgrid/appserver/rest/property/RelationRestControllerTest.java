@@ -179,8 +179,7 @@ class RelationRestControllerTest {
         };
 
         private static final ETagHandler SET_RELATION = (api, rel, target) -> {
-            api.setRelation(APPLICATION, rel, target.getEntityId(), AuthorizationContext.allowAll());
-            var result = api.findRelationTarget(APPLICATION, rel, AuthorizationContext.allowAll()).orElseThrow();
+            var result = api.setRelation(APPLICATION, rel, target.getEntityId(), AuthorizationContext.allowAll());
 
             var version = (ExactlyVersion)result.getRelationIdentity().getVersion();
 
@@ -303,7 +302,8 @@ class RelationRestControllerTest {
             mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .contentType("text/uri-list")
                             .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
-                    .andExpect(status().isNoContent());
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
 
             assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll())).isTrue();
         }
