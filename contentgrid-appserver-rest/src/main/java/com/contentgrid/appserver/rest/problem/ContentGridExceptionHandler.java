@@ -35,6 +35,7 @@ import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.ConstraintViolationProblemProperties;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
@@ -54,6 +55,8 @@ import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -380,6 +383,22 @@ public class ContentGridExceptionHandler {
                 .withStatus(HttpStatus.NOT_FOUND)
                 .withProperties(Map.of("resource", exception.getResourcePath()))
         );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Problem> handlePathVariableMismatch(MethodArgumentTypeMismatchException exception, HttpServletRequest request) {
+
+        // Only treat path variables as 404
+        if (exception.getParameter() != null && exception.getParameter().hasParameterAnnotation(PathVariable.class)) {
+            return createResponse(
+                    problemFactory.createProblem(ProblemType.NOT_FOUND_ENTITY_DEFINITION, request.getRequestURI())
+                            .withStatus(HttpStatus.NOT_FOUND)
+                            .withProperties(Map.of("resource", request.getRequestURI()))
+            );
+        }
+
+        // Let Spring handle everything else
+        throw exception;
     }
 
     @ExceptionHandler

@@ -146,6 +146,7 @@ class ContentRestControllerTest {
     static Stream<Arguments> nonExistentPaths() {
         return Stream.of(
                 Arguments.argumentSet("non-existent ID", "/invoices/" + UUID.randomUUID() + "/content", "https://contentgrid.cloud/problems/not-found/entity-item"),
+                Arguments.argumentSet("invalid ID format", "/invoices/invalid-id/content", "https://contentgrid.cloud/problems/not-found/entity-definition"),
                 Arguments.argumentSet("non-existent entity", "/nonexistent/{instanceId}/content", "https://contentgrid.cloud/problems/not-found/entity-definition"),
                 Arguments.argumentSet("non-existent property", "/invoices/{instanceId}/nonexistent", "https://contentgrid.cloud/problems/not-found/entity-definition")
         );
