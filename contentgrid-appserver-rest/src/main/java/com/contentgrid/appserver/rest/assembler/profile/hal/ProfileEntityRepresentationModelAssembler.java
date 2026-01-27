@@ -72,7 +72,7 @@ public class ProfileEntityRepresentationModelAssembler implements Representation
 
     private Link getEntityItemLink(Entity entity, Context context) {
         return linkTo(methodOn(EntityRestController.class)
-                .getEntity(context.application(), entity.getPathSegment(), null, null, null, null))
+                .getEntity(context.application(), entity.getPathSegment(), null, null, null, null, null))
                 .withRel(IanaLinkRelations.DESCRIBES)
                 .withName(IanaLinkRelations.ITEM_VALUE)
                 .withTitle(entity.getTranslations(context.userLocales()).getSingularName());

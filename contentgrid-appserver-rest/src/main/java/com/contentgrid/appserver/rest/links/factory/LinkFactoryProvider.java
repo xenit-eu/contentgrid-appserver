@@ -130,6 +130,7 @@ public class LinkFactoryProvider {
                         entity.getPathSegment(),
                         identity.getEntityId(),
                         null,
+                        null,
                         userLocales,
                         this
                 ))
@@ -147,7 +148,7 @@ public class LinkFactoryProvider {
 
         return UriTemplateMatcher.<EntityId>builder()
                 .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(application, entity.getPathSegment(), null, null, userLocales, this),
+                                .getEntity(application, entity.getPathSegment(), null, null, null, userLocales, this),
                         params -> EntityId.of(UUID.fromString(params.get("id"))))
                 .build();
     }
@@ -174,6 +175,7 @@ public class LinkFactoryProvider {
                         entity.getPathSegment(),
                         relationIdentity.getEntityId(),
                         relation.getSourceEndPoint().getPathSegment(),
+                        null,
                         null,
                         this
                 ))

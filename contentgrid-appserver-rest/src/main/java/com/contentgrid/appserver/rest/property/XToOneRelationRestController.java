@@ -69,12 +69,14 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws EmptyRelationException {
         var relation = getRequiredRelation(application, entityName, propertyName);
         var source = relation.getSourceEndPoint();
-        var relationRequest = RelationRequest.forRelation(source.getEntity(), id, source.getName());
+        var relationRequest = RelationRequest.forRelation(source.getEntity(), id, source.getName())
+                .withVersionConstraint(versionConstraint);
         try {
             var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
                     .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
