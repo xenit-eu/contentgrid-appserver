@@ -233,6 +233,34 @@ class EntityRestControllerTest {
                 .getResponse();
     }
 
+    private MockHttpServletResponse createOrder() throws Exception {
+        var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
+        var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
+        return mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("invoice", invoiceUrl)
+                        .param("products", productUrl))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+    }
+
+    private MockHttpServletResponse createEmptyWithoutETag() throws Exception {
+        return mockMvc.perform(post( "/empties-without-etag")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+    }
+
+    private MockHttpServletResponse createEmptyWithETag() throws Exception {
+        return mockMvc.perform(post( "/empties-with-etag")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+    }
+
     @Autowired
     TableCreator tableCreator;
 
@@ -674,6 +702,52 @@ class EntityRestControllerTest {
                                 }
                             }
                             """));
+        }
+
+        @Test
+        void testGetEntity_ifNoneMatchModified() throws Exception {
+            var entity = createEmptyWithETag();
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_NONE_MATCH, "\"my-etag\""))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void testGetEntity_ifNoneMatchUnmodified() throws Exception {
+            var entity = createEmptyWithETag();
+
+            // Using exact e-tag
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_NONE_MATCH, entity.getHeader(HttpHeaders.ETAG)))
+                    .andExpect(status().isNotModified());
+
+            // Using wildcard
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_NONE_MATCH, "*"))
+                    .andExpect(status().isNotModified());
+        }
+
+        @Test
+        void testGetEntity_ifMatchSuccess() throws Exception {
+            var entity = createEmptyWithETag();
+
+            // Using exact e-tag
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_MATCH, entity.getHeader(HttpHeaders.ETAG)))
+                    .andExpect(status().isOk());
+
+            // Using wildcard
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_MATCH, "*"))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void testGetEntity_ifMatchFail() throws Exception {
+            var entity = createEmptyWithETag();
+            mockMvc.perform(get(entity.getRedirectedUrl())
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
         }
 
         @Test
@@ -1434,16 +1508,7 @@ class EntityRestControllerTest {
         @CsvSource({"PUT", "PATCH"})
         void testUpdateEntityWithoutAttributes_http204(HttpMethod method) throws Exception {
             // Create order
-            var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
-            var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
-            var url = mockMvc.perform(post("/orders")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("invoice", invoiceUrl)
-                            .param("products", productUrl))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse()
-                    .getHeader(HttpHeaders.LOCATION);
+            var url = createOrder().getHeader(HttpHeaders.LOCATION);
 
             // Update order
             mockMvc.perform(request(method, url)
@@ -1464,12 +1529,7 @@ class EntityRestControllerTest {
         @CsvSource({"PUT", "PATCH"})
         void testUpdateEntityWithoutProperties_http204(HttpMethod method) throws Exception {
             // Create empty entity
-            var url = mockMvc.perform(post( "/empties-without-etag")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse()
-                    .getHeader(HttpHeaders.LOCATION);
+            var url = createEmptyWithoutETag().getHeader(HttpHeaders.LOCATION);
 
             // Attempt to update empty entity with invalid if-match
             mockMvc.perform(request(method, url)
@@ -1491,11 +1551,7 @@ class EntityRestControllerTest {
         @CsvSource({"PUT", "PATCH"})
         void testUpdateEntityWithETagOnly_http204(HttpMethod method) throws Exception {
             // Create empty entity
-            var response = mockMvc.perform(post( "/empties-with-etag")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse();
+            var response = createEmptyWithETag();
             var url = response.getHeader(HttpHeaders.LOCATION);
 
             // Attempt to update empty entity with invalid if-match
@@ -1962,16 +2018,7 @@ class EntityRestControllerTest {
         @Test
         void testDeleteEntityWithoutAttributes() throws Exception {
             // Create order
-            var productUrl = createProduct(0).getHeader(HttpHeaders.LOCATION);
-            var invoiceUrl = createInvoice().getHeader(HttpHeaders.LOCATION);
-            var url = mockMvc.perform(post("/orders")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("invoice", invoiceUrl)
-                            .param("products", productUrl))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse()
-                    .getHeader(HttpHeaders.LOCATION);
+            var url = createOrder().getHeader(HttpHeaders.LOCATION);
 
             // Delete order
             mockMvc.perform(delete(url))
@@ -1985,12 +2032,7 @@ class EntityRestControllerTest {
         @Test
         void testDeleteEntityWithoutProperties() throws Exception {
             // Create empty entity
-            var url = mockMvc.perform(post( "/empties-without-etag")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse()
-                    .getHeader(HttpHeaders.LOCATION);
+            var url = createEmptyWithoutETag().getHeader(HttpHeaders.LOCATION);
 
             // Attempt to delete empty entity with invalid if-match
             mockMvc.perform(delete(url)
@@ -2010,11 +2052,7 @@ class EntityRestControllerTest {
         @Test
         void testDeleteEntityWithETagOnly() throws Exception {
             // Create empty entity
-            var response = mockMvc.perform(post( "/empties-with-etag")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                    .andExpect(status().isCreated())
-                    .andReturn()
-                    .getResponse();
+            var response = createEmptyWithETag();
             var url = response.getHeader(HttpHeaders.LOCATION);
 
             // Attempt to delete empty entity with invalid if-match

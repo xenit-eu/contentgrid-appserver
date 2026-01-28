@@ -22,6 +22,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
@@ -37,6 +38,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -58,6 +60,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.convert.ConversionService;
+import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -89,6 +93,9 @@ class RelationRestControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ConversionService conversionService;
 
     @Autowired
     private TableCreator tableCreator;
@@ -157,6 +164,12 @@ class RelationRestControllerTest {
                 entity.getName(),
                 EntityId.of(UUID.fromString(id))
         );
+    }
+
+    private String calculateETag(RelationTarget result) {
+        return Optional.ofNullable(conversionService.convert(result.getRelationIdentity().getVersion(), ETag.class))
+                .map(ETag::formattedTag)
+                .orElse(null);
     }
 
     @Nested
@@ -252,6 +265,98 @@ class RelationRestControllerTest {
                     .andExpect(status().isFound())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation_ifNoneMatchUnmodified(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            var item = datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            var eTag = calculateETag(item);
+
+            // Then follow the relation
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.IF_NONE_MATCH, eTag))
+                    .andExpect(status().isNotModified());
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation_ifNoneMatchModified(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            // Then follow the relation
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.IF_NONE_MATCH, "\"my-etag\""))
+                    .andExpect(status().isFound())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation_ifMatchSuccess(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            var item = datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            var eTag = calculateETag(item);
+
+            // Then follow the relation
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.IF_MATCH, eTag))
+                    .andExpect(status().isFound())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation_ifMatchFail(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            // Then follow the relation
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                    .andExpect(status().isPreconditionFailed());
         }
 
         @ParameterizedTest
