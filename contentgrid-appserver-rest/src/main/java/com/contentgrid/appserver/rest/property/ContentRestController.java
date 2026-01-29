@@ -103,7 +103,7 @@ public class ContentRestController {
 
         // First check not-modified for a 304 response before performing If-Match validation (with a 412 response)
         if(webRequest.checkNotModified(eTag)) {
-            return null;
+            return null; // The response headers inside webRequest are modified as side effect
         }
 
         if(!versionConstraint.isSatisfiedBy(content.getVersion())) {
@@ -203,6 +203,10 @@ public class ContentRestController {
     ) {
         var response = getContent(httpHeaders, application, entityName, id, propertyName, versionConstraint, webRequest,
                 authorizationContext);
+
+        if (response == null) {
+            return null; // response headers in webRequest were modified with side effects, body stays empty
+        }
 
         return ResponseEntity.status(response.getStatusCode())
                 .headers(response.getHeaders())
