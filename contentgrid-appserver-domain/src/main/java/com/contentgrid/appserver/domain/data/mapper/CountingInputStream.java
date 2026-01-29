@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.contentstore.impl.utils;
+package com.contentgrid.appserver.domain.data.mapper;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
