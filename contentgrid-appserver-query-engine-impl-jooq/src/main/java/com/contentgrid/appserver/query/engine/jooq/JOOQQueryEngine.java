@@ -761,7 +761,7 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId,
+    public EntityIdAndVersion setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException {
 
         // Permission check
@@ -789,6 +789,9 @@ public class JOOQQueryEngine implements QueryEngine {
         var newEntityData = getByIdRequired(application, relationRequest, permitUpdatePredicate);
 
         linkEventConsumer.onLink(application, oldEntityData, newEntityData);
+
+        var updatedVersion = getRelationVersion(relationRequest, Optional.of(targetId));
+        return new EntityIdAndVersion(targetId, updatedVersion);
     }
 
     @Override

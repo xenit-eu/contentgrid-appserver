@@ -132,9 +132,10 @@ public interface QueryEngine {
      * @param targetId the primary key of the target entity
      * @param permitUpdatePredicate predicate that has to pass for the relation to be allowed to be updated
      * @param linkEventConsumer consumer that will be called after the link is set
+     * @return the updated target entity
      * @throws QueryEngineException if an error occurs during the set operation
      */
-    void setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException;
+    EntityIdAndVersion setLink(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull ThunkExpression<Boolean> permitUpdatePredicate, @NonNull LinkEventConsumer linkEventConsumer) throws QueryEngineException;
 
     /**
      * Removes all links from the entity with the given id for the specified relation.

@@ -13,7 +13,6 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
@@ -124,7 +123,10 @@ public class XToOneRelationRestController {
                     id,
                     relation.getSourceEndPoint().getName()
             ).withVersionConstraint(versionConstraint);
-            datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
+            var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
+            return ResponseEntity.noContent()
+                    .eTag(calculateETag(relationTarget))
+                    .build();
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
                 throw new EntityIdNotFoundException(e.getEntityName(), e.getId());
@@ -132,7 +134,6 @@ public class XToOneRelationRestController {
                 throw new RelationTargetNotFoundException(e);
             }
         }
-        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping

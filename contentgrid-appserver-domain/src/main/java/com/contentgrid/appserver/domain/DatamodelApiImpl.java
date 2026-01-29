@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -42,7 +41,6 @@ import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -69,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -379,13 +376,19 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public void setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
+    public RelationTarget setRelation(@NonNull Application application, @NonNull RelationRequest relationRequest, @NonNull EntityId targetId, @NonNull AuthorizationContext authorizationContext)
             throws QueryEngineException {
+        var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var outputMapper = createOutputDataMapper(application, relationRequest.getEntityName());
 
         LinkEventConsumer onLink = new EventConsumerImpl(outputMapper);
 
-        queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
+        var entityIdAndVersion = queryEngine.setLink(application, relationRequest, targetId, authorizationContext.predicate(), onLink);
+        return new RelationTarget(
+                RelationIdentity.forRelation(relationRequest.getEntityName(), relationRequest.getEntityId(), relationRequest.getRelationName())
+                        .withVersion(entityIdAndVersion.version()),
+                EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), entityIdAndVersion.entityId())
+        );
     }
 
     @Override
