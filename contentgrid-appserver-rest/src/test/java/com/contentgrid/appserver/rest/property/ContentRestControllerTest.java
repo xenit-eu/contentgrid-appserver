@@ -405,12 +405,13 @@ class ContentRestControllerTest {
             Mockito.verifyNoMoreInteractions(contentStoreSpy);
         }
 
-        @Test
-        void get_range_start_oob_fails() throws Exception {
+        @ParameterizedTest
+        @CsvSource({"100-200", "17-"})
+        void get_range_start_oob_fails(String bytes) throws Exception {
             String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
 
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
-                            .header(HttpHeaders.RANGE, "bytes=100-200"))
+                            .header(HttpHeaders.RANGE, "bytes=" + bytes))
                     .andExpect(status().isRequestedRangeNotSatisfiable())
                     // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; unsatisfied-range
                     .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes */17"));
