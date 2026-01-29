@@ -112,13 +112,7 @@ class AlfrescoCompatibleEncryptionEngineTest
         }
 
         public ContentReader getEncryptedReader(ResolvedContentRange resolvedContentRange) {
-            var encryptedReader = getEncryptedReader();
-            if (resolvedContentRange != null) {
-                // The resolved content range must match the size of the encrypted reader
-                assertThat(resolvedContentRange.getContentSize())
-                        .isEqualTo(encryptedSize);
-            }
-            return encryptedReader;
+            return getEncryptedReader();
         }
 
     }

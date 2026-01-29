@@ -126,23 +126,9 @@ public class AlfrescoCompatibleEncryptionEngine implements ContentEncryptionEngi
             ResolvedContentRange contentRange
     ) throws UnreadableContentException, CryptoInitializationFailureException {
         Cipher cipher = initializeCipher(encryptionParameters);
-        ResolvedContentRange encryptedRange = null;
-        if (contentRange != null) {
-            // Always read full content, then skip part of the decrypted content if a range was requested.
-            // This is fine because the Alfresco decryption engine is strictly for migrating data
-            var blockSize = cipher.getBlockSize();
-            encryptedRange = ResolvedContentRange.fullRange(contentRange.getContentSize());
-            if (blockSize > 0) {
-                // For encryption modes with a block size, the encrypted content size is always a multiple of the block size.
-                // If the unencrypted size ends on exactly a block boundary,
-                // PKCS5Padding defines that another block is added full of padding.
-                // We can calculate this without condition by rounding down the division and adding an additional block
-                var numBlocks = Math.floorDiv(contentRange.getContentSize(), blockSize) + 1;
-                encryptedRange = ResolvedContentRange.fullRange(numBlocks * blockSize);
-            }
-        }
-
-        var rawReader = cipherTextReaderSupplier.getReader(encryptedRange);
+        // Always read full content, then skip part of the decrypted content if a range was requested.
+        // This is fine because the Alfresco decryption engine is strictly for migrating data
+        var rawReader = cipherTextReaderSupplier.getReader(null);
         return new DecryptingContentReader(rawReader, cipher);
     }
 
