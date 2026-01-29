@@ -8,10 +8,22 @@ import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.DataEntry.BooleanDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.LocalDateDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.LongDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.ScalarDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.StringDataEntry;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -61,6 +73,8 @@ public class SimpleAttribute implements Attribute {
      */
     List<Constraint> constraints;
 
+    ScalarDataEntry defaultValue;
+
     /**
      * Defines the data types supported for attributes.
      */
@@ -77,7 +91,7 @@ public class SimpleAttribute implements Attribute {
 
     @Builder
     SimpleAttribute(@NonNull AttributeName name, ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations, @NonNull ColumnName column,
-            @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints) {
+            @NonNull Type type, @Singular Set<AttributeFlag> flags, @Singular List<Constraint> constraints, String defaultValue) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {
             if(t.getName() == null) {
@@ -92,6 +106,22 @@ public class SimpleAttribute implements Attribute {
         for (var flag : this.flags) {
             flag.checkSupported(this);
         }
+        this.defaultValue = convertDefaultValueType(type, defaultValue);
+    }
+
+    private static ScalarDataEntry convertDefaultValueType(Type type, String defaultValue) {
+        if (defaultValue == null) {
+            return NullDataEntry.INSTANCE;
+        }
+        return switch(type) {
+            case LONG -> new LongDataEntry(Long.valueOf(defaultValue));
+            case DOUBLE -> new DecimalDataEntry(new BigDecimal(defaultValue));
+            case BOOLEAN -> new BooleanDataEntry(Boolean.parseBoolean(defaultValue));
+            case TEXT -> new StringDataEntry(defaultValue);
+            case DATE -> new LocalDateDataEntry(LocalDate.parse(defaultValue));
+            case DATETIME -> new InstantDataEntry(Instant.parse(defaultValue));
+            case UUID -> new StringDataEntry(UUID.fromString(defaultValue).toString());
+        };
     }
 
 

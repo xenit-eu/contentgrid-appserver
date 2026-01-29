@@ -92,7 +92,7 @@ public class ModelTestFixtures {
             .name(AttributeName.of("is_adult"))
             .column(ColumnName.of("is_adult"))
             .type(Type.BOOLEAN)
-            .flag(DefaultValueFlag.of(new BooleanDataEntry(true)))
+            .defaultValue("true")
             .build();
 
     public static final Entity PERSON = Entity.builder()

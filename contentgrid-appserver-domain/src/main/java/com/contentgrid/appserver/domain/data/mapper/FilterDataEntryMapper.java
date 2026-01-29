@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.DefaultValueFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.DataEntry;
@@ -19,10 +20,11 @@ import lombok.RequiredArgsConstructor;
 public abstract class FilterDataEntryMapper implements AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> {
     @Override
     public Optional<DataEntry> mapAttribute(Attribute attribute, DataEntry inputData) {
-        var defaultValue = attribute.findFlag(DefaultValueFlag.class);
-        if (defaultValue.isPresent()) {
-            return transformNested(inputData, defaultValue.get().getDefaultValue());
+
+        if (attribute instanceof SimpleAttribute simp) {
+            return transformNested(inputData, simp.getDefaultValue());
         }
+
         return transformNested(inputData, NullDataEntry.INSTANCE);
     }
 

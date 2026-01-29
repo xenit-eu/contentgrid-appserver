@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"type", "name", "description", "dataType", "columnName", "flags", "constraints"})
+@JsonPropertyOrder({"type", "name", "description", "dataType", "columnName", "flags", "constraints", "defaultValue"})
 public final class SimpleAttribute extends Attribute {
 
     @NonNull
@@ -23,4 +23,6 @@ public final class SimpleAttribute extends Attribute {
 
     @JsonInclude(Include.NON_EMPTY)
     private List<AttributeConstraint> constraints;
+
+    private String defaultValue;
 }

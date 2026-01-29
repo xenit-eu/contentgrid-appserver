@@ -586,6 +586,10 @@ class ProfileRestControllerTest {
                                     {
                                         name: "gender",
                                         title: "gender"
+                                    },
+                                    {
+                                        name: "is_adult",
+                                        title: "is_adult"
                                     }
                                 ],
                                 "blueprint:relation": [
@@ -764,6 +768,10 @@ class ProfileRestControllerTest {
                                         {
                                             name: "gender",
                                             prompt: "gender"
+                                        },
+                                        {
+                                            name: "is_adult",
+                                            prompt: "is_adult"
                                         },
                                         {
                                             name: "invoices",
