@@ -207,6 +207,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(isAdult.isReadOnly()).isFalse();
                     assertThat(isAdult.isRequired()).isFalse();
                     assertThat(isAdult.getType()).isEqualTo(HtmlInputType.CHECKBOX_VALUE);
+                    assertThat(isAdult.getValue()).isEqualTo("true");
                 },
                 invoices -> {
                     assertThat(invoices.getName()).isEqualTo("invoices");

@@ -255,7 +255,8 @@ public class HalFormsTemplateGenerator {
         var property = HalFormsProperty.named(prefixed.name())
                 .withPrompt(prefixed.prompt())
                 .withAttributeType(attribute.getType())
-                .withRequired(attribute.hasConstraint(RequiredConstraint.class));
+                .withRequired(attribute.hasConstraint(RequiredConstraint.class))
+                .withValue(Objects.toString(attribute.getDefaultValue().getValue(), null));
         return addAllowedValues(property, attribute, false);
     }
 
