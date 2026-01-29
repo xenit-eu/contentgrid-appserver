@@ -2,7 +2,7 @@ package com.contentgrid.appserver.query.engine.api.exception;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import lombok.AccessLevel;
 import lombok.Getter;

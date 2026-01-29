@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -54,6 +55,10 @@ public sealed interface Attribute extends Translatable<AttributeTranslations> pe
      */
     default boolean hasFlag(Class<? extends AttributeFlag> flagClass) {
         return getFlags().stream().anyMatch(flagClass::isInstance);
+    }
+
+    default <T extends AttributeFlag> Optional<T> findFlag(Class<T> flagClass) {
+        return getFlags().stream().filter(flagClass::isInstance).findFirst().map(flagClass::cast);
     }
 
     /**

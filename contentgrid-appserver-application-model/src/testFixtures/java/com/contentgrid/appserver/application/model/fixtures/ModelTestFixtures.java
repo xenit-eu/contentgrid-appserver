@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.DefaultValueFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
@@ -39,6 +40,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.application.model.values.DataEntry.BooleanDataEntry;
 import java.util.List;
 import java.util.Locale;
 
@@ -86,6 +88,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
+    public static final SimpleAttribute PERSON_IS_ADULT = SimpleAttribute.builder()
+            .name(AttributeName.of("is_adult"))
+            .column(ColumnName.of("is_adult"))
+            .type(Type.BOOLEAN)
+            .flag(DefaultValueFlag.of(new BooleanDataEntry(true)))
+            .build();
+
     public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -99,6 +108,7 @@ public class ModelTestFixtures {
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
             .attribute(PERSON_GENDER)
+            .attribute(PERSON_IS_ADULT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)

@@ -18,12 +18,12 @@ import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -38,7 +38,7 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.User;
@@ -426,7 +426,8 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_NAME.getName(), "test"),
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
-                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null)
+                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
+                        new SimpleAttributeData<>(PERSON_IS_ADULT.getName(), true)
                 );
 
                 assertThat(createData.getRelations()).isEmpty();

@@ -1,11 +1,11 @@
 package com.contentgrid.appserver.rest.converter;
 
-import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.ListDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MapDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.rest.data.JsonRequestInputData;
 import com.fasterxml.jackson.core.JsonGenerator;

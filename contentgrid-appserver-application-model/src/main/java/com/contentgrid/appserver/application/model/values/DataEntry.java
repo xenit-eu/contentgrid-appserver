@@ -1,10 +1,8 @@
-package com.contentgrid.appserver.domain.data;
+package com.contentgrid.appserver.application.model.values;
 
-import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.domain.data.DataEntry.AnyRelationDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.DataEntry.AnyRelationDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;

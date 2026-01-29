@@ -71,7 +71,8 @@ public class SimpleAttribute implements Attribute {
         TEXT,
         DATE,
         DATETIME,
-        UUID;
+        UUID,
+        ;
     }
 
     @Builder

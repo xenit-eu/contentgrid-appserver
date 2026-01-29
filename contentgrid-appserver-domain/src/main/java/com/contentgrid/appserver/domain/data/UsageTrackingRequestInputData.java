@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.data;
 
+import com.contentgrid.appserver.application.model.values.DataEntry;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;

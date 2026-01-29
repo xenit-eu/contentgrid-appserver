@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.domain.values;
 
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;

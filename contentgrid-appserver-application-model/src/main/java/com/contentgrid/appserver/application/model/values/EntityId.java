@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.domain.values;
+package com.contentgrid.appserver.application.model.values;
 
 import java.io.Serializable;
 import java.util.UUID;
