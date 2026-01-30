@@ -79,7 +79,8 @@ public class ActuatorConfiguration {
         private static final EndpointRequestMatcher ALLOWED_ACTUATOR_ENDPOINTS = EndpointRequest.to(
                 MetricsEndpoint.class,
                 PrometheusScrapeEndpoint.class,
-                PolicyActuator.class
+                PolicyActuator.class,
+                WebhookConfigActuator.class
         );
 
         @Bean
