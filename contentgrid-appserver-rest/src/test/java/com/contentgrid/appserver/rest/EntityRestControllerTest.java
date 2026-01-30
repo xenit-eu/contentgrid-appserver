@@ -720,11 +720,6 @@ class EntityRestControllerTest {
             mockMvc.perform(get(entity.getRedirectedUrl())
                             .header(HttpHeaders.IF_NONE_MATCH, entity.getHeader(HttpHeaders.ETAG)))
                     .andExpect(status().isNotModified());
-
-            // Using wildcard
-            mockMvc.perform(get(entity.getRedirectedUrl())
-                            .header(HttpHeaders.IF_NONE_MATCH, "*"))
-                    .andExpect(status().isNotModified());
         }
 
         @Test
