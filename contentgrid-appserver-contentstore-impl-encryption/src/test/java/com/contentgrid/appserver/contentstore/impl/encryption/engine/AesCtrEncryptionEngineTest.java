@@ -227,11 +227,9 @@ class AesCtrEncryptionEngineTest extends AbstractEncryptionEngineTest {
     @Getter
     private static class MockContentReader implements ContentReader {
         private final InputStream contentInputStream;
-        private final long contentSize;
 
         public MockContentReader(byte[] ciphertext) {
             contentInputStream = new ByteArrayInputStream(ciphertext);
-            contentSize = ciphertext.length;
         }
 
         @Override

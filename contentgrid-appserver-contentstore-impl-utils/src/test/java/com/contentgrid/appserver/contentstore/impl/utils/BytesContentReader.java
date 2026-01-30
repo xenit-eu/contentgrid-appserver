@@ -21,12 +21,7 @@ class BytesContentReader implements ContentReader {
     }
 
     @Override
-    public long getContentSize() {
-        return bytes.length;
-    }
-
-    @Override
     public String getDescription() {
-        return "%d Bytes".formatted(getContentSize());
+        return "%d Bytes".formatted(bytes.length);
     }
 }

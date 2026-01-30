@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.contentstore.impl.utils.testing;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.contentgrid.appserver.contentstore.api.ContentIOException;
@@ -10,7 +9,6 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ContentRangeRequest;
-import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.api.range.UnsatisfiableContentRangeException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,10 +30,7 @@ public abstract class AbstractContentStoreBehaviorTest {
         var contentStore = getContentStore();
         var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
 
-        var reader = contentStore.getReader(
-                contentAccessor.getReference(),
-                ResolvedContentRange.fullRange(contentAccessor.getContentSize())
-        );
+        var reader = contentStore.getReader(contentAccessor.getReference());
 
         try(var inputStream = reader.getContentInputStream()) {
             assertArrayEquals(TEST_BYTES, inputStream.readAllBytes());
@@ -55,10 +50,7 @@ public abstract class AbstractContentStoreBehaviorTest {
         contentStore.remove(contentAccessor.getReference());
 
         assertThrows(UnreadableContentException.class, () -> {
-            contentStore.getReader(
-                            contentAccessor.getReference(),
-                            ResolvedContentRange.fullRange(contentAccessor.getContentSize())
-                    )
+            contentStore.getReader(contentAccessor.getReference())
                     .getContentInputStream();
         });
     }
@@ -80,14 +72,14 @@ public abstract class AbstractContentStoreBehaviorTest {
         assertThrows(UnreadableContentException.class, () -> {
             contentStore.getReader(
                     contentAccessor.getReference(),
-                    ContentRangeRequest.createRange(0).resolve(contentAccessor.getContentSize() - 1)
+                    ContentRangeRequest.createRange(0).resolve(TEST_BYTES.length - 1)
             );
         });
 
         assertThrows(UnreadableContentException.class, () -> {
             contentStore.getReader(
                     contentAccessor.getReference(),
-                    ContentRangeRequest.createRange(0).resolve(contentAccessor.getContentSize() + 1)
+                    ContentRangeRequest.createRange(0).resolve(TEST_BYTES.length + 1)
             );
         });
     }
@@ -112,7 +104,7 @@ public abstract class AbstractContentStoreBehaviorTest {
     }
 
     @Test
-    void writeLargeFile() throws UnwritableContentException {
+    void writeLargeFile() throws UnwritableContentException, UnreadableContentException {
         var contentStore = getContentStore();
 
         var targetSize = 1000L * 1024 * 1024; // 1 GiB
@@ -142,9 +134,6 @@ public abstract class AbstractContentStoreBehaviorTest {
         };
 
         var contentAccessor = contentStore.writeContent(largeDataStream);
-
-        // 1 GiB written
-        assertEquals(targetSize, contentAccessor.getContentSize());
 
         // Clean up the file again
         contentStore.remove(contentAccessor.getReference());

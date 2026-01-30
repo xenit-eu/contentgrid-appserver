@@ -14,8 +14,11 @@ final class SuffixContentRangeRequest implements ContentRangeRequest {
 
     @Override
     public ResolvedContentRange resolve(long contentSize) {
+        if (suffixLength >= contentSize) {
+            return null; // full range
+        }
         return new ResolvedContentRangeImpl(
-                Math.max(0, contentSize - suffixLength),
+                contentSize - suffixLength,
                 contentSize - 1,
                 contentSize
         );

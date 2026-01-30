@@ -21,6 +21,7 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
@@ -63,6 +64,7 @@ import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -623,14 +625,14 @@ class DatamodelApiImplTest {
             var fileId = "my-file-123.bin";
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 110));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(110))
             )), AuthorizationContext.allowAll());
 
             assertThat(result.getIdentity().getEntityId()).isEqualTo(entityId);
@@ -687,13 +689,18 @@ class DatamodelApiImplTest {
         }
     }
 
-    private static Answer<ContentAccessor> contentAccessorFor(String fileId, long size) {
+    private static Answer<ContentAccessor> contentAccessorFor(String fileId) {
         return invocation -> {
+            InputStream inputStream = invocation.getArgument(0);
+            inputStream.readAllBytes(); // read the bytes, so the underlying CountingInputStream has the correct size
             var ca = Mockito.mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
-            Mockito.when(ca.getContentSize()).thenReturn(size);
             Mockito.when(ca.getReference()).thenReturn(ContentReference.of(fileId));
             return ca;
         };
+    }
+
+    private static InputStreamSupplier inputStreamWithSize(int size) {
+        return () -> new ByteArrayInputStream(new byte[size]);
     }
 
     @Nested
@@ -941,14 +948,14 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
 
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 50));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
 
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
                             "number", "invoice-1",
                             "amount", 1.50,
                             "confidentiality", "public",
-                            "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
+                            "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(50))
                     )),
                     AuthorizationContext.allowAll()
             );
@@ -1312,10 +1319,10 @@ class DatamodelApiImplTest {
                     .build();
             Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(new UpdateResult(entity, entity));
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId, 150));
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", InputStream::nullInputStream)
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(150))
                     )), AuthorizationContext.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);

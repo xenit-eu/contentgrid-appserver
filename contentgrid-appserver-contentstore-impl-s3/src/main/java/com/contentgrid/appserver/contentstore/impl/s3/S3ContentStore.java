@@ -7,9 +7,9 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
-import com.contentgrid.appserver.contentstore.impl.utils.CountingInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.GuardedContentReader;
 import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
 import io.minio.MinioAsyncClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
@@ -58,24 +58,24 @@ public class S3ContentStore implements ContentStore {
 
     @Override
     @SneakyThrows(InterruptedException.class)
-    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+    public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
 
         try {
-            var object = client.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(contentReference.getValue())
-                            .offset(contentRange.getStartByte())
-                            .length(contentRange.getRangeSize())
-                            .build()
-            ).get();
+            var getObjectArgsBuilder = GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(contentReference.getValue());
+            if (contentRange != null) {
+                getObjectArgsBuilder = getObjectArgsBuilder.offset(contentRange.getStartByte())
+                        .length(contentRange.getRangeSize());
+            }
+            var object = client.getObject(getObjectArgsBuilder.build()).get();
 
-            var reader = new S3ContentReader(object);
-
-            if(reader.getContentSize() != contentRange.getContentSize()) {
+            if(contentRange != null && contentSize(object) != contentRange.getContentSize()) {
                 throw new UnreadableContentException(contentReference, "range size does not match actual size");
             }
+
+            var reader = new S3ContentReader(object);
 
             return new GuardedContentReader(reader);
         } catch(MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException | ExecutionException e) {
@@ -83,18 +83,25 @@ public class S3ContentStore implements ContentStore {
         }
     }
 
+    private static long contentSize(GetObjectResponse response) {
+        var contentRange = response.headers().get("Content-Range");
+        if (contentRange != null) {
+            return Long.parseLong(contentRange.split("/", 2)[1]);
+        }
+        return Long.parseLong(response.headers().get("Content-Length"));
+    }
+
     @Override
-    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
-        var countingInputStream = new CountingInputStream(inputStream);
         try {
             client.putObject(PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(contentReference.getValue())
-                            .stream(countingInputStream, -1, PART_SIZE)
+                            .stream(inputStream, -1, PART_SIZE)
                             .build())
                     .join();
-            return new S3ContentAccessor(contentReference, countingInputStream.getSize());
+            return new S3ContentAccessor(contentReference);
         } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
                  NoSuchAlgorithmException | XmlParserException e) {
             throw new UnwritableContentException(contentReference, e);
@@ -102,7 +109,7 @@ public class S3ContentStore implements ContentStore {
     }
 
     @Override
-    public void remove(ContentReference contentReference) throws UnwritableContentException {
+    public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
             client.removeObject(RemoveObjectArgs.builder()
                             .bucket(bucketName)

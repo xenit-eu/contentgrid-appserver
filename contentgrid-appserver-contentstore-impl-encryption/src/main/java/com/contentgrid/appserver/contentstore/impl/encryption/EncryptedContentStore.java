@@ -13,7 +13,6 @@ import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncrypt
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;
-import com.contentgrid.appserver.contentstore.impl.utils.CountingInputStream;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +23,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -45,7 +45,7 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     @Override
-    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+    public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
         var encryptedDEKs = dataEncryptionKeyAccessor.findAllKeys(contentReference);
         if(encryptedDEKs.isEmpty()) {
@@ -114,7 +114,7 @@ public class EncryptedContentStore implements ContentStore {
     }
 
     @Override
-    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         ContentEncryptionEngine encryptionEngine;
         try {
             encryptionEngine = encryptionEngines.getFirst();
@@ -136,12 +136,10 @@ public class EncryptedContentStore implements ContentStore {
             throw new NoEncryptableDataEncryptionKeysException(ContentReference.of("<unknown>"));
         }
 
-        var countingInputStream = new CountingInputStream(inputStream);
-
         ContentAccessor contentAccessor;
         try {
             contentAccessor = delegate.writeContent(
-                    encryptionEngine.encrypt(countingInputStream, encryptionParameters));
+                    encryptionEngine.encrypt(inputStream, encryptionParameters));
         } catch (CryptoInitializationFailureException e) {
             throw new UnencryptableContentException(ContentReference.UNKNOWN, e);
         }
@@ -150,11 +148,11 @@ public class EncryptedContentStore implements ContentStore {
         } finally {
             encryptedDeks.forEach(StoredDataEncryptionKey::destroy);
         }
-        return new EncryptedContentAccessor(contentAccessor, countingInputStream.getSize());
+        return new EncryptedContentAccessor(contentAccessor);
     }
 
     @Override
-    public void remove(ContentReference contentReference) throws UnwritableContentException {
+    public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         dataEncryptionKeyAccessor.clearKeys(contentReference);
         delegate.remove(contentReference);
     }

@@ -1,5 +1,6 @@
-package com.contentgrid.appserver.contentstore.impl.utils;
+package com.contentgrid.appserver.domain.data.mapper;
 
+import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,9 +10,10 @@ import lombok.NonNull;
 /**
  * Counts the number of bytes read from the delegate {@link InputStream}
  */
-public class CountingInputStream extends FilterInputStream {
+class CountingInputStream extends FilterInputStream {
 
     private final AtomicLong size = new AtomicLong();
+    private boolean closed = false;
 
     public CountingInputStream(@NonNull InputStream in) {
         super(in);
@@ -35,7 +37,20 @@ public class CountingInputStream extends FilterInputStream {
         return bytesRead;
     }
 
-    public long getSize() {
+    @Override
+    public void close() throws IOException {
+        super.close();
+        closed = true;
+    }
+
+    public long getSize() throws IOException {
+        try {
+            if (!closed && this.read() != -1) {
+                throw new IllegalStateException("InputStream has not been fully read");
+            }
+        } catch (EOFException e) {
+            // ignore
+        }
         return size.get();
     }
 }

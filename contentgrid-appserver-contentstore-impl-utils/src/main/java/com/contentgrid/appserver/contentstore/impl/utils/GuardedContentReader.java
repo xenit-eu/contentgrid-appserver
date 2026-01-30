@@ -33,11 +33,6 @@ public class GuardedContentReader implements ContentReader {
     }
 
     @Override
-    public long getContentSize() {
-        return delegate.getContentSize();
-    }
-
-    @Override
     public String getDescription() {
         return delegate.getDescription();
     }

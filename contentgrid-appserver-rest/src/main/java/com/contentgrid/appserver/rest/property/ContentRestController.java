@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
@@ -162,7 +163,7 @@ public class ContentRestController {
                 .max()
                 .orElseThrow();
 
-        if(start > content.getLength()) {
+        if(start >= content.getLength()) {
             throw new UnsatisfiableRangeHttpException(content.getLength());
         }
 
@@ -221,15 +222,29 @@ public class ContentRestController {
             @PathVariable PathSegmentName propertyName,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
-            @RequestBody InputStreamResource requestBody,
+            @RequestBody(required = false) InputStreamResource requestBody,
+            @RequestHeader(value = HttpHeaders.CONTENT_DISPOSITION, required = false) String contentDisposition,
             AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
+        var filename = requestBody != null ? requestBody.getFilename() : null;
+        InputStreamSupplier inputStreamSupplier = requestBody != null ? requestBody::getInputStream : InputStream::nullInputStream;
+
+        if (filename == null && contentDisposition != null) {
+            // Failed to read filename from requestBody, try to read it from content-disposition
+            try {
+                var parsed = ContentDisposition.parse(contentDisposition);
+                filename = parsed.getFilename();
+            } catch (IllegalArgumentException e) {
+                // ignore, filename stays null
+            }
+        }
+
         var fileData = new FileDataEntry(
-                requestBody.getFilename(),
+                filename,
                 contentType.toString(),
-                requestBody::getInputStream
+                inputStreamSupplier
         );
 
         try {

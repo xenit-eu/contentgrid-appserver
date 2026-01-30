@@ -85,7 +85,6 @@ public abstract class AbstractEncryptionEngineTest {
 
         assertThat(params.isDestroyed()).isTrue();
 
-        assertThat(decrypted.getContentSize()).isEqualTo(TEST_DATA.length);
         assertThat(decrypted.getReference()).isEqualTo(mockReader.getReference());
         assertThat(decrypted.getContentInputStream()).hasBinaryContent(TEST_DATA);
     }
@@ -116,7 +115,6 @@ public abstract class AbstractEncryptionEngineTest {
                 resolvedRange
         );
 
-        assertThat(decrypted.getContentSize()).isEqualTo(TEST_DATA.length);
         assertThat(decrypted.getReference()).isEqualTo(mockReader.getReference());
 
         try(var decryptedContent = decrypted.getContentInputStream()) {

@@ -65,11 +65,12 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
                 throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
             }
             try {
-                var contentAccessor = contentStore.writeContent(fileDataEntry.getInputStream());
+                var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
+                var contentAccessor = contentStore.writeContent(inputStream);
 
                 var builder = MapDataEntry.builder();
                 builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))
-                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(contentAccessor.getContentSize()))
+                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(inputStream.getSize()))
                         .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
 
                 if(fileDataEntry.getFilename() != null) {

@@ -20,6 +20,7 @@ import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.property.ContentRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -174,8 +176,7 @@ class ContentRestControllerTest {
                     .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
 
             Mockito.verify(contentStoreSpy).getReader(Mockito.any(), Mockito.assertArg(range -> {
-                assertThat(range.getStartByte()).isEqualTo(0);
-                assertThat(range.getRangeSize()).isEqualTo(INVOICE_CONTENT_FILE.getSize());
+                assertThat(range).isNull();
             }));
             Mockito.verifyNoMoreInteractions(contentStoreSpy);
 
@@ -201,6 +202,25 @@ class ContentRestControllerTest {
                     .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
                     .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment"))
                     .andExpect(content().bytes(INVOICE_CONTENT_FILE.getBytes()));
+        }
+
+        @Test
+        void get_empty_file_success() throws Exception {
+            String invoiceId = createInvoice(new MockMultipartFile(
+                    INVOICE_CONTENT_FILE.getName(),
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            ));
+
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                    .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
+                            .toString()))
+                    .andExpect(content().bytes(new byte[0]));
         }
 
         @Test
@@ -386,12 +406,13 @@ class ContentRestControllerTest {
             Mockito.verifyNoMoreInteractions(contentStoreSpy);
         }
 
-        @Test
-        void get_range_start_oob_fails() throws Exception {
+        @ParameterizedTest
+        @CsvSource({"100-200", "17-"})
+        void get_range_start_oob_fails(String bytes) throws Exception {
             String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
 
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
-                            .header(HttpHeaders.RANGE, "bytes=100-200"))
+                            .header(HttpHeaders.RANGE, "bytes=" + bytes))
                     .andExpect(status().isRequestedRangeNotSatisfiable())
                     // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; unsatisfied-range
                     .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes */17"));
@@ -439,6 +460,46 @@ class ContentRestControllerTest {
                             ));
             Mockito.verifyNoInteractions(contentStoreSpy);
         }
+
+        @Test
+        void get_empty_file_with_range_fails() throws Exception {
+            String invoiceId = createInvoice(new MockMultipartFile(
+                    INVOICE_CONTENT_FILE.getName(),
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            ));
+
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
+                            .header(HttpHeaders.RANGE, "bytes=0-4"))
+                    .andExpect(status().isRequestedRangeNotSatisfiable())
+                    // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; unsatisfied-range
+                    .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes */0"));
+            Mockito.verifyNoInteractions(contentStoreSpy);
+        }
+
+        @Test
+        @Disabled("Spring returns 416 Response")
+        void get_empty_file_with_suffix_range_succeeds() throws Exception {
+            // https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges
+            // When a selected representation has zero length, the only satisfiable form
+            // of range-spec in a GET request is a suffix-range with a non-zero suffix-length.
+            String invoiceId = createInvoice(new MockMultipartFile(
+                    INVOICE_CONTENT_FILE.getName(),
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            ));
+
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
+                            .header(HttpHeaders.RANGE, "bytes=-1"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                    // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; range-resp
+//                    .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes ?-?/0")) // TODO: invalid value
+                    .andExpect(content().bytes(new byte[0]));
+        }
     }
 
     @Nested
@@ -460,6 +521,26 @@ class ContentRestControllerTest {
 
             // for a HEAD request, nothing got read from the content store
             Mockito.verifyNoInteractions(contentStoreSpy);
+        }
+
+        @Test
+        void head_empty_file_success() throws Exception {
+            String invoiceId = createInvoice(new MockMultipartFile(
+                    INVOICE_CONTENT_FILE.getName(),
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            ));
+
+            mockMvc.perform(head("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                    .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
+                            .toString()))
+                    .andExpect(header().string(HttpHeaders.CONTENT_LENGTH,
+                            String.valueOf(0)));
         }
 
         @ParameterizedTest
@@ -825,6 +906,54 @@ class ContentRestControllerTest {
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                     .andExpect(status().isNotFound());
         }
+
+        @ParameterizedTest
+        @CsvSource({"PUT", "POST"})
+        void upload_empty_file_success(HttpMethod method) throws Exception {
+            String invoiceId = createInvoice(null);
+
+            mockMvc.perform(request(method, "/invoices/{instanceId}/content", invoiceId)
+                            .contentType(INVOICE_CONTENT_FILE.getContentType())
+                            .header(HttpHeaders.CONTENT_DISPOSITION,
+                                    "attachment; filename=\"" + INVOICE_CONTENT_FILE.getOriginalFilename() + "\"")
+                            .content(new byte[0]))
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
+
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
+                            .toString()))
+                    .andExpect(content().bytes(new byte[0]));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"PUT", "POST"})
+        void upload_multipart_empty_file_success(HttpMethod method) throws Exception {
+            String invoiceId = createInvoice(null);
+
+            MockMultipartFile file = new MockMultipartFile(
+                    "file",
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            );
+
+            mockMvc.perform(multipart(method, "/invoices/{instanceId}/content", invoiceId)
+                            .file(file))
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
+
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
+                            .toString()))
+                    .andExpect(content().bytes(new byte[0]));
+        }
     }
 
     @Nested
@@ -833,6 +962,28 @@ class ContentRestControllerTest {
         @Test
         void delete_success() throws Exception {
             String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+            // Verify content exists
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isOk());
+
+            // Delete content
+            mockMvc.perform(delete("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isNoContent());
+
+            // Verify content is gone
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void delete_empty_file_success() throws Exception {
+            String invoiceId = createInvoice(new MockMultipartFile(
+                    INVOICE_CONTENT_FILE.getName(),
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    InputStream.nullInputStream()
+            ));
 
             // Verify content exists
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))

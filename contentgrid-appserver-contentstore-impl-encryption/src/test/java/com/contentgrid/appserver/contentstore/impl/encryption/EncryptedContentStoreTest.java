@@ -8,7 +8,6 @@ import com.contentgrid.appserver.contentstore.api.ContentReader;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
-import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine.EncryptionParameters;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
@@ -256,7 +255,7 @@ class EncryptedContentStoreTest extends AbstractContentStoreBehaviorTest {
 
     private static ContentReader readerFor(ContentStore contentStore, ContentAccessor accessor)
             throws UnreadableContentException {
-        return contentStore.getReader(accessor.getReference(), ResolvedContentRange.fullRange(accessor.getContentSize()));
+        return contentStore.getReader(accessor.getReference());
     }
 
     private static class EncryptOnlyDataEncryptionKeyWrapper implements DataEncryptionKeyWrapper {

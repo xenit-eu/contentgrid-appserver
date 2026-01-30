@@ -5,7 +5,6 @@ import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.encryption.CryptoInitializationFailureException;
-import com.contentgrid.appserver.contentstore.impl.encryption.UndecryptableContentException;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippableCipherInputStream;
 import com.contentgrid.appserver.contentstore.impl.utils.SkippingInputStream;
@@ -27,6 +26,7 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -56,7 +56,7 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public boolean supports(DataEncryptionAlgorithm algorithm) {
+    public boolean supports(@NonNull DataEncryptionAlgorithm algorithm) {
         return Objects.equals(algorithm, ALGORITHM) || Objects.equals(algorithm, LEGACY_ALGORITHM);
     }
 
@@ -94,18 +94,18 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters)
+    public InputStream encrypt(@NonNull InputStream plaintextStream, @NonNull EncryptionParameters encryptionParameters)
             throws CryptoInitializationFailureException {
         return new CipherInputStream(plaintextStream, initializeCipher(encryptionParameters, true));
     }
 
     @Override
     public ContentReader decrypt(
-            CiphertextReaderSupplier ciphertextReaderSupplier,
-            EncryptionParameters encryptionParameters,
+            @NonNull CiphertextReaderSupplier ciphertextReaderSupplier,
+            @NonNull EncryptionParameters encryptionParameters,
             ResolvedContentRange contentRange
     ) throws UnreadableContentException, CryptoInitializationFailureException {
-        var blockStartOffset = calculateBlockOffset(contentRange.getStartByte());
+        var blockStartOffset = calculateBlockOffset(contentRange);
 
         var adjustedIv = adjustIvForOffset(encryptionParameters.getInitializationVector(), blockStartOffset);
 
@@ -128,8 +128,11 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         );
     }
 
-    private static long calculateBlockOffset(long offsetBytes) {
-        return (offsetBytes - (offsetBytes % AES_BLOCK_SIZE_BYTES)) / AES_BLOCK_SIZE_BYTES;
+    private static long calculateBlockOffset(ResolvedContentRange contentRange) {
+        if (contentRange == null) {
+            return 0;
+        }
+        return (contentRange.getStartByte() - (contentRange.getStartByte() % AES_BLOCK_SIZE_BYTES)) / AES_BLOCK_SIZE_BYTES;
     }
 
     private byte[] adjustIvForOffset(byte[] iv, long offsetBlocks) {
@@ -189,11 +192,6 @@ public class AesCtrEncryptionEngine implements ContentEncryptionEngine {
         @Override
         public ContentReference getReference() {
             return delegate.getReference();
-        }
-
-        @Override
-        public long getContentSize() {
-            return delegate.getContentSize();
         }
 
         @Override

@@ -12,13 +12,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.Objects;
+import lombok.NonNull;
 
 public class XorTestEncryptionEngine implements ContentEncryptionEngine {
     private static final SecureRandom secureRandom = new SecureRandom();
     private static final DataEncryptionAlgorithm ALGORITHM = DataEncryptionAlgorithm.of("XOR-TEST");
 
     @Override
-    public boolean supports(DataEncryptionAlgorithm algorithm) {
+    public boolean supports(@NonNull DataEncryptionAlgorithm algorithm) {
         return Objects.equals(algorithm, ALGORITHM);
     }
 
@@ -37,7 +38,7 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public InputStream encrypt(InputStream plaintextStream, EncryptionParameters encryptionParameters) {
+    public InputStream encrypt(@NonNull InputStream plaintextStream, @NonNull EncryptionParameters encryptionParameters) {
         var xorByte = encryptionParameters.getSecretKey().getKeyBytes()[0];
         encryptionParameters.destroy();
 
@@ -45,8 +46,8 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
     }
 
     @Override
-    public ContentReader decrypt(CiphertextReaderSupplier cipherTextReaderSupplier,
-            EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
+    public ContentReader decrypt(@NonNull CiphertextReaderSupplier cipherTextReaderSupplier,
+            @NonNull EncryptionParameters encryptionParameters, ResolvedContentRange contentRange)
             throws UnreadableContentException {
         var xorByte = encryptionParameters.getSecretKey().getKeyBytes()[0];
         encryptionParameters.destroy();
@@ -61,11 +62,6 @@ public class XorTestEncryptionEngine implements ContentEncryptionEngine {
             @Override
             public ContentReference getReference() {
                 return reader.getReference();
-            }
-
-            @Override
-            public long getContentSize() {
-                return reader.getContentSize();
             }
 
             @Override

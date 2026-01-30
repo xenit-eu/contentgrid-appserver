@@ -12,13 +12,6 @@ public interface ContentAccessor {
     ContentReference getReference();
 
     /**
-     * Get the size of the content that the accessor is for
-     * <p>
-     * @return The size of the content in bytes
-     */
-    long getContentSize();
-
-    /**
      * @return A description for the content accessor; used for error output when working with it
      */
     String getDescription();

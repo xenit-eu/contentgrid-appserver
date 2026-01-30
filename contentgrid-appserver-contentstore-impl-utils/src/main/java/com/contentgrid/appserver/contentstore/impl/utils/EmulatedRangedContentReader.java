@@ -39,11 +39,6 @@ public class EmulatedRangedContentReader implements ContentReader {
     }
 
     @Override
-    public long getContentSize() {
-        return range.getContentSize();
-    }
-
-    @Override
     public String getDescription() {
         return "Range [%s] of %s".formatted(range, delegate.getDescription());
     }

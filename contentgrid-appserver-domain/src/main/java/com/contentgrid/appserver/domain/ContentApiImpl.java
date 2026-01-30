@@ -17,7 +17,6 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
-import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -138,14 +137,13 @@ public class ContentApiImpl implements ContentApi {
         private final ContentAttribute contentAttribute;
         private final CompositeAttributeData attributeData;
 
-        @NonNull
         private final ContentRangeRequest contentRange;
 
         public AttributeDataContent(
                 ContentAttribute contentAttribute,
                 CompositeAttributeData attributeData
         ) {
-            this(contentAttribute, attributeData, ContentRangeRequest.createRange(0));
+            this(contentAttribute, attributeData, null);
         }
 
         protected Optional<ContentReference> getContentId() {
@@ -171,10 +169,10 @@ public class ContentApiImpl implements ContentApi {
 
         @Override
         public String getDescription() {
-            return "ContentAttribute %s: '%s' [range: %s]".formatted(
+            return "ContentAttribute %s: '%s'%s".formatted(
                     contentAttribute.getName(),
                     getContentId().orElseThrow(),
-                    contentRange
+                    contentRange == null ? "":" [range: %s]".formatted(contentRange)
             );
         }
 
@@ -198,7 +196,7 @@ public class ContentApiImpl implements ContentApi {
             try {
                 var reader = contentStore.getReader(
                         getContentId().orElseThrow(),
-                        contentRange.resolve(getLength())
+                        contentRange == null ? null : contentRange.resolve(getLength())
                 );
                 return reader.getContentInputStream();
             } catch (UnreadableContentException | UnsatisfiableContentRangeException e) {

@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 
 public class MockContentStore implements ContentStore, AutoCloseable {
@@ -29,18 +30,18 @@ public class MockContentStore implements ContentStore, AutoCloseable {
     }
 
     @Override
-    public ContentReader getReader(ContentReference contentReference, ResolvedContentRange contentRange)
+    public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
         return backingStorage.getReader(contentReference, contentRange);
     }
 
     @Override
-    public ContentAccessor writeContent(InputStream inputStream) throws UnwritableContentException {
+    public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         return backingStorage.writeContent(inputStream);
     }
 
     @Override
-    public void remove(ContentReference contentReference) throws UnwritableContentException {
+    public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         backingStorage.remove(contentReference);
     }
 
