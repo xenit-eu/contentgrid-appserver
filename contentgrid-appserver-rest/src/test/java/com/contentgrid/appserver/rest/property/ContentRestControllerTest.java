@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -478,13 +479,11 @@ class ContentRestControllerTest {
         }
 
         @Test
-        void get_empty_file_with_suffix_range_fails() throws Exception {
-            // TODO: should succeed according to spec, but fails with 416
+        @Disabled("Spring returns 416 Response")
+        void get_empty_file_with_suffix_range_succeeds() throws Exception {
             // https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges
             // When a selected representation has zero length, the only satisfiable form
             // of range-spec in a GET request is a suffix-range with a non-zero suffix-length.
-            // But it doesn't work with org.springframework.http.HttpRange, because
-            // it only exposes start and end.
             String invoiceId = createInvoice(new MockMultipartFile(
                     INVOICE_CONTENT_FILE.getName(),
                     INVOICE_CONTENT_FILE.getOriginalFilename(),
@@ -494,13 +493,12 @@ class ContentRestControllerTest {
 
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId)
                             .header(HttpHeaders.RANGE, "bytes=-1"))
-                    .andExpect(status().isRequestedRangeNotSatisfiable());
-//                    .andExpect(status().isPartialContent())
-//                    .andExpect(header().exists(HttpHeaders.ETAG))
-//                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
-//                    // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; range-resp
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(content().contentType(INVOICE_CONTENT_FILE.getContentType()))
+                    // https://www.rfc-editor.org/rfc/rfc9110.html#field.content-range; range-resp
 //                    .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes ?-?/0")) // TODO: invalid value
-//                    .andExpect(content().bytes(new byte[0]));
+                    .andExpect(content().bytes(new byte[0]));
         }
     }
 
