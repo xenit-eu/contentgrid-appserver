@@ -190,6 +190,9 @@ public class JsonSchema {
 
         private boolean readOnly;
 
+        @JsonProperty("default")
+        private Object defaultValue;
+
         protected AbstractJsonSchemaProperty(String name, boolean required) {
             this(name, null, required);
         }
@@ -205,6 +208,12 @@ public class JsonSchema {
         @SuppressWarnings("unchecked")
         protected T withReadOnly() {
             this.readOnly = true;
+            return (T) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        protected T withDefaultValue(Object defaultValue) {
+            this.defaultValue = defaultValue;
             return (T) this;
         }
     }

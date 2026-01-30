@@ -946,6 +946,9 @@ class ProfileRestControllerTest {
                                 gender: {
                                     title: "gender"
                                 },
+                                is_adult: {
+                                    title: "is_adult"
+                                },
                                 invoices: {
                                     title: "invoices"
                                 },
