@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -70,6 +71,7 @@ public class XToOneRelationRestController {
             @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
             VersionConstraint versionConstraint,
+            WebRequest webRequest,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws EmptyRelationException {
@@ -82,9 +84,15 @@ public class XToOneRelationRestController {
                     .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
             var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
 
+            var eTag = calculateETag(relationTarget);
+
+            if (webRequest.checkNotModified(eTag)) {
+                return null;
+            }
+
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(redirectUrl)
-                    .eTag(calculateETag(relationTarget))
+                    .eTag(eTag)
                     .build();
         } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);

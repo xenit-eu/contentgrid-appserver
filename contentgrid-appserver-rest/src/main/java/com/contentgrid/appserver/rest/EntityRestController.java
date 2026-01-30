@@ -32,7 +32,6 @@ import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.ETag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -48,7 +47,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.context.request.WebRequest;
 
 @RestController
 @SpecializedOnEntity(entityPathVariable = "entityName")
@@ -101,6 +100,7 @@ public class EntityRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             VersionConstraint versionConstraint,
+            WebRequest webRequest,
             AuthorizationContext authorizationContext,
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
@@ -115,8 +115,14 @@ public class EntityRestController {
                 )
                 .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), id));
 
+        var eTag = calculateETag(result);
+
+        if (webRequest.checkNotModified(eTag)) {
+            return null;
+        }
+
         return ResponseEntity.ok()
-                .eTag(calculateETag(result))
+                .eTag(eTag)
                 .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
     }
 
