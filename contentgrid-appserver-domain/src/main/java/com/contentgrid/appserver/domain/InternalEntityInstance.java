@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;

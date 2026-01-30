@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.integration.test.messages;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;

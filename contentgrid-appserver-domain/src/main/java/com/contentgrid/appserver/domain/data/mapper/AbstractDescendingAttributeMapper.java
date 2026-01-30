@@ -5,9 +5,9 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MapDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;

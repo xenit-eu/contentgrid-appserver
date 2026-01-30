@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.domain.data.type;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MapDataEntry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;

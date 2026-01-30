@@ -7,11 +7,11 @@
  * <h2>Core Data Structures</h2>
  * <ul>
  *     <li>{@link com.contentgrid.appserver.domain.data.RequestInputData} - Input data for create and update operations, represents the data sent by the user's request</li>
- *     <li>{@link com.contentgrid.appserver.domain.data.DataEntry} - A single data value that is stored in {@link com.contentgrid.appserver.domain.data.RequestInputData}</li>
+ *     <li>{@link com.contentgrid.appserver.application.model.values.DataEntry} - A single data value that is stored in {@link com.contentgrid.appserver.domain.data.RequestInputData}</li>
  * </ul>
  *
  * <h2>Data Entry Types</h2>
- * The {@link com.contentgrid.appserver.domain.data.DataEntry} hierarchy includes:
+ * The {@link com.contentgrid.appserver.application.model.values.DataEntry} hierarchy includes:
  * <ul>
  *     <li><strong>PlainDataEntry</strong> - Values representable in structured input (JSON):
  *         <ul>

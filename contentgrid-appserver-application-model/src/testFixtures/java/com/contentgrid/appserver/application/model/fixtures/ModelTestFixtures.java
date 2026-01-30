@@ -86,6 +86,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
+    public static final SimpleAttribute PERSON_IS_ADULT = SimpleAttribute.builder()
+            .name(AttributeName.of("is_adult"))
+            .column(ColumnName.of("is_adult"))
+            .type(Type.BOOLEAN)
+            .defaultValue("true")
+            .build();
+
     public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -99,6 +106,7 @@ public class ModelTestFixtures {
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
             .attribute(PERSON_GENDER)
+            .attribute(PERSON_IS_ADULT)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)

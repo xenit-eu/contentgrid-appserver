@@ -8,7 +8,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
 import lombok.NonNull;
 
 /**
@@ -33,8 +33,8 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
      * Construct a type based on a {@link DataEntry}
      * <p>
      * The created type description can expose some additional data,
-     * like the keys of an {@link com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry},
-     * or the target entity of a {@link com.contentgrid.appserver.domain.data.DataEntry.AnyRelationDataEntry}
+     * like the keys of an {@link DataEntry.MapDataEntry},
+     * or the target entity of a {@link DataEntry.AnyRelationDataEntry}
      *
      * @param dataEntry The data entry to create a type for
      */

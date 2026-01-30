@@ -4,9 +4,9 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.rest.EntityRestController;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.UUID;

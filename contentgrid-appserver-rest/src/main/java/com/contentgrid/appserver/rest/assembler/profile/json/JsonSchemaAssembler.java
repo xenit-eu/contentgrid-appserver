@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.Definitions;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.EnumProperty;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.Item;
@@ -95,6 +96,16 @@ public class JsonSchemaAssembler {
             property = new EnumProperty(property.getName(), property.getTitle(), values, property.getDescription(),
                     property.isRequired());
         }
+
+        // Add default to property
+        if (!NullDataEntry.INSTANCE.equals(simpleAttribute.getDefaultValue())) {
+            Object defaultValue = switch (simpleAttribute.getType()) {
+                case UUID, DATE, DATETIME -> simpleAttribute.getDefaultValue().getValue().toString();
+                case TEXT, DOUBLE, LONG, BOOLEAN -> simpleAttribute.getDefaultValue().getValue();
+            };
+            property = property.withDefaultValue(defaultValue);
+        }
+
         return property;
     }
 

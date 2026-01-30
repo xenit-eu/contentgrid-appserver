@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -668,6 +668,10 @@ class EntityRestControllerTest {
                                             {
                                                 name: "gender",
                                                 prompt: "gender"
+                                            },
+                                            {
+                                                name: "is_adult",
+                                                prompt: "is_adult"
                                             }
                                         ]
                                     }

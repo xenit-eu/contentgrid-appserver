@@ -38,6 +38,7 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.Synthetic
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -225,6 +226,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .type(Type.valueOf(jsonAttr.getDataType().toUpperCase()))
                 .flags(fromJsonAttributeFlags(jsonAttr.getFlags()))
                 .constraints(constraints)
+                .defaultValue(jsonAttr.getDefaultValue())
                 .build();
     }
 
@@ -509,6 +511,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonAttr.setDataType(attr.getType().name().toLowerCase());
         jsonAttr.setFlags(attr.getFlags().stream().map(this::toJsonAttribute).toList());
         jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
+        jsonAttr.setDefaultValue(Objects.toString(attr.getDefaultValue().getValue(), null));
         return jsonAttr;
     }
 

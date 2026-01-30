@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest.assembler;
 
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import java.util.LinkedHashMap;

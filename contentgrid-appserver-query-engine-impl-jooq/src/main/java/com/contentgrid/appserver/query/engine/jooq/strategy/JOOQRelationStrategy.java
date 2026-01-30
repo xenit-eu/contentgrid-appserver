@@ -2,7 +2,7 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;

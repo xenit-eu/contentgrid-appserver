@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.strategy;
 
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;

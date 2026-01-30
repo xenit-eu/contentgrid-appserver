@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.mapper.RelationMapper;
 import java.util.Optional;

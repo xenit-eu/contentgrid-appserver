@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest.data.conversion;
 
-import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.LongDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.StringDataEntry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;

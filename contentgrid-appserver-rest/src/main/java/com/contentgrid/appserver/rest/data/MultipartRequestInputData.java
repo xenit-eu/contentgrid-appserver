@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.rest.data;
 
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;

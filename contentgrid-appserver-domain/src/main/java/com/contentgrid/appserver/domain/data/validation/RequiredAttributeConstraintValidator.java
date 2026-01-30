@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
-import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.MissingDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.ConstraintValidator;
 

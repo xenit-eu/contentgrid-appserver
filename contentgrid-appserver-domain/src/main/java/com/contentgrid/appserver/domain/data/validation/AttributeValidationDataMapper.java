@@ -5,7 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.mapper.AbstractDescendingAttributeMapper;
 import java.util.Arrays;

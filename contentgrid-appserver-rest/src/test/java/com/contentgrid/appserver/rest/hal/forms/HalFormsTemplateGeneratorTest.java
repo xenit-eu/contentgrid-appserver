@@ -14,6 +14,7 @@ import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -21,7 +22,6 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
@@ -200,6 +200,14 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isOne();
                     });
+                },
+                isAdult -> {
+                    assertThat(isAdult.getName()).isEqualTo("is_adult");
+                    assertThat(isAdult.getPrompt()).isEqualTo("is_adult");
+                    assertThat(isAdult.isReadOnly()).isFalse();
+                    assertThat(isAdult.isRequired()).isFalse();
+                    assertThat(isAdult.getType()).isEqualTo(HtmlInputType.CHECKBOX_VALUE);
+                    assertThat(isAdult.getValue()).isEqualTo("true");
                 },
                 invoices -> {
                     assertThat(invoices.getName()).isEqualTo("invoices");

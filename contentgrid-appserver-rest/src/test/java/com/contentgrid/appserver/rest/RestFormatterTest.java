@@ -4,12 +4,11 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.application.model.values.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
-import com.contentgrid.appserver.domain.events.EntityFormatter;
-import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.application.model.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
