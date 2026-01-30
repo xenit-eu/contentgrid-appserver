@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -44,6 +48,42 @@ class CountingInputStreamTest {
         var is = new CountingInputStream(bais);
 
         is.readNBytes(bytesRead);
-        assertThrows(IOException.class, is::getSize);
+        assertThrows(IllegalStateException.class, is::getSize);
     }
+
+    @Test
+    void closedByteArrayInputStream() throws IOException {
+        var testData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        var bais = new ByteArrayInputStream(testData);
+        var is = new CountingInputStream(bais);
+
+        is.readNBytes(4);
+        is.close();
+        assertEquals(4, is.getSize());
+
+        // You can continue to read a ByteArrayInputStream
+        is.readNBytes(2);
+        assertEquals(6, is.getSize());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0", "4", "8"})
+    void closedFileInputStream(int bytesRead, @TempDir Path dir) throws IOException {
+        // Create a temporary file to obtain an InputStream that can actually be closed.
+        var path = Files.createFile(dir.resolve("inputstream.tmp"));
+        var testData = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        Files.write(path, testData);
+
+        var fis = new FileInputStream(path.toFile());
+        var is = new CountingInputStream(fis);
+
+        is.readNBytes(bytesRead);
+        is.close();
+        assertEquals(bytesRead, is.getSize());
+
+        // You can no longer read FileInputStream
+        assertThrows(IOException.class, is::read);
+        assertEquals(bytesRead, is.getSize());
+    }
+
 }

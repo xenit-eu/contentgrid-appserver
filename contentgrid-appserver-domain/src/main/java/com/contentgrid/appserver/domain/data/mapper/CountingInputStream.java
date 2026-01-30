@@ -13,6 +13,7 @@ import lombok.NonNull;
 class CountingInputStream extends FilterInputStream {
 
     private final AtomicLong size = new AtomicLong();
+    private boolean closed = false;
 
     public CountingInputStream(@NonNull InputStream in) {
         super(in);
@@ -36,10 +37,16 @@ class CountingInputStream extends FilterInputStream {
         return bytesRead;
     }
 
+    @Override
+    public void close() throws IOException {
+        super.close();
+        closed = true;
+    }
+
     public long getSize() throws IOException {
         try {
-            if (this.read() != -1) {
-                throw new IOException("InputStream has not been fully read");
+            if (!closed && this.read() != -1) {
+                throw new IllegalStateException("InputStream has not been fully read");
             }
         } catch (EOFException e) {
             // ignore
