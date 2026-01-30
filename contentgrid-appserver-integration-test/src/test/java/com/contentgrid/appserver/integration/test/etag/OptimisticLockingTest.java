@@ -23,7 +23,6 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,7 +138,6 @@ class OptimisticLockingTest {
         }
 
         @Test
-        @Disabled("ACC-2593: returns 412 Precondition Failed instead of 304 Not Modified")
         void getInvoice_withMatchingIfNoneMatch_http304() throws Exception {
             mockMvc.perform(get("/invoices/" + INVOICE_1_ID)
                             .accept(MediaType.APPLICATION_JSON)
