@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -500,6 +501,7 @@ class JOOQTableCreatorTest {
     }
 
     @Test
+    @Disabled("Duplicate tables no longer result in error (create if not exists).")
     // Do not execute the test in a transaction,
     // so that we can perform a check after the transaction of createTables() is finished
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
