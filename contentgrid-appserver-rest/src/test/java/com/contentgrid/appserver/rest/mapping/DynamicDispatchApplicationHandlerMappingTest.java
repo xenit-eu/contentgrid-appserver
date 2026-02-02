@@ -62,6 +62,8 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootTest(properties = {
+        "contentgrid.appserver.content-store.type=ephemeral",
+        "contentgrid.appserver.content.encryption.bootstrap-tables=true",
         "contentgrid.thunx.abac.source=none",
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",

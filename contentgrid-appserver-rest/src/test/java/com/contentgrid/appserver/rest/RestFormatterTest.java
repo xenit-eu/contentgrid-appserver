@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Primary;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
+        "contentgrid.appserver.content.encryption.bootstrap-tables=true",
 })
 @AutoConfigureMockMvc
 class RestFormatterTest {

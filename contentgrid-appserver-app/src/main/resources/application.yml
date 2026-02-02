@@ -1,9 +1,20 @@
 spring:
   datasource.url: jdbc:tc:postgresql:15:///
   mvc.problemdetails.enabled: true
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+contentgrid:
+  appserver:
+#    application-model: classpath:application-model.json
+    content:
+      encryption:
+        enabled: true
 server:
   port: ${PORT:8080}
-  max-http-request-header-size: 10MB  # needed for abac-context
+  tomcat:
+    max-part-count: 200
 management:
   endpoints:
     web:
