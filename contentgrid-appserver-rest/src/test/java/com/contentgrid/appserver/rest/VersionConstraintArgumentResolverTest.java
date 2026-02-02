@@ -41,7 +41,7 @@ class VersionConstraintArgumentResolverTest {
     }
 
     private static ServletWebRequest createRequest(HttpHeaders headers) {
-        return new ServletWebRequest(MockMvcRequestBuilders.put("/")
+        return new ServletWebRequest(MockMvcRequestBuilders.get("/")
                 .headers(headers)
                 .buildRequest(null));
     }

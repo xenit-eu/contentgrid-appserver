@@ -5,7 +5,6 @@ import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
 import com.contentgrid.appserver.domain.values.version.UnspecifiedVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -16,7 +15,6 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -45,15 +43,9 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
                 .map(etag -> toVersion(etag, true)) // Strong comparison per RFC 9110 13.1.1
                 .toList();
 
-        var request = (HttpServletRequest) webRequest.getNativeRequest();
-
-        List<VersionConstraint> notMatching = List.of();
-        if (!isSafeMethod(request.getMethod())) {
-            // Safe methods must return 304 Not Modified instead of 412 Precondition failed
-            notMatching = createEtags(webRequest.getHeaderValues(HttpHeaders.IF_NONE_MATCH))
-                    .map(etag -> toVersion(etag, false)) // Weak comparison per RFC 9110 13.1.2
-                    .toList();
-        }
+        var notMatching = createEtags(webRequest.getHeaderValues(HttpHeaders.IF_NONE_MATCH))
+                .map(etag -> toVersion(etag, false)) // Weak comparison per RFC 9110 13.1.2
+                .toList();
 
         if (matching.isEmpty()) {
             // If there is no If-Match constraint, any version is okay
@@ -61,10 +53,6 @@ public class VersionConstraintArgumentResolver implements HandlerMethodArgumentR
         }
 
         return new ConstrainedVersion(matching, notMatching);
-    }
-
-    private boolean isSafeMethod(String method) {
-        return HttpMethod.GET.matches(method) || HttpMethod.HEAD.matches(method);
     }
 
     private VersionConstraint toVersion(ETag eTag, boolean strongComparison) {
