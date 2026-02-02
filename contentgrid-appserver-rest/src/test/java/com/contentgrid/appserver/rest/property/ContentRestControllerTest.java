@@ -954,6 +954,23 @@ class ContentRestControllerTest {
                             .toString()))
                     .andExpect(content().bytes(new byte[0]));
         }
+
+        @Test
+        void upload_partial_put_not_supported() throws Exception {
+            String invoiceId = createInvoice(INVOICE_CONTENT_FILE);
+
+            mockMvc.perform(put("/invoices/{instanceId}/content", invoiceId)
+                            .contentType(INVOICE_CONTENT_FILE.getContentType())
+                            .header(HttpHeaders.CONTENT_RANGE, "bytes 0-3")
+                            .content("updated")) // replace 'test' with 'updated'
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Unsupported request header")
+                            .withDetail("Request header 'Content-Range' is not supported")
+                    );
+
+            Mockito.verifyNoInteractions(contentStoreSpy);
+        }
     }
 
     @Nested

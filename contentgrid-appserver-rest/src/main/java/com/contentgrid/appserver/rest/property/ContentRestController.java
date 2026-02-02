@@ -15,6 +15,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.rest.exception.UnsupportedRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
@@ -42,6 +43,7 @@ import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -224,9 +226,15 @@ public class ContentRestController {
             VersionConstraint versionConstraint,
             @RequestBody(required = false) InputStreamResource requestBody,
             @RequestHeader(value = HttpHeaders.CONTENT_DISPOSITION, required = false) String contentDisposition,
+            @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
             AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException, UnsupportedRequestHeaderException {
         var entityAndContent = resolve(application, entityName, propertyName);
+
+        if (StringUtils.hasText(contentRange)) {
+            // Partial PUT is not supported
+            throw new UnsupportedRequestHeaderException(HttpHeaders.CONTENT_RANGE);
+        }
 
         var filename = requestBody != null ? requestBody.getFilename() : null;
         InputStreamSupplier inputStreamSupplier = requestBody != null ? requestBody::getInputStream : InputStream::nullInputStream;
