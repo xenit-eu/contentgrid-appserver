@@ -27,7 +27,7 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
     private static final Field<byte[]> INITIALIZATION_VECTOR = field(name(TABLE_NAME, "iv"), SQLDataType.BLOB);
 
     public void setupTables() {
-        dslContext.createTable(TABLE_NAME)
+        dslContext.createTableIfNotExists(TABLE_NAME)
             .column(CONTENT_ID)
             .column(KEK_LABEL)
             .column(ENCRYPTED_DEK)

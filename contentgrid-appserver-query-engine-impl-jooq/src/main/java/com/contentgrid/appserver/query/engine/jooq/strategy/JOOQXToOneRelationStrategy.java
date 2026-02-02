@@ -43,7 +43,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var foreignPrimaryKey = JOOQUtils.resolvePrimaryKey(foreignEntity);
 
         dslContext.alterTable(table)
-                .add(foreignKey, DSL.foreignKey(foreignKey).references(foreignTable, foreignPrimaryKey))
+                .addIfNotExists(foreignKey)
+                .execute();
+        dslContext.alterTable(table)
+                .add(DSL.foreignKey(foreignKey).references(foreignTable, foreignPrimaryKey))
                 .execute();
     }
 

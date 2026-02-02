@@ -47,7 +47,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
         var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
         var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationTargetEntity(relation));
 
-        dslContext.createTable(joinTable)
+        dslContext.createTableIfNotExists(joinTable)
                 .columns(sourceRef, targetRef)
                 .primaryKey(sourceRef, targetRef)
                 .constraint(DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
@@ -58,7 +58,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     @Override
     public void destroy(DSLContext dslContext, Application application, ManyToManyRelation relation) {
         var table = getTable(application, relation);
-        dslContext.dropTable(table).execute();
+        dslContext.dropTableIfExists(table).execute();
     }
 
     @Override
