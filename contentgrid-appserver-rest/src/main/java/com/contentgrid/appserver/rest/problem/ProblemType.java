@@ -28,6 +28,7 @@ public enum ProblemType implements ProblemTypeResolvable {
     MISSING_REQUIRED_HEADER("missing-required-header"),
     MISSING_CONTENT_TYPE("missing-content-type"),
     UNSUPPORTED_CONTENT_TYPE("unsupported-content-type"),
+    UNSUPPORTED_REQUEST_HEADER("unsupported-request-header"),
 
     UNSATISFIED_VERSION("unsatisfied-version"),
 

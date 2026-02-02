@@ -25,6 +25,7 @@ import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViol
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
+import com.contentgrid.appserver.rest.exception.UnsupportedRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
@@ -399,6 +400,13 @@ public class ContentGridExceptionHandler {
 
         // Let Spring handle everything else
         throw exception;
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> handleInvalidRequestHeader(UnsupportedRequestHeaderException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.UNSUPPORTED_REQUEST_HEADER, exception.getHeader())
+                .withStatus(HttpStatus.BAD_REQUEST)
+        );
     }
 
     @ExceptionHandler
