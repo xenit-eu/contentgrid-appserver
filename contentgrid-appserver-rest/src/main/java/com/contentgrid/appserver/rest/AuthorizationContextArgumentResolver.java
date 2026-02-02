@@ -2,7 +2,7 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.values.User;
-import com.contentgrid.thunx.spring.data.context.AbacContextSupplier;
+import com.contentgrid.thunx.spring.security.AbacContextSupplier;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;
