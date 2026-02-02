@@ -9,7 +9,7 @@ javaPlatform {
 
 dependencies {
     api platform('org.springframework.boot:spring-boot-dependencies:3.5.9')
-    api platform('com.contentgrid.thunx:thunx-bom:0.14.0')
+    api platform('com.contentgrid.thunx:thunx-bom:0.15.0')
 
     constraints {
         api 'org.hamcrest:hamcrest:3.0'
