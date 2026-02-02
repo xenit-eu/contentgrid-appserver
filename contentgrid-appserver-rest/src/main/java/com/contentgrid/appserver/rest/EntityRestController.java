@@ -24,14 +24,12 @@ import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
 import java.util.HashMap;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.http.ETag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -57,6 +55,7 @@ public class EntityRestController {
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
     private final EntityDataRepresentationModelAssembler assembler;
+    private final VersionValidator versionValidator;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -109,27 +108,22 @@ public class EntityRestController {
 
         var result = datamodelApi.findById(
                         application,
-                        EntityRequest.forEntity(entity.getName(), id)
-                                .withVersionConstraint(versionConstraint),
+                        EntityRequest.forEntity(entity.getName(), id),
                         authorizationContext
                 )
                 .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), id));
 
-        var eTag = calculateETag(result);
-
-        if (webRequest.checkNotModified(eTag)) {
-            return null;
+        if (versionValidator.checkVersion(webRequest, versionConstraint, result.getIdentity().getVersion())) {
+            return null; // The response headers inside webRequest are modified as side effect
         }
 
         return ResponseEntity.ok()
-                .eTag(eTag)
+                .eTag(calculateETag(result))
                 .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
     }
 
     private String calculateETag(EntityInstance result) {
-        return Optional.ofNullable(conversionService.convert(result.getIdentity().getVersion(), ETag.class))
-                .map(ETag::formattedTag)
-                .orElse(null);
+        return versionValidator.calculateETag(result.getIdentity().getVersion());
     }
 
     @PostMapping("/{entityName}")
