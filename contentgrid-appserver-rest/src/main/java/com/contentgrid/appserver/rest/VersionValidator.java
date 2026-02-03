@@ -19,16 +19,17 @@ public class VersionValidator {
     private final ConversionService conversionService;
 
     /**
-     * Verifies whether the version is satisfied by the versionConstraint. Returns true
-     * when the response is 304 Not Modified, false when the response is 200 Ok.
+     * Checks whether the requested entity's version matches the versionConstraint.
+     * Returns true when it matches, false when the entity is newer. This will also
+     * set the webRequest's HTTP response status to 304 and 200, respectively.
      * <p>
      * May throw an {@link UnsatisfiedVersionException} when the response is 412 Precondition Failed.
      *
      * @param webRequest The http request and response.
      * @param versionConstraint The constraint to be satisfied.
      * @param version The actual version.
-     * @return whether the response should be 304 Not Modified and
-     * the response headers were modified as a side effect
+     * @return whether the entity's version is unchanged
+     * and response is 304 Not Modified
      * @throws UnsatisfiedVersionException If the response should be 412 Precondition failed
      */
     public boolean checkVersion(@NonNull WebRequest webRequest, @NonNull VersionConstraint versionConstraint, @NonNull Version version)
