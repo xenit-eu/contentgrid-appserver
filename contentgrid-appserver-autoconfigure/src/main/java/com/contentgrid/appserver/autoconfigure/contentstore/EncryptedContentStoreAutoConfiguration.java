@@ -28,9 +28,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
 
 @AutoConfiguration
 @ConditionalOnClass(EncryptedContentStore.class)
@@ -122,7 +120,7 @@ public class EncryptedContentStoreAutoConfiguration {
     @lombok.Value
     private static class TableInitializer implements InitializingBean {
 
-        private TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor;
+        TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor;
 
         @Override
         public void afterPropertiesSet() throws Exception {
