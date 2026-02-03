@@ -118,7 +118,7 @@ public class ContentRestController {
 
         return ResponseEntity.ok()
                 .contentType(contentType)
-                .eTag(calculateETag(content))
+                .eTag(versionValidator.calculateETag(content.getVersion()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .body(resource);
     }
@@ -158,10 +158,6 @@ public class ContentRestController {
         }
 
         return new ContentResource(content.withByteRange(start, end));
-    }
-
-    private String calculateETag(Content result) {
-        return versionValidator.calculateETag(result.getVersion());
     }
 
     /*
@@ -252,7 +248,7 @@ public class ContentRestController {
                     authorizationContext
             );
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(newContent))
+                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
                     .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
@@ -289,7 +285,7 @@ public class ContentRestController {
                     authorizationContext
             );
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(newContent))
+                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
                     .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);

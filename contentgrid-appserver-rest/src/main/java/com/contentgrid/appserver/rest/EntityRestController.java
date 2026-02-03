@@ -118,12 +118,8 @@ public class EntityRestController {
         }
 
         return ResponseEntity.ok()
-                .eTag(calculateETag(result))
+                .eTag(versionValidator.calculateETag(result.getIdentity().getVersion()))
                 .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
-    }
-
-    private String calculateETag(EntityInstance result) {
-        return versionValidator.calculateETag(result.getIdentity().getVersion());
     }
 
     @PostMapping("/{entityName}")
@@ -155,7 +151,7 @@ public class EntityRestController {
         var model = assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .eTag(calculateETag(result))
+                .eTag(versionValidator.calculateETag(result.getIdentity().getVersion()))
                 .body(model);
     }
 
@@ -196,7 +192,7 @@ public class EntityRestController {
                 authorizationContext
         );
         return ResponseEntity.noContent()
-                .eTag(calculateETag(updateResult))
+                .eTag(versionValidator.calculateETag(updateResult.getIdentity().getVersion()))
                 .build();
     }
 
@@ -222,7 +218,7 @@ public class EntityRestController {
         );
 
         return ResponseEntity.noContent()
-                .eTag(calculateETag(updateResult))
+                .eTag(versionValidator.calculateETag(updateResult.getIdentity().getVersion()))
                 .build();
     }
 

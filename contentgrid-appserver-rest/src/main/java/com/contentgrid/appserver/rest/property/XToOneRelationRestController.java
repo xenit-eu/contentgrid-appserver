@@ -7,7 +7,6 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
-import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
@@ -56,10 +55,6 @@ public class XToOneRelationRestController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    private String calculateETag(RelationTarget result) {
-        return versionValidator.calculateETag(result.getRelationIdentity().getVersion());
-    }
-
     @GetMapping
     public ResponseEntity<Object> getRelation(
             Application application,
@@ -85,7 +80,7 @@ public class XToOneRelationRestController {
 
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(redirectUrl)
-                    .eTag(calculateETag(relationTarget))
+                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
                     .build();
         } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
@@ -128,7 +123,7 @@ public class XToOneRelationRestController {
             ).withVersionConstraint(versionConstraint);
             var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(relationTarget))
+                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
                     .build();
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {

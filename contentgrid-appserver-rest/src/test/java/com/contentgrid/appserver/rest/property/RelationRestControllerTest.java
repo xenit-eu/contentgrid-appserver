@@ -22,7 +22,6 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
-import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
@@ -31,6 +30,7 @@ import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
+import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.property.RelationRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +38,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -60,8 +59,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -95,7 +92,7 @@ class RelationRestControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ConversionService conversionService;
+    private VersionValidator versionValidator;
 
     @Autowired
     private TableCreator tableCreator;
@@ -164,12 +161,6 @@ class RelationRestControllerTest {
                 entity.getName(),
                 EntityId.of(UUID.fromString(id))
         );
-    }
-
-    private String calculateETag(RelationTarget result) {
-        return Optional.ofNullable(conversionService.convert(result.getRelationIdentity().getVersion(), ETag.class))
-                .map(ETag::formattedTag)
-                .orElse(null);
     }
 
     @Nested
@@ -282,7 +273,7 @@ class RelationRestControllerTest {
                     relation.getSourceEndPoint().getName()
             ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
 
-            var eTag = calculateETag(item);
+            var eTag = versionValidator.calculateETag(item.getRelationIdentity().getVersion());
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
@@ -328,7 +319,7 @@ class RelationRestControllerTest {
                     relation.getSourceEndPoint().getName()
             ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
 
-            var eTag = calculateETag(item);
+            var eTag = versionValidator.calculateETag(item.getRelationIdentity().getVersion());
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
