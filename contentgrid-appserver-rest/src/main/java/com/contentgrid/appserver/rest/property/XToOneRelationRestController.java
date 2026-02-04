@@ -7,12 +7,12 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
-import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
@@ -23,11 +23,8 @@ import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import java.util.Objects;
-import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.http.ETag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,6 +34,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -49,18 +47,12 @@ public class XToOneRelationRestController {
     private final DatamodelApi datamodelApi;
 
     @NonNull
-    private final ConversionService conversionService;
+    private final VersionValidator versionValidator;
 
     private Relation getRequiredRelation(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         return application.getRelationForPath(entityName, propertyName)
                 .filter(relation -> relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-    }
-
-    private String calculateETag(RelationTarget result) {
-        return Optional.ofNullable(conversionService.convert(result.getRelationIdentity().getVersion(), ETag.class))
-                .map(ETag::formattedTag)
-                .orElse(null);
     }
 
     @GetMapping
@@ -69,6 +61,8 @@ public class XToOneRelationRestController {
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
             @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws EmptyRelationException {
@@ -80,9 +74,13 @@ public class XToOneRelationRestController {
                     .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
             var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
 
+            if (versionValidator.checkVersion(webRequest, versionConstraint, relationTarget.getRelationIdentity().getVersion())) {
+                return null; // The response headers inside webRequest are modified as side effect
+            }
+
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(redirectUrl)
-                    .eTag(calculateETag(relationTarget))
+                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
                     .build();
         } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
@@ -125,7 +123,7 @@ public class XToOneRelationRestController {
             ).withVersionConstraint(versionConstraint);
             var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(relationTarget))
+                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
                     .build();
         } catch (EntityIdNotFoundException e) {
             if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {

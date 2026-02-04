@@ -24,15 +24,12 @@ import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
 import java.util.HashMap;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
-import org.springframework.http.ETag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -48,7 +45,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.context.request.WebRequest;
 
 @RestController
 @SpecializedOnEntity(entityPathVariable = "entityName")
@@ -58,6 +55,7 @@ public class EntityRestController {
     private final DatamodelApi datamodelApi;
     private final ConversionService conversionService;
     private final EntityDataRepresentationModelAssembler assembler;
+    private final VersionValidator versionValidator;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
         return application.getEntityByPathSegment(entityName)
@@ -100,6 +98,8 @@ public class EntityRestController {
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
             AuthorizationContext authorizationContext,
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider
@@ -108,25 +108,18 @@ public class EntityRestController {
 
         var result = datamodelApi.findById(
                         application,
-                        // For GET, version constraints are not taken into account
-                        // because all they would do is omit the body after we have
-                        // already queried the database.
-                        // All expensive operations have already happened (the body is not that large),
-                        // so there is no point in still discarding it
                         EntityRequest.forEntity(entity.getName(), id),
                         authorizationContext
                 )
                 .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), id));
 
-        return ResponseEntity.ok()
-                .eTag(calculateETag(result))
-                .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
-    }
+        if (versionValidator.checkVersion(webRequest, versionConstraint, result.getIdentity().getVersion())) {
+            return null; // The response headers inside webRequest are modified as side effect
+        }
 
-    private String calculateETag(EntityInstance result) {
-        return Optional.ofNullable(conversionService.convert(result.getIdentity().getVersion(), ETag.class))
-                .map(ETag::formattedTag)
-                .orElse(null);
+        return ResponseEntity.ok()
+                .eTag(versionValidator.calculateETag(result.getIdentity().getVersion()))
+                .body(assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result));
     }
 
     @PostMapping("/{entityName}")
@@ -158,7 +151,7 @@ public class EntityRestController {
         var model = assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
         return ResponseEntity
                 .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri())
-                .eTag(calculateETag(result))
+                .eTag(versionValidator.calculateETag(result.getIdentity().getVersion()))
                 .body(model);
     }
 
@@ -199,7 +192,7 @@ public class EntityRestController {
                 authorizationContext
         );
         return ResponseEntity.noContent()
-                .eTag(calculateETag(updateResult))
+                .eTag(versionValidator.calculateETag(updateResult.getIdentity().getVersion()))
                 .build();
     }
 
@@ -225,7 +218,7 @@ public class EntityRestController {
         );
 
         return ResponseEntity.noContent()
-                .eTag(calculateETag(updateResult))
+                .eTag(versionValidator.calculateETag(updateResult.getIdentity().getVersion()))
                 .build();
     }
 

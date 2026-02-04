@@ -14,7 +14,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.exception.UnsupportedRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.MultipartDataMissingContentTypeException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
@@ -31,13 +31,11 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
-import org.springframework.http.ETag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
@@ -64,7 +62,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ContentRestController {
 
     private final ContentApi contentApi;
-    private final ConversionService conversionService;
+    private final VersionValidator versionValidator;
 
     private EntityAndContentAttribute resolve(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
         var entity = application.getEntityByPathSegment(entityName).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -102,18 +100,8 @@ public class ContentRestController {
                 authorizationContext
         ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        var eTag = calculateETag(content);
-
-        // First check not-modified for a 304 response before performing If-Match validation (with a 412 response)
-        if(webRequest.checkNotModified(eTag)) {
+        if(versionValidator.checkVersion(webRequest, versionConstraint, content.getVersion())) {
             return null; // The response headers inside webRequest are modified as side effect
-        }
-
-        if(!versionConstraint.isSatisfiedBy(content.getVersion())) {
-            throw new UnsatisfiedVersionException(
-                    content.getVersion(),
-                    versionConstraint
-            );
         }
 
         var resource = toResource(content, parseRanges(httpHeaders));
@@ -130,7 +118,7 @@ public class ContentRestController {
 
         return ResponseEntity.ok()
                 .contentType(contentType)
-                .eTag(eTag)
+                .eTag(versionValidator.calculateETag(content.getVersion()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .body(resource);
     }
@@ -170,12 +158,6 @@ public class ContentRestController {
         }
 
         return new ContentResource(content.withByteRange(start, end));
-    }
-
-    private String calculateETag(Content result) {
-        return Optional.ofNullable(conversionService.convert(result.getVersion(), ETag.class))
-                .map(ETag::formattedTag)
-                .orElse(null);
     }
 
     /*
@@ -266,7 +248,7 @@ public class ContentRestController {
                     authorizationContext
             );
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(newContent))
+                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
                     .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
@@ -303,7 +285,7 @@ public class ContentRestController {
                     authorizationContext
             );
             return ResponseEntity.noContent()
-                    .eTag(calculateETag(newContent))
+                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
                     .build();
         } catch(EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);

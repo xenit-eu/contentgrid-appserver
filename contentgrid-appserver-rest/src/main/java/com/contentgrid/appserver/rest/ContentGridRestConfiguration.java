@@ -58,6 +58,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         RootRestController.class,
         SingleRangeRequestServletFilter.class,
         UriListHttpMessageConverter.class,
+        VersionValidator.class,
         XToManyRelationRestController.class,
         XToOneRelationRestController.class,
         ApplicationArgumentResolver.class,
