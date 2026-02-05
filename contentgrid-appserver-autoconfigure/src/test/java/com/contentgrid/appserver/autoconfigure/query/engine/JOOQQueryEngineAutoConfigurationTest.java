@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration.Bootstrap;
+import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration.TableInitializer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -42,32 +44,72 @@ class JOOQQueryEngineAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("jooqTableInitializer");
+                    assertThat(context).hasSingleBean(TableInitializer.class);
+                    assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.NONE);
                 });
     }
 
     @Test
-    void checkWithBootStrapTables() {
+    void checkWithBootstrapTables_none() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=true")
+                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=none")
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).hasBean("jooqTableInitializer");
+                    assertThat(context).hasSingleBean(TableInitializer.class);
+                    assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.NONE);
+                });
+    }
+
+    @Test
+    void checkWithBootstrapTables_create() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=create")
+                .withUserConfiguration(TestConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(DSLContextResolver.class);
+                    assertThat(context).hasSingleBean(QueryEngine.class);
+                    assertThat(context).hasSingleBean(TableInitializer.class);
+                    assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.CREATE);
+                });
+    }
+
+    @Test
+    void checkWithBootstrapTables_createDrop() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=create-drop")
+                .withUserConfiguration(TestConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(DSLContextResolver.class);
+                    assertThat(context).hasSingleBean(QueryEngine.class);
+                    assertThat(context).hasSingleBean(TableInitializer.class);
+                    assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.CREATE_DROP);
+                });
+    }
+
+    @Test
+    void checkWithBootstrapTables_invalid() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=invalid")
+                .withUserConfiguration(TestConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasFailed();
                 });
     }
 
     @Test
     void checkWithBootStrapTables_noApplication() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=true")
+                .withPropertyValues("contentgrid.appserver.query-engine.bootstrap-tables=create")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DSLContextResolver.class);
                     assertThat(context).hasSingleBean(QueryEngine.class);
-                    assertThat(context).doesNotHaveBean("jooqTableInitializer");
+                    assertThat(context).doesNotHaveBean(TableInitializer.class);
                 });
     }
 

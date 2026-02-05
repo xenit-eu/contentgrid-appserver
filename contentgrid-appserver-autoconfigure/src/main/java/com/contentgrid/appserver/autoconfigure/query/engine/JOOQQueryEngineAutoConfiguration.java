@@ -19,7 +19,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
@@ -62,28 +61,41 @@ public class JOOQQueryEngineAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(ApplicationResolver.class)
-    @ConditionalOnBooleanProperty("contentgrid.appserver.query-engine.bootstrap-tables")
-    TableInitializer jooqTableInitializer(TableCreator tableCreator, ApplicationResolver applicationResolver) {
-        return new TableInitializer(tableCreator, applicationResolver);
+    TableInitializer jooqTableInitializer(
+            TableCreator tableCreator,
+            ApplicationResolver applicationResolver,
+            @Value("${contentgrid.appserver.query-engine.bootstrap-tables:NONE}") Bootstrap bootstrap) {
+        return new TableInitializer(tableCreator, applicationResolver, bootstrap);
     }
 
     @lombok.Value
-    private static class TableInitializer implements InitializingBean, DisposableBean {
+    static class TableInitializer implements InitializingBean, DisposableBean {
 
         private static final ApplicationName APPLICATION_NAME = ApplicationName.of("default");
 
         TableCreator tableCreator;
         ApplicationResolver applicationResolver;
+        Bootstrap bootstrap;
 
         @Override
         public void afterPropertiesSet() throws Exception {
-            tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
+            if (bootstrap == Bootstrap.CREATE || bootstrap == Bootstrap.CREATE_DROP) {
+                tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
+            }
         }
 
         @Override
         public void destroy() throws Exception {
-            tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
+            if (bootstrap == Bootstrap.CREATE_DROP) {
+                tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
+            }
         }
 
+    }
+
+    enum Bootstrap {
+        NONE,
+        CREATE,
+        CREATE_DROP
     }
 }
