@@ -35,6 +35,10 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
             .column(INITIALIZATION_VECTOR)
             .execute();
     }
+
+    public void dropTables() {
+        dslContext.dropTableIfExists(TABLE_NAME).execute();
+    }
     
     @Override
     public List<StoredDataEncryptionKey> findAllKeys(ContentReference contentReference) {
