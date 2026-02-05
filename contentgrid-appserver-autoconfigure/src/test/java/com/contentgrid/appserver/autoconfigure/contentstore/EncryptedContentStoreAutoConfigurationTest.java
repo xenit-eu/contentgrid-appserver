@@ -2,7 +2,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.Bootstrap;
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.TableInitializer;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;

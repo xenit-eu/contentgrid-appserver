@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration.Bootstrap;
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration.TableInitializer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQTimedCountStrategy;

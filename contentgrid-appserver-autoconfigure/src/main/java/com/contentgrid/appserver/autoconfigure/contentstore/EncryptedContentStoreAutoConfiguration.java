@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.contentstore;
 
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineProperties;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperProperties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -126,11 +127,5 @@ public class EncryptedContentStoreAutoConfiguration {
                 encryptionKeyAccessor.dropTables();
             }
         }
-    }
-
-    enum Bootstrap {
-        NONE,
-        CREATE,
-        CREATE_DROP
     }
 }

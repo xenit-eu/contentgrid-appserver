@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.query.engine;
 
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -91,11 +92,5 @@ public class JOOQQueryEngineAutoConfiguration {
             }
         }
 
-    }
-
-    enum Bootstrap {
-        NONE,
-        CREATE,
-        CREATE_DROP
     }
 }
