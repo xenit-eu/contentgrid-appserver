@@ -72,7 +72,7 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.thunx.abac.source = none",
                 "contentgrid.events.rabbitmq.enabled=false",
                 "contentgrid.appserver.content.encryption.enabled=true",
-                "contentgrid.appserver.content.encryption.bootstrap-tables=true",
+                "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
                 "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128_CTR",
                 "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",

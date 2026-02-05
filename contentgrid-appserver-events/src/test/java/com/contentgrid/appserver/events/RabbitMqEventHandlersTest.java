@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.thunx.abac.source=none",
         "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.appserver.content.encryption.bootstrap-tables=true",
+        "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
         "spring.rabbitmq.host=foo",
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
         "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,

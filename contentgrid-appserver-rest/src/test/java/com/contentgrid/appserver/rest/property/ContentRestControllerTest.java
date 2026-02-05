@@ -56,7 +56,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.security.csrf.disabled=true",
         "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.appserver.content.encryption.bootstrap-tables=true",
+        "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
         "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
