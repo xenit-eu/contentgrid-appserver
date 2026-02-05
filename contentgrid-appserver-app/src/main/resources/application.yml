@@ -5,12 +5,6 @@ spring:
     multipart:
       max-file-size: -1
       max-request-size: -1
-contentgrid:
-  appserver:
-#    application-model: classpath:application-model.json
-    content:
-      encryption:
-        enabled: true
 server:
   port: ${PORT:8080}
   tomcat:

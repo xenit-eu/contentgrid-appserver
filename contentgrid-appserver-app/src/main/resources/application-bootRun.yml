@@ -8,9 +8,6 @@ contentgrid:
   appserver:
     query-engine.bootstrap-tables: create
     content-store.type: ephemeral
-    content:
-      encryption:
-        bootstrap-tables: create
   system:
     application-id: dece6818-fab2-11f0-aa04-17747aaadf5e
     deployment-id: e5708fca-fab2-11f0-ab48-1b1797482fc9

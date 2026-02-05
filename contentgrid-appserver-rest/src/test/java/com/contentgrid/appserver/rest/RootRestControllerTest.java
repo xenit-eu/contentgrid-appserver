@@ -26,7 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.thunx.abac.source=none",
         "contentgrid.security.unauthenticated.allow=true",
         "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RootRestControllerTest {

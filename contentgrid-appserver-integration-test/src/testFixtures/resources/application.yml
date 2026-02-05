@@ -9,10 +9,6 @@ spring:
 contentgrid:
   appserver:
     application-model: classpath:application-model.json
-    content:
-      encryption:
-        enabled: true
-        bootstrap-tables: create-drop
     content-store:
       type: ephemeral
     query-engine:
