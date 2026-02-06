@@ -38,7 +38,7 @@ public class JOOQTableCreator implements TableCreator {
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
-        var step = dslContext.createTable(entity.getTable().getValue())
+        var step = dslContext.createTableIfNotExists(entity.getTable().getValue())
                 .column(JOOQUtils.resolvePrimaryKey(entity))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
         for (var attribute : entity.getAttributes()) {
@@ -78,7 +78,7 @@ public class JOOQTableCreator implements TableCreator {
         // Drop entity tables after relations are dropped
         for (var entity : application.getEntities()) {
             var table = JOOQUtils.resolveTable(entity);
-            dslContext.dropTable(table).execute();
+            dslContext.dropTableIfExists(table).execute();
         }
 
         // Drop extensions schema and functions
@@ -101,7 +101,7 @@ public class JOOQTableCreator implements TableCreator {
     @Allow.PlainSQL
     private void dropCGPrefixSearchNormalize(DSLContext dslContext) {
         var schema = DSL.schema("extensions");
-        dslContext.execute(DSL.sql("DROP FUNCTION ?.contentgrid_prefix_search_normalize(text);", schema));
+        dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_prefix_search_normalize(text);", schema));
         dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
         dslContext.dropSchemaIfExists(schema).execute();
     }

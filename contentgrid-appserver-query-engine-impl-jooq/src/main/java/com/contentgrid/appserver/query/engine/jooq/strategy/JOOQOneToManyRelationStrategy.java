@@ -50,7 +50,10 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
         var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
 
         dslContext.alterTable(targetTable)
-                .add(sourceRef, DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
+                .addIfNotExists(sourceRef)
+                .execute();
+        dslContext.alterTable(targetTable)
+                .add(DSL.foreignKey(sourceRef).references(sourceTable, sourcePrimaryKey))
                 .execute();
     }
 

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.contentstore;
 
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineProperties;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperProperties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -16,9 +17,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.jooq.DSLContext;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.AllNestedConditions;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -27,10 +29,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
 
 @AutoConfiguration
 @ConditionalOnClass(EncryptedContentStore.class)
@@ -63,9 +62,12 @@ public class EncryptedContentStoreAutoConfiguration {
     }
 
     @Bean
-    @Conditional(TableInitializerCondition.class)
-    TableInitializer dekTableInitializer(TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor) {
-        return new TableInitializer(encryptionKeyAccessor);
+    @ConditionalOnBean(TableStorageDataEncryptionKeyAccessor.class)
+    TableInitializer dekTableInitializer(
+            TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor,
+            @Value("${contentgrid.appserver.content.encryption.bootstrap-tables:NONE}") Bootstrap bootstrap
+    ) {
+        return new TableInitializer(encryptionKeyAccessor, bootstrap);
     }
 
     private DataEncryptionKeyWrapper dataEncryptionKeyWrapperForAlgorithm(EncryptionKeyWrapperAlgorithm algorithm) {
@@ -106,27 +108,24 @@ public class EncryptedContentStoreAutoConfiguration {
         ALFRESCO
     }
 
-    private static class TableInitializerCondition extends AllNestedConditions {
-
-        public TableInitializerCondition() {
-            super(ConfigurationPhase.REGISTER_BEAN);
-        }
-
-        @ConditionalOnBean(TableStorageDataEncryptionKeyAccessor.class)
-        static class UsesTableStorage {}
-
-        @ConditionalOnBooleanProperty("contentgrid.appserver.content.encryption.bootstrap-tables")
-        static class TableBootstrapConfigured {}
-    }
-
     @lombok.Value
-    private static class TableInitializer implements InitializingBean {
+    static class TableInitializer implements InitializingBean, DisposableBean {
 
-        private TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor;
+        TableStorageDataEncryptionKeyAccessor encryptionKeyAccessor;
+        Bootstrap bootstrap;
 
         @Override
         public void afterPropertiesSet() throws Exception {
-            encryptionKeyAccessor.setupTables();
+            if (bootstrap == Bootstrap.CREATE || bootstrap == Bootstrap.CREATE_DROP) {
+                encryptionKeyAccessor.setupTables();
+            }
+        }
+
+        @Override
+        public void destroy() throws Exception {
+            if (bootstrap == Bootstrap.CREATE_DROP) {
+                encryptionKeyAccessor.dropTables();
+            }
         }
     }
 }

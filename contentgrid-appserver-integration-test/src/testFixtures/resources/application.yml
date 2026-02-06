@@ -1,4 +1,7 @@
 spring:
+  mvc:
+    problemdetails:
+      enabled: true
   servlet:
     multipart:
       max-file-size: -1
@@ -9,10 +12,11 @@ contentgrid:
     content-store:
       type: ephemeral
     query-engine:
-      bootstrap-tables: true
+      bootstrap-tables: create-drop
   thunx:
     abac:
       source: none
 server:
   port: ${PORT:8080}
-  max-http-request-header-size: 10MB
+  tomcat:
+    max-part-count: 200

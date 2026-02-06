@@ -1,13 +1,10 @@
 package com.contentgrid.appserver.autoconfigure.query.engine;
 
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;
 import com.contentgrid.appserver.query.engine.jooq.JOOQTableCreator;
 import com.contentgrid.appserver.query.engine.jooq.TransactionalQueryEngine;
@@ -23,7 +20,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
@@ -66,27 +62,34 @@ public class JOOQQueryEngineAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(ApplicationResolver.class)
-    @ConditionalOnBooleanProperty("contentgrid.appserver.query-engine.bootstrap-tables")
-    TableInitializer jooqTableInitializer(TableCreator tableCreator, ApplicationResolver applicationResolver) {
-        return new TableInitializer(tableCreator, applicationResolver);
+    TableInitializer jooqTableInitializer(
+            TableCreator tableCreator,
+            ApplicationResolver applicationResolver,
+            @Value("${contentgrid.appserver.query-engine.bootstrap-tables:NONE}") Bootstrap bootstrap) {
+        return new TableInitializer(tableCreator, applicationResolver, bootstrap);
     }
 
     @lombok.Value
-    private static class TableInitializer implements InitializingBean, DisposableBean {
+    static class TableInitializer implements InitializingBean, DisposableBean {
 
         private static final ApplicationName APPLICATION_NAME = ApplicationName.of("default");
 
         TableCreator tableCreator;
         ApplicationResolver applicationResolver;
+        Bootstrap bootstrap;
 
         @Override
         public void afterPropertiesSet() throws Exception {
-            tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
+            if (bootstrap == Bootstrap.CREATE || bootstrap == Bootstrap.CREATE_DROP) {
+                tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
+            }
         }
 
         @Override
         public void destroy() throws Exception {
-            tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
+            if (bootstrap == Bootstrap.CREATE_DROP) {
+                tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
+            }
         }
 
     }
