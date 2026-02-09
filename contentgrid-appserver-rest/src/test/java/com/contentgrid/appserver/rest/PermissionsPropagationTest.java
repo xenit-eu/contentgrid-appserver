@@ -15,6 +15,7 @@ import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
 import com.contentgrid.thunx.encoding.json.JsonThunkExpressionCoder;
 import com.contentgrid.thunx.predicates.model.Comparison;
+import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -50,7 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
-@WithMockJwt(subject = "user-id-123", name = "John Smith")
+@WithMockJwt(subject = "user-id-123", name = "John Smith", issuer = "https://test-realm.contentgrid.test")
 class PermissionsPropagationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -87,13 +88,35 @@ class PermissionsPropagationTest {
                         SymbolicReference.parse("entity.amount"),
                         Scalar.of(AMOUNT_THRESHOLD_ALWAYS_ALLOWED.longValue())
                 )), false),
-                Arguments.argumentSet("has permission based on created_by (passing)", encodeThunk(Comparison.areEqual(
-                        SymbolicReference.parse("entity.audit_metadata.created_by.id"),
-                        Scalar.of("user-id-123")
+                Arguments.argumentSet("has permission based on created_by (passing)", encodeThunk(LogicalOperation.conjunction(
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.id"),
+                                Scalar.of("user-id-123")
+                        ),
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.namespace"),
+                                Scalar.of("https://test-realm.contentgrid.test")
+                        )
                 )), true),
-                Arguments.argumentSet("has permission based on created_by (failing)", encodeThunk(Comparison.areEqual(
-                        SymbolicReference.parse("entity.audit_metadata.created_by.id"),
-                        Scalar.of("user-id-456")
+                Arguments.argumentSet("has permission based on created_by (wrong id)", encodeThunk(LogicalOperation.conjunction(
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.id"),
+                                Scalar.of("user-id-456")
+                        ),
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.namespace"),
+                                Scalar.of("https://test-realm.contentgrid.test")
+                        )
+                )), false),
+                Arguments.argumentSet("has permission based on created_by (wrong issuer)", encodeThunk(LogicalOperation.conjunction(
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.id"),
+                                Scalar.of("user-id-123")
+                        ),
+                        Comparison.areEqual(
+                                SymbolicReference.parse("entity.audit_metadata.created_by.namespace"),
+                                Scalar.of("https://other-realm.contentgrid.test")
+                        )
                 )), false)
         );
     }
