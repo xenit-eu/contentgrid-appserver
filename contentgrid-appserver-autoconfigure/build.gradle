@@ -36,11 +36,12 @@ dependencies {
     // dependencies for AnonymousHttpConfigurer
     compileOnly 'org.springframework.security:spring-security-config'
     compileOnly 'org.springframework.security:spring-security-web'
-    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.springframework.boot:spring-boot-starter-webmvc'
+    compileOnly 'org.springframework.boot:spring-boot-jackson2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
     testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
     testImplementation 'org.springframework.security:spring-security-test'

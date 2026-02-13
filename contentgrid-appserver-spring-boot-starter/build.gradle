@@ -11,7 +11,8 @@ dependencies {
     api project(':contentgrid-appserver-contentstore-api')
     api project(':contentgrid-appserver-json-schema')
     api project(':contentgrid-appserver-rest')
-    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-jackson2'
 
     implementation project(':contentgrid-appserver-actuators')
     implementation project(':contentgrid-appserver-events')
@@ -20,7 +21,7 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')
     implementation project(':contentgrid-appserver-webjars')
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
 
 }

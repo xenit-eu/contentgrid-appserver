@@ -3,13 +3,10 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Objects;
 import java.util.Optional;
-import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.MethodLinkBuilderFactory;
-import org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter;
 
 public class ContentGridRestFormatterConfiguration {
 
@@ -17,22 +14,16 @@ public class ContentGridRestFormatterConfiguration {
     public RestEntityFormatter formatter(
             EntityDataRepresentationModelAssembler assembler,
             MethodLinkBuilderFactory<?> linkBuilderFactory,
-            HttpMessageConverters httpMessageConverters
+            ObjectMapper objectMapper
     ) {
-        var mapper = selectObjectMapperFor(httpMessageConverters, EntityDataRepresentationModel.class)
-                    .orElseThrow(() -> new IllegalStateException("No Jackson HttpMessageConverter available"));
+        var mapper = selectObjectMapperFor(objectMapper, EntityDataRepresentationModel.class)
+                    .orElseThrow(() -> new IllegalStateException("No Jackson ObjectMapper available"));
         return new RestEntityFormatter(assembler, linkBuilderFactory, mapper);
     }
 
 
-    private Optional<ObjectMapper> selectObjectMapperFor(HttpMessageConverters httpMessageConverters, Class<?> type) {
-        return httpMessageConverters.getConverters().stream()
-                .filter(AbstractJackson2HttpMessageConverter.class::isInstance)
-                .map(AbstractJackson2HttpMessageConverter.class::cast)
-                .filter(converter -> converter.canWrite(type, MediaTypes.HAL_JSON))
-                .map(converter -> converter.getObjectMappersForType(type).get(MediaTypes.HAL_JSON))
-                .filter(Objects::nonNull)
-                .findFirst();
+    private Optional<ObjectMapper> selectObjectMapperFor(ObjectMapper objectMapper, Class<?> type) {
+        return Optional.of(objectMapper);
     }
 
 

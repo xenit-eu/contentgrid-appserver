@@ -28,7 +28,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -102,13 +101,6 @@ public class ContentGridRestConfiguration {
                 });
                 registry.addConverter(new VersionConstraintArgumentResolver());
             }
-        };
-    }
-
-    @Bean
-    Jackson2ObjectMapperBuilderCustomizer contentgridRestObjectMapperCustomizer() {
-        return builder -> {
-            builder.featuresToDisable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
         };
     }
 

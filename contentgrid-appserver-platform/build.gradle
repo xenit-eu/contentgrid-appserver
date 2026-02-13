@@ -8,7 +8,7 @@ javaPlatform {
 }
 
 dependencies {
-    api platform('org.springframework.boot:spring-boot-dependencies:3.5.10')
+    api platform('org.springframework.boot:spring-boot-dependencies:4.0.2')
     api platform('com.contentgrid.thunx:thunx-bom:0.15.0')
 
     constraints {
@@ -25,5 +25,11 @@ dependencies {
         api 'uk.co.datumedge:hamcrest-json:0.3'
 
         api 'commons-io:commons-io:2.21.0'
+
+        api 'org.testcontainers:testcontainers:1.20.0'
+        api 'org.testcontainers:junit-jupiter:1.20.0'
+        api 'org.testcontainers:postgresql:1.20.0'
+        api 'org.testcontainers:rabbitmq:1.20.0'
+        api 'org.testcontainers:minio:1.20.0'
     }
 }

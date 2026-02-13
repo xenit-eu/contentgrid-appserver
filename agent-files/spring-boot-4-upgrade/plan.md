@@ -49,16 +49,41 @@ Benefits:
 - No code changes needed for Jackson usage
 - Properties available under `spring.jackson2.*`
 
-### Phase 3: Dependency & Compatibility Updates
+**⚠️ Action Required:** Update all `application.yml` properties from `spring.jackson.*` to `spring.jackson2.*`
+
+### Phase 3: Code Changes - Removed/Deprecated APIs
+
+#### 3.1 Actuator Security (ActuatorConfiguration.java)
+- **File:** `contentgrid-appserver-actuators/src/main/java/com/contentgrid/appserver/actuator/ActuatorConfiguration.java`
+- **Issue:** Uses `EndpointRequest.to()` and `EndpointRequestMatcher` which are REMOVED in Spring Boot 4
+- **Fix:** Rewrite using standard Spring Security request matchers
+
+#### 3.2 Spring Web MVC Changes
+| File | Issue | Fix |
+|------|-------|-----|
+| `contentgrid-appserver-rest/.../ContentGridRestFormatterConfiguration.java` | Uses `HttpMessageConverters` (DEPRECATED) | Replace with `ServerHttpMessageConvertersCustomizer` |
+| `contentgrid-appserver-rest/.../ContentGridRestConfiguration.java:109` | Uses `Jackson2ObjectMapperBuilderCustomizer` (RENAMED) | Use `JsonMapperBuilderCustomizer` |
+| `contentgrid-appserver-rest/.../HalFormsMediaTypeConfiguration.java:42` | Uses `Jackson2ObjectMapperBuilderCustomizer` (RENAMED) | Use `JsonMapperBuilderCustomizer` |
+| `contentgrid-appserver-rest/.../ContentGridHandlerMappingConfiguration.java:14,18` | Uses `WebMvcRegistrations` (REMOVED) | Define `RequestMappingHandlerMapping` bean directly |
+
+### Phase 4: Starter POM Updates
+
+| Old Starter | New Starter |
+|-------------|-------------|
+| `spring-boot-starter-web` | `spring-boot-starter-webmvc` |
+| `spring-boot-starter-oauth2-resource-server` | `spring-boot-starter-security-oauth2-resource-server` |
+| `spring-boot-starter-oauth2-client` | `spring-boot-starter-security-oauth2-client` |
+
+### Phase 5: Dependency & Compatibility Updates
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Jakarta EE 10 | ✓ Done | Already migrated in SB3 |
+| Jakarta EE 10 | ✓ Already done | Already migrated in SB3 |
 | Spring Framework 7 | Pending | Major breaking changes |
-| Spring Security 7 | Pending | May need actuator config updates |
+| Spring Security 7 | Pending | SecurityJackson2Modules → SecurityJacksonModules |
 | Jackson 2.x | ⭐ Use compatibility module | No import changes needed |
 
-### Phase 4: Build & Test
+### Phase 6: Build & Test
 
 1. Run `./gradlew build -x test` to identify compilation errors
 2. Fix any remaining deprecated API usage
@@ -76,17 +101,25 @@ Benefits:
 - Properties move from `spring.jackson.*` to `spring.jackson2.*`
 
 ### Spring Web MVC
-- `Jackson2ObjectMapperBuilderCustomizer` - removed
-- `HttpMessageConverters` - removed
-- `WebMvcRegistrations` - removed
+- `Jackson2ObjectMapperBuilderCustomizer` → `JsonMapperBuilderCustomizer`
+- `HttpMessageConverters` → `ServerHttpMessageConvertersCustomizer`
+- `WebMvcRegistrations` → Define `RequestMappingHandlerMapping` bean directly
 
-### Actuator Security
-- `EndpointRequest.to()` - removed
-- `EndpointRequestMatcher` - removed
+### Actuator Security ⚠️ NEEDS REWRITE
+- `EndpointRequest.to()` - REMOVED
+- `EndpointRequestMatcher` - REMOVED
 
 ### Spring HATEOAS
 - `HypermediaMediaTypeConfiguration` - removed in Spring 7
 - `HalMediaTypeConfiguration` - removed in Spring 7
+- Need to review HAL Forms configuration
+
+### Spring Security 7
+- `SecurityJackson2Modules` → `SecurityJacksonModules`
+
+### Starter POMs
+- `spring-boot-starter-web` → `spring-boot-starter-webmvc`
+- OAuth2 starters renamed with `security-` prefix
 
 ---
 
