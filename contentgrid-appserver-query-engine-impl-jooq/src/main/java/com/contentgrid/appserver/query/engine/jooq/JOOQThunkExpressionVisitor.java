@@ -28,7 +28,6 @@ import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +37,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -46,7 +44,6 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.QOM.Array;
 
 import static com.contentgrid.appserver.query.engine.jooq.JOOQUtils.generateFTSCondition;
-import static com.contentgrid.appserver.query.engine.jooq.JOOQUtils.prefixSearchNormalize;
 import static java.util.Locale.ENGLISH;
 
 @RequiredArgsConstructor
@@ -72,7 +69,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
+                if (left.getDataType().isString() || right.getDataType().isString()) {
                     left = JOOQUtils.normalize(left);
                     right = JOOQUtils.normalize(right);
                 }
@@ -82,7 +79,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (List.of(left.getDataType().getType(), right.getDataType().getType()).contains(String.class)) {
+                if (left.getDataType().isString() || right.getDataType().isString()) {
                     left = JOOQUtils.normalize(left);
                     right = JOOQUtils.normalize(right);
                 }
@@ -116,7 +113,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = (Array) functionExpression.getTerms().getLast().accept(this, context);
-                if (left.getDataType().getType().equals(String.class)) {
+                if (left.getDataType().isString()) {
                     left = JOOQUtils.normalize(left);
                     // right side is already normalized in the visit function if needed
                 }
@@ -128,9 +125,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         .map(field -> {
                             if (field instanceof Condition condition) {
                                 return condition;
-                            } else {
+                            } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
+                            throw new InvalidThunkExpressionException("Terms should be booleans");
                         })
                         .toList());
             }
@@ -140,9 +138,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         .map(field -> {
                             if (field instanceof Condition condition) {
                                 return condition;
-                            } else {
+                            } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
+                            throw new InvalidThunkExpressionException("Terms should be booleans");
                         })
                         .toList());
             }
@@ -151,22 +150,25 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var field = functionExpression.getTerms().getFirst().accept(this, context);
                 if (field instanceof Condition condition) {
                     yield DSL.not(condition);
-                } else {
-                    // Try casting to Field<Boolean>
+                } else if (field.getDataType().isBoolean()) {
                     yield DSL.condition(DSL.not((Field<Boolean>) field));
                 }
+                throw new InvalidThunkExpressionException("Term should be a boolean");
             }
             case PLUS -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                yield left.add(right);
+                if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                    yield left.add(right);
+                }
+                throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case MULTIPLY -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (right.getDataType().isNumeric()) {
+                if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
                     yield left.times((Field<? extends Number>) right);
                 }
                 throw new InvalidThunkExpressionException("Terms should be numeric");
@@ -175,13 +177,16 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                yield left.minus(right);
+                if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                    yield left.minus(right);
+                }
+                throw new InvalidThunkExpressionException("Terms should be numeric");
             }
             case DIVIDE -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (right.getDataType().isNumeric()) {
+                if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
                     yield left.divide((Field<? extends Number>) right);
                 }
                 throw new InvalidThunkExpressionException("Terms should be numeric");
@@ -190,7 +195,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (right.getDataType().isNumeric()) {
+                if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
                     yield left.modulo((Field<? extends Number>) right);
                 }
                 throw new InvalidThunkExpressionException("Terms should be numeric");
@@ -200,6 +205,9 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     case ContentGridPrefixSearch contentGridPrefixSearch -> {
                         var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
                         var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
+                        if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                            throw new InvalidThunkExpressionException("Terms should be strings");
+                        }
                         var leftField = JOOQUtils.prefixSearchNormalize(left);
                         var rightField = JOOQUtils.prefixSearchNormalize(right);
                         yield leftField.startsWith(rightField);
@@ -207,6 +215,11 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
                         var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                         var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+
+                        if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                            throw new InvalidThunkExpressionException("Terms should be strings");
+                        }
+
                         var leftField = JOOQUtils.prefixSearchNormalize(left);
                         var rightField = JOOQUtils.prefixSearchNormalize(right);
 
@@ -358,7 +371,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         var values = stream.map(thunkExpression -> {
             if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                 Field<?> field = visit(scalar, context);
-                if (field.getType().equals(String.class)) {
+                if (field.getDataType().isString()) {
                     field = JOOQUtils.normalize(field);
                 }
                 return field;
