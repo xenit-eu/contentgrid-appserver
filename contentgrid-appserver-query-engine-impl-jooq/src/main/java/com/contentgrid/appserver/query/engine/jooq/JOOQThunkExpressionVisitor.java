@@ -207,11 +207,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
                         var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                         var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
+                        var leftField = JOOQUtils.prefixSearchNormalize(left);
+                        var rightField = JOOQUtils.prefixSearchNormalize(right);
 
                         var locale = contentGridFullTextSearch.getLocale();
                         var language = locale.getDisplayLanguage(ENGLISH);
 
-                        yield generateFTSCondition(left, right, language);
+                        yield generateFTSCondition(leftField, rightField, language);
                     }
                     default -> throw new InvalidThunkExpressionException(
                             "Function expression with type %s is not supported.".formatted(

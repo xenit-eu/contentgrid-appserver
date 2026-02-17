@@ -329,7 +329,7 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field(DSL.name("id"), UUID.class), THIJS_ID)
                 .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
                 .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
-                .set(DSL.field(DSL.name("comment"), String.class), "Comment with bar and foo.")
+                .set(DSL.field(DSL.name("comment"), String.class), "Comment with bar and foo, but also Thĳs.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice")))
                 .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
@@ -451,6 +451,23 @@ class JOOQThunkExpressionVisitorTest {
                 .intoSet("name", String.class);
 
         assertEquals(Set.of("alice", "Thĳs"), results);
+    }
+
+    @Test
+    void findNormalizedWithFullTextSearch() {
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                // Actual value in table is "Thĳs", which should be normalized by search to still match this.
+                Scalar.of("Thijs"), Locale.ENGLISH
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoSet("name", String.class);
+        assertEquals(Set.of("Thĳs"), results);
     }
 
     @Test
