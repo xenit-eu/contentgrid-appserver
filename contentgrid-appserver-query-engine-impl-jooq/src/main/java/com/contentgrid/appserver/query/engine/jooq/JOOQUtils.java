@@ -111,7 +111,8 @@ public class JOOQUtils {
 
     @Allow.PlainSQL
     static Condition generateFTSCondition(@NonNull Field<?> left, @NonNull Field<?> right, @NonNull String language) {
-        return DSL.condition("to_tsvector(?, ?) @@ websearch_to_tsquery(?)", DSL.inline(language), left, right);
+        var langParam = DSL.inline(language);
+        return DSL.condition("to_tsvector(?, ?) @@ websearch_to_tsquery(?, ?)", langParam, left, langParam, right);
     }
 
     @Allow.PlainSQL
