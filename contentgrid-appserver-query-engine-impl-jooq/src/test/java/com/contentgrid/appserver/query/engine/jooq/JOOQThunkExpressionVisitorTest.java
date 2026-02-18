@@ -57,6 +57,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -961,6 +962,83 @@ class JOOQThunkExpressionVisitorTest {
     void findIllegalExpression(ThunkExpression<Boolean> expression) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         assertThrows(InvalidThunkExpressionException.class, () -> expression.accept(VISITOR, context));
+    }
+
+    private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
+            "STRING", SymbolicReference.parse("entity.number"),
+            "NUMBER", SymbolicReference.parse("entity.amount"),
+            "BOOLEAN", SymbolicReference.parse("entity.is_paid"),
+            "DATE", SymbolicReference.parse("entity.received"),
+            "DATETIME", SymbolicReference.parse("entity.pay_timestamp"),
+            "UUID", SymbolicReference.parse("entity.id")
+    );
+
+    private static final Map<String, ThunkExpression<?>> IAM_VALUES = Map.of(
+            "STRING", Scalar.of("invoice_1"),
+            "NUMBER", Scalar.of(10),
+            "BOOLEAN", Scalar.of(true),
+            "STRING_ARRAY", new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2"))),
+            "NUMBER_ARRAY", new ListValue(List.of(Scalar.of(10), Scalar.of(20))),
+            "BOOLEAN_ARRAY", new ListValue(List.of(Scalar.of(true), Scalar.of(false))),
+            "EMPTY_ARRAY", new ListValue(List.of())
+    );
+
+    static Stream<Arguments> incompatibleEqualsExpressions() {
+        var streamBuilder = Stream.<Arguments>builder();
+        for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
+            for (var valueType : IAM_VALUES.keySet()) {
+                if (!attributeType.equals(valueType)) {
+                    streamBuilder.add(Arguments.argumentSet("%s = %s".formatted(attributeType, valueType),
+                            Comparison.areEqual(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
+                }
+            }
+        }
+        return streamBuilder.build();
+    }
+
+    static Stream<Arguments> incompatibleLessThanExpressions() {
+        var streamBuilder = Stream.<Arguments>builder();
+        for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
+            for (var valueType : IAM_VALUES.keySet()) {
+                if (!attributeType.equals(valueType) || Set.of("STRING", "BOOLEAN").contains(attributeType)) {
+                    // type mismatch or not sortable
+                    streamBuilder.add(Arguments.argumentSet("%s < %s".formatted(attributeType, valueType),
+                            Comparison.less(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
+                }
+            }
+        }
+        return streamBuilder.build();
+    }
+
+    static Stream<Arguments> incompatibleInExpressions() {
+        var streamBuilder = Stream.<Arguments>builder();
+        for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
+            for (var valueType : IAM_VALUES.keySet()) {
+                if (!valueType.equals(attributeType + "_ARRAY")) {
+                    streamBuilder.add(Arguments.argumentSet("%s in %s".formatted(attributeType, valueType),
+                            Comparison.in(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
+                }
+            }
+        }
+        return streamBuilder.build();
+    }
+
+    static Stream<Arguments> incompatibleExpressions() {
+        return Stream.concat(
+                Stream.concat(
+                        incompatibleEqualsExpressions(),
+                        incompatibleLessThanExpressions()
+                ),
+                incompatibleInExpressions()
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("incompatibleExpressions")
+    void findExpressionWithFaultyIamConfig(ThunkExpression<Boolean> expression) {
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var condition = expression.accept(VISITOR, context);
+        assertEquals(DSL.falseCondition(), condition);
     }
 }
 
