@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,6 +39,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jooq.Condition;
+import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
@@ -48,6 +50,17 @@ import static java.util.Locale.ENGLISH;
 
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQContext> {
+
+    private static final List<Predicate<DataType<?>>> DATATYPES = List.of(
+            DataType::isString, DataType::isNumeric, DataType::isBoolean, DataType::isUUID,
+            DataType::isTime, DataType::isTimeWithTimeZone, DataType::isTimestamp,
+            DataType::isTimestampWithTimeZone, DataType::isDate, DataType::isInterval,
+            DataType::isBinary
+    );
+    private static final List<Predicate<DataType<?>>> SORTABLE_DATATYPES = List.of(
+            DataType::isNumeric, DataType::isUUID, DataType::isTime, DataType::isTimeWithTimeZone,
+            DataType::isTimestamp, DataType::isTimestampWithTimeZone, DataType::isDate, DataType::isInterval
+    );
 
     @Override
     public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
@@ -69,7 +82,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (left.getDataType().isString() || right.getDataType().isString()) {
+                if (!sameType(left, right)) {
+                    yield DSL.falseCondition();
+                }
+                if (left.getDataType().isString()) {
                     left = JOOQUtils.normalize(left);
                     right = JOOQUtils.normalize(right);
                 }
@@ -79,7 +95,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (left.getDataType().isString() || right.getDataType().isString()) {
+                if (!sameType(left, right)) {
+                    yield DSL.falseCondition();
+                }
+                if (left.getDataType().isString()) {
                     left = JOOQUtils.normalize(left);
                     right = JOOQUtils.normalize(right);
                 }
@@ -89,35 +108,58 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (!sortableType(left, right)) {
+                    yield DSL.falseCondition();
+                }
                 yield ((Field<Object>) left).greaterThan((Field<Object>) right);
             }
             case GREATER_THAN_OR_EQUAL_TO -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (!sortableType(left, right)) {
+                    yield DSL.falseCondition();
+                }
                 yield ((Field<Object>) left).greaterOrEqual((Field<Object>) right);
             }
             case LESS_THAN -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (!sortableType(left, right)) {
+                    yield DSL.falseCondition();
+                }
                 yield ((Field<Object>) left).lessThan((Field<Object>) right);
             }
             case LESS_THEN_OR_EQUAL_TO -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (!sortableType(left, right)) {
+                    yield DSL.falseCondition();
+                }
                 yield ((Field<Object>) left).lessOrEqual((Field<Object>) right);
             }
             case IN -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
-                var right = (Array) functionExpression.getTerms().getLast().accept(this, context);
-                if (left.getDataType().isString()) {
-                    left = JOOQUtils.normalize(left);
-                    // right side is already normalized in the visit function if needed
+                var right = functionExpression.getTerms().getLast().accept(this, context);
+                if (right instanceof Array<?> array) {
+                    var leftFinal = left; // final for lambda
+                    if (array.$elements().isEmpty() || array.$elements().stream()
+                            .anyMatch(field -> !sameType(leftFinal, field))) {
+                        // Empty or type mismatch -> always false
+                        yield DSL.falseCondition();
+                    }
+                    if (left.getDataType().isString()) {
+                        left = JOOQUtils.normalize(left);
+                        // right side is already normalized in the visit function if needed
+                    }
+                    yield ((Field<Object>) left).eq(DSL.any(array));
+                } else {
+                    // Non-array -> always false
+                    yield DSL.falseCondition();
                 }
-                yield left.eq(DSL.any(right));
             }
             case AND -> {
                 yield DSL.and(functionExpression.getTerms().stream()
@@ -128,7 +170,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
-                            throw new InvalidThunkExpressionException("Terms should be booleans");
+                            return DSL.falseCondition();
                         })
                         .toList());
             }
@@ -141,7 +183,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
-                            throw new InvalidThunkExpressionException("Terms should be booleans");
+                            return DSL.falseCondition();
                         })
                         .toList());
             }
@@ -153,7 +195,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 } else if (field.getDataType().isBoolean()) {
                     yield DSL.condition(DSL.not((Field<Boolean>) field));
                 }
-                throw new InvalidThunkExpressionException("Term should be a boolean");
+                yield DSL.falseCondition();
             }
             case PLUS -> {
                 assertTwoTerms(functionExpression.getTerms());
@@ -206,7 +248,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
                         var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
                         if (!left.getDataType().isString() || !right.getDataType().isString()) {
-                            throw new InvalidThunkExpressionException("Terms should be strings");
+                            yield DSL.falseCondition();
                         }
                         var leftField = JOOQUtils.prefixSearchNormalize(left);
                         var rightField = JOOQUtils.prefixSearchNormalize(right);
@@ -217,7 +259,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
 
                         if (!left.getDataType().isString() || !right.getDataType().isString()) {
-                            throw new InvalidThunkExpressionException("Terms should be strings");
+                            yield DSL.falseCondition();
                         }
 
                         var leftField = JOOQUtils.prefixSearchNormalize(left);
@@ -253,6 +295,20 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (terms.size() != 2) {
             throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
         }
+    }
+
+    private static boolean sameType(Field<?> left, Field<?> right) {
+        if (Objects.equals(left.getDataType(), right.getDataType())) {
+            return true;
+        } else {
+            return DATATYPES.stream().anyMatch(predicate ->
+                    predicate.test(left.getDataType()) && predicate.test(right.getDataType()));
+        }
+    }
+
+    private static boolean sortableType(Field<?> left, Field<?> right) {
+        return SORTABLE_DATATYPES.stream().anyMatch(predicate ->
+                predicate.test(left.getDataType()) && predicate.test(right.getDataType()));
     }
 
     @Override
