@@ -28,8 +28,10 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -426,15 +428,16 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         if (tail.isEmpty()) {
             throw new InvalidThunkExpressionException("Path can not end in a relation");
         }
+
+        String variableName = null;
+
         // check variable access for *-to-many relations
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
             var pathElement = tail.getFirst();
             if (pathElement instanceof VariablePathElement variable) {
-                // add variable to context and check whether variable is unique
-                if (!context.addVariable(variable)) {
-                    throw new InvalidThunkExpressionException(
-                            "Variable %s is not unique".formatted(variable.getVariable().getName()));
-                }
+                // Validate and track the variable
+                context.addVariable(variable);
+                variableName = variable.getVariable().getName();
                 tail = tail.subList(1, tail.size());
             } else {
                 throw new InvalidThunkExpressionException(
@@ -445,10 +448,21 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
         // Track the relation in the path for alias reuse
         context.pushRelation(relationName);
+
+        // For collection relations with variables, also add the variable to the path
+        // This ensures different variables create different cache entries
+        if (variableName != null && !variableName.equals("_")) {
+            context.pushRelation(variableName);
+        }
+
         try {
             context.getJoinCollection().addRelation(context.getApplication(), relation, context.getCurrentRelationPath());
             return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
         } finally {
+            // Pop variable from path if it was added
+            if (variableName != null && !variableName.equals("_")) {
+                context.popRelation();
+            }
             context.popRelation();
         }
     }
@@ -506,7 +520,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         JoinCollection joinCollection;
 
         @Getter(AccessLevel.NONE)
-        Set<String> variables = new HashSet<>();
+        Map<String, List<String>> variableToRelationPath = new HashMap<>();
 
         @Getter(AccessLevel.NONE)
         List<String> relationPath = new ArrayList<>();
@@ -525,11 +539,28 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             return joinCollection.getRootAlias();
         }
 
-        private boolean addVariable(VariablePathElement variable) {
-            if (variable.getVariable().getName().equals("_")) {
-                return true;
+        private void addVariable(VariablePathElement variable) {
+            String variableName = variable.getVariable().getName();
+
+            // Underscore variable is always allowed and never tracked
+            if (variableName.equals("_")) {
+                return;
+            }
+
+            // Check if this variable has been used before
+            if (variableToRelationPath.containsKey(variableName)) {
+                // Variable already exists - verify it's used with the same relation path
+                List<String> existingPath = variableToRelationPath.get(variableName);
+                if (!existingPath.equals(relationPath)) {
+                    throw new InvalidThunkExpressionException(
+                            "Variable %s cannot be reused across different relation paths. "
+                            + "First used at path %s, now used at path %s"
+                            .formatted(variableName, existingPath, relationPath));
+                }
+                // Same path - OK to reuse
             } else {
-                return variables.add(variable.getVariable().getName());
+                // New variable - record its relation path
+                variableToRelationPath.put(variableName, new ArrayList<>(relationPath));
             }
         }
 

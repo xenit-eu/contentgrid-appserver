@@ -68,12 +68,8 @@ public class JoinCollection {
         }
 
         // Check if we can reuse an existing alias for this path
-        // Only cache one-to-one and many-to-one relations (for step 1)
-        boolean isCacheable = (relation instanceof SourceOneToOneRelation
-                || relation instanceof TargetOneToOneRelation
-                || relation instanceof ManyToOneRelation);
-
-        if (isCacheable && pathAliasCache.containsKey(relationPath)) {
+        // All relation types can be cached if they have a path identifier
+        if (pathAliasCache.containsKey(relationPath)) {
             // Reuse existing alias - don't add new joins
             var cached = pathAliasCache.get(relationPath);
             this.currentTable = cached.getTable();
@@ -119,10 +115,8 @@ public class JoinCollection {
             }
         }
 
-        // Cache the alias for reuse if applicable
-        if (isCacheable) {
-            pathAliasCache.put(new ArrayList<>(relationPath), new CachedAlias(currentTable, currentAlias));
-        }
+        // Cache the alias for reuse
+        pathAliasCache.put(new ArrayList<>(relationPath), new CachedAlias(currentTable, currentAlias));
     }
 
     public void resetCurrentTable() {
