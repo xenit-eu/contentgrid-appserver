@@ -121,6 +121,31 @@ class JOOQThunkExpressionVisitorTest {
                     .build())
             .build();
 
+    private static final Entity FRENCH_PERSON = Entity.builder()
+            .name(EntityName.of("french-person"))
+            .table(TableName.of("french-person"))
+            .pathSegment(PathSegmentName.of("french-persons"))
+            .linkName(LinkName.of("french-persons"))
+            .attribute(PERSON_NAME)
+            .attribute(PERSON_VAT)
+            .attribute(PERSON_COMMENT)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .attribute(PERSON_VAT)
+                    .name(FilterName.of("vat"))
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.PREFIX)
+                    .attribute(PERSON_NAME)
+                    .name(FilterName.of("name~prefix"))
+                    .build())
+            .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                    .attribute(PERSON_COMMENT)
+                    .locale(Locale.FRENCH)
+                    .name(FilterName.of("comment~fts"))
+                    .build())
+            .build();
+
     private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
             .name(AttributeName.of("number"))
             .column(ColumnName.of("number"))
@@ -274,6 +299,7 @@ class JOOQThunkExpressionVisitorTest {
             .name(ApplicationName.of("invoicing-application"))
             .entity(INVOICE)
             .entity(PERSON)
+            .entity(FRENCH_PERSON)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
@@ -285,6 +311,7 @@ class JOOQThunkExpressionVisitorTest {
     private static final UUID BOB_ID = UUID_GENERATOR.generate();
     private static final UUID JOHN_ID = UUID_GENERATOR.generate();
     private static final UUID THIJS_ID = UUID_GENERATOR.generate();
+    private static final UUID JACQUES_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
 
@@ -330,6 +357,12 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
                 .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
                 .set(DSL.field(DSL.name("comment"), String.class), "Comment with bar and foo, but also Thĳs.")
+                .execute();
+        dslContext.insertInto(DSL.table(DSL.name("french-person")))
+                .set(DSL.field(DSL.name("id"), UUID.class), JACQUES_ID)
+                .set(DSL.field(DSL.name("name"), String.class), "jacques")
+                .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
+                .set(DSL.field(DSL.name("comment"), String.class), "Je ne suis pas une baguette.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice")))
                 .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
@@ -468,6 +501,22 @@ class JOOQThunkExpressionVisitorTest {
                 .fetch()
                 .intoSet("name", String.class);
         assertEquals(Set.of("Thĳs"), results);
+    }
+
+    @Test
+    void findFullTextSearchInFrench() {
+        ThunkExpression<?> expression = StringComparison.contentGridFullTextSearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
+                Scalar.of("baguette"), Locale.FRENCH
+        );
+        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, FRENCH_PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = expression.accept(VISITOR, context);
+        var results = dslContext.selectFrom(table)
+                .where((Condition) condition)
+                .fetch()
+                .intoSet("name", String.class);
+        assertEquals(Set.of("jacques"), results);
     }
 
     @Test
