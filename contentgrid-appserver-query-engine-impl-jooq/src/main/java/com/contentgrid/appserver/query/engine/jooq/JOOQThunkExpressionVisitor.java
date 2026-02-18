@@ -29,12 +29,11 @@ import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -297,7 +296,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         };
 
         if (result instanceof Condition condition) {
-            return context.getJoinCollection().collect(condition);
+            return context.getJoinCollection().collect(condition); // TODO: only collect last condition
         }
         return result;
     }
@@ -382,7 +381,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         Optional<Relation> maybeRelation = context.getApplication().getRelationForEntity(entity, RelationName.of(name));
         if (maybeRelation.isPresent()) {
             var relation = maybeRelation.get();
-            return handleRelation(relation, name, tail, context);
+            return handleRelation(relation, tail, context);
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
@@ -423,13 +422,14 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    private Field<?> handleRelation(@NonNull Relation relation, @NonNull String relationName,
-            @NonNull List<PathElement> tail, @NonNull JOOQContext context) {
+    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<PathElement> tail,
+            @NonNull JOOQContext context) {
         if (tail.isEmpty()) {
             throw new InvalidThunkExpressionException("Path can not end in a relation");
         }
 
-        String variableName = null;
+        // Track the relation in the path for alias reuse
+        context.pushRelation(relation);
 
         // check variable access for *-to-many relations
         if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
@@ -437,7 +437,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             if (pathElement instanceof VariablePathElement variable) {
                 // Validate and track the variable
                 context.addVariable(variable);
-                variableName = variable.getVariable().getName();
                 tail = tail.subList(1, tail.size());
             } else {
                 throw new InvalidThunkExpressionException(
@@ -446,23 +445,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             }
         }
 
-        // Track the relation in the path for alias reuse
-        context.pushRelation(relationName);
-
-        // For collection relations with variables, also add the variable to the path
-        // This ensures different variables create different cache entries
-        if (variableName != null && !variableName.equals("_")) {
-            context.pushRelation(variableName);
-        }
-
         try {
             context.getJoinCollection().addRelation(context.getApplication(), relation, context.getCurrentRelationPath());
             return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
         } finally {
-            // Pop variable from path if it was added
-            if (variableName != null && !variableName.equals("_")) {
-                context.popRelation();
-            }
             context.popRelation();
         }
     }
@@ -506,13 +492,12 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
     }
 
+    @Value
     public static class JOOQContext {
 
         @NonNull
-        @Getter
         Application application;
         @NonNull
-        @Getter
         Entity entity;
 
         @Getter(AccessLevel.PRIVATE)
@@ -520,10 +505,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         JoinCollection joinCollection;
 
         @Getter(AccessLevel.NONE)
-        Map<String, List<String>> variableToRelationPath = new HashMap<>();
+        Map<String, List<PathElement>> variableToRelationPath = new HashMap<>();
 
         @Getter(AccessLevel.NONE)
-        List<String> relationPath = new ArrayList<>();
+        List<PathElement> relationPath = new ArrayList<>();
 
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this.application = application;
@@ -542,19 +527,19 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         private void addVariable(VariablePathElement variable) {
             String variableName = variable.getVariable().getName();
 
-            // Underscore variable is always allowed and never tracked
+            // Unnamed variable is always distinct from any other variable
             if (variableName.equals("_")) {
+                relationPath.add(SymbolicReference.pathVar(UUID.randomUUID().toString()));
                 return;
             }
 
             // Check if this variable has been used before
             if (variableToRelationPath.containsKey(variableName)) {
                 // Variable already exists - verify it's used with the same relation path
-                List<String> existingPath = variableToRelationPath.get(variableName);
+                var existingPath = variableToRelationPath.get(variableName);
                 if (!existingPath.equals(relationPath)) {
                     throw new InvalidThunkExpressionException(
-                            "Variable %s cannot be reused across different relation paths. "
-                            + "First used at path %s, now used at path %s"
+                            "Variable %s cannot be reused across different relation paths. First used at path %s, now used at path %s"
                             .formatted(variableName, existingPath, relationPath));
                 }
                 // Same path - OK to reuse
@@ -562,19 +547,22 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 // New variable - record its relation path
                 variableToRelationPath.put(variableName, new ArrayList<>(relationPath));
             }
+
+            relationPath.add(variable);
         }
 
-        public void pushRelation(String relationName) {
-            relationPath.add(relationName);
+        public void pushRelation(Relation relation) {
+            relationPath.add(SymbolicReference.path(relation.getSourceEndPoint().getName().getValue()));
         }
 
         public void popRelation() {
-            if (!relationPath.isEmpty()) {
-                relationPath.remove(relationPath.size() - 1);
+            var element = relationPath.removeLast();
+            if (element instanceof VariablePathElement) {
+                relationPath.removeLast();
             }
         }
 
-        public List<String> getCurrentRelationPath() {
+        public List<PathElement> getCurrentRelationPath() {
             return new ArrayList<>(relationPath);
         }
     }

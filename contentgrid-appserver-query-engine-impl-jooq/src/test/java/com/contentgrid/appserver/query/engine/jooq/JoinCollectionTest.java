@@ -19,6 +19,8 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.thunx.predicates.model.SymbolicReference;
+import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -190,6 +192,13 @@ class JoinCollectionTest {
         );
     }
 
+    static void pushRelation(List<PathElement> path, Relation relation) {
+        path.add(SymbolicReference.path(relation.getSourceEndPoint().getName().getValue()));
+        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
+            path.add(SymbolicReference.pathVar(UUID.randomUUID().toString()));
+        }
+    }
+
     @ParameterizedTest
     @MethodSource("relations")
     void collectTest(Entity entity, List<Relation> relations, UnaryOperator<Condition> operator) {
@@ -201,9 +210,9 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        List<String> path = new ArrayList<>();
+        List<PathElement> path = new ArrayList<>();
         for (var relation : relations) {
-            path.add(relation.getSourceEndPoint().getName().getValue());
+            pushRelation(path, relation);
             joins.addRelation(APPLICATION, relation, path);
         }
         // currentTable should be the target table of the last relation
@@ -239,9 +248,9 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        List<String> path = new ArrayList<>();
+        List<PathElement> path = new ArrayList<>();
         for (var relation : relations) {
-            path.add(relation.getSourceEndPoint().getName().getValue());
+            pushRelation(path, relation);
             joins.addRelation(APPLICATION, relation, path);
         }
         // currentTable should be the target table of the last relation
@@ -272,9 +281,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer")); // left term
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("customer"))); // left term
         joins.resetCurrentTable();
-        joins.addRelation(APPLICATION, INVOICE_PRODUCTS, List.of("products")); // right term
+        joins.addRelation(APPLICATION, INVOICE_PRODUCTS, List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("x"))); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("person")).as("p1"))
@@ -300,9 +309,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice")); // left term
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of(SymbolicReference.path("previous_invoice"))); // left term
         joins.resetCurrentTable();
-        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice")); // right term
+        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of(SymbolicReference.path("next_invoice"))); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("invoice")).as("i1"))
@@ -323,9 +332,11 @@ class JoinCollectionTest {
     @Test
     void addRelationTest_illegalRelation() {
         var joins = new JoinCollection(INVOICE.getTable());
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, PERSON_INVOICES, List.of("invoices")));
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice")));
+        assertThrows(IllegalArgumentException.class, () ->
+                joins.addRelation(APPLICATION, PERSON_INVOICES, List.of(SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"))));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("customer")));
+        assertThrows(IllegalArgumentException.class, () ->
+                joins.addRelation(APPLICATION, INVOICE_NEXT, List.of(SymbolicReference.path("next_invoice"))));
     }
 
     @Test
@@ -336,11 +347,11 @@ class JoinCollectionTest {
         var condition = DSL.condition(true);
 
         // First reference to entity.customer - should create a join
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("customer")));
         joins.resetCurrentTable();
 
         // Second reference to entity.customer - should reuse the same alias, no new join
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("customer")));
 
         // Expected: only one join to person table, not two
         var expected = DSL.exists(DSL.selectOne()
@@ -362,11 +373,11 @@ class JoinCollectionTest {
         var condition = DSL.condition(true);
 
         // Reference to entity.previous_invoice - should create first join
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of(SymbolicReference.path("previous_invoice")));
         joins.resetCurrentTable();
 
         // Reference to entity.next_invoice - should create second join (different relation)
-        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice"));
+        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of(SymbolicReference.path("next_invoice")));
 
         // Expected: two separate joins because these are different relations
         var expected = DSL.exists(DSL.selectOne()
@@ -392,13 +403,13 @@ class JoinCollectionTest {
         var condition = DSL.condition(true);
 
         // First reference to entity.previous_invoice.customer
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("previous_invoice", "customer"));
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of(SymbolicReference.path("previous_invoice")));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer")));
         joins.resetCurrentTable();
 
         // Second reference to entity.previous_invoice.customer - should reuse both aliases
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("previous_invoice", "customer"));
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of(SymbolicReference.path("previous_invoice")));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer")));
 
         // Expected: only two joins (previous_invoice -> invoice, then invoice -> person), not four
         var expected = DSL.exists(DSL.selectOne()

@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.SourceColumnJoin;
 import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.TargetColumnJoin;
+import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,7 @@ public class JoinCollection {
     private final List<Join> joins = new ArrayList<>();
 
     @Getter(AccessLevel.NONE)
-    private final Map<List<String>, CachedAlias> pathAliasCache = new HashMap<>();
+    private final Map<List<PathElement>, CachedAlias> pathAliasCache = new HashMap<>();
 
     public JoinCollection(@NonNull TableName rootTable) {
         this.rootTable = rootTable;
@@ -59,7 +60,7 @@ public class JoinCollection {
         return this.currentAlias;
     }
 
-    public void addRelation(Application application, Relation relation, List<String> relationPath) {
+    public void addRelation(Application application, Relation relation, List<PathElement> relationPath) {
         var sourceEntity = application.getRelationSourceEntity(relation);
         var targetEntity = application.getRelationTargetEntity(relation);
         if (!sourceEntity.getTable().equals(currentTable)) {
