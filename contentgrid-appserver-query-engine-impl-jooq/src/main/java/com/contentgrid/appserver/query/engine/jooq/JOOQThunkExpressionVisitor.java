@@ -27,6 +27,7 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElem
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -379,7 +380,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         Optional<Relation> maybeRelation = context.getApplication().getRelationForEntity(entity, RelationName.of(name));
         if (maybeRelation.isPresent()) {
             var relation = maybeRelation.get();
-            return handleRelation(relation, tail, context);
+            return handleRelation(relation, name, tail, context);
         }
 
         // pathElement seems to reference a non-existing attribute/relation on the entity
@@ -420,8 +421,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
     }
 
-    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<PathElement> tail,
-            @NonNull JOOQContext context) {
+    private Field<?> handleRelation(@NonNull Relation relation, @NonNull String relationName,
+            @NonNull List<PathElement> tail, @NonNull JOOQContext context) {
         if (tail.isEmpty()) {
             throw new InvalidThunkExpressionException("Path can not end in a relation");
         }
@@ -441,8 +442,15 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                                 .formatted(pathElement, pathElement.getClass().getSimpleName()));
             }
         }
-        context.getJoinCollection().addRelation(context.getApplication(), relation);
-        return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
+
+        // Track the relation in the path for alias reuse
+        context.pushRelation(relationName);
+        try {
+            context.getJoinCollection().addRelation(context.getApplication(), relation, context.getCurrentRelationPath());
+            return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
+        } finally {
+            context.popRelation();
+        }
     }
 
     @Override
@@ -484,12 +492,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
     }
 
-    @Value
     public static class JOOQContext {
 
         @NonNull
+        @Getter
         Application application;
         @NonNull
+        @Getter
         Entity entity;
 
         @Getter(AccessLevel.PRIVATE)
@@ -498,6 +507,9 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
         @Getter(AccessLevel.NONE)
         Set<String> variables = new HashSet<>();
+
+        @Getter(AccessLevel.NONE)
+        List<String> relationPath = new ArrayList<>();
 
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this.application = application;
@@ -519,6 +531,20 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             } else {
                 return variables.add(variable.getVariable().getName());
             }
+        }
+
+        public void pushRelation(String relationName) {
+            relationPath.add(relationName);
+        }
+
+        public void popRelation() {
+            if (!relationPath.isEmpty()) {
+                relationPath.remove(relationPath.size() - 1);
+            }
+        }
+
+        public List<String> getCurrentRelationPath() {
+            return new ArrayList<>(relationPath);
         }
     }
 }

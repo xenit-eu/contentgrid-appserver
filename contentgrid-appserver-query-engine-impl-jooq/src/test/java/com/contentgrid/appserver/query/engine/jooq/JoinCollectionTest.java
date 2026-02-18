@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
@@ -200,7 +201,11 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        relations.forEach(relation -> joins.addRelation(APPLICATION, relation));
+        List<String> path = new ArrayList<>();
+        for (var relation : relations) {
+            path.add(relation.getSourceEndPoint().getName().getValue());
+            joins.addRelation(APPLICATION, relation, path);
+        }
         // currentTable should be the target table of the last relation
         if (!relations.isEmpty()) {
             assertEquals(APPLICATION.getRelationTargetEntity(relations.getLast()).getTable(), joins.getCurrentTable());
@@ -234,7 +239,11 @@ class JoinCollectionTest {
         assertEquals(joins.getRootTable(), joins.getCurrentTable());
         assertEquals(joins.getRootAlias(), joins.getCurrentAlias());
 
-        relations.forEach(relation -> joins.addRelation(APPLICATION, relation));
+        List<String> path = new ArrayList<>();
+        for (var relation : relations) {
+            path.add(relation.getSourceEndPoint().getName().getValue());
+            joins.addRelation(APPLICATION, relation, path);
+        }
         // currentTable should be the target table of the last relation
         if (!relations.isEmpty()) {
             assertEquals(APPLICATION.getRelationTargetEntity(relations.getLast()).getTable(), joins.getCurrentTable());
@@ -263,9 +272,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER); // left term
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer")); // left term
         joins.resetCurrentTable();
-        joins.addRelation(APPLICATION, INVOICE_PRODUCTS); // right term
+        joins.addRelation(APPLICATION, INVOICE_PRODUCTS, List.of("products")); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("person")).as("p1"))
@@ -291,9 +300,9 @@ class JoinCollectionTest {
         var joins = new JoinCollection(INVOICE.getTable());
         var condition = DSL.condition(true);
 
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS); // left term
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice")); // left term
         joins.resetCurrentTable();
-        joins.addRelation(APPLICATION, INVOICE_NEXT); // right term
+        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice")); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("invoice")).as("i1"))
@@ -314,8 +323,96 @@ class JoinCollectionTest {
     @Test
     void addRelationTest_illegalRelation() {
         var joins = new JoinCollection(INVOICE.getTable());
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, PERSON_INVOICES));
-        joins.addRelation(APPLICATION, INVOICE_CUSTOMER);
-        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, INVOICE_NEXT));
+        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, PERSON_INVOICES, List.of("invoices")));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
+        assertThrows(IllegalArgumentException.class, () -> joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice")));
+    }
+
+    @Test
+    void aliasReuse_sameRelationPath() {
+        // Tests that when the same relation path is used multiple times within a single expression,
+        // the alias is reused and no duplicate join is created
+        var joins = new JoinCollection(INVOICE.getTable());
+        var condition = DSL.condition(true);
+
+        // First reference to entity.customer - should create a join
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
+        joins.resetCurrentTable();
+
+        // Second reference to entity.customer - should reuse the same alias, no new join
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("customer"));
+
+        // Expected: only one join to person table, not two
+        var expected = DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name("person")).as("p1"))
+                .where(DSL.and(
+                        DSL.field(DSL.name("p1", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i0", "customer"), UUID.class)),
+                        condition
+                )));
+
+        var result = joins.collect(condition);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void aliasReuse_differentRelationPaths() {
+        // Tests that different relation paths create separate joins
+        var joins = new JoinCollection(INVOICE.getTable());
+        var condition = DSL.condition(true);
+
+        // Reference to entity.previous_invoice - should create first join
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
+        joins.resetCurrentTable();
+
+        // Reference to entity.next_invoice - should create second join (different relation)
+        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of("next_invoice"));
+
+        // Expected: two separate joins because these are different relations
+        var expected = DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name("invoice")).as("i1"))
+                .join(DSL.table(DSL.name("invoice")).as("i2"))
+                .on(DSL.field(DSL.name("i2", "previous_invoice"), UUID.class)
+                        .eq(DSL.field(DSL.name("i0", "id"), UUID.class)))
+                .where(DSL.and(
+                        DSL.field(DSL.name("i1", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i0", "previous_invoice"), UUID.class)),
+                        condition
+                )));
+
+        var result = joins.collect(condition);
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void aliasReuse_nestedRelationPath() {
+        // Tests that nested relation paths (e.g., entity.previous_invoice.customer)
+        // can be reused when accessed multiple times
+        var joins = new JoinCollection(INVOICE.getTable());
+        var condition = DSL.condition(true);
+
+        // First reference to entity.previous_invoice.customer
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("previous_invoice", "customer"));
+        joins.resetCurrentTable();
+
+        // Second reference to entity.previous_invoice.customer - should reuse both aliases
+        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of("previous_invoice"));
+        joins.addRelation(APPLICATION, INVOICE_CUSTOMER, List.of("previous_invoice", "customer"));
+
+        // Expected: only two joins (previous_invoice -> invoice, then invoice -> person), not four
+        var expected = DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name("invoice")).as("i1"))
+                .join(DSL.table(DSL.name("person")).as("p2"))
+                .on(DSL.field(DSL.name("p2", "id"), UUID.class)
+                        .eq(DSL.field(DSL.name("i1", "customer"), UUID.class)))
+                .where(DSL.and(
+                        DSL.field(DSL.name("i1", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i0", "previous_invoice"), UUID.class)),
+                        condition
+                )));
+
+        var result = joins.collect(condition);
+        assertEquals(expected, result);
     }
 }

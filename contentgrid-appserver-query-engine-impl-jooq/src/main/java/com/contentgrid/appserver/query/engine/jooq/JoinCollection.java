@@ -13,12 +13,15 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.SourceColumnJoin;
 import com.contentgrid.appserver.query.engine.jooq.JoinCollection.Join.TargetColumnJoin;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.SelectJoinStep;
@@ -39,6 +42,9 @@ public class JoinCollection {
     @Getter(AccessLevel.NONE)
     private final List<Join> joins = new ArrayList<>();
 
+    @Getter(AccessLevel.NONE)
+    private final Map<List<String>, CachedAlias> pathAliasCache = new HashMap<>();
+
     public JoinCollection(@NonNull TableName rootTable) {
         this.rootTable = rootTable;
         this.rootAlias = generateAlias(rootTable);
@@ -53,13 +59,28 @@ public class JoinCollection {
         return this.currentAlias;
     }
 
-    public void addRelation(Application application, Relation relation) {
+    public void addRelation(Application application, Relation relation, List<String> relationPath) {
         var sourceEntity = application.getRelationSourceEntity(relation);
         var targetEntity = application.getRelationTargetEntity(relation);
         if (!sourceEntity.getTable().equals(currentTable)) {
             throw new IllegalArgumentException("Relation source table %s does not match table %s"
                     .formatted(sourceEntity.getTable(), currentTable));
         }
+
+        // Check if we can reuse an existing alias for this path
+        // Only cache one-to-one and many-to-one relations (for step 1)
+        boolean isCacheable = (relation instanceof SourceOneToOneRelation
+                || relation instanceof TargetOneToOneRelation
+                || relation instanceof ManyToOneRelation);
+
+        if (isCacheable && pathAliasCache.containsKey(relationPath)) {
+            // Reuse existing alias - don't add new joins
+            var cached = pathAliasCache.get(relationPath);
+            this.currentTable = cached.getTable();
+            this.currentAlias = cached.getAlias();
+            return;
+        }
+
         var sourceAlias = currentAlias;
         switch (relation) {
             case SourceOneToOneRelation oneToOneRelation -> {
@@ -97,6 +118,11 @@ public class JoinCollection {
                         manyToManyRelation.getTargetReference()));
             }
         }
+
+        // Cache the alias for reuse if applicable
+        if (isCacheable) {
+            pathAliasCache.put(new ArrayList<>(relationPath), new CachedAlias(currentTable, currentAlias));
+        }
     }
 
     public void resetCurrentTable() {
@@ -118,6 +144,7 @@ public class JoinCollection {
         }
 
         joins.clear();
+        pathAliasCache.clear();
         this.resetCurrentTable();
 
         if (selectBuilder == null || where == null) {
@@ -172,5 +199,13 @@ public class JoinCollection {
                         .eq((Field<UUID>) JOOQUtils.resolveField(getSourceAlias(), targetReference, targetPrimaryKey.getType(), false));
             }
         }
+    }
+
+    @Value
+    private static class CachedAlias {
+        @NonNull
+        TableName table;
+        @NonNull
+        TableName alias;
     }
 }
