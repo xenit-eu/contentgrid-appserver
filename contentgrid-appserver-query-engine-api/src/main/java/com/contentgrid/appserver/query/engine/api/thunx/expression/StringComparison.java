@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
-import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Locale;
