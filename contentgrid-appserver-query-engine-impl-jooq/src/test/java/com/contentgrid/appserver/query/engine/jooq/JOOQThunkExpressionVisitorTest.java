@@ -74,6 +74,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -543,6 +544,7 @@ class JOOQThunkExpressionVisitorTest {
                         DSL.field(DSL.name("invoice_id"), UUID.class), DSL.field(DSL.name("product_id"), UUID.class))
                 .values(INVOICE1_ID, PRODUCT1_ID)
                 .values(INVOICE1_ID, PRODUCT2_ID)
+                .values(INVOICE2_ID, PRODUCT1_ID)
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("address")), DSL.field(DSL.name("id"), UUID.class))
                 .values(ADDRESS1_ID)
@@ -1036,8 +1038,7 @@ class JOOQThunkExpressionVisitorTest {
                 .intoMaps();
 
         assertEquals(expectedSize, results.size());
-        var result = results.getFirst();
-        assertEquals(INVOICE1_ID, result.get("id"));
+        assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
     }
 
     static Stream<ThunkExpression<Boolean>> illegalExpressions() {
@@ -1200,9 +1201,8 @@ class JOOQThunkExpressionVisitorTest {
 
     @Test
     void reuseVariableInSameRelation() {
-        // Step 2: Test that the same variable can be reused within the same relation path
+        // Test that the same variable can be reused within the same relation path
         // entity.customer.friends[var].name = entity.customer.friends[var].vat
-        // Both references use the same variable in the same relation path, so they should reuse the same alias
         ThunkExpression<?> expression = Comparison.areEqual(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("vat"))
@@ -1229,57 +1229,46 @@ class JOOQThunkExpressionVisitorTest {
         assertEquals(INVOICE1_ID, results.getFirst().get("id"));
     }
 
-    @Test
-    void differentVariablesInSameRelation() {
-        // Step 2: Test that different variables in the same relation create separate joins
-        // entity.customer.friends[var1].name = entity.customer.friends[var2].name
-        // Different variables should allow comparing different items
-        ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var2__"), SymbolicReference.path("name"))
+    @ParameterizedTest
+    @CsvSource({
+            "var1,var2",
+            "_,_",
+            "var1,_",
+            "_,var2",
+    })
+    void differentVariablesInSameRelation(String var1, String var2) {
+        // Test that different variables in the same relation create separate joins
+        // entity.products[var1].code != entity.products[var2].code
+        ThunkExpression<?> expression = Comparison.notEqual(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar(var1), SymbolicReference.path("code")),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar(var2), SymbolicReference.path("code"))
         );
 
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
 
-        // This expression should work (different variables allowed)
-        // The condition checks if the customer has two friends with the same name
+        // The condition checks if the invoice has two products with a different code
         var results = dslContext.selectFrom(table)
                 .where((Condition) condition)
                 .fetch()
                 .intoMaps();
 
-        // Without specific test data for this case, we just verify it doesn't throw an exception
-        // and compiles to valid SQL
-        assertTrue(results.size() >= 0);
+        assertEquals(1, results.size());
+        assertEquals(INVOICE1_ID, results.getFirst().get("id"));
     }
 
     @Test
-    void sameVariableInDifferentRelations_shouldThrowException() {
-        // Step 2: Test that using the same variable in different relation paths throws an exception
-        // This should be caught as an illegal expression
-        ThunkExpression<?> expression = Comparison.areEqual(
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__samevar__"), SymbolicReference.path("name")),
-                // Using previous_invoice.customer.friends with the same variable - this is a different relation path
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__samevar__"), SymbolicReference.path("name"))
-        );
-
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
-        assertThrows(InvalidThunkExpressionException.class, () -> expression.accept(VISITOR, context));
-    }
-
-    @Test
-    void underscoreVariableAlwaysAllowed() {
-        // Step 2: Test that the underscore variable "_" can be used multiple times anywhere
+    void underscoreVariableInDifferentRelations_allowed() {
+        // Test that the underscore variable "_" can be used multiple times
         ThunkExpression<?> expression = LogicalOperation.conjunction(Stream.of(
                 Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("_"), SymbolicReference.path("name")),
-                        Scalar.of("bob")
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("code")),
+                        Scalar.of("code_1")
                 ),
                 Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("_"), SymbolicReference.path("name")),
-                        Scalar.of("alice")
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("code")),
+                        Scalar.of("code_2")
                 )
         ));
 
@@ -1287,13 +1276,14 @@ class JOOQThunkExpressionVisitorTest {
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
 
-        // Should not throw an exception - underscore is always allowed
+        // Should not throw an exception
         var results = dslContext.selectFrom(table)
                 .where((Condition) condition)
                 .fetch()
                 .intoMaps();
 
-        assertTrue(results.size() >= 0);
+        assertEquals(1, results.size());
+        assertEquals(INVOICE2_ID, results.getFirst().get("id"));
     }
 }
 

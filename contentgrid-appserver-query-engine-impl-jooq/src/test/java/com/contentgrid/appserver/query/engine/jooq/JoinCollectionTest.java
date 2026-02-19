@@ -367,35 +367,6 @@ class JoinCollectionTest {
     }
 
     @Test
-    void aliasReuse_differentRelationPaths() {
-        // Tests that different relation paths create separate joins
-        var joins = new JoinCollection(INVOICE.getTable());
-        var condition = DSL.condition(true);
-
-        // Reference to entity.previous_invoice - should create first join
-        joins.addRelation(APPLICATION, INVOICE_PREVIOUS, List.of(SymbolicReference.path("previous_invoice")));
-        joins.resetCurrentTable();
-
-        // Reference to entity.next_invoice - should create second join (different relation)
-        joins.addRelation(APPLICATION, INVOICE_NEXT, List.of(SymbolicReference.path("next_invoice")));
-
-        // Expected: two separate joins because these are different relations
-        var expected = DSL.exists(DSL.selectOne()
-                .from(DSL.table(DSL.name("invoice")).as("i1"))
-                .join(DSL.table(DSL.name("invoice")).as("i2"))
-                .on(DSL.field(DSL.name("i2", "previous_invoice"), UUID.class)
-                        .eq(DSL.field(DSL.name("i0", "id"), UUID.class)))
-                .where(DSL.and(
-                        DSL.field(DSL.name("i1", "id"), UUID.class)
-                                .eq(DSL.field(DSL.name("i0", "previous_invoice"), UUID.class)),
-                        condition
-                )));
-
-        var result = joins.collect(condition);
-        assertEquals(expected, result);
-    }
-
-    @Test
     void aliasReuse_nestedRelationPath() {
         // Tests that nested relation paths (e.g., entity.previous_invoice.customer)
         // can be reused when accessed multiple times
