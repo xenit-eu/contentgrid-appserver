@@ -16,10 +16,12 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
@@ -28,6 +30,7 @@ import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpo
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -35,7 +38,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
@@ -68,6 +73,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +85,13 @@ class JOOQThunkExpressionVisitorTest {
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
             .column(ColumnName.of("name"))
+            .type(Type.TEXT)
+            .constraint(Constraint.required())
+            .build();
+
+    private static final SimpleAttribute ORDER_ORDER = SimpleAttribute.builder()
+            .name(AttributeName.of("order"))
+            .column(ColumnName.of("order"))
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .build();
@@ -145,6 +158,14 @@ class JOOQThunkExpressionVisitorTest {
                     .locale(Locale.FRENCH)
                     .name(FilterName.of("comment~fts"))
                     .build())
+            .build();
+
+    private static final Entity ORDER = Entity.builder()
+            .name(EntityName.of("order"))
+            .table(TableName.of("order"))
+            .pathSegment(PathSegmentName.of("orders"))
+            .linkName(LinkName.of("orders"))
+            .attribute(ORDER_ORDER)
             .build();
 
     private static final SimpleAttribute INVOICE_NUMBER = SimpleAttribute.builder()
@@ -226,11 +247,19 @@ class JOOQThunkExpressionVisitorTest {
                     .build())
             .build();
 
+    private static final SimpleAttribute INVOICE_VERSION = SimpleAttribute.builder()
+            .name(AttributeName.of("version"))
+            .column(ColumnName.of("version"))
+            .type(Type.LONG)
+            .flag(ETagFlag.INSTANCE)
+            .build();
+
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
             .pathSegment(PathSegmentName.of("invoices"))
             .linkName(LinkName.of("invoices"))
+            .attribute(INVOICE_VERSION)
             .attribute(INVOICE_NUMBER)
             .attribute(INVOICE_AMOUNT)
             .attribute(INVOICE_RECEIVED)
@@ -244,6 +273,54 @@ class JOOQThunkExpressionVisitorTest {
                     .name(FilterName.of("number"))
                     .attribute(INVOICE_NUMBER)
                     .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("invoice_num"))
+                    .propertyPath(PropertyPath.of(INVOICE_NUMBER.getName()))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("amount"))
+                    .propertyPath(PropertyPath.of(INVOICE_AMOUNT.getName()))
+                    .build())
+            .sortableField(SortableField.builder()
+                    .name(SortableName.of("content_length"))
+                    .propertyPath(PropertyPath.of(INVOICE_CONTENT.getName(), AttributeName.of("length")))
+                    .build())
+            .build();
+
+    private static final SimpleAttribute PRODUCT_CODE = SimpleAttribute.builder()
+            .name(AttributeName.of("code"))
+            .column(ColumnName.of("code"))
+            .type(Type.TEXT)
+            .constraint(Constraint.required())
+            .constraint(Constraint.unique())
+            .build();
+
+    private static final SimpleAttribute PRODUCT_DESCRIPTION = SimpleAttribute.builder()
+            .name(AttributeName.of("description"))
+            .column(ColumnName.of("description"))
+            .type(Type.TEXT)
+            .build();
+
+
+    private static final Entity PRODUCT = Entity.builder()
+            .name(EntityName.of("product"))
+            .table(TableName.of("product"))
+            .pathSegment(PathSegmentName.of("products"))
+            .linkName(LinkName.of("products"))
+            .attribute(PRODUCT_CODE)
+            .attribute(PRODUCT_DESCRIPTION)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("code"))
+                    .attribute(PRODUCT_CODE)
+                    .build())
+            .build();
+
+    private static final Entity ADDRESS = Entity.builder()
+            .name(EntityName.of("address"))
+            .table(TableName.of("address"))
+            .pathSegment(PathSegmentName.of("addresses"))
+            .linkName(LinkName.of("addresses"))
             .build();
 
     private static final ManyToOneRelation INVOICE_CUSTOMER = ManyToOneRelation.builder()
@@ -296,14 +373,53 @@ class JOOQThunkExpressionVisitorTest {
             .targetReference(ColumnName.of("previous_invoice"))
             .build();
 
+    private static final ManyToManyRelation INVOICE_PRODUCTS = ManyToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(INVOICE.getName())
+                    .name(RelationName.of("products"))
+                    .pathSegment(PathSegmentName.of("products"))
+                    .linkName(LinkName.of("products"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(PRODUCT.getName())
+                    .name(RelationName.of("invoices"))
+                    .pathSegment(PathSegmentName.of("invoices"))
+                    .linkName(LinkName.of("invoices"))
+                    .build())
+            .joinTable(TableName.of("invoice__products"))
+            .sourceReference(ColumnName.of("invoice_id"))
+            .targetReference(ColumnName.of("product_id"))
+            .build();
+
+    private static final OneToManyRelation PERSON_ADDRESSES = OneToManyRelation.builder()
+            .sourceEndPoint(RelationEndPoint.builder()
+                    .entity(PERSON.getName())
+                    .name(RelationName.of("addresses"))
+                    .pathSegment(PathSegmentName.of("addresses"))
+                    .linkName(LinkName.of("addresses"))
+                    .build())
+            .targetEndPoint(RelationEndPoint.builder()
+                    .entity(ADDRESS.getName())
+                    .name(RelationName.of("person"))
+                    .pathSegment(PathSegmentName.of("person"))
+                    .linkName(LinkName.of("person"))
+                    .build())
+            .sourceReference(ColumnName.of("person_id"))
+            .build();
+
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("invoicing-application"))
             .entity(INVOICE)
             .entity(PERSON)
             .entity(FRENCH_PERSON)
+            .entity(PRODUCT)
+            .entity(ADDRESS)
+            .entity(ORDER)
             .relation(INVOICE_CUSTOMER)
             .relation(INVOICE_PREVIOUS)
             .relation(PERSON_FRIENDS)
+            .relation(INVOICE_PRODUCTS)
+            .relation(PERSON_ADDRESSES)
             .build();
 
     private static final TimeBasedEpochRandomGenerator UUID_GENERATOR = Generators.timeBasedEpochRandomGenerator();
@@ -315,6 +431,12 @@ class JOOQThunkExpressionVisitorTest {
     private static final UUID JACQUES_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE1_ID = UUID_GENERATOR.generate();
     private static final UUID INVOICE2_ID = UUID_GENERATOR.generate();
+    private static final UUID INVOICE3_ID = UUID_GENERATOR.generate();
+    private static final UUID PRODUCT1_ID = UUID_GENERATOR.generate();
+    private static final UUID PRODUCT2_ID = UUID_GENERATOR.generate();
+    private static final UUID PRODUCT3_ID = UUID_GENERATOR.generate();
+    private static final UUID ADDRESS1_ID = UUID_GENERATOR.generate();
+    private static final UUID ADDRESS2_ID = UUID_GENERATOR.generate();
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
@@ -335,38 +457,26 @@ class JOOQThunkExpressionVisitorTest {
 
     void insertData() {
         var now = Instant.now();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), ALICE_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "alice")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_1")
-                .set(DSL.field(DSL.name("comment"), String.class), "Comment with the words foo and bar.")
+        dslContext.insertInto(DSL.table(DSL.name("person")),
+                        DSL.field(DSL.name("id"), UUID.class),
+                        DSL.field(DSL.name("name"), String.class),
+                        DSL.field(DSL.name("vat"), String.class),
+                        DSL.field(DSL.name("comment"), String.class))
+                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.")
+                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.")
+                .values(JOHN_ID, "john", "vat_3", "Just a random comment.")
+                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.")
                 .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), BOB_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "bob")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_2")
-                .set(DSL.field(DSL.name("comment"), String.class), "Another comment mentioning foo.")
-                .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), JOHN_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "john")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
-                .set(DSL.field(DSL.name("comment"), String.class), "Just a random comment.")
-                .execute();
-        dslContext.insertInto(DSL.table(DSL.name("person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), THIJS_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "Thĳs") // contains ĳ (U+0133) instead of ij
-                .set(DSL.field(DSL.name("vat"), String.class), "Thijs")
-                .set(DSL.field(DSL.name("comment"), String.class), "Comment with bar and foo, but also Thĳs.")
-                .execute();
-        dslContext.insertInto(DSL.table(DSL.name("french-person")))
-                .set(DSL.field(DSL.name("id"), UUID.class), JACQUES_ID)
-                .set(DSL.field(DSL.name("name"), String.class), "jacques")
-                .set(DSL.field(DSL.name("vat"), String.class), "vat_3")
-                .set(DSL.field(DSL.name("comment"), String.class), "Je ne suis pas une baguette.")
+        dslContext.insertInto(DSL.table(DSL.name("french-person")),
+                        DSL.field(DSL.name("id"), UUID.class),
+                        DSL.field(DSL.name("name"), String.class),
+                        DSL.field(DSL.name("vat"), String.class),
+                        DSL.field(DSL.name("comment"), String.class))
+                .values(JACQUES_ID, "jacques", "vat_3", "Je ne suis pas une baguette.")
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice")))
                 .set(DSL.field(DSL.name("id"), UUID.class), INVOICE1_ID)
+                .set(DSL.field(DSL.name("version"), Long.class), 150L)
                 .set(DSL.field(DSL.name("number"), String.class), "invoice_1")
                 .set(DSL.field(DSL.name("amount"), Double.class), 10.0)
                 .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-01-01"))
@@ -385,6 +495,7 @@ class JOOQThunkExpressionVisitorTest {
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice")))
                 .set(DSL.field(DSL.name("id"), UUID.class), INVOICE2_ID)
+                .set(DSL.field(DSL.name("version"), Long.class), 9999L)
                 .set(DSL.field(DSL.name("number"), String.class), "invoice_2")
                 .set(DSL.field(DSL.name("amount"), Double.class), 20.0)
                 .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-02-01"))
@@ -399,9 +510,43 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID)
                 .set(DSL.field(DSL.name("previous_invoice"), UUID.class), INVOICE1_ID)
                 .execute();
+        dslContext.insertInto(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("id"), UUID.class), INVOICE3_ID)
+                .set(DSL.field(DSL.name("version"), Long.class), 9999L)
+                .set(DSL.field(DSL.name("number"), String.class), "invoice_3")
+                .set(DSL.field(DSL.name("amount"), Double.class), 1.0)
+                .set(DSL.field(DSL.name("received"), LocalDate.class), LocalDate.parse("2025-02-01"))
+                .set(DSL.field(DSL.name("pay_before"), LocalDate.class), LocalDate.parse("2025-02-28"))
+                .set(DSL.field(DSL.name("pay_timestamp"), Instant.class), Instant.parse("2025-02-22T23:59:59Z"))
+                .set(DSL.field(DSL.name("is_paid"), Boolean.class), false)
+                .set(DSL.field(DSL.name("content__id"), String.class), "content_3")
+                .set(DSL.field(DSL.name("content__filename"), String.class), "invoice.doc")
+                .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/msword")
+                .set(DSL.field(DSL.name("content__length"), Long.class), 1048576L)
+                .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
+                .set(DSL.field(DSL.name("audit_metadata__last_modified_by_name"), String.class), "alice")
+                .set(DSL.field(DSL.name("customer"), UUID.class), BOB_ID)
+                .execute();
         dslContext.insertInto(DSL.table(DSL.name("person__friends")))
                 .set(DSL.field(DSL.name("person_src_id"), UUID.class), BOB_ID)
                 .set(DSL.field(DSL.name("person_tgt_id"), UUID.class), ALICE_ID)
+                .execute();
+        dslContext.insertInto(DSL.table(DSL.name("product")),
+                        DSL.field(DSL.name("id"), UUID.class), DSL.field(DSL.name("code"), String.class), DSL.field(DSL.name("description"), String.class))
+                .values(PRODUCT1_ID, "code_1", "test description")
+                .values(PRODUCT2_ID, "code_2", "")
+                .values(PRODUCT3_ID, "code_3", null)
+                .execute();
+        dslContext.insertInto(DSL.table(DSL.name("invoice__products")),
+                        DSL.field(DSL.name("invoice_id"), UUID.class), DSL.field(DSL.name("product_id"), UUID.class))
+                .values(INVOICE1_ID, PRODUCT1_ID)
+                .values(INVOICE1_ID, PRODUCT2_ID)
+                .execute();
+        dslContext.insertInto(DSL.table(DSL.name("address")), DSL.field(DSL.name("id"), UUID.class))
+                .values(ADDRESS1_ID)
+                .values(ADDRESS2_ID)
                 .execute();
     }
 
@@ -521,11 +666,11 @@ class JOOQThunkExpressionVisitorTest {
     }
 
     @Test
-    void findInvoiceCreatedByAlice() {
-        // entity.audit_metadata.created_by.name = alice
+    void findInvoiceCreatedByBob() {
+        // entity.audit_metadata.created_by.name = bob
         ThunkExpression<?> expression = Comparison.areEqual(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
-                Scalar.of("alice")
+                Scalar.of("bob")
         );
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
@@ -537,7 +682,7 @@ class JOOQThunkExpressionVisitorTest {
 
         assertEquals(1, results.size());
         var result = results.getFirst();
-        assertEquals(INVOICE2_ID, result.get("id"));
+        assertEquals(INVOICE1_ID, result.get("id"));
     }
 
     @Test
@@ -774,114 +919,114 @@ class JOOQThunkExpressionVisitorTest {
         expectedUUids.forEach(uuid -> assertTrue(uuids.contains(uuid), "Expected UUID " + uuid + " to be in results"));
     }
 
-    static Stream<ThunkExpression<Boolean>> allFunctions() {
+    static Stream<ArgumentSet> allFunctions() {
         return Stream.of(
-                // equals (double)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                        Scalar.of(10.0)
-                ),
-                // equals (long)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
-                        Scalar.of(100L)
-                ),
-                // equals (string) => should be normalized
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
-                        Scalar.of("invoice_¹") // invoice_1
-                ),
-                // not equals (double)
-                Comparison.notEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                        Scalar.of(20.0)
-                ),
-                // not equals (string) => should be normalized
-                Comparison.notEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
-                        Scalar.of("invoice_²") // invoice_2
-                ),
-                // and, less than, greater than
-                LogicalOperation.conjunction(Stream.of(
-                        Comparison.greater(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
-                        ),
-                        Comparison.less(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(12.0)
-                        )
-                )),
-                // and, less than or equals, greater than or equals
-                LogicalOperation.conjunction(Stream.of(
-                        Comparison.greaterOrEquals(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
-                        ),
-                        Comparison.lessOrEquals(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(10.0)
-                        )
-                )),
-                // or (when query parameter is provided multiple times)
-                LogicalOperation.disjunction(Stream.of(
-                        Comparison.areEqual(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
-                                Scalar.of(0.0)
-                        ),
+                Arguments.argumentSet("equals (double)",
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
                                 Scalar.of(10.0)
-                        )
-                )),
-                // not
-                LogicalOperation.negation(
+                        ), 1),
+                Arguments.argumentSet("equals (long)",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                Scalar.of(100L)
+                        ), 1),
+                Arguments.argumentSet("equals (string)", // should be normalized
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
-                                Scalar.of("invoice_2")
-                        )
-                ),
-                // plus
-                Comparison.areEqual(
-                        NumericFunction.plus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
-                        Scalar.of(20.0)
-                ),
-                // multiply
-                Comparison.areEqual(
-                        NumericFunction.multiply(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
-                        Scalar.of(20.0)
-                ),
-                // minus
-                Comparison.areEqual(
-                        NumericFunction.minus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
-                        Scalar.of(0.0)
-                ),
-                // divide
-                Comparison.areEqual(
-                        NumericFunction.divide(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
-                        Scalar.of(5.0)
-                ),
-                // modulo
-                Comparison.areEqual(
-                        NumericFunction.modulus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(3L)),
-                        Scalar.of(1.0)
-                ),
-                // normalize
-                StringComparison.normalizedEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
-                        Scalar.of("invoice_¹") // invoice_1
-                ),
-                // contentgrid prefix search
-                StringComparison.contentGridPrefixSearchMatch(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
-                        Scalar.of("Bö") // bob
-                )
+                                Scalar.of("invoice_¹") // invoice_1
+                        ), 1),
+                Arguments.argumentSet("not equals (double)",
+                        Comparison.notEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                Scalar.of(20.0)
+                        ), 2),
+                Arguments.argumentSet("not equals (string)", // should be normalized
+                        Comparison.notEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                Scalar.of("invoice_²") // invoice_2
+                        ), 2),
+                Arguments.argumentSet("and, less than, greater than",
+                        LogicalOperation.conjunction(Stream.of(
+                                Comparison.greater(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(1.0)
+                                ),
+                                Comparison.less(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(12.0)
+                                )
+                        )), 1),
+                Arguments.argumentSet("and, less than or equals, greater than or equals",
+                        LogicalOperation.conjunction(Stream.of(
+                                Comparison.greaterOrEquals(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(1.0)
+                                ),
+                                Comparison.lessOrEquals(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(10.0)
+                                )
+                        )), 2),
+                Arguments.argumentSet("or", // e.g. when query parameter is provided multiple times
+                        LogicalOperation.disjunction(Stream.of(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(1.0)
+                                ),
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                        Scalar.of(10.0)
+                                )
+                        )), 2),
+                Arguments.argumentSet("not",
+                        LogicalOperation.negation(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                        Scalar.of("invoice_2")
+                                )
+                        ), 2),
+                Arguments.argumentSet("plus",
+                        Comparison.areEqual(
+                                NumericFunction.plus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
+                                Scalar.of(20.0)
+                        ), 1),
+                Arguments.argumentSet("multiply",
+                        Comparison.areEqual(
+                                NumericFunction.multiply(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
+                                Scalar.of(20.0)
+                        ), 1),
+                Arguments.argumentSet("minus",
+                        Comparison.areEqual(
+                                NumericFunction.minus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(10.0)),
+                                Scalar.of(0.0)
+                        ), 1),
+                Arguments.argumentSet("divide",
+                        Comparison.areEqual(
+                                NumericFunction.divide(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(2L)),
+                                Scalar.of(5.0)
+                        ), 1),
+                Arguments.argumentSet("modulo",
+                        Comparison.areEqual(
+                                NumericFunction.modulus(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")), Scalar.of(3L)),
+                                Scalar.of(1.0)
+                        ), 2),
+                Arguments.argumentSet("normalize",
+                        StringComparison.normalizedEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                Scalar.of("invoice_¹") // invoice_1
+                        ), 1),
+                Arguments.argumentSet("contentgrid prefix search",
+                        StringComparison.contentGridPrefixSearchMatch(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
+                                Scalar.of("Bö") // bob
+                        ), 1)
         );
     }
 
     @ParameterizedTest
     @MethodSource("allFunctions")
-    void findInvoice1(ThunkExpression<Boolean> expression) {
+    void findInvoice1(ThunkExpression<Boolean> expression, int expectedSize) {
         var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
         var condition = expression.accept(VISITOR, context);
@@ -890,7 +1035,7 @@ class JOOQThunkExpressionVisitorTest {
                 .fetch()
                 .intoMaps();
 
-        assertEquals(1, results.size());
+        assertEquals(expectedSize, results.size());
         var result = results.getFirst();
         assertEquals(INVOICE1_ID, result.get("id"));
     }
