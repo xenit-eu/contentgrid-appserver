@@ -144,18 +144,18 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
-                if (right instanceof Array array) {
-                    var leftFinal = left; // final for lambda
-                    if (array.$elements().isEmpty() || array.$elements().stream()
-                            .anyMatch(field -> !sameType(leftFinal, (Field<?>) field))) {
-                        // Empty or type mismatch -> always false
-                        yield DSL.falseCondition();
-                    }
+                if (right instanceof Array<?> array) {
                     if (left.getDataType().isString()) {
                         left = JOOQUtils.normalize(left);
                         // right side is already normalized in the visit function if needed
                     }
-                    yield left.eq(DSL.any(array));
+
+                    var leftFinal = left; // final for lambda
+                    var elements = array.$elements().stream()
+                            .filter(field -> sameType(leftFinal, field))
+                            .toArray();
+
+                    yield ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
                 } else {
                     // Non-array -> always false
                     yield DSL.falseCondition();

@@ -666,13 +666,13 @@ class JOOQThunkExpressionVisitorTest {
     static Stream<Arguments> inOperatorValues() {
         return Stream.of(
                 Arguments.argumentSet(
-                        "single set",
+                        "singleton set",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1")))),
                         Set.of(INVOICE1_ID)
                 ),
                 Arguments.argumentSet(
-                        "single list",
+                        "singleton list",
                         INVOICE,
                         invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1")))),
                         Set.of(INVOICE1_ID)
@@ -690,16 +690,28 @@ class JOOQThunkExpressionVisitorTest {
                         Set.of()
                 ),
                 Arguments.argumentSet(
-                        "multiple set",
+                        "set multiple elements",
                         INVOICE,
                         invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
                         Set.of(INVOICE1_ID, INVOICE2_ID)
                 ),
                 Arguments.argumentSet(
-                        "multiple list",
+                        "list multiple elements",
                         INVOICE,
                         invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2")))),
                         Set.of(INVOICE1_ID, INVOICE2_ID)
+                ),
+                Arguments.argumentSet(
+                        "set multiple types",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new SetValue(Set.of(Scalar.of("invoice_1"), Scalar.of(10), Scalar.of(true)))),
+                        Set.of(INVOICE1_ID)
+                ),
+                Arguments.argumentSet(
+                        "list multiple types",
+                        INVOICE,
+                        invoiceNumberInThunxExpression(new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of(10), Scalar.of(true)))),
+                        Set.of(INVOICE1_ID)
                 ),
                 Arguments.argumentSet(
                         "nfkc normalized match",
