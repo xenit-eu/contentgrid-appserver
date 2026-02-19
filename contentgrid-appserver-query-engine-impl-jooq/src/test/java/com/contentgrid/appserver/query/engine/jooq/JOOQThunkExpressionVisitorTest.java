@@ -970,7 +970,7 @@ class JOOQThunkExpressionVisitorTest {
                                         Scalar.of(10.0)
                                 )
                         )), 2),
-                Arguments.argumentSet("or", // e.g. when query parameter is provided multiple times
+                Arguments.argumentSet("or with same path", // e.g. when query parameter is provided multiple times
                         LogicalOperation.disjunction(Stream.of(
                                 Comparison.areEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
@@ -981,6 +981,17 @@ class JOOQThunkExpressionVisitorTest {
                                         Scalar.of(10.0)
                                 )
                         )), 2),
+                Arguments.argumentSet("or with nullable relations",
+                        LogicalOperation.disjunction(
+                                Comparison.notEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("number")),
+                                        Scalar.of("")
+                                ),
+                                Comparison.notEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("number")),
+                                        Scalar.of("")
+                                )
+                        ), 2),
                 Arguments.argumentSet("not",
                         LogicalOperation.negation(
                                 Comparison.areEqual(
