@@ -16,6 +16,7 @@ import com.contentgrid.appserver.query.engine.api.thunx.expression.StringCompari
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
+import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.ListValue;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SetValue;
@@ -38,6 +39,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.Condition;
 import org.jooq.DataType;
 import org.jooq.Field;
@@ -48,6 +50,7 @@ import org.jooq.impl.QOM.Array;
 import static com.contentgrid.appserver.query.engine.jooq.JOOQUtils.generateFTSCondition;
 import static java.util.Locale.ENGLISH;
 
+@Slf4j
 @RequiredArgsConstructor
 public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<?>, JOOQContext> {
 
@@ -83,6 +86,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sameType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 if (left.getDataType().isString()) {
@@ -96,6 +100,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sameType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 if (left.getDataType().isString()) {
@@ -109,6 +114,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sortableType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 yield ((Field<Object>) left).greaterThan((Field<Object>) right);
@@ -118,6 +124,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sortableType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 yield ((Field<Object>) left).greaterOrEqual((Field<Object>) right);
@@ -127,6 +134,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sortableType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 yield ((Field<Object>) left).lessThan((Field<Object>) right);
@@ -136,6 +144,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
                 var right = functionExpression.getTerms().getLast().accept(this, context);
                 if (!sortableType(left, right)) {
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
                 yield ((Field<Object>) left).lessOrEqual((Field<Object>) right);
@@ -158,6 +167,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                     yield ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
                 } else {
                     // Non-array -> always false
+                    logWarning(functionExpression.getOperator(), left, right);
                     yield DSL.falseCondition();
                 }
             }
@@ -170,6 +180,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
+                            logWarning(functionExpression.getOperator(), field);
                             return DSL.falseCondition();
                         })
                         .toList());
@@ -183,6 +194,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                             } else if (field.getDataType().isBoolean()) {
                                 return DSL.condition((Field<Boolean>) field);
                             }
+                            logWarning(functionExpression.getOperator(), field);
                             return DSL.falseCondition();
                         })
                         .toList());
@@ -195,6 +207,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 } else if (field.getDataType().isBoolean()) {
                     yield DSL.condition(DSL.not((Field<Boolean>) field));
                 }
+                logWarning(functionExpression.getOperator(), field);
                 yield DSL.falseCondition();
             }
             case PLUS -> {
@@ -248,6 +261,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
                         var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
                         if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                            logWarning("cg_prefix_search", left, right);
                             yield DSL.falseCondition();
                         }
                         var leftField = JOOQUtils.prefixSearchNormalize(left);
@@ -259,6 +273,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                         var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
 
                         if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                            logWarning("cg_fulltext_search", left, right);
                             yield DSL.falseCondition();
                         }
 
@@ -309,6 +324,23 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
     private static boolean sortableType(Field<?> left, Field<?> right) {
         return SORTABLE_DATATYPES.stream().anyMatch(predicate ->
                 predicate.test(left.getDataType()) && predicate.test(right.getDataType()));
+    }
+
+    private void logWarning(Operator operator, Field<?> left, Field<?> right) {
+        logWarning(operator.getKey(), left, right);
+    }
+
+    private void logWarning(String operator, Field<?> left, Field<?> right) {
+        log.warn("Operator '{}' is not supported between '{}' and '{}', evaluating condition as false",
+                operator, left.getDataType().getTypeName(), right.getDataType().getTypeName());
+    }
+
+    private void logWarning(Operator operator, Field<?> field) {
+        logWarning(operator.getKey(), field);
+    }
+
+    private void logWarning(String operator, Field<?> field) {
+        log.warn("Operator '{}' does not support type '{}', evaluating condition as false", operator, field.getDataType().getTypeName());
     }
 
     @Override
