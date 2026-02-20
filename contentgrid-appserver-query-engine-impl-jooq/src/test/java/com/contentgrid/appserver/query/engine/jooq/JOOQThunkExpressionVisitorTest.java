@@ -1121,6 +1121,17 @@ class JOOQThunkExpressionVisitorTest {
                 Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name")),
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name"))
+                ),
+                // same variable used across OR terms
+                LogicalOperation.disjunction(
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
+                                Scalar.of("alice")
+                        ),
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
+                                Scalar.of("bob")
+                        )
                 )
         );
     }
@@ -1270,11 +1281,11 @@ class JOOQThunkExpressionVisitorTest {
 
     @Test
     void underscoreVariableInDifferentRelations_allowed() {
-        // Test that the underscore variable "_" can be used multiple times
-        ThunkExpression<Boolean> expression = LogicalOperation.conjunction(Stream.of(
+        // Test that the underscore variable "_" can be used in different paths and across multiple OR terms
+        ThunkExpression<Boolean> expression = LogicalOperation.disjunction(Stream.of(
                 Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("code")),
-                        Scalar.of("code_1")
+                        Scalar.of("code_3")
                 ),
                 Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("code")),

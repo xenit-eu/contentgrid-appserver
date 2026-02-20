@@ -29,10 +29,12 @@ import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -531,6 +533,9 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         JoinCollection joinCollection;
 
         @Getter(AccessLevel.NONE)
+        Set<String> consumedVariables = new HashSet<>();
+
+        @Getter(AccessLevel.NONE)
         Map<String, List<PathElement>> variableToRelationPath = new HashMap<>();
 
         @Getter(AccessLevel.NONE)
@@ -551,6 +556,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
 
         public Condition addJoins(Condition condition) {
+            consumedVariables.addAll(variableToRelationPath.keySet());
+            variableToRelationPath.clear();
             return joinCollection.collect(condition);
         }
 
@@ -564,8 +571,13 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             }
 
             // Check if this variable has been used before
-            if (variableToRelationPath.containsKey(variableName)) {
-                // Variable already exists - verify it's used with the same relation path
+            if (consumedVariables.contains(variableName)) {
+                // Variable already consumed, and can no longer be reused
+                throw new InvalidThunkExpressionException(
+                        "Variable %s cannot be reused across different OR terms".formatted(variableName)
+                );
+            } else if (variableToRelationPath.containsKey(variableName)) {
+                // Variable still in use - verify it's used with the same relation path
                 var existingPath = variableToRelationPath.get(variableName);
                 if (!existingPath.equals(relationPath)) {
                     throw new InvalidThunkExpressionException(
