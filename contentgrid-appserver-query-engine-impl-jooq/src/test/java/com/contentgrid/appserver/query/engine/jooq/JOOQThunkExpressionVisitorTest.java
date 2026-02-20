@@ -1319,8 +1319,9 @@ class JOOQThunkExpressionVisitorTest {
                 .fetch()
                 .intoMaps();
 
-        assertEquals(1, results.size());
-        assertEquals(INVOICE1_ID, results.getFirst().get("id"));
+        assertEquals(2, results.size());
+        assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
+        assertTrue(results.stream().anyMatch(result -> INVOICE2_ID.equals(result.get("id"))));
     }
 
     @Test
