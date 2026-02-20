@@ -1095,93 +1095,93 @@ class JOOQThunkExpressionVisitorTest {
         assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
     }
 
-    static Stream<ThunkExpression<Boolean>> illegalExpressions() {
+    static Stream<Arguments> illegalExpressions() {
         return Stream.of(
-                // use of null value
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
-                        Scalar.nullValue()
-                ),
-                // use of null string value
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
-                        Scalar.of((String) null)
-                ),
-                // use of variable
-                Comparison.areEqual(Variable.named("foo"), Scalar.of("alice")),
-                // use of wrong variable
-                Comparison.areEqual(
-                        SymbolicReference.of(Variable.named("user"), SymbolicReference.path("number")),
-                        Scalar.of("alice")
-                ),
-                // no path
-                Comparison.areEqual(SymbolicReference.of(ENTITY_VAR), Scalar.of("alice")),
-                // path too short
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content")),
-                        Scalar.of("alice")
-                ),
-                // path too long
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"), SymbolicReference.path("id")),
-                        Scalar.of("alice")
-                ),
-                // non-existing attribute on entity
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("non_existing")),
-                        Scalar.of("alice")
-                ),
-                // non-existing attribute on relation (exists on source entity)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("number")),
-                        Scalar.of("alice")
-                ),
-                // non-existing attribute on composite attribute (exists on parent attribute)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("number")),
-                        Scalar.of("alice")
-                ),
-                // variable access on entity (variable name from existing attribute)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.pathVar("number")),
-                        Scalar.of("alice")
-                ),
-                // variable access on composite attribute (variable name from existing attribute)
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.pathVar("name")),
-                        Scalar.of("alice")
-                ),
-                // variable access on *-to-one relation
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
-                        Scalar.of("alice")
-                ),
-                // no variable access on *-to-many relation
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.path("name")),
-                        Scalar.of("alice")
-                ),
-                // same variable used multiple times
-                Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name")),
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name"))
-                ),
-                // same variable used in same path, but path contains different variable
-                Comparison.less(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("received")),
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("pay_before"))
-                ),
-                // same variable used across OR terms
-                LogicalOperation.disjunction(
+                Arguments.argumentSet("null value",
                         Comparison.areEqual(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
+                                Scalar.nullValue()
+                        )),
+                Arguments.argumentSet("null string value",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
+                                Scalar.of((String) null)
+                        )),
+                Arguments.argumentSet("variable",
+                        Comparison.areEqual(Variable.named("foo"), Scalar.of("alice"))),
+                Arguments.argumentSet("invalid subject",
+                        Comparison.areEqual(
+                                SymbolicReference.of(Variable.named("user"), SymbolicReference.path("number")),
                                 Scalar.of("alice")
-                        ),
+                        )),
+                Arguments.argumentSet("empty path",
+                        Comparison.areEqual(SymbolicReference.of(ENTITY_VAR), Scalar.of("alice"))),
+                Arguments.argumentSet("path to composite attribute", // must be simple
                         Comparison.areEqual(
-                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
-                                Scalar.of("bob")
-                        )
-                )
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path beyond simple attribute",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number"), SymbolicReference.path("id")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path to non-existing attribute",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("non_existing")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("non-existing attribute across relation", // exists on source entity
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("number")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("non-existing attribute across composite", // exists on parent
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("number")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path with variable on entity", // variable name from existing attribute
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.pathVar("number")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path with variable on composite", // variable name from existing attribute
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.pathVar("name")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path with variable on to-one relation",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("path without variable on to-many relation",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.path("name")),
+                                Scalar.of("alice")
+                        )),
+                Arguments.argumentSet("variable reused in multiple paths",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name")),
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name"))
+                        )),
+                Arguments.argumentSet("variable reused in multiple paths (other variable)",
+                        Comparison.less(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("received")),
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("pay_before"))
+                        )),
+                Arguments.argumentSet("variable reused across OR terms",
+                        LogicalOperation.disjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
+                                        Scalar.of("alice")
+                                ),
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
+                                        Scalar.of("bob")
+                                )
+                        ))
         );
     }
 
