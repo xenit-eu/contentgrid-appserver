@@ -67,6 +67,21 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             DataType::isTimestamp, DataType::isTimestampWithTimeZone, DataType::isDate, DataType::isInterval
     );
 
+    /**
+     * Create a {@link Condition} from the given {@link ThunkExpression}.
+     * This method should be used instead of any {@code visit} methods.
+     *
+     * @param expression The expression to convert.
+     * @param context Context for this visitor.
+     * @return The converted {@link Condition} that can be used in the where clause of queries.
+     */
+    public Condition createCondition(ThunkExpression<Boolean> expression, JOOQContext context) {
+        var condition = DSL.condition((Field<Boolean>) expression.accept(this, context));
+
+        // In case the expression did not contain an OR expression, we still need to add the joins
+        return context.addJoins(condition);
+    }
+
     @Override
     public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
         if (scalar.getValue() == null) {
@@ -82,7 +97,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
     @Override
     public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
             throws InvalidThunkExpressionException {
-        Field<?> result = switch (functionExpression.getOperator()) {
+        return switch (functionExpression.getOperator()) {
             case EQUALS -> {
                 assertTwoTerms(functionExpression.getTerms());
                 var left = functionExpression.getTerms().getFirst().accept(this, context);
@@ -174,34 +189,50 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 }
             }
             case AND -> {
-                yield DSL.and(functionExpression.getTerms().stream()
-                        .map(expression -> expression.accept(this, context))
-                        .map(field -> {
-                            if (field instanceof Condition condition) {
-                                return condition;
-                            } else if (field.getDataType().isBoolean()) {
-                                return DSL.condition((Field<Boolean>) field);
-                            }
-                            logWarning(functionExpression.getOperator(), field);
-                            return DSL.falseCondition();
-                        })
-                        .toList());
+                // AND is expressed in OPA as different expressions within the same rule body.
+                // Variables are local to the rule body, which means that they can be reused in different terms.
+                // For to-many relations: this means both `ANY(X) AND ANY(Y)` and `ANY(X AND Y)` can be expressed,
+                // where the latter interpretation is obtained by reusing variables.
+                var conditions = new ArrayList<Condition>();
+                for (var expression : functionExpression.getTerms()) {
+                    var field = expression.accept(this, context);
+
+                    if (!field.getDataType().isBoolean()) {
+                        logWarning(functionExpression.getOperator(), field);
+                        yield DSL.falseCondition();
+                    }
+
+                    conditions.add(DSL.condition((Field<Boolean>) field));
+                }
+                yield DSL.and(conditions);
             }
             case OR -> {
-                yield DSL.or(functionExpression.getTerms().stream()
-                        .map(expression -> expression.accept(this, context))
-                        .map(field -> {
-                            if (field instanceof Condition condition) {
-                                return condition;
-                            } else if (field.getDataType().isBoolean()) {
-                                return DSL.condition((Field<Boolean>) field);
-                            }
-                            logWarning(functionExpression.getOperator(), field);
-                            return DSL.falseCondition();
-                        })
-                        .toList());
+                // OR is expressed in OPA as different rules, variables are local to the rule body.
+                // As such, it is not possible to reuse a variable across different terms.
+                // Collect the joins for each term separately, and prevent usage of variables across terms.
+                // For to-many relations: this means only `ANY(X) OR ANY(Y)` is valid,
+                // and `ANY(X OR Y)` can not be expressed (but it is mathematically equivalent to the former).
+                var conditions = new ArrayList<Condition>();
+                for (var expression : functionExpression.getTerms()) {
+                    var field = expression.accept(this, context);
+
+                    if (!field.getDataType().isBoolean()) {
+                        // Evaluate as false, collect joins but don't add it to conditions
+                        logWarning(functionExpression.getOperator(), field);
+                        context.addJoins(DSL.falseCondition());
+                        continue;
+                    }
+
+                    var condition = DSL.condition((Field<Boolean>) field);
+                    conditions.add(context.addJoins(condition));
+                }
+                yield DSL.or(conditions);
             }
             case NOT -> {
+                // NOT in OPA can only occur in simple expressions after partial evaluation
+                // (see https://www.openpolicyagent.org/docs/filtering/fragment#not-expressions).
+                // For to-many relations: this means only `ANY(NOT(X))` is valid,
+                // and `NOT(ANY(X))` can not be expressed.
                 assertOneTerm(functionExpression.getTerms());
                 var field = functionExpression.getTerms().getFirst().accept(this, context);
                 if (field instanceof Condition condition) {
@@ -294,11 +325,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
             }
         };
-
-        if (result instanceof Condition condition) {
-            return context.getJoinCollection().collect(condition); // TODO: only collect last condition
-        }
-        return result;
     }
 
     private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {
@@ -522,6 +548,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
         public TableName getRootAlias() {
             return joinCollection.getRootAlias();
+        }
+
+        public Condition addJoins(Condition condition) {
+            return joinCollection.collect(condition);
         }
 
         private void addVariable(VariablePathElement variable) {

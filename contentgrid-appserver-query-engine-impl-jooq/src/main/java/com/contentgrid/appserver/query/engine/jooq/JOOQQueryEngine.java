@@ -81,7 +81,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.OrderField;
@@ -91,7 +90,6 @@ import org.jooq.Record3;
 import org.jooq.SelectUnionStep;
 import org.jooq.SortField;
 import org.jooq.exception.DataAccessException;
-import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 
 @RequiredArgsConstructor
@@ -112,10 +110,6 @@ public class JOOQQueryEngine implements QueryEngine {
 
     private static final SecureRandom secureRandom = new SecureRandom();
 
-    private static Condition createCondition(JOOQContext context, ThunkExpression<Boolean> expression) {
-        return DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-    }
-
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
             @NonNull ThunkExpression<Boolean> expression, SortData sortData, @NonNull QueryPageData page) throws QueryEngineException {
@@ -129,7 +123,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         var offsetAndLimit = convertPageData(page);
 
-        var condition = createCondition(context, expression);
+        var condition = visitor.createCondition(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
@@ -177,7 +171,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
-        var condition = createCondition(context, permitReadPredicate);
+        var condition = visitor.createCondition(permitReadPredicate, context);
 
         fields.add(DSL.field(condition).as("_allow_read"));
 
@@ -891,7 +885,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
 
-        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        var condition = visitor.createCondition(expression, context);
         return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));
     }
 }

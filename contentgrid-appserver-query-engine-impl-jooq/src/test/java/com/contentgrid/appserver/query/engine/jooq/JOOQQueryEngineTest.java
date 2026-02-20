@@ -2289,8 +2289,8 @@ class JOOQQueryEngineTest {
             "50,30,true",
             // Original is more than the maximum -> denied
             "200,30,false",
-            // New is more than the maximum -> denied
-            "50,200,false",
+            // Original is less than the maximum -> allowed
+            "50,200,true",
             // New and original are both more than the maximum -> denied
             "200,210,false",
     })
@@ -2341,8 +2341,8 @@ class JOOQQueryEngineTest {
         );
 
 
-        // Has to be expressed like NOT(entity.invoices[_].amount > 100)
-        // to express that there are only invoices with amount <= 100
+        // NOT(entity.invoices[_].amount > 100) => ANY(NOT(invoice.amount > 100) for invoice in entity.invoices)
+        // to express that there is at least one invoice with amount <= 100
         var permissionCheck = LogicalOperation.negation(Comparison.greater(
                 SymbolicReference.of(
                         Variable.named("entity"),
