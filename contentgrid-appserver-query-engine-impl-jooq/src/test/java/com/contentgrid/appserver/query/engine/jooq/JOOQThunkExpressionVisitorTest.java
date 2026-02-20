@@ -301,6 +301,12 @@ class JOOQThunkExpressionVisitorTest {
             .type(Type.TEXT)
             .build();
 
+    private static final SimpleAttribute PRODUCT_COST = SimpleAttribute.builder()
+            .name(AttributeName.of("cost"))
+            .column(ColumnName.of("cost"))
+            .type(Type.DOUBLE)
+            .constraint(Constraint.required())
+            .build();
 
     private static final Entity PRODUCT = Entity.builder()
             .name(EntityName.of("product"))
@@ -309,6 +315,7 @@ class JOOQThunkExpressionVisitorTest {
             .linkName(LinkName.of("products"))
             .attribute(PRODUCT_CODE)
             .attribute(PRODUCT_DESCRIPTION)
+            .attribute(PRODUCT_COST)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("code"))
@@ -534,16 +541,20 @@ class JOOQThunkExpressionVisitorTest {
                 .set(DSL.field(DSL.name("person_tgt_id"), UUID.class), ALICE_ID)
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("product")),
-                        DSL.field(DSL.name("id"), UUID.class), DSL.field(DSL.name("code"), String.class), DSL.field(DSL.name("description"), String.class))
-                .values(PRODUCT1_ID, "code_1", "test description")
-                .values(PRODUCT2_ID, "code_2", "")
-                .values(PRODUCT3_ID, "code_3", null)
+                        DSL.field(DSL.name("id"), UUID.class),
+                        DSL.field(DSL.name("code"), String.class),
+                        DSL.field(DSL.name("description"), String.class),
+                        DSL.field(DSL.name("cost"), Double.class))
+                .values(PRODUCT1_ID, "code_1", "test description", 100.0)
+                .values(PRODUCT2_ID, "code_2", "", 9.99)
+                .values(PRODUCT3_ID, "code_3", null, 1.0)
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("invoice__products")),
                         DSL.field(DSL.name("invoice_id"), UUID.class), DSL.field(DSL.name("product_id"), UUID.class))
                 .values(INVOICE1_ID, PRODUCT1_ID)
                 .values(INVOICE1_ID, PRODUCT2_ID)
                 .values(INVOICE2_ID, PRODUCT1_ID)
+                .values(INVOICE2_ID, PRODUCT3_ID)
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("address")), DSL.field(DSL.name("id"), UUID.class))
                 .values(ADDRESS1_ID)
@@ -969,6 +980,28 @@ class JOOQThunkExpressionVisitorTest {
                                         Scalar.of(10.0)
                                 )
                         )), 2),
+                Arguments.argumentSet("and over a to-many relation (different item)",
+                        LogicalOperation.conjunction(Stream.of(
+                                Comparison.less(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("cost")),
+                                        Scalar.of(20.0)
+                                ),
+                                Comparison.greater(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("y"), SymbolicReference.path("cost")),
+                                        Scalar.of(5.0)
+                                )
+                        )), 2), // Both invoice_1 and invoice_2, since conditions don't need to hold for the same element
+                Arguments.argumentSet("and over a to-many relation (same item)",
+                        LogicalOperation.conjunction(Stream.of(
+                                Comparison.less(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("cost")),
+                                        Scalar.of(20.0)
+                                ),
+                                Comparison.greater(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("cost")),
+                                        Scalar.of(5.0)
+                                )
+                        )), 1), // Only invoice_1, since conditions need to hold for the same element
                 Arguments.argumentSet("or with same path", // e.g. when query parameter is provided multiple times
                         LogicalOperation.disjunction(Stream.of(
                                 Comparison.areEqual(
@@ -980,7 +1013,7 @@ class JOOQThunkExpressionVisitorTest {
                                         Scalar.of(10.0)
                                 )
                         )), 2),
-                Arguments.argumentSet("or with nullable relations",
+                Arguments.argumentSet("or with nullable to-one relations",
                         LogicalOperation.disjunction(
                                 Comparison.notEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("number")),
@@ -991,6 +1024,17 @@ class JOOQThunkExpressionVisitorTest {
                                         Scalar.of("")
                                 )
                         ), 2),
+                Arguments.argumentSet("or over nullable to-many relations",
+                    LogicalOperation.disjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name")),
+                                        Scalar.of("alice")
+                                ),
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("y"), SymbolicReference.path("code")),
+                                        Scalar.of("code_1")
+                                )
+                        ), 3),
                 Arguments.argumentSet("not",
                         LogicalOperation.negation(
                                 Comparison.areEqual(
