@@ -809,7 +809,7 @@ class ThunkExpressionGeneratorTest {
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("shipments"),
-                        SymbolicReference.pathVar("_"),
+                        SymbolicReference.pathVar("__wildcard_0"),
                         SymbolicReference.path("destination")
                 ),
                 comparison.getLeftTerm()
@@ -829,11 +829,79 @@ class ThunkExpressionGeneratorTest {
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("wishlist"),
-                        SymbolicReference.pathVar("_"),
+                        SymbolicReference.pathVar("__wildcard_0"),
                         SymbolicReference.path("description")
                 ),
                 comparison.getLeftTerm()
         );
         assertEquals(Scalar.of("A unicorn"), comparison.getRightTerm());
+    }
+
+    @Test
+    void multipleToManyRelationsUseDifferentWildcards() {
+        Map<String, List<String>> params = Map.of(
+                "shipments.destination", List.of("Moon Base"),
+                "wishlist.description", List.of("A unicorn")
+        );
+        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        var logicalOperation = assertInstanceOf(LogicalOperation.class, result);
+        assertEquals(Operator.AND, logicalOperation.getOperator());
+        assertEquals(2, logicalOperation.getTerms().size());
+        var left = assertInstanceOf(Comparison.class, logicalOperation.getTerms().getFirst());
+        var right = assertInstanceOf(Comparison.class, logicalOperation.getTerms().getLast());
+
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipments"),
+                        SymbolicReference.pathVar("__wildcard_0"),
+                        SymbolicReference.path("destination")
+                ),
+                left.getLeftTerm()
+        );
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("wishlist"),
+                        SymbolicReference.pathVar("__wildcard_1"),
+                        SymbolicReference.path("description")
+                ),
+                right.getLeftTerm()
+        );
+    }
+
+    @Test
+    void multipleValuesToManyRelationUseDifferentWildCards() {
+        // TODO: currently uses OR, but should use IN after ACC-2639 (and then there are no wildcards anymore)
+        Map<String, List<String>> params = Map.of(
+                "shipments.destination", List.of("Moon Base", "Middle Earth")
+        );
+        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        var logicalOperation = assertInstanceOf(LogicalOperation.class, result);
+        assertEquals(Operator.OR, logicalOperation.getOperator());
+        assertEquals(2, logicalOperation.getTerms().size());
+        var left = assertInstanceOf(Comparison.class, logicalOperation.getTerms().getFirst());
+        var right = assertInstanceOf(Comparison.class, logicalOperation.getTerms().getLast());
+
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipments"),
+                        SymbolicReference.pathVar("__wildcard_0"),
+                        SymbolicReference.path("destination")
+                ),
+                left.getLeftTerm()
+        );
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipments"),
+                        SymbolicReference.pathVar("__wildcard_1"),
+                        SymbolicReference.path("destination")
+                ),
+                right.getLeftTerm()
+        );
     }
 }

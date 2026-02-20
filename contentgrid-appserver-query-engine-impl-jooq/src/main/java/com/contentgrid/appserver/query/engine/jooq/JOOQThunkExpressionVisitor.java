@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -563,12 +562,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
 
         private void addVariable(VariablePathElement variable) {
             String variableName = variable.getVariable().getName();
-
-            // Unnamed variable is always distinct from any other variable
-            if (variableName.equals("_")) {
-                relationPath.add(SymbolicReference.pathVar(UUID.randomUUID().toString()));
-                return;
-            }
 
             // Check if this variable has been used before
             if (consumedVariables.contains(variableName)) {

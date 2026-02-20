@@ -37,6 +37,7 @@ public class ThunkExpressionGenerator {
 
     static ThunkExpression<Boolean> from(Application application, Entity entity, Map<String, List<String>> params) {
         List<ThunkExpression<Boolean>> expressions = new ArrayList<>();
+        var variableGenerator = new VariableGenerator();
         var collector = new ValidationExceptionCollector<>(InvalidFilterParameterException.class);
 
         collector.use(() -> {
@@ -57,7 +58,7 @@ public class ThunkExpressionGenerator {
                     List<PathElement> pathElements;
 
                     try {
-                        pathElements = convertPath(application, entity, attributeSearchFilter.getAttributePath());
+                        pathElements = convertPath(variableGenerator, application, entity, attributeSearchFilter.getAttributePath());
                     } catch (IllegalArgumentException e) {
                         throw new InvalidFilterParameterException(entity.getName().getValue(), entry.getKey(),
                                 attribute.getType(), entry.getValue().toString(), e);
@@ -150,7 +151,7 @@ public class ThunkExpressionGenerator {
         return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter.getLocale());
     }
 
-    private static List<PathElement> convertPath(Application application, Entity entity, PropertyPath path) {
+    private static List<PathElement> convertPath(VariableGenerator variableGenerator, Application application, Entity entity, PropertyPath path) {
         List<PathElement> pathElements = new ArrayList<>();
         Entity currentEntity = entity;
         PropertyPath currentPath = path;
@@ -178,9 +179,10 @@ public class ThunkExpressionGenerator {
 
                     pathElements.add(SymbolicReference.path(relationName.getValue()));
 
-                    // ThunkExpressions need an underscore variable to traverse ToMany (e.g. entity.invoices[_].date)
+                    // ThunkExpressions need a random variable to traverse ToMany (e.g. entity.invoices[some_var].date)
+                    // Generate a new name each time.
                     if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-                        pathElements.add(SymbolicReference.pathVar("_"));
+                        pathElements.add(SymbolicReference.pathVar(variableGenerator.generate()));
                     }
 
                     currentEntity = application.getRelationTargetEntity(relation);
@@ -190,5 +192,15 @@ public class ThunkExpressionGenerator {
         }
 
         return pathElements;
+    }
+
+    private static class VariableGenerator {
+        int count = 0;
+
+        private String generate() {
+            var name = "__wildcard_" + count;
+            count += 1;
+            return name;
+        }
     }
 }
