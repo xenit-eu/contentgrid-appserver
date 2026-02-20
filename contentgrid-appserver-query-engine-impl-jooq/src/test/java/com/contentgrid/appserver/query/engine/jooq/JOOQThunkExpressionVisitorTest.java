@@ -1163,8 +1163,13 @@ class JOOQThunkExpressionVisitorTest {
                 ),
                 // same variable used multiple times
                 Comparison.areEqual(
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name")),
-                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("name"))
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name")),
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("x"), SymbolicReference.path("name"))
+                ),
+                // same variable used in same path, but path contains different variable
+                Comparison.less(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("received")),
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("pay_before"))
                 ),
                 // same variable used across OR terms
                 LogicalOperation.disjunction(
