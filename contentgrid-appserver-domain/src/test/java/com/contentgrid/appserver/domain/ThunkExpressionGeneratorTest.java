@@ -44,6 +44,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -839,10 +840,9 @@ class ThunkExpressionGeneratorTest {
 
     @Test
     void multipleToManyRelationsUseDifferentWildcards() {
-        Map<String, List<String>> params = Map.of(
-                "shipments.destination", List.of("Moon Base"),
-                "wishlist.description", List.of("A unicorn")
-        );
+        Map<String, List<String>> params = new TreeMap<>();
+        params.put("shipments.destination", List.of("Moon Base"));
+        params.put("wishlist.description", List.of("A unicorn"));
         var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
         var logicalOperation = assertInstanceOf(LogicalOperation.class, result);

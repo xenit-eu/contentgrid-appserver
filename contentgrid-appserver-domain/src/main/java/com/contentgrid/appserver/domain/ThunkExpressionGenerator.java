@@ -55,15 +55,6 @@ public class ThunkExpressionGenerator {
                 // currently only handle attribute search filters
                 if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                     var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                    List<PathElement> pathElements;
-
-                    try {
-                        pathElements = convertPath(variableGenerator, application, entity, attributeSearchFilter.getAttributePath());
-                    } catch (IllegalArgumentException e) {
-                        throw new InvalidFilterParameterException(entity.getName().getValue(), entry.getKey(),
-                                attribute.getType(), entry.getValue().toString(), e);
-                    }
-
                     List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
 
                     for (String value : entry.getValue()) {
@@ -71,7 +62,7 @@ public class ThunkExpressionGenerator {
                             Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
                             subexpressions.add(createExpression(
                                     attributeSearchFilter,
-                                    pathElements,
+                                    convertPath(variableGenerator, application, entity, attributeSearchFilter.getAttributePath()),
                                     parsedValue
                             ));
                         } catch (Exception e) {
