@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -49,9 +50,11 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -81,6 +84,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
+    private final ContentReferenceTracker contentReferenceTracker;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -109,7 +113,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 ))
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new ContentUploadAttributeMapper(contentStore),
+                                new ContentUploadAttributeMapper(contentStore, contentReferenceTracker),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
@@ -273,15 +277,14 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
+        var contentModificationValidator = new ContentAttributeModificationValidator(existingEntity);
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
-                // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
-                        // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        new AttributeValidationDataMapper(contentModificationValidator),
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
@@ -302,6 +305,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        for (String contentId : contentModificationValidator.getDereferencedContentIds()) {
+            if (contentReferenceTracker != null) {
+                contentReferenceTracker.decrementReference(com.contentgrid.appserver.contentstore.api.ContentReference.of(contentId));
+            }
+        }
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -312,15 +321,14 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull RequestInputData data,
             @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
+        var contentModificationValidator = new ContentAttributeModificationValidator(existingEntity);
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
-                // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
-                        // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        new AttributeValidationDataMapper(contentModificationValidator),
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
@@ -342,6 +350,12 @@ public class DatamodelApiImpl implements DatamodelApi {
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
 
+        for (String contentId : contentModificationValidator.getDereferencedContentIds()) {
+            if (contentReferenceTracker != null) {
+                contentReferenceTracker.decrementReference(com.contentgrid.appserver.contentstore.api.ContentReference.of(contentId));
+            }
+        }
+
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
 
@@ -349,12 +363,34 @@ public class DatamodelApiImpl implements DatamodelApi {
     public InternalEntityInstance deleteEntity(@NonNull Application application, @NonNull EntityRequest entityRequest, @NonNull AuthorizationContext authorizationContext)
             throws EntityIdNotFoundException {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
+        var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
 
         DeleteEventConsumer onDelete = new EventConsumerImpl(outputMapper);
         var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate(), onDelete)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
-        return outputMapper.mapAttributes(deleted);
+        var deletedInstance = outputMapper.mapAttributes(deleted);
+        
+        if (contentReferenceTracker != null) {
+            for (var contentAttr : entity.getContentAttributes()) {
+                deletedInstance.getByAttributeName(contentAttr.getName(), CompositeAttributeData.class)
+                    .ifPresent(compositeData -> {
+                        compositeData.getAttributeByName(contentAttr.getId().getName())
+                            .filter(SimpleAttributeData.class::isInstance)
+                            .map(attr -> (SimpleAttributeData<?>) attr)
+                            .map(attr -> attr.getValue())
+                            .filter(String.class::isInstance)
+                            .map(String.class::cast)
+                            .ifPresent(contentId -> {
+                                contentReferenceTracker.decrementReference(
+                                    com.contentgrid.appserver.contentstore.api.ContentReference.of(contentId)
+                                );
+                            });
+                    });
+            }
+        }
+
+        return deletedInstance;
     }
 
     @Override

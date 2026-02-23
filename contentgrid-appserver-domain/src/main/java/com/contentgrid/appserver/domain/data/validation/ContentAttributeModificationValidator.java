@@ -8,10 +8,14 @@ import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.Validator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +23,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ContentAttributeModificationValidator implements Validator {
     private final EntityInstance entityData;
+
+    @Getter
+    private final List<String> dereferencedContentIds = new ArrayList<>();
 
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
@@ -35,18 +42,19 @@ public class ContentAttributeModificationValidator implements Validator {
                         }
                     }
                 } else {
-                    // When a content attribute is present, mimetype is required to be filled in
                     var mimeType = contentAttribute.getMimetype().getName();
-                    // At the point that this validator runs, MissingDataEntry is already converted to null for create/update
-                    // And has been set to missing only for partialUpdate. We don't have to require a mimetype input for partial update,
-                    // as the mimetype will just not be set at all
                     if ((mapDataEntry.get(mimeType.getValue()) instanceof NullDataEntry)) {
                         throw new RequiredConstraintViolationInvalidDataException().withinProperty(mimeType);
                     }
                 }
             } else if (hasContent && dataEntry instanceof NullDataEntry) {
-                // TODO: mark content for deletion, it can only be deleted in ContentStore
-                //  after database transaction has completed
+                var currentData = resolveData(attributePath);
+                if (currentData.isPresent() && currentData.get() instanceof MapDataEntry currentMap) {
+                    var contentIdEntry = currentMap.get(contentAttribute.getId().getName().getValue());
+                    if (contentIdEntry instanceof StringDataEntry stringEntry) {
+                        dereferencedContentIds.add(stringEntry.getValue());
+                    }
+                }
             }
         }
 

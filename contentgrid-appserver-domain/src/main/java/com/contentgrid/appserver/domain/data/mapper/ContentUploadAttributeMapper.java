@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -26,6 +27,11 @@ import org.springframework.util.MimeTypeUtils;
 public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMapper {
 
     private final ContentStore contentStore;
+    private final ContentReferenceTracker contentReferenceTracker;
+
+    public ContentUploadAttributeMapper(ContentStore contentStore) {
+        this(contentStore, null);
+    }
 
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData) {
@@ -36,7 +42,6 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
     protected Optional<DataEntry> mapCompositeAttribute(AttributePath path, CompositeAttribute compositeAttribute, DataEntry inputData) throws InvalidDataException {
         var result = super.mapCompositeAttribute(path, compositeAttribute, inputData);
         if(compositeAttribute instanceof ContentAttribute contentAttribute && inputData instanceof MapDataEntry mapDataEntry) {
-            // Remove file id and size from attributes that can be set
             var blockedAttributes = Set.of(
                     contentAttribute.getId().getName().getValue(),
                     contentAttribute.getLength().getName().getValue()
@@ -67,6 +72,10 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
             try {
                 var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
                 var contentAccessor = contentStore.writeContent(inputStream);
+
+                if (contentReferenceTracker != null) {
+                    contentReferenceTracker.incrementReference(contentAccessor.getReference());
+                }
 
                 var builder = MapDataEntry.builder();
                 builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))

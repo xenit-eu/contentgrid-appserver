@@ -2,6 +2,7 @@ package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
@@ -13,6 +14,7 @@ import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCurso
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -45,8 +47,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
-            CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
+            CursorCodec cursorCodec, Clock clock, @Autowired(required = false) ContentReferenceTracker contentReferenceTracker) {
+        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock, contentReferenceTracker);
     }
 
     @Bean

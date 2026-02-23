@@ -1,0 +1,24 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-contentstore-api')
+    api project(':contentgrid-appserver-application-model')
+    
+    implementation 'org.jooq:jooq'
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'org.springframework:spring-tx'
+    implementation 'org.springframework.boot:spring-boot'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'io.micrometer:micrometer-core'
+    
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
+}
+
+test {
+    useJUnitPlatform()
+}

@@ -142,7 +142,8 @@ class DatamodelApiImplTest {
                 contentStore,
                 domainEventDispatcher,
                 codec,
-                clock
+                clock,
+                null
         );
     }
 
