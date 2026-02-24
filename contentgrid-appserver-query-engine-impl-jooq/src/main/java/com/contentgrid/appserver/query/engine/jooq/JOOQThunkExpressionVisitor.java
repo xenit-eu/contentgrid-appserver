@@ -475,7 +475,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         }
 
         try {
-            context.getJoinCollection().addRelation(context.getApplication(), relation, context.getCurrentRelationPath());
+            context.getJoinCollection().addRelation(relation, context.getCurrentRelationPath());
             return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
         } finally {
             context.popRelation();
@@ -545,7 +545,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this.application = application;
             this.entity = entity;
-            this.joinCollection = new JoinCollection(entity.getTable());
+            this.joinCollection = new JoinCollection(application, entity.getTable());
         }
 
         public TableName getRootTable() {

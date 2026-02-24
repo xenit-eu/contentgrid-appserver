@@ -31,6 +31,8 @@ import org.jooq.impl.DSL;
 @Getter
 public class JoinCollection {
 
+    private final Application application;
+
     private final TableName rootTable;
     private final TableName rootAlias;
 
@@ -46,7 +48,8 @@ public class JoinCollection {
     @Getter(AccessLevel.NONE)
     private final Map<List<PathElement>, CachedAlias> pathAliasCache = new HashMap<>();
 
-    public JoinCollection(@NonNull TableName rootTable) {
+    public JoinCollection(@NonNull Application application, @NonNull TableName rootTable) {
+        this.application = application;
         this.rootTable = rootTable;
         this.rootAlias = generateAlias(rootTable);
         this.currentTable = this.rootTable;
@@ -60,7 +63,7 @@ public class JoinCollection {
         return this.currentAlias;
     }
 
-    public void addRelation(Application application, Relation relation, List<PathElement> relationPath) {
+    public void addRelation(Relation relation, List<PathElement> relationPath) {
         var sourceEntity = application.getRelationSourceEntity(relation);
         var targetEntity = application.getRelationTargetEntity(relation);
         if (!sourceEntity.getTable().equals(currentTable)) {
