@@ -1080,6 +1080,128 @@ class JOOQThunkExpressionVisitorTest {
                         StringComparison.contentGridPrefixSearchMatch(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                                 Scalar.of("Bö") // bob
+                        ), 1),
+                Arguments.argumentSet("or of ands", // permissions
+                        LogicalOperation.disjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("is_paid")),
+                                        Scalar.of(true)
+                                ),
+                                LogicalOperation.conjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                Scalar.of("invoice_1")
+                                        ),
+                                        Comparison.less(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                Scalar.of(15.0)
+                                        )
+                                ),
+                                LogicalOperation.conjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                Scalar.of("invoice_2")
+                                        ),
+                                        Comparison.greater(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                Scalar.of(15.0)
+                                        )
+                                )
+                        ), 2),
+                Arguments.argumentSet("and of ors", // search filters
+                        LogicalOperation.conjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("is_paid")),
+                                        Scalar.of(true)
+                                ),
+                                LogicalOperation.disjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                Scalar.of("invoice_1")
+                                        ),
+                                        Comparison.less(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                Scalar.of("invoice_2")
+                                        )
+                                ),
+                                LogicalOperation.disjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                Scalar.of(10.0)
+                                        ),
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                Scalar.of(15.0)
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("or of ands (to-one relation)", // permissions
+                        LogicalOperation.disjunction(
+                                Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                                Scalar.of("alice")
+                                ),
+                                LogicalOperation.conjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                                Scalar.of("bob")
+                                        ),
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                Scalar.of("vat_1")
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("and of ors (to-one relation)", // search filters
+                        LogicalOperation.conjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                        Scalar.of("alice")
+                                ),
+                                LogicalOperation.disjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                Scalar.of("vat_1")
+                                        ),
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                Scalar.of("vat_2")
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("or of ands (to-many relation)", // permissions
+                        LogicalOperation.disjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
+                                        Scalar.of("code_2")
+                                ),
+                                LogicalOperation.conjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("code")),
+                                                Scalar.of("code_1")
+                                        ),
+                                        Comparison.less(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_03_"), SymbolicReference.path("cost")),
+                                                Scalar.of(5.0)
+                                        )
+                                )
+                        ), 2),
+                Arguments.argumentSet("and of ors (to-many relation)", // search filters
+                        LogicalOperation.conjunction(
+                                Comparison.areEqual(
+                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
+                                        Scalar.of("code_1")
+                                ),
+                                LogicalOperation.disjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("cost")),
+                                                Scalar.of(9.99)
+                                        ),
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_03_"), SymbolicReference.path("cost")),
+                                                Scalar.of(10.0)
+                                        )
+                                )
                         ), 1)
         );
     }

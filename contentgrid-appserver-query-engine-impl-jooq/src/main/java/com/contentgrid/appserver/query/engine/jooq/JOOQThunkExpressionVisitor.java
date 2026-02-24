@@ -208,6 +208,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 yield DSL.and(conditions);
             }
             case OR -> {
+                // TODO: DOES NOT WORK FOR SEARCH FILTERS OVER TO-MANY RELATIONS (AND of ORs)
+                // TODO: DOES NOT WORK FOR NESTED ORS OVER TO-MANY RELATIONS
                 // OR is expressed in OPA as different rules, variables are local to the rule body.
                 // As such, it is not possible to reuse a variable across different terms.
                 // Collect the joins for each term separately, and prevent usage of variables across terms.
