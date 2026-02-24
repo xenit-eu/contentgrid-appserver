@@ -203,11 +203,11 @@ class JOOQSymbolicReferenceResolverTest {
     @ParameterizedTest
     @MethodSource("relations")
     void collectTest(Entity entity, List<Relation> relations, UnaryOperator<Condition> operator) {
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, entity.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, entity.getName());
         var condition = DSL.condition(true);
 
         // collect() without addRelation() has no effect
-        assertEquals(condition, joins.collect(condition));
+        assertEquals(condition, resolver.collect(condition));
 
         List<PathElement> path = new ArrayList<>();
         for (var relation : relations) {
@@ -215,25 +215,25 @@ class JOOQSymbolicReferenceResolverTest {
         }
         // Use id because path must end in simple attribute
         path.add(SymbolicReference.path("id"));
-        joins.resolvePath(path);
-        var result = joins.collect(condition);
+        resolver.resolvePath(path);
+        var result = resolver.collect(condition);
 
         // collect() should return expected result and reset current table
         var expected = operator.apply(condition);
         assertEquals(expected, result);
 
         // collect() after collect() has no effect
-        assertEquals(condition, joins.collect(condition));
+        assertEquals(condition, resolver.collect(condition));
     }
 
     @Test
     void multipleTerms() {
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
         var condition = DSL.condition(true);
 
         // Use id because path must end in simple attribute
-        joins.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id"))); // left term
-        joins.resolvePath(List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id"))); // right term
+        resolver.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id"))); // left term
+        resolver.resolvePath(List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id"))); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("person")).as("p1"))
@@ -249,19 +249,19 @@ class JOOQSymbolicReferenceResolverTest {
                         condition
                 )));
 
-        var result = joins.collect(condition);
+        var result = resolver.collect(condition);
 
         assertEquals(expected, result);
     }
 
     @Test
     void multipleTerms_selfReferencingRelations() {
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
         var condition = DSL.condition(true);
 
         // Use id because path must end in simple attribute
-        joins.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("id"))); // left term
-        joins.resolvePath(List.of(SymbolicReference.path("next_invoice"), SymbolicReference.path("id"))); // right term
+        resolver.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("id"))); // left term
+        resolver.resolvePath(List.of(SymbolicReference.path("next_invoice"), SymbolicReference.path("id"))); // right term
 
         var expected = DSL.exists(DSL.selectOne()
                 .from(DSL.table(DSL.name("invoice")).as("i1"))
@@ -274,32 +274,32 @@ class JOOQSymbolicReferenceResolverTest {
                         condition
                 )));
 
-        var result = joins.collect(condition);
+        var result = resolver.collect(condition);
 
         assertEquals(expected, result);
     }
 
     @Test
     void addRelationTest_illegalRelation() {
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
         assertThrows(InvalidThunkExpressionException.class, () ->
-                joins.resolvePath(List.of(SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("id"))));
+                resolver.resolvePath(List.of(SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("id"))));
         assertThrows(InvalidThunkExpressionException.class, () ->
-                joins.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("next_invoice"), SymbolicReference.path("id"))));
+                resolver.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("next_invoice"), SymbolicReference.path("id"))));
     }
 
     @Test
     void aliasReuse_sameRelationPath() {
         // Tests that when the same relation path is used multiple times within a single expression,
         // the alias is reused and no duplicate join is created
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
         var condition = DSL.condition(true);
 
         // First reference to entity.customer - should create a join
-        joins.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id")));
+        resolver.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id")));
 
         // Second reference to entity.customer - should reuse the same alias, no new join
-        joins.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id")));
+        resolver.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id")));
 
         // Expected: only one join to person table, not two
         var expected = DSL.exists(DSL.selectOne()
@@ -310,7 +310,7 @@ class JOOQSymbolicReferenceResolverTest {
                         condition
                 )));
 
-        var result = joins.collect(condition);
+        var result = resolver.collect(condition);
         assertEquals(expected, result);
     }
 
@@ -318,14 +318,14 @@ class JOOQSymbolicReferenceResolverTest {
     void aliasReuse_nestedRelationPath() {
         // Tests that nested relation paths (e.g., entity.previous_invoice.customer)
         // can be reused when accessed multiple times
-        var joins = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
         var condition = DSL.condition(true);
 
         // First reference to entity.previous_invoice.customer
-        joins.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("id")));
+        resolver.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("id")));
 
         // Second reference to entity.previous_invoice.customer - should reuse both aliases
-        joins.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("id")));
+        resolver.resolvePath(List.of(SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("id")));
 
         // Expected: only two joins (previous_invoice -> invoice, then invoice -> person), not four
         var expected = DSL.exists(DSL.selectOne()
@@ -339,7 +339,7 @@ class JOOQSymbolicReferenceResolverTest {
                         condition
                 )));
 
-        var result = joins.collect(condition);
+        var result = resolver.collect(condition);
         assertEquals(expected, result);
     }
 }
