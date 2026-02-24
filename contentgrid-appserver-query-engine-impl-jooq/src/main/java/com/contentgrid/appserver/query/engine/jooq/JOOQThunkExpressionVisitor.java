@@ -2,14 +2,6 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
@@ -22,26 +14,17 @@ import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
-import com.contentgrid.thunx.predicates.model.SymbolicReference.StringPathElement;
-import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElement;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.Condition;
 import org.jooq.DataType;
@@ -208,8 +191,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 yield DSL.and(conditions);
             }
             case OR -> {
-                // TODO: DOES NOT WORK FOR SEARCH FILTERS OVER TO-MANY RELATIONS (AND of ORs)
-                // TODO: DOES NOT WORK FOR NESTED ORS OVER TO-MANY RELATIONS
                 // OR is expressed in OPA as different rules, variables are local to the rule body.
                 // As such, it is not possible to reuse a variable across different terms.
                 // Collect the joins for each term separately, and prevent usage of variables across terms.
@@ -217,17 +198,18 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 // and `ANY(X OR Y)` can not be expressed (but it is mathematically equivalent to the former).
                 var conditions = new ArrayList<Condition>();
                 for (var expression : functionExpression.getTerms()) {
-                    var field = expression.accept(this, context);
+                    var newContext = context.newContext();
+                    var field = expression.accept(this, newContext);
 
                     if (!field.getDataType().isBoolean()) {
-                        // Evaluate as false, collect joins but don't add it to conditions
+                        // Evaluate as false
                         logWarning(functionExpression.getOperator(), field);
-                        context.addJoins(DSL.falseCondition());
                         continue;
                     }
 
                     var condition = DSL.condition((Field<Boolean>) field);
-                    conditions.add(context.addJoins(condition));
+                    conditions.add(newContext.addJoins(condition));
+                    context.merge(newContext);
                 }
                 yield DSL.or(conditions);
             }
@@ -384,102 +366,7 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             throw new InvalidThunkExpressionException("Symbolic reference with subject %s is not supported"
                     .formatted(symbolicReference.getSubject().getName()));
         }
-        var result = handlePath(context.getEntity(), symbolicReference.getPath(), context);
-        // Reset current table of join collection, so that next joins are added to root again
-        context.getJoinCollection().resetCurrentTable();
-        return result;
-    }
-
-    private Field<?> handlePath(@NonNull Entity entity, @NonNull List<PathElement> path, @NonNull JOOQContext context)
-            throws InvalidThunkExpressionException {
-        if (path.isEmpty()) {
-            throw new InvalidThunkExpressionException("Empty path");
-        }
-        var pathElement = path.getFirst();
-        var tail = path.subList(1, path.size());
-        var name = getPathElementName(pathElement);
-
-        // Check if pathElement references attribute
-        Optional<Attribute> maybeAttribute = entity.getAttributeByName(AttributeName.of(name));
-        if (maybeAttribute.isPresent()) {
-            var attribute = maybeAttribute.get();
-            return handleAttribute(context.getJoinCollection().getCurrentAlias(), attribute, tail);
-        }
-
-        // Check if pathElement references relation
-        Optional<Relation> maybeRelation = context.getApplication().getRelationForEntity(entity, RelationName.of(name));
-        if (maybeRelation.isPresent()) {
-            var relation = maybeRelation.get();
-            return handleRelation(relation, tail, context);
-        }
-
-        // pathElement seems to reference a non-existing attribute/relation on the entity
-        throw new InvalidThunkExpressionException(
-                "Path element %s does not exist on entity %s".formatted(name, entity));
-    }
-
-    private Field<?> handleAttribute(@NonNull TableName currentAlias, @NonNull Attribute attribute,
-            @NonNull List<PathElement> tail)
-            throws InvalidThunkExpressionException {
-        switch (attribute) {
-            case SimpleAttribute simpleAttribute -> {
-                if (!tail.isEmpty()) {
-                    throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
-                }
-                return JOOQUtils.resolveField(currentAlias, simpleAttribute);
-            }
-            case CompositeAttribute compositeAttribute -> {
-                if (tail.isEmpty()) {
-                    throw new InvalidThunkExpressionException("Path can not end in a composite attribute");
-                }
-                var pathElement = tail.getFirst();
-                var newTail = tail.subList(1, tail.size());
-                var name = getPathElementName(pathElement);
-
-                // Check if pathElement references existing attribute
-                Optional<Attribute> maybeAttribute = compositeAttribute.getAttributeByName(AttributeName.of(name));
-                if (maybeAttribute.isPresent()) {
-                    var subAttribute = maybeAttribute.get();
-                    return handleAttribute(currentAlias, subAttribute, newTail);
-                } else {
-                    // pathElement seems to reference a non-existing attribute
-                    throw new InvalidThunkExpressionException(
-                            "Path element %s does not exist on attribute %s".formatted(name,
-                                    compositeAttribute.getName()));
-                }
-            }
-        }
-    }
-
-    private Field<?> handleRelation(@NonNull Relation relation, @NonNull List<PathElement> tail,
-            @NonNull JOOQContext context) {
-        if (tail.isEmpty()) {
-            throw new InvalidThunkExpressionException("Path can not end in a relation");
-        }
-
-        // Track the relation in the path for alias reuse
-        context.pushRelation(relation);
-
-        // check variable access for *-to-many relations
-        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-            var pathElement = tail.getFirst();
-            if (pathElement instanceof VariablePathElement variable) {
-                // Validate and track the variable
-                context.addVariable(variable);
-                tail = tail.subList(1, tail.size());
-            } else {
-                throw new InvalidThunkExpressionException(
-                        "VariablePathElement is required in traversing a *-to-many relation, got '%s' of type %s."
-                                .formatted(pathElement, pathElement.getClass().getSimpleName()));
-            }
-        }
-
-        try {
-            context.getJoinCollection().addRelation(relation, context.getCurrentRelationPath());
-            return handlePath(context.getApplication().getRelationTargetEntity(relation), tail, context);
-        } finally {
-            context.popRelation();
-        }
+        return context.resolvePath(symbolicReference.getPath());
     }
 
     @Override
@@ -512,95 +399,38 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
         return getArray(context, listValue.getValue().stream());
     }
 
-    private static String getPathElementName(@NonNull PathElement elem) throws InvalidThunkExpressionException {
-        if (elem instanceof StringPathElement string) {
-            return ((Scalar<String>) string.getPath()).getValue();
-        }
-        throw new InvalidThunkExpressionException(
-                "cannot traverse symbolic reference using path element type %s, expected a %s"
-                        .formatted(elem.getClass().getSimpleName(), StringPathElement.class.getSimpleName()));
-    }
-
-    @Value
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static class JOOQContext {
 
         @NonNull
-        Application application;
-        @NonNull
-        Entity entity;
-
-        @Getter(AccessLevel.PRIVATE)
-        @NonNull
-        JoinCollection joinCollection;
-
-        @Getter(AccessLevel.NONE)
-        Set<String> consumedVariables = new HashSet<>();
-
-        @Getter(AccessLevel.NONE)
-        Map<String, List<PathElement>> variableToRelationPath = new HashMap<>();
-
-        @Getter(AccessLevel.NONE)
-        List<PathElement> relationPath = new ArrayList<>();
+        private final JOOQSymbolicReferenceResolver symbolicReferenceResolver;
 
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
-            this.application = application;
-            this.entity = entity;
-            this.joinCollection = new JoinCollection(application, entity.getTable());
+            this(new JOOQSymbolicReferenceResolver(application, entity.getName()));
+        }
+
+        public JOOQContext newContext() {
+            return new JOOQContext(symbolicReferenceResolver.newResolver());
+        }
+
+        public void merge(JOOQContext other) {
+            symbolicReferenceResolver.merge(other.symbolicReferenceResolver);
         }
 
         public TableName getRootTable() {
-            return joinCollection.getRootTable();
+            return symbolicReferenceResolver.getRootEntity().getTable();
         }
 
         public TableName getRootAlias() {
-            return joinCollection.getRootAlias();
+            return symbolicReferenceResolver.getRootAlias();
+        }
+
+        public Field<?> resolvePath(List<PathElement> path) {
+            return symbolicReferenceResolver.resolvePath(path);
         }
 
         public Condition addJoins(Condition condition) {
-            consumedVariables.addAll(variableToRelationPath.keySet());
-            variableToRelationPath.clear();
-            return joinCollection.collect(condition);
-        }
-
-        private void addVariable(VariablePathElement variable) {
-            String variableName = variable.getVariable().getName();
-
-            // Check if this variable has been used before
-            if (consumedVariables.contains(variableName)) {
-                // Variable already consumed, and can no longer be reused
-                throw new InvalidThunkExpressionException(
-                        "Variable %s cannot be reused across different OR terms".formatted(variableName)
-                );
-            } else if (variableToRelationPath.containsKey(variableName)) {
-                // Variable still in use - verify it's used with the same relation path
-                var existingPath = variableToRelationPath.get(variableName);
-                if (!existingPath.equals(relationPath)) {
-                    throw new InvalidThunkExpressionException(
-                            "Variable %s cannot be reused across different relation paths. First used at path %s, now used at path %s"
-                            .formatted(variableName, existingPath, relationPath));
-                }
-                // Same path - OK to reuse
-            } else {
-                // New variable - record its relation path
-                variableToRelationPath.put(variableName, new ArrayList<>(relationPath));
-            }
-
-            relationPath.add(variable);
-        }
-
-        public void pushRelation(Relation relation) {
-            relationPath.add(SymbolicReference.path(relation.getSourceEndPoint().getName().getValue()));
-        }
-
-        public void popRelation() {
-            var element = relationPath.removeLast();
-            if (element instanceof VariablePathElement) {
-                relationPath.removeLast();
-            }
-        }
-
-        public List<PathElement> getCurrentRelationPath() {
-            return new ArrayList<>(relationPath);
+            return symbolicReferenceResolver.collect(condition);
         }
     }
 }
