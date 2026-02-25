@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.jooq;
+package com.contentgrid.appserver.query.engine.jooq.thunk;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
@@ -13,30 +13,28 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.jooq.JOOQSymbolicReferenceResolver.Join.SourceColumnJoin;
-import com.contentgrid.appserver.query.engine.jooq.JOOQSymbolicReferenceResolver.Join.TargetColumnJoin;
+import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.CompositeAttributeNode;
+import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.RelationNode;
+import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.SimpleAttributeNode;
+import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.VariableNode;
+import com.contentgrid.appserver.query.engine.jooq.thunk.Join.SourceColumnJoin;
+import com.contentgrid.appserver.query.engine.jooq.thunk.Join.TargetColumnJoin;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.StringPathElement;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.SelectJoinStep;
@@ -44,7 +42,7 @@ import org.jooq.impl.DSL;
 
 class JOOQSymbolicReferenceResolver {
 
-    private static final String UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE =
+    static final String UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE =
             "cannot traverse symbolic reference using path element type %s, expected a %s"
                     .formatted(VariablePathElement.class.getSimpleName(), StringPathElement.class.getSimpleName());
 
@@ -61,7 +59,7 @@ class JOOQSymbolicReferenceResolver {
 
     private int aliasCount = 0;
 
-    private final List<JOOQSymbolicReferenceResolver.Join> joins = new ArrayList<>();
+    private final List<Join> joins = new ArrayList<>();
 
     private final CachedNode cache;
 
@@ -278,128 +276,4 @@ class JOOQSymbolicReferenceResolver {
         }
         throw new InvalidThunkExpressionException(UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);
     }
-
-    private static abstract sealed class CachedNode permits SimpleAttributeNode, CompositeAttributeNode, RelationNode,
-            VariableNode {
-
-        private final Map<PathElement, CachedNode> cache = new HashMap<>();
-
-        public Optional<CachedNode> find(PathElement pathElement) {
-            return Optional.ofNullable(cache.get(pathElement));
-        }
-
-        public void store(PathElement pathElement, CachedNode node) {
-            cache.put(pathElement, node);
-        }
-
-        public void clear() {
-            cache.clear();
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = true)
-    private static class SimpleAttributeNode extends CachedNode {
-        SimpleAttribute attribute;
-        Field<?> field;
-
-        @Override
-        public void store(PathElement pathElement, CachedNode node) {
-            throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = true)
-    private static class CompositeAttributeNode extends CachedNode {
-        CompositeAttribute attribute;
-
-        @Override
-        public void store(PathElement pathElement, CachedNode node) {
-            if (node instanceof SimpleAttributeNode || node instanceof CompositeAttributeNode) {
-                super.store(pathElement, node);
-            } else {
-                throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
-            }
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = true)
-    private static class RelationNode extends CachedNode {
-        Relation relation;
-        TableName alias;
-
-        private boolean isMany() {
-            return relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation;
-        }
-
-        @Override
-        public void store(PathElement pathElement, CachedNode node) {
-            var isMany = isMany();
-            if (!isMany && node instanceof VariableNode) {
-                throw new InvalidThunkExpressionException(UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);
-            } else if (isMany && !(node instanceof VariableNode)) {
-                throw new InvalidThunkExpressionException(
-                        "VariablePathElement is required in traversing a *-to-many relation, got '%s' of type %s."
-                                .formatted(pathElement, pathElement.getClass().getSimpleName()));
-            }
-            super.store(pathElement, node);
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = true)
-    private static class VariableNode extends CachedNode {
-        String name;
-        TableName alias;
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    public abstract static sealed class Join {
-
-        private final TableName sourceAlias;
-        private final TableName targetAlias;
-        private final TableName targetTable;
-
-        public abstract Condition getCondition();
-
-        public static final class SourceColumnJoin extends Join {
-
-            private final SimpleAttribute sourcePrimaryKey;
-            private final ColumnName sourceReference;
-
-            public SourceColumnJoin(TableName sourceAlias, TableName targetAlias, TableName targetTable, SimpleAttribute sourcePrimaryKey, ColumnName sourceReference) {
-                super(sourceAlias, targetAlias, targetTable);
-                this.sourcePrimaryKey = sourcePrimaryKey;
-                this.sourceReference = sourceReference;
-            }
-
-            @Override
-            public Condition getCondition() {
-                return ((Field<UUID>) JOOQUtils.resolveField(getTargetAlias(), sourceReference, sourcePrimaryKey.getType(), false))
-                        .eq(JOOQUtils.resolvePrimaryKey(getSourceAlias(), sourcePrimaryKey));
-            }
-        }
-
-        public static final class TargetColumnJoin extends Join {
-
-            private final SimpleAttribute targetPrimaryKey;
-            private final ColumnName targetReference;
-
-            public TargetColumnJoin(TableName sourceAlias, TableName targetAlias, TableName targetTable, SimpleAttribute targetPrimaryKey, ColumnName targetReference) {
-                super(sourceAlias, targetAlias, targetTable);
-                this.targetPrimaryKey = targetPrimaryKey;
-                this.targetReference = targetReference;
-            }
-
-            @Override
-            public Condition getCondition() {
-                return JOOQUtils.resolvePrimaryKey(getTargetAlias(), targetPrimaryKey)
-                        .eq((Field<UUID>) JOOQUtils.resolveField(getSourceAlias(), targetReference, targetPrimaryKey.getType(), false));
-            }
-        }
-    }
-
 }
