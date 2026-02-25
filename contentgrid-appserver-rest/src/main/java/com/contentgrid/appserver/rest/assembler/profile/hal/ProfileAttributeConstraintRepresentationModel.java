@@ -23,6 +23,22 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         return new UniqueConstraintRepresentationModel();
     }
 
+    static CreatedDateConstraintRepresentationModel createdDate() {
+        return new CreatedDateConstraintRepresentationModel();
+    }
+
+    static CreatedByConstraintRepresentationModel createdBy() {
+        return new CreatedByConstraintRepresentationModel();
+    }
+
+    static ModifiedDateConstraintRepresentationModel modifiedDate() {
+        return new ModifiedDateConstraintRepresentationModel();
+    }
+
+    static ModifiedByConstraintRepresentationModel modifiedBy() {
+        return new ModifiedByConstraintRepresentationModel();
+    }
+
     @Value
     @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
     class AllowedValuesConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
@@ -52,4 +68,41 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
             return "unique";
         }
     }
+
+    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
+    final class CreatedDateConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+
+        @Override
+        public String getType() {
+            return "created-date";
+        }
+    }
+
+    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
+    final class CreatedByConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+
+        @Override
+        public String getType() {
+            return "created-by";
+        }
+    }
+
+    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
+    final class ModifiedDateConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+
+        @Override
+        public String getType() {
+            return "modified-date";
+        }
+    }
+
+    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
+    final class ModifiedByConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+
+        @Override
+        public String getType() {
+            return "modified-by";
+        }
+    }
+
 }
