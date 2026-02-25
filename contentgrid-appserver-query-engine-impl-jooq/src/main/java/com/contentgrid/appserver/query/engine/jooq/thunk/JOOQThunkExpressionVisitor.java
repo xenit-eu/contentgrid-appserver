@@ -21,6 +21,7 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -61,10 +62,8 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
      * @return The converted {@link Condition} that can be used in the where clause of queries.
      */
     public Condition createCondition(ThunkExpression<Boolean> expression, JOOQContext context) {
-        var condition = DSL.condition((Field<Boolean>) expression.accept(this, context));
-
-        // In case the expression did not contain an OR expression, we still need to add the joins
-        return context.addJoins(condition);
+        return context.wrapJoins(ctx ->
+                DSL.condition((Field<Boolean>) expression.accept(this, ctx)));
     }
 
     @Override
@@ -199,18 +198,18 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
                 // and `ANY(X OR Y)` can not be expressed (but it is mathematically equivalent to the former).
                 var conditions = new ArrayList<Condition>();
                 for (var expression : functionExpression.getTerms()) {
-                    var newContext = context.newContext();
-                    var field = expression.accept(this, newContext);
+                    var condition = context.wrapJoins(newContext -> {
+                        var field = expression.accept(this, newContext);
 
-                    if (!field.getDataType().isBoolean()) {
-                        // Evaluate as false
-                        logWarning(functionExpression.getOperator(), field);
-                        continue;
-                    }
+                        if (!field.getDataType().isBoolean()) {
+                            // Evaluate as false
+                            logWarning(functionExpression.getOperator(), field);
+                            return DSL.falseCondition();
+                        }
 
-                    var condition = DSL.condition((Field<Boolean>) field);
-                    conditions.add(newContext.addJoins(condition));
-                    context.merge(newContext);
+                        return DSL.condition((Field<Boolean>) field);
+                    });
+                    conditions.add(condition);
                 }
                 yield DSL.or(conditions);
             }
@@ -410,14 +409,6 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             this(new JOOQSymbolicReferenceResolver(application, entity.getName()));
         }
 
-        public JOOQContext newContext() {
-            return new JOOQContext(symbolicReferenceResolver.newResolver());
-        }
-
-        public void merge(JOOQContext other) {
-            symbolicReferenceResolver.merge(other.symbolicReferenceResolver);
-        }
-
         public TableName getRootTable() {
             return symbolicReferenceResolver.getRootEntity().getTable();
         }
@@ -430,8 +421,10 @@ public class JOOQThunkExpressionVisitor implements ThunkExpressionVisitor<Field<
             return symbolicReferenceResolver.resolvePath(path);
         }
 
-        public Condition addJoins(Condition condition) {
-            return symbolicReferenceResolver.collect(condition);
+        public Condition wrapJoins(Function<JOOQContext, Condition> conditionFunction) {
+            return symbolicReferenceResolver.wrapJoins(resolver ->
+                    conditionFunction.apply(new JOOQContext(resolver))
+            );
         }
     }
 }

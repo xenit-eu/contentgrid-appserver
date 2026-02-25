@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import org.jooq.Condition;
@@ -84,12 +85,19 @@ class JOOQSymbolicReferenceResolver {
         return currentAlias;
     }
 
-    public void merge(JOOQSymbolicReferenceResolver resolver) {
+    public Condition wrapJoins(Function<JOOQSymbolicReferenceResolver, Condition> conditionFunction) {
+        var resolver = newResolver();
+        var condition = conditionFunction.apply(resolver);
+        this.merge(resolver);
+        return resolver.collect(condition);
+    }
+
+    private void merge(JOOQSymbolicReferenceResolver resolver) {
         this.usedVariables.addAll(resolver.usedVariables);
         this.aliasCount = Math.max(this.aliasCount, resolver.aliasCount);
     }
 
-    public JOOQSymbolicReferenceResolver newResolver() {
+    private JOOQSymbolicReferenceResolver newResolver() {
         var result = new JOOQSymbolicReferenceResolver(this.application, this.rootEntity.getName());
         result.merge(this);
         return result;
@@ -244,7 +252,7 @@ class JOOQSymbolicReferenceResolver {
         }
     }
 
-    public Condition collect(Condition condition) {
+    private Condition collect(Condition condition) {
         SelectJoinStep<?> selectBuilder = null;
         Condition where = null;
         for (var join : joins) {
@@ -256,9 +264,6 @@ class JOOQSymbolicReferenceResolver {
                         .on(join.getCondition());
             }
         }
-
-        joins.clear();
-        cache.clear();
 
         if (selectBuilder == null || where == null) {
             return condition;
