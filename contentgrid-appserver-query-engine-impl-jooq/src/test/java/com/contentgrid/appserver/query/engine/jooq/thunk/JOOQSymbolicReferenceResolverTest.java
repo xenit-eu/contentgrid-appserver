@@ -279,13 +279,47 @@ class JOOQSymbolicReferenceResolverTest {
         assertEquals(expected, result);
     }
 
-    @Test
-    void addRelationTest_illegalRelation() {
+    static Stream<Arguments> illegalPaths() {
+        return Stream.of(
+                Arguments.argumentSet("empty path", List.of()),
+                Arguments.argumentSet("non-existing attribute", List.of(
+                        SymbolicReference.path("non-existing")
+                )),
+                Arguments.argumentSet("non-existing relation", List.of(
+                        SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("non-existing nested relation", List.of(
+                        SymbolicReference.path("customer"), SymbolicReference.path("next_invoice"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("path too long", List.of(
+                        SymbolicReference.path("customer"), SymbolicReference.path("id"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("path too short", List.of(
+                        SymbolicReference.path("customer")
+                )),
+                Arguments.argumentSet("missing variable", List.of(
+                        SymbolicReference.path("products"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("variable at root entity", List.of(
+                        SymbolicReference.pathVar("x"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("variable in to-one relation", List.of(
+                        SymbolicReference.path("customer"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("variable after variable", List.of(
+                        SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.pathVar("y"), SymbolicReference.path("id")
+                )),
+                Arguments.argumentSet("variable twice in path", List.of(
+                        SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")
+                ))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void illegalPaths(List<PathElement> path) {
         var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
-        assertThrows(InvalidThunkExpressionException.class, () ->
-                resolver.resolvePath(List.of(SymbolicReference.path("invoices"), SymbolicReference.pathVar("x"), SymbolicReference.path("id"))));
-        assertThrows(InvalidThunkExpressionException.class, () ->
-                resolver.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("next_invoice"), SymbolicReference.path("id"))));
+        assertThrows(InvalidThunkExpressionException.class, () -> resolver.resolvePath(path));
     }
 
     @Test

@@ -114,9 +114,7 @@ class JOOQSymbolicReferenceResolver {
 
             switch (nextNode) {
                 case SimpleAttributeNode simpleAttributeNode -> {
-                    if (simpleAttributeNode.getField() != null) {
-                        result = simpleAttributeNode.getField();
-                    }
+                    result = simpleAttributeNode.getField();
                 }
                 case CompositeAttributeNode compositeAttributeNode -> {
                     currentContainer = compositeAttributeNode.getAttribute();
@@ -175,32 +173,32 @@ class JOOQSymbolicReferenceResolver {
     private RelationNode processRelation(Relation relation, Entity currentEntity, TableName currentAlias) {
         var targetEntity = application.getRelationTargetEntity(relation);
         var targetTable = targetEntity.getTable();
-        TableName targetAlias;
-        switch (relation) {
+        var nextAlias = switch (relation) {
             case SourceOneToOneRelation oneToOneRelation -> {
-                targetAlias = this.generateAlias(targetEntity.getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new TargetColumnJoin(currentAlias, targetAlias, targetTable,
                         targetEntity.getPrimaryKey(),
                         oneToOneRelation.getTargetReference()));
+                yield targetAlias;
             }
             case ManyToOneRelation manyToOneRelation -> {
-                targetAlias = this.generateAlias(targetEntity.getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new TargetColumnJoin(currentAlias, targetAlias, targetTable,
                         targetEntity.getPrimaryKey(),
                         manyToOneRelation.getTargetReference()));
+                yield targetAlias;
             }
             case TargetOneToOneRelation oneToOneRelation -> {
-                targetAlias = this.generateAlias(targetEntity.getTable());
+                var targetAlias = this.generateAlias(targetEntity.getTable());
                 joins.add(new SourceColumnJoin(currentAlias, targetAlias, targetTable,
                         currentEntity.getPrimaryKey(),
                         oneToOneRelation.getSourceReference()));
+                yield targetAlias;
             }
-            default -> {
-                // Skip joins for to-many relations, they will be done when processing the variable
-                targetAlias = currentAlias;
-            }
-        }
-        return new RelationNode(relation, targetAlias);
+            // Skip joins for to-many relations, they will be done when processing the variable
+            default -> currentAlias;
+        };
+        return new RelationNode(relation, nextAlias);
     }
 
     private VariableNode processVariable(CachedNode currentNode, TableName currentAlias, VariablePathElement variable) {
@@ -216,13 +214,13 @@ class JOOQSymbolicReferenceResolver {
             var sourceEntity = application.getRelationSourceEntity(relation);
             var targetEntity = application.getRelationTargetEntity(relation);
             var targetTable = targetEntity.getTable();
-            TableName targetAlias;
-            switch (relation) {
+            var nextAlias = switch (relation) {
                 case OneToManyRelation oneToManyRelation -> {
-                    targetAlias = this.generateAlias(targetEntity.getTable());
+                    var targetAlias = this.generateAlias(targetEntity.getTable());
                     joins.add(new SourceColumnJoin(currentAlias, targetAlias, targetTable,
                             sourceEntity.getPrimaryKey(),
                             oneToManyRelation.getSourceReference()));
+                    yield targetAlias;
                 }
                 case ManyToManyRelation manyToManyRelation -> {
                     var joinTable = manyToManyRelation.getJoinTable();
@@ -230,17 +228,16 @@ class JOOQSymbolicReferenceResolver {
                     joins.add(new SourceColumnJoin(currentAlias, joinTableAlias, joinTable,
                             sourceEntity.getPrimaryKey(),
                             manyToManyRelation.getSourceReference()));
-                    targetAlias = this.generateAlias(targetEntity.getTable());
+                    var targetAlias = this.generateAlias(targetEntity.getTable());
                     joins.add(new TargetColumnJoin(joinTableAlias, targetAlias, targetTable,
                             targetEntity.getPrimaryKey(),
                             manyToManyRelation.getTargetReference()));
+                    yield targetAlias;
                 }
-                default -> {
-                    // previous path element was a one-to-one or many-to-one relation
-                    throw new InvalidThunkExpressionException(UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);
-                }
-            }
-            return new VariableNode(variableName, targetAlias);
+                // previous path element was a one-to-one or many-to-one relation
+                default -> throw new InvalidThunkExpressionException(UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);
+            };
+            return new VariableNode(variableName, nextAlias);
         } else {
             // previous path element was not a relation
             throw new InvalidThunkExpressionException(UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);

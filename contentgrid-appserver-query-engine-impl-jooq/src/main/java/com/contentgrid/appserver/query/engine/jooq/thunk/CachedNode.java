@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.Value;
 import org.jooq.Field;
 
@@ -32,10 +33,10 @@ abstract sealed class CachedNode {
     }
 
     @Value
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     static class SimpleAttributeNode extends CachedNode {
-        SimpleAttribute attribute;
-        Field<?> field;
+        @NonNull SimpleAttribute attribute;
+        @NonNull Field<?> field;
 
         @Override
         public void store(PathElement pathElement, CachedNode node) {
@@ -44,9 +45,9 @@ abstract sealed class CachedNode {
     }
 
     @Value
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     static class CompositeAttributeNode extends CachedNode {
-        CompositeAttribute attribute;
+        @NonNull CompositeAttribute attribute;
 
         @Override
         public void store(PathElement pathElement, CachedNode node) {
@@ -59,10 +60,10 @@ abstract sealed class CachedNode {
     }
 
     @Value
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     static class RelationNode extends CachedNode {
-        Relation relation;
-        TableName alias;
+        @NonNull Relation relation;
+        @NonNull TableName alias;
 
         private boolean isMany() {
             return relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation;
@@ -84,9 +85,18 @@ abstract sealed class CachedNode {
     }
 
     @Value
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     static class VariableNode extends CachedNode {
-        String name;
-        TableName alias;
+        @NonNull String name;
+        @NonNull TableName alias;
+
+        @Override
+        public void store(PathElement pathElement, CachedNode node) {
+            if (node instanceof VariableNode) {
+                throw new InvalidThunkExpressionException(
+                        JOOQSymbolicReferenceResolver.UNSUPPORTED_VARIABLE_EXCEPTION_MESSAGE);
+            }
+            super.store(pathElement, node);
+        }
     }
 }
