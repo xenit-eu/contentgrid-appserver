@@ -15,28 +15,28 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         return new AllowedValuesConstraintRepresentationModel(values);
     }
 
-    static RequiredConstraintRepresentationModel required() {
-        return new RequiredConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel required() {
+        return new FlagConstraintRepresentationModel("required");
     }
 
-    static UniqueConstraintRepresentationModel unique() {
-        return new UniqueConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel unique() {
+        return new FlagConstraintRepresentationModel("unique");
     }
 
-    static CreatedDateConstraintRepresentationModel createdDate() {
-        return new CreatedDateConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel createdDate() {
+        return new FlagConstraintRepresentationModel("created-date");
     }
 
-    static CreatedByConstraintRepresentationModel createdBy() {
-        return new CreatedByConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel createdBy() {
+        return new FlagConstraintRepresentationModel("created-by");
     }
 
-    static ModifiedDateConstraintRepresentationModel modifiedDate() {
-        return new ModifiedDateConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel modifiedDate() {
+        return new FlagConstraintRepresentationModel("modified-date");
     }
 
-    static ModifiedByConstraintRepresentationModel modifiedBy() {
-        return new ModifiedByConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel modifiedBy() {
+        return new FlagConstraintRepresentationModel("modified-by");
     }
 
     @Value
@@ -51,58 +51,9 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         }
     }
 
+    @Value
     @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class RequiredConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "required";
-        }
+    class FlagConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+        String type;
     }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class UniqueConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "unique";
-        }
-    }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class CreatedDateConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "created-date";
-        }
-    }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class CreatedByConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "created-by";
-        }
-    }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class ModifiedDateConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "modified-date";
-        }
-    }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class ModifiedByConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "modified-by";
-        }
-    }
-
 }
