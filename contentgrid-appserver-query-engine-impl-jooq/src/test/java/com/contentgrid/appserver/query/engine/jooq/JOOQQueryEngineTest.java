@@ -2341,9 +2341,11 @@ class JOOQQueryEngineTest {
         );
 
 
-        // NOT(entity.invoices[_].amount > 100) => ANY(NOT(invoice.amount > 100) for invoice in entity.invoices)
-        // to express that there is at least one invoice with amount <= 100
-        var permissionCheck = LogicalOperation.negation(Comparison.greater(
+        // entity.invoices[_].amount <= 100 to express that there is at least one invoice with amount <= 100
+        // It is not possible to express an 'all' in ThunkExpressions, since 'every' is not allowed in opa.
+        // This means that the permission check after adding items will always succeed,
+        // when it succeeded before adding items.
+        var permissionCheck = Comparison.lessOrEquals(
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("invoices"),
@@ -2351,7 +2353,7 @@ class JOOQQueryEngineTest {
                         SymbolicReference.path("amount")
                 ),
                 Scalar.of(100)
-        ));
+        );
 
         var subjectRelationRequest = RelationRequest.forRelation(
                 INVOICE_PRODUCTS.inverse().getSourceEndPoint().getEntity(),
