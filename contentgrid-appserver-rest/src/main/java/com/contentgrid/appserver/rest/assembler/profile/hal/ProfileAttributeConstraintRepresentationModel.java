@@ -15,12 +15,28 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         return new AllowedValuesConstraintRepresentationModel(values);
     }
 
-    static RequiredConstraintRepresentationModel required() {
-        return new RequiredConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel required() {
+        return new FlagConstraintRepresentationModel("required");
     }
 
-    static UniqueConstraintRepresentationModel unique() {
-        return new UniqueConstraintRepresentationModel();
+    static ProfileAttributeConstraintRepresentationModel unique() {
+        return new FlagConstraintRepresentationModel("unique");
+    }
+
+    static ProfileAttributeConstraintRepresentationModel createdDate() {
+        return new FlagConstraintRepresentationModel("created-date");
+    }
+
+    static ProfileAttributeConstraintRepresentationModel createdBy() {
+        return new FlagConstraintRepresentationModel("created-by");
+    }
+
+    static ProfileAttributeConstraintRepresentationModel modifiedDate() {
+        return new FlagConstraintRepresentationModel("modified-date");
+    }
+
+    static ProfileAttributeConstraintRepresentationModel modifiedBy() {
+        return new FlagConstraintRepresentationModel("modified-by");
     }
 
     @Value
@@ -35,21 +51,9 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         }
     }
 
+    @Value
     @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class RequiredConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "required";
-        }
-    }
-
-    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
-    final class UniqueConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
-
-        @Override
-        public String getType() {
-            return "unique";
-        }
+    class FlagConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+        String type;
     }
 }

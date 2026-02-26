@@ -10,6 +10,11 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
@@ -18,6 +23,7 @@ import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
 import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -60,19 +66,29 @@ public class ProfileAttributeRepresentationModelAssembler {
 
     private ProfileAttributeRepresentationModel userAttributeToModel(Context context, UserAttribute userAttribute) {
         var translations = userAttribute.getTranslations(context.userLocales());
+        var constraints = userAttribute.getFlags().stream()
+                .map(this::attributeFlagToModel)
+                .flatMap(Optional::stream)
+                .toList();
+
         return ProfileAttributeRepresentationModel.builder()
                 .name(userAttribute.getName().getValue())
                 .title(translations.getName())
                 .type(ProfileAttributeType.STRING)
                 .description(translations.getDescription())
                 .readOnly(true)
+                .constraints(constraints)
                 .build();
     }
 
     private ProfileAttributeRepresentationModel simpleAttributeToModel(Context context, Entity entity, AttributePath path, SimpleAttribute attribute) {
-        var constraints = attribute.getConstraints().stream()
-                .map(this::attributeConstraintToModel)
-                .toList();
+        var constraints = Stream.concat(
+                attribute.getConstraints().stream()
+                        .map(this::attributeConstraintToModel),
+                attribute.getFlags().stream()
+                        .map(this::attributeFlagToModel)
+                        .flatMap(Optional::stream)
+                ).toList();
 
         var searchParams = entity.getSearchFilters().stream()
                 .filter(BaseAttributeSearchFilter.class::isInstance)
@@ -102,6 +118,16 @@ public class ProfileAttributeRepresentationModelAssembler {
             case UniqueConstraint ignored -> ProfileAttributeConstraintRepresentationModel.unique();
             case AllowedValuesConstraint allowedValuesConstraint ->
                 ProfileAttributeConstraintRepresentationModel.allowedValues(allowedValuesConstraint.getValues());
+        };
+    }
+
+    private Optional<ProfileAttributeConstraintRepresentationModel> attributeFlagToModel(AttributeFlag flag) {
+        return switch (flag) {
+            case CreatedDateFlag createdDateFlag -> Optional.of(ProfileAttributeConstraintRepresentationModel.createdDate());
+            case CreatorFlag creatorFlag -> Optional.of(ProfileAttributeConstraintRepresentationModel.createdBy());
+            case ModifiedDateFlag modifiedDateFlag -> Optional.of(ProfileAttributeConstraintRepresentationModel.modifiedDate());
+            case ModifierFlag modifierFlag -> Optional.of(ProfileAttributeConstraintRepresentationModel.modifiedBy());
+            default -> Optional.empty();
         };
     }
 

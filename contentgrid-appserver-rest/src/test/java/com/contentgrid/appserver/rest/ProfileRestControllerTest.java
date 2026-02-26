@@ -240,19 +240,39 @@ class ProfileRestControllerTest {
                                         "blueprint:attribute": [{
                                             name: "created_date",
                                             type: "datetime",
-                                            readOnly: true
+                                            readOnly: true,
+                                            _embedded: {
+                                                "blueprint:constraint": [{
+                                                    type: "created-date"
+                                                }]
+                                            }
                                         }, {
                                             name: "created_by",
                                             type: "string",
-                                            readOnly: true
+                                            readOnly: true,
+                                            _embedded: {
+                                                "blueprint:constraint": [{
+                                                    type: "created-by"
+                                                }]
+                                            }
                                         }, {
                                             name: "last_modified_date",
                                             type: "datetime",
-                                            readOnly: true
+                                            readOnly: true,
+                                            _embedded: {
+                                                "blueprint:constraint": [{
+                                                    type: "modified-date"
+                                                }]
+                                            }
                                         }, {
                                             name: "last_modified_by",
                                             type: "string",
-                                            readOnly: true
+                                            readOnly: true,
+                                            _embedded: {
+                                                "blueprint:constraint": [{
+                                                    type: "modified-by"
+                                                }]
+                                            }
                                         }]
                                     }
                                 }],
