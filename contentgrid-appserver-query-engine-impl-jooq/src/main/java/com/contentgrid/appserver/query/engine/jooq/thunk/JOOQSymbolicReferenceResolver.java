@@ -108,9 +108,9 @@ class JOOQSymbolicReferenceResolver {
         HasAttributes currentContainer = rootEntity;
         TableName currentAlias = rootAlias;
         CachedNode currentNode = cache;
-        Field<?> result = null;
 
-        for (var elem : path) {
+        for (var index = 0; index < path.size(); index += 1) {
+            var elem = path.get(index);
             var maybeNextNode = currentNode.find(elem);
             CachedNode nextNode;
             if (maybeNextNode.isPresent()) {
@@ -122,7 +122,11 @@ class JOOQSymbolicReferenceResolver {
 
             switch (nextNode) {
                 case SimpleAttributeNode simpleAttributeNode -> {
-                    result = simpleAttributeNode.getField();
+                    if (index + 1 < path.size()) {
+                        // Not yet at end of path, but no nested attributes possible on a SimpleAttribute
+                        throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
+                    }
+                    return simpleAttributeNode.getField();
                 }
                 case CompositeAttributeNode compositeAttributeNode -> {
                     currentContainer = compositeAttributeNode.getAttribute();
@@ -139,10 +143,7 @@ class JOOQSymbolicReferenceResolver {
 
             currentNode = nextNode; // Advance to nextNode
         }
-        if (result == null) {
-            throw new InvalidThunkExpressionException("Path does not end in SimpleAttribute");
-        }
-        return result;
+        throw new InvalidThunkExpressionException("Path does not end in SimpleAttribute");
     }
 
     private CachedNode nextNode(@NonNull CachedNode currentNode, @NonNull Entity currentEntity,
