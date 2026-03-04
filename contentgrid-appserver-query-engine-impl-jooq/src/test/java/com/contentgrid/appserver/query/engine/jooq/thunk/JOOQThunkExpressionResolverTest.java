@@ -47,6 +47,7 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver.JOOQContext;
 import com.contentgrid.thunx.predicates.model.CollectionValue;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ListValue;
@@ -80,7 +81,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @JooqTest
 @Transactional
-class JOOQThunkExpressionVisitorTest {
+class JOOQThunkExpressionResolverTest {
 
     private static final SimpleAttribute PERSON_NAME = SimpleAttribute.builder()
             .name(AttributeName.of("name"))
@@ -453,7 +454,7 @@ class JOOQThunkExpressionVisitorTest {
     @Autowired
     private TableCreator tableCreator;
 
-    private static final JOOQThunkExpressionVisitor VISITOR = new JOOQThunkExpressionVisitor();
+    private static final JOOQThunkExpressionResolver RESOLVER = new JOOQThunkExpressionResolver();
 
     @BeforeEach
     void setup() {
@@ -569,9 +570,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -591,9 +592,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("ALI")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -613,9 +614,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -633,9 +634,9 @@ class JOOQThunkExpressionVisitorTest {
                 Scalar.of("bar foo"), Locale.ENGLISH
 
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -651,9 +652,9 @@ class JOOQThunkExpressionVisitorTest {
                 // Actual value in table is "Thĳs", which should be normalized by search to still match this.
                 Scalar.of("Thijs"), Locale.ENGLISH
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -667,9 +668,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 Scalar.of("baguette"), Locale.FRENCH
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, FRENCH_PERSON);
+        var context = new JOOQContext(APPLICATION, FRENCH_PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -684,9 +685,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                 Scalar.of("bob")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -704,9 +705,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("friends"), SymbolicReference.pathVar("__var_x0001__"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -724,9 +725,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("vat"))
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -747,9 +748,9 @@ class JOOQThunkExpressionVisitorTest {
                 Scalar.of("ĳ"),
                 Scalar.of("ij")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, PERSON);
+        var context = new JOOQContext(APPLICATION, PERSON);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -765,9 +766,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("alice")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -785,9 +786,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 Scalar.of("bob")
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -805,9 +806,9 @@ class JOOQThunkExpressionVisitorTest {
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("next_invoice"), SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name"))
         );
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -917,9 +918,9 @@ class JOOQThunkExpressionVisitorTest {
     @ParameterizedTest
     @MethodSource("inOperatorValues")
     void inOperator(Entity entity, ThunkExpression<Boolean> expression, Set<UUID> expectedUUids) {
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, entity);
+        var context = new JOOQContext(APPLICATION, entity);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -1210,9 +1211,9 @@ class JOOQThunkExpressionVisitorTest {
     @ParameterizedTest
     @MethodSource("allFunctions")
     void findInvoice1(ThunkExpression<Boolean> expression, int expectedSize) {
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
+        var context = new JOOQContext(APPLICATION, INVOICE);
         var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = VISITOR.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
@@ -1315,8 +1316,8 @@ class JOOQThunkExpressionVisitorTest {
     @ParameterizedTest
     @MethodSource("illegalExpressions")
     void findIllegalExpression(ThunkExpression<Boolean> expression) {
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
-        assertThrows(InvalidThunkExpressionException.class, () -> VISITOR.createCondition(expression, context));
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        assertThrows(InvalidThunkExpressionException.class, () -> RESOLVER.resolveExpression(expression, context));
     }
 
     private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
@@ -1391,8 +1392,8 @@ class JOOQThunkExpressionVisitorTest {
     @ParameterizedTest
     @MethodSource("incompatibleExpressions")
     void findExpressionWithFaultyIamConfig(ThunkExpression<Boolean> expression) {
-        var context = new JOOQThunkExpressionVisitor.JOOQContext(APPLICATION, INVOICE);
-        var condition = VISITOR.createCondition(expression, context);
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        var condition = RESOLVER.resolveExpression(expression, context);
         assertEquals(DSL.falseCondition(), condition);
     }
 }

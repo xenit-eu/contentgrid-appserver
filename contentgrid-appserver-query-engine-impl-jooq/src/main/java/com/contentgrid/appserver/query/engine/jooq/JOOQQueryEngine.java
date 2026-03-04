@@ -49,8 +49,8 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionVisitor;
-import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionVisitor.JOOQContext;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId;
@@ -102,7 +102,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @NonNull
     private final JOOQCountStrategy countStrategy;
 
-    private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
+    private static final JOOQThunkExpressionResolver RESOLVER = new JOOQThunkExpressionResolver();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
@@ -124,7 +124,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         var offsetAndLimit = convertPageData(page);
 
-        var condition = visitor.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
@@ -172,7 +172,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
-        var condition = visitor.createCondition(permitReadPredicate, context);
+        var condition = RESOLVER.resolveExpression(permitReadPredicate, context);
 
         fields.add(DSL.field(condition).as("_allow_read"));
 
@@ -886,7 +886,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
 
-        var condition = visitor.createCondition(expression, context);
+        var condition = RESOLVER.resolveExpression(expression, context);
         return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));
     }
 }
