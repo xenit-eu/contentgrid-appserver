@@ -49,7 +49,8 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.query.engine.jooq.JOOQThunkExpressionVisitor.JOOQContext;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver.JOOQContext;
 import com.contentgrid.appserver.query.engine.jooq.count.JOOQCountStrategy;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.ExpectedId;
@@ -81,7 +82,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.OrderField;
@@ -91,7 +91,6 @@ import org.jooq.Record3;
 import org.jooq.SelectUnionStep;
 import org.jooq.SortField;
 import org.jooq.exception.DataAccessException;
-import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 
 @RequiredArgsConstructor
@@ -103,7 +102,7 @@ public class JOOQQueryEngine implements QueryEngine {
     @NonNull
     private final JOOQCountStrategy countStrategy;
 
-    private static final JOOQThunkExpressionVisitor visitor = new JOOQThunkExpressionVisitor();
+    private static final JOOQThunkExpressionResolver RESOLVER = new JOOQThunkExpressionResolver();
 
     private static final TimeBasedEpochRandomGenerator uuidGenerator = Generators.timeBasedEpochRandomGenerator(); // uuid v7 generator
 
@@ -111,10 +110,6 @@ public class JOOQQueryEngine implements QueryEngine {
     private static final long VERSION_MODULUS = 1L << 32;
 
     private static final SecureRandom secureRandom = new SecureRandom();
-
-    private static Condition createCondition(JOOQContext context, ThunkExpression<Boolean> expression) {
-        return DSL.condition((Field<Boolean>) expression.accept(visitor, context));
-    }
 
     @Override
     public SliceData findAll(@NonNull Application application, @NonNull Entity entity,
@@ -129,7 +124,7 @@ public class JOOQQueryEngine implements QueryEngine {
 
         var offsetAndLimit = convertPageData(page);
 
-        var condition = createCondition(context, expression);
+        var condition = RESOLVER.resolveExpression(expression, context);
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .orderBy(orderBy)
@@ -177,7 +172,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
-        var condition = createCondition(context, permitReadPredicate);
+        var condition = RESOLVER.resolveExpression(permitReadPredicate, context);
 
         fields.add(DSL.field(condition).as("_allow_read"));
 
@@ -891,7 +886,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var alias = context.getRootAlias();
         var table = JOOQUtils.resolveTable(entity, alias);
 
-        var condition = DSL.condition((Field<Boolean>) expression.accept(visitor, context));
+        var condition = RESOLVER.resolveExpression(expression, context);
         return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));
     }
 }

@@ -110,18 +110,18 @@ public class JOOQUtils {
     }
 
     @Allow.PlainSQL
-    static Condition generateFTSCondition(@NonNull Field<?> left, @NonNull Field<?> right, @NonNull String language) {
+    public static Condition generateFTSCondition(@NonNull Field<?> left, @NonNull Field<?> right, @NonNull String language) {
         var langParam = DSL.inline(language);
         return DSL.condition("to_tsvector(?, ?) @@ websearch_to_tsquery(?, ?)", langParam, left, langParam, right);
     }
 
     @Allow.PlainSQL
-    static Field<String> normalize(Field<?> field) {
+    public static Field<String> normalize(Field<?> field) {
         return DSL.field(DSL.sql("normalize(?, NFKC)", field), String.class);
     }
 
     @Allow.PlainSQL
-    static Field<String> prefixSearchNormalize(Field<?> field) {
+    public static Field<String> prefixSearchNormalize(Field<?> field) {
         return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
     }
 

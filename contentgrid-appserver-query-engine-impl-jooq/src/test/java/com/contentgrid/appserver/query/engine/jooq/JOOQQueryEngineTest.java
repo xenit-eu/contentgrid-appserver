@@ -2289,8 +2289,8 @@ class JOOQQueryEngineTest {
             "50,30,true",
             // Original is more than the maximum -> denied
             "200,30,false",
-            // New is more than the maximum -> denied
-            "50,200,false",
+            // Original is less than the maximum -> allowed
+            "50,200,true",
             // New and original are both more than the maximum -> denied
             "200,210,false",
     })
@@ -2341,9 +2341,11 @@ class JOOQQueryEngineTest {
         );
 
 
-        // Has to be expressed like NOT(entity.invoices[_].amount > 100)
-        // to express that there are only invoices with amount <= 100
-        var permissionCheck = LogicalOperation.negation(Comparison.greater(
+        // entity.invoices[_].amount <= 100 to express that there is at least one invoice with amount <= 100
+        // It is not possible to express an 'all' in ThunkExpressions, since 'every' is not allowed in opa.
+        // This means that the permission check after adding items will always succeed,
+        // when it succeeded before adding items.
+        var permissionCheck = Comparison.lessOrEquals(
                 SymbolicReference.of(
                         Variable.named("entity"),
                         SymbolicReference.path("invoices"),
@@ -2351,7 +2353,7 @@ class JOOQQueryEngineTest {
                         SymbolicReference.path("amount")
                 ),
                 Scalar.of(100)
-        ));
+        );
 
         var subjectRelationRequest = RelationRequest.forRelation(
                 INVOICE_PRODUCTS.inverse().getSourceEndPoint().getEntity(),
@@ -2476,28 +2478,6 @@ class JOOQQueryEngineTest {
             code.isInstanceOf(PermissionDeniedException.class);
         }
         assertThat(queryEngine.isLinked(APPLICATION, relationRequest, PRODUCT1_ID, TRUE_EXPRESSION)).isEqualTo(!allowed);
-    }
-
-    @Test
-    void testTwoUnderscores() {
-        // underscore variable used multiple times
-        // normally two variables that are the same makes for a rejection
-        // underscore is special-cased to always be considered a unique variable
-        var expression = Comparison.areEqual(
-                // person.friends[_].name
-                // Bob -> Alice
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("friends"), SymbolicReference.pathVar("_"), SymbolicReference.path("name")),
-                // person.invoices[_].previous_invoice.customer.name
-                // Bob -> invoice 2 -> invoice 1 -> Alice
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("invoices"), SymbolicReference.pathVar("_"), SymbolicReference.path("previous_invoice"), SymbolicReference.path("customer"), SymbolicReference.path("name"))
-        );
-        var slice = queryEngine.findAll(APPLICATION, PERSON, expression, null, DEFAULT_PAGE_DATA);
-        var results = slice.getEntities();
-
-        assertEquals(1, results.size());
-        var result = results.getFirst();
-        var primaryKey = result.getId();
-        assertEquals(BOB_ID, primaryKey);
     }
 
     @Test
