@@ -8,4 +8,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EmptyRelationException extends RuntimeException {
     private final RelationIdentity relationIdentity;
+
+    @Override
+    public String getMessage() {
+        return "%s is empty".formatted(relationIdentity);
+    }
 }

@@ -113,7 +113,11 @@ public class XToOneRelationRestController {
         var element = uris.getFirst();
         var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
         if (maybeId.isEmpty()) {
-            throw new InvalidRelationTargetException(element.toString());
+            throw new InvalidRelationTargetException(
+                    relation.getSourceEndPoint().getEntity(),
+                    relation.getSourceEndPoint().getName(),
+                    element
+            );
         }
         try {
             var relationRequest = RelationRequest.forRelation(

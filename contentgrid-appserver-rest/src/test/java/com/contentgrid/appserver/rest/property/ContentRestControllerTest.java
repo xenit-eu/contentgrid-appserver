@@ -138,11 +138,11 @@ class ContentRestControllerTest {
                 Arguments.argumentSet("non-existent ID", "/invoices/" + UUID.randomUUID() + "/content",
                         "https://contentgrid.cloud/problems/not-found/entity-item"),
                 Arguments.argumentSet("invalid ID format", "/invoices/invalid-id/content",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition"),
+                        "https://contentgrid.cloud/problems/not-found/endpoint"),
                 Arguments.argumentSet("non-existent entity", "/nonexistent/{instanceId}/content",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition"),
+                        "https://contentgrid.cloud/problems/not-found/endpoint"),
                 Arguments.argumentSet("non-existent property", "/invoices/{instanceId}/nonexistent",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition")
+                        "https://contentgrid.cloud/problems/not-found/endpoint")
         );
     }
 
@@ -328,11 +328,11 @@ class ContentRestControllerTest {
                             .withTitle("Object has changed")
                             .withSatisfy(pd -> {
                                 assertThat(pd.getDetail()).isEqualTo(
-                                        "Requested version constraint 'is any of [exactly 'my-value']' can not be satisfied (actual version exactly '%s')"
-                                                .formatted(pd.getProperties().get("actual-version"))
+                                        "The requested object is now exactly '%s', which does not match requested is any of [exactly 'my-value']"
+                                                .formatted(pd.getProperties().get("actual_version"))
                                 );
                             })
-                            .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                            .withField("actual_version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                     );
         }
 
@@ -843,7 +843,7 @@ class ContentRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/unsatisfied-version")
                             .withTitle("Object has changed")
                             // details is different for If-Match/If-None-Match, so not asserted here
-                            .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                            .withField("actual_version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);
@@ -965,8 +965,10 @@ class ContentRestControllerTest {
                             .content("updated")) // replace 'test' with 'updated'
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withTitle("Unsupported request header")
-                            .withDetail("Request header 'Content-Range' is not supported")
+                            .withType("https://contentgrid.cloud/problems/invalid-request/forbidden-header")
+                            .withTitle("Forbidden request header")
+                            .withDetail("Request header 'Content-Range' is not allowed")
+                            .withField("header", "Content-Range")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);

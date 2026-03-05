@@ -1,17 +1,38 @@
 package com.contentgrid.appserver.exception;
 
-public class InvalidSortParameterException extends RuntimeException {
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.SortableName;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-    public InvalidSortParameterException(String message) {
-        super(message);
+public abstract class InvalidSortParameterException extends RuntimeException {
+
+    public static class InvalidSortParameterFormatException extends InvalidSortParameterException {
+
+        public InvalidSortParameterFormatException(@NonNull Throwable cause) {
+            initCause(cause);
+        }
+
+        @Override
+        public String getMessage() {
+            return "The sort parameter has an invalid format: %s".formatted(getCause().getMessage());
+        }
     }
 
-    public static InvalidSortParameterException invalidDirection(String direction) {
-        return new InvalidSortParameterException("Invalid sort direction '" + direction + "'. Valid values are 'asc' and 'desc'");
-    }
+    @RequiredArgsConstructor
+    @Getter
+    public static class InvalidSortParameterNameException extends InvalidSortParameterException {
+        @NonNull
+        private final EntityName entityName;
 
-    public static InvalidSortParameterException invalidField(String fieldName, String entityName) {
-        return new InvalidSortParameterException("Sortable field '" + fieldName + "' not found on entity '" + entityName + "'");
+        @NonNull
+        private final SortableName sortableName;
+
+        @Override
+        public String getMessage() {
+            return "Sortable field %s was not found on entity %s".formatted(sortableName, entityName);
+        }
     }
 
 }

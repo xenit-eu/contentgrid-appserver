@@ -184,8 +184,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
             var name = field.getName();
-            entity.getSortableFieldByName(name).orElseThrow(() ->
-                    InvalidSortParameterException.invalidField(name.getValue(), entity.getName().getValue()));
+            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterException.InvalidSortParameterNameException(entity.getName(), name));
         }
     }
 

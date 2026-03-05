@@ -110,7 +110,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-request-body/json")
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-request/body/json")
                     );
         }
 
@@ -124,11 +124,11 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     {
                                         "vat": "123",
                                         "total_spend": "none yet"
-                                    }
+                                }
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("total_spend"))
+                            .withError(error -> error.withField("field", "total_spend"))
                     );
 
         }
@@ -147,7 +147,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("content"))
+                            .withError(error -> error.withField("field", "content"))
                     );
         }
 
@@ -165,7 +165,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("birthday"))
+                            .withError(error -> error.withField("field", "birthday"))
                     );
         }
 
@@ -183,7 +183,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error.withField("field", "counterparty"))
                     );
         }
 
@@ -201,7 +201,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(INVOICE_ID_UPDATE))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty")
+                            .withError(error -> error.withField("field", "counterparty")
                             )
                     )
             ;
@@ -254,7 +254,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error.withField("field", "number"))
                     );
 
             // multipart/form-data
@@ -264,7 +264,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("counterparty", "http://localhost/customers/%s".formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error.withField("field", "number"))
                     );
         }
 
@@ -281,7 +281,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error.withField("field", "counterparty"))
                     );
 
             // multipart/form-data
@@ -291,7 +291,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("number", UUID.randomUUID().toString())
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error.withField("field", "counterparty"))
                     );
         }
 
@@ -309,7 +309,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error.withField("field", "gender"))
                     );
 
             // multipart/form-data
@@ -320,7 +320,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("gender", "illegal")
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error.withField("field", "gender"))
                     );
         }
 
@@ -338,7 +338,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error.withField("field", "number"))
                     );
 
             mockMvc.perform(patch("/invoices/{id}", invoiceId)
@@ -351,7 +351,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error.withField("field", "number"))
                     );
         }
 
@@ -369,7 +369,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error.withField("field", "gender"))
                     );
 
             mockMvc.perform(patch("/customers/{id}", customerId)
@@ -382,7 +382,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error.withField("field", "gender"))
                     );
         }
 
@@ -392,7 +392,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             var invoiceId = createInvoice();
             mockMvc.perform(delete("/invoices/{id}/counterparty", invoiceId))
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error.withField("field", "counterparty"))
                     );
         }
 
@@ -414,7 +414,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
 
             mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("refund"))
+                            .withError(error -> error.withField("field", "refund"))
                     );
         }
     }
@@ -438,7 +438,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(delete("/customers/{id}", counterparty.getIdentity().getEntityId()))
                     .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("invoices"))
+                            .withError(error -> error.withField("field", "invoices"))
                     );
         }
 
@@ -464,7 +464,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(delete("/invoices/{id}", invoiceId))
                     .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("refund"))
+                            .withError(error -> error.withField("field", "refund"))
                     );
         }
 
@@ -509,7 +509,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("vat"))
+                            .withError(error -> error.withField("field", "vat"))
                     );
         }
 
@@ -543,7 +543,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(validationConstraintViolation()
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("vat"))
+                            .withError(error -> error.withField("field", "vat"))
                     );
         }
 
@@ -567,7 +567,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort")
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort/target")
                     )
 //                    .andExpect(jsonPath("$.property").value("xyz"))
 //                    .andExpect(jsonPath("$.query_parameter").value("_sort"))
@@ -582,10 +582,9 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-filter-parameter/format")
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/filter/format")
                     )
-                    .andExpect(jsonPath("$.property").value("birthday"))
-                    .andExpect(jsonPath("$.invalid_value").value("invalid"))
+                    .andExpect(jsonPath("$.query_parameter").value("birthday"))
             ;
         }
 
@@ -606,8 +605,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("0"));
+                    .andExpect(jsonPath("$.query_parameter").value("_size"));
         }
 
         @Test
@@ -619,8 +617,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("-10"));
+                    .andExpect(jsonPath("$.query_parameter").value("_size"));
         }
 
         @Test
@@ -632,8 +629,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("abc"));
+                    .andExpect(jsonPath("$.query_parameter").value("_size"));
         }
 
         @Test
@@ -645,8 +641,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
                     )
-//                    .andExpect(jsonPath("$.query_parameter").value("_cursor"))
-//                    .andExpect(jsonPath("$.invalid_value").value("abc"))
+                    .andExpect(jsonPath("$.query_parameter").value("_cursor"))
             ;
         }
     }

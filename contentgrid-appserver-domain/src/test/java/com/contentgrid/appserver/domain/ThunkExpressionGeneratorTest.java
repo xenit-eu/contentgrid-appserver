@@ -655,9 +655,8 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("count", exception.getFilterName());
+        assertEquals("count", exception.getFilterName().getValue());
         assertEquals(Type.LONG, exception.getType());
-        assertEquals("not a number", exception.getValue());
     }
 
     @Test
@@ -670,9 +669,8 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("price", exception.getFilterName());
+        assertEquals("price", exception.getFilterName().getValue());
         assertEquals(Type.DOUBLE, exception.getType());
-        assertEquals("not a decimal", exception.getValue());
     }
 
     @ParameterizedTest
@@ -686,9 +684,8 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("event_date~after", exception.getFilterName());
+        assertEquals("event_date~after", exception.getFilterName().getValue());
         assertEquals(Type.DATE, exception.getType());
-        assertEquals(value, exception.getValue());
     }
 
     @ParameterizedTest
@@ -702,9 +699,8 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("arrival_timestamp~after", exception.getFilterName());
+        assertEquals("arrival_timestamp~after", exception.getFilterName().getValue());
         assertEquals(Type.DATETIME, exception.getType());
-        assertEquals(value, exception.getValue());
     }
 
     @Test
@@ -717,9 +713,8 @@ class ThunkExpressionGeneratorTest {
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
         );
 
-        assertEquals("id", exception.getFilterName());
+        assertEquals("id", exception.getFilterName().getValue());
         assertEquals(Type.UUID, exception.getType());
-        assertEquals("not a uuid", exception.getValue());
     }
 
     @Test

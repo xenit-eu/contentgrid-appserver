@@ -13,7 +13,7 @@ final class RelationListDataType implements DataType {
 
     @Override
     public String getTechnicalName() {
-        return TechnicalDataType.RELATION_LIST.getTechnicalName();
+        return TechnicalDataType.ENTITY_COLLECTION.getTechnicalName()+':'+entityName.getValue();
     }
 
     @Override
@@ -22,7 +22,7 @@ final class RelationListDataType implements DataType {
     }
 
     public static DataType simple() {
-        return TechnicalDataType.RELATION_LIST;
+        return TechnicalDataType.ENTITY_COLLECTION;
     }
 
     public static DataType to(@NonNull EntityName entityName) {

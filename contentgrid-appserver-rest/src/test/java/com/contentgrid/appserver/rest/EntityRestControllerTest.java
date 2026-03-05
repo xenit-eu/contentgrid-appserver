@@ -23,6 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.type.DataType;
+import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -325,9 +327,9 @@ class EntityRestControllerTest {
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
                                     .withTitle("Invalid format")
                                     .withDetail("Expected value of type content, but the format is incorrect: Content-Type is required")
-                                    .withField("expected-type", "content")
-                                    .withField("format-error", "Content-Type is required")
-                                    .withProperty("picture")
+                                    .withField("expected_type", "content")
+                                    .withField("format_error", "Content-Type is required")
+                                    .withField("field", "picture")
                             )
                     )
             ;
@@ -349,9 +351,9 @@ class EntityRestControllerTest {
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
                                     .withTitle("Invalid format")
                                     .withDetail(d -> assertThat(d).startsWith("Expected value of type decimal, but the format is incorrect:"))
-                                    .withProperty("price")
-                                    .withField("expected-type", "decimal")
-                                    .withField("format-error", f -> assertThat(f).isNotNull())
+                                    .withField("field", "price")
+                                    .withField("expected_type", "decimal")
+                                    .withField("format_error", f -> assertThat(f).isNotNull())
                             ));
         }
 
@@ -368,9 +370,9 @@ class EntityRestControllerTest {
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
                                     .withTitle("Invalid format")
                                     .withDetail(d -> assertThat(d).startsWith("Expected value of type long, but the format is incorrect:"))
-                                    .withField("expected-type", "long")
-                                    .withField("format-error", f -> assertThat(f).isNotNull())
-                                    .withProperty("age")
+                                    .withField("expected_type", "long")
+                                    .withField("format_error", f -> assertThat(f).isNotNull())
+                                    .withField("field", "age")
                             )
                     );
         }
@@ -402,7 +404,7 @@ class EntityRestControllerTest {
                             .content(invalidJson))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType("https://contentgrid.cloud/problems/invalid-request-body/json")
+                            .withType("https://contentgrid.cloud/problems/invalid-request/body/json")
                             .withTitle("Request body is invalid JSON")
                     );
         }
@@ -417,9 +419,8 @@ class EntityRestControllerTest {
             mockMvc.perform(mediaTypeConfiguration.configure(post("/foobars"), payload))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
-                            .withDetail("No entity or static resource foobars")
                     );
         }
 
@@ -439,7 +440,7 @@ class EntityRestControllerTest {
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
                                     .withTitle("No content present")
                                     .withDetail("Content attributes can not be set when there is no content present")
-                                    .withProperty("picture")
+                                    .withField("field", "picture")
                             )
                     );
         }
@@ -754,7 +755,7 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
-                            .withDetail("No entity 'product' found with id '" + nonExistentId + "'")
+                            .withDetail("Entity 'product' item '" + nonExistentId + "' not found")
                     );
         }
 
@@ -765,7 +766,7 @@ class EntityRestControllerTest {
             mockMvc.perform(get("/products/" + nonExistentId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
                     );
         }
@@ -775,7 +776,7 @@ class EntityRestControllerTest {
             mockMvc.perform(get("/porfile/products")) // Typo in url
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
                     );
         }
@@ -787,13 +788,13 @@ class EntityRestControllerTest {
             mockMvc.perform(get("/foobars/" + nonExistentId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                                     .withTitle("Entity or resource not found")
                     );
             mockMvc.perform(get("/foobars"))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
-                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                                     .withTitle("Entity or resource not found")
                     );
         }
@@ -987,29 +988,31 @@ class EntityRestControllerTest {
 
         static Stream<Arguments> testListEntityInstances_withQueryParam_invalidValue() {
             return Stream.of(
-                    Arguments.of("amount", "not+a+decimal", Type.DOUBLE),
-                    Arguments.of("amount~gt", "not+a+decimal", Type.DOUBLE),
-                    Arguments.of("amount~gte", "not+a+decimal", Type.DOUBLE),
-                    Arguments.of("received~after", "2024-01-01T00:00:00.000Z", Type.DATE),
-                    Arguments.of("received~from", "not+a+date", Type.DATE),
-                    Arguments.of("pay_before~after", "2025-01-01T01:01:01.001Z", Type.DATE),
-                    Arguments.of("pay_before~from", "not+a+date", Type.DATE),
-                    Arguments.of("pay_timestamp~after", "2025-01-02", Type.DATETIME),
-                    Arguments.of("customer", "not+a+uuid", Type.UUID)
+                    Arguments.of("amount", "not+a+decimal", TechnicalDataType.DECIMAL),
+                    Arguments.of("amount~gt", "not+a+decimal", TechnicalDataType.DECIMAL),
+                    Arguments.of("amount~gte", "not+a+decimal", TechnicalDataType.DECIMAL),
+                    Arguments.of("received~after", "2024-01-01T00:00:00.000Z", TechnicalDataType.DATE),
+                    Arguments.of("received~from", "not+a+date", TechnicalDataType.DATE),
+                    Arguments.of("pay_before~after", "2025-01-01T01:01:01.001Z", TechnicalDataType.DATE),
+                    Arguments.of("pay_before~from", "not+a+date", TechnicalDataType.DATE),
+                    Arguments.of("pay_timestamp~after", "2025-01-02", TechnicalDataType.DATETIME),
+                    Arguments.of("customer", "not+a+uuid", TechnicalDataType.STRING)
             );
         }
 
         @ParameterizedTest
         @MethodSource
-        void testListEntityInstances_withQueryParam_invalidValue(String queryParam, String value, Type type) throws Exception {
+        void testListEntityInstances_withQueryParam_invalidValue(String queryParam, String value, DataType type) throws Exception {
             mockMvc.perform(get("/invoices?" + queryParam + "=" + value))
                     .andExpect(status().isBadRequest())
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType("https://contentgrid.cloud/problems/invalid-filter-parameter/format")
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/filter/format")
                             .withTitle("Filter query parameter has an invalid format")
-                            .withDetail("Invalid argument for filter %s in entity invoice: Could not convert value '%s' to %s"
-                                    .formatted(queryParam, value, type))
+                            .withDetail("Filter query parameter '%s' can not be converted to %s"
+                                    .formatted(queryParam, type.getHumanDescription()))
+                            .withField("query_parameter", queryParam)
+                            .withField("expected_type", type.getTechnicalName())
                     );
         }
 
@@ -1079,28 +1082,27 @@ class EntityRestControllerTest {
 
             // Invalid sort direction
             mockMvc.perform(get("/products?_sort=price,foo").accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
-                    .andExpect(jsonPath("$.detail").value(containsString("Invalid sort direction")));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort/format")
+                            .withTitle("Sort query parameter has an invalid format")
+                    );
 
             // Multiple invalid sort directions
             mockMvc.perform(get("/products?_sort=price,foo&_sort=name,desc&_sort=name,bar").accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/sort"))
-                    .andExpect(jsonPath("$.detail").value(containsString("Invalid sort direction")))
-                    .andExpect(jsonPath("$.all-errors").isArray())
-                    .andExpect(jsonPath("$.all-errors[0].detail").value(containsString("foo")))
-                    .andExpect(jsonPath("$.all-errors[1].detail").value(containsString("bar")));
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort/format")
+                            .withTitle("Sort query parameter has an invalid format")
+                    );
 
             // Invalid sort field
             mockMvc.perform(get("/products?_sort=foo,desc").accept(MediaTypes.HAL_JSON))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort")
-                            .withTitle("Sort query parameter is invalid")
-                            .withDetail("Sortable field 'foo' not found on entity 'product'")
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort/target")
+                            .withTitle("Sort target is invalid")
+                            .withDetail("Sort target 'foo' does not exist on product")
                     );
         }
 
@@ -1314,7 +1316,7 @@ class EntityRestControllerTest {
                             .content(objectMapper.writeValueAsString(updated)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                                    .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                                    .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                                     .withTitle("Entity or resource not found")
                     );
         }
@@ -1353,7 +1355,7 @@ class EntityRestControllerTest {
                             .content(objectMapper.writeValueAsString(updatedProduct)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
                     );
         }
@@ -1701,7 +1703,7 @@ class EntityRestControllerTest {
                                         e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
                                                 .withTitle("Mandatory field")
                                                 .withDetail("A value must be present, but it is missing or empty")
-                                                .withProperty("picture.mimetype")
+                                                .withField("field", "picture.mimetype")
                                 ));
 
                 // Verify update did not succeed
@@ -1823,7 +1825,7 @@ class EntityRestControllerTest {
                                         .withTitle("No content present")
                                         .withDetail(
                                                 "Content attributes can not be set when there is no content present")
-                                        .withProperty("picture")
+                                        .withField("field", "picture")
                                 )
                         );
 
@@ -1905,7 +1907,6 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
-                            .withField("id", id)
                     );
         }
 
@@ -1918,7 +1919,6 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
-                            .withField("id", nonExistentId)
                     );
         }
 
@@ -1929,7 +1929,7 @@ class EntityRestControllerTest {
             mockMvc.perform(delete("/foobars/" + someId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
                     );
         }
@@ -1941,7 +1941,7 @@ class EntityRestControllerTest {
             mockMvc.perform(delete("/products/" + invalidId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                            .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Entity or resource not found")
                     );
         }

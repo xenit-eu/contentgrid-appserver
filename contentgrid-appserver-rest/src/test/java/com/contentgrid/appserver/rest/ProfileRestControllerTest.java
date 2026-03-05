@@ -821,7 +821,7 @@ class ProfileRestControllerTest {
         mockMvc.perform(get("/profile/not-found").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                         .withStatusCode(HttpStatus.NOT_FOUND)
-                        .withType("https://contentgrid.cloud/problems/not-found/entity-definition")
+                        .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                 );
     }
 

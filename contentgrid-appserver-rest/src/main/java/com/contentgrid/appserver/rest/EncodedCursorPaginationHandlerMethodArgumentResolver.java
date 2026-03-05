@@ -124,7 +124,7 @@ public class EncodedCursorPaginationHandlerMethodArgumentResolver extends Pagina
                     var direction = Direction.valueOf(split[1].toUpperCase());
                     return new FieldSort(direction, SortableName.of(split[0]));
                 } catch (IllegalArgumentException e) {
-                    throw InvalidSortParameterException.invalidDirection(split[1]);
+                    throw new InvalidSortParameterException.InvalidSortParameterFormatException(e);
                 }
             } else {
                 return new FieldSort(Direction.ASC, SortableName.of(split[0]));

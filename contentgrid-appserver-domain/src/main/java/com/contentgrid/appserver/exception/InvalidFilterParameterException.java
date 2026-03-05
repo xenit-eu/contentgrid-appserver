@@ -1,43 +1,38 @@
 package com.contentgrid.appserver.exception;
 
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.FilterName;
 import lombok.Getter;
 import lombok.NonNull;
 
 @Getter
 public class InvalidFilterParameterException extends IllegalArgumentException {
-    private final String entityName;
+
     @NonNull
-    private final String filterName;
+    private final EntityName entityName;
+
+    @NonNull
+    private final FilterName filterName;
     @NonNull
     private final Type type;
-    private final String value;
 
-    private static final String fullTemplate = "Invalid argument for filter %s in entity %s:"
-            + " Could not convert value '%s' to %s";
-    private static final String templateWithoutEntity = "Invalid argument for filter %s:"
-            + " Could not convert value '%s' to %s";
-
-    public InvalidFilterParameterException(String entityName, @NonNull String filterName, @NonNull Type type,
-            String value, Throwable cause) {
-        super(entityName == null
-                ? templateWithoutEntity.formatted(filterName, value, type)
-                : fullTemplate.formatted(filterName, entityName, value, type),
-                cause
-        );
+    public InvalidFilterParameterException(
+            @NonNull EntityName entityName,
+            @NonNull FilterName filterName,
+            @NonNull SimpleAttribute.Type type,
+            @NonNull Throwable cause
+    ) {
+        super(cause);
         this.entityName = entityName;
         this.filterName = filterName;
         this.type = type;
-        this.value = value;
     }
 
-    public InvalidFilterParameterException(@NonNull String filterName, @NonNull Type type, String value, Throwable cause) {
-        this(null, filterName, type, value, cause);
-    }
-    public InvalidFilterParameterException(String entityName, @NonNull String filterName, @NonNull Type type, String value) {
-        this(entityName, filterName, type, value, null);
-    }
-    public InvalidFilterParameterException(@NonNull String filterName, @NonNull Type type, String value) {
-        this(null, filterName, type, value, null);
+    @Override
+    public String getMessage() {
+        return "Filter %s in entity %s: can not convert value to %s: %s".formatted(filterName.getValue(),
+                entityName.getValue(), type, getCause().getMessage());
     }
 }
