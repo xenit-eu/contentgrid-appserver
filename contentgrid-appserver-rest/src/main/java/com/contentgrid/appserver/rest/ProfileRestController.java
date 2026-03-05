@@ -35,7 +35,9 @@ public class ProfileRestController {
     }
 
     @SpecializedOnEntity(entityPathVariable = "entityName")
-    @GetMapping(value = "/{entityName}", produces = MediaTypes.HAL_FORMS_JSON_VALUE)
+    @GetMapping(value = "/{entityName}", produces = {
+            MediaTypes.HAL_FORMS_JSON_VALUE, MediaTypes.HAL_JSON_VALUE
+    })
     public ProfileEntityRepresentationModel getHalFormsEntityProfile(
             Application application, @PathVariable PathSegmentName entityName,
             UserLocales userLocales, LinkFactoryProvider linkFactoryProvider

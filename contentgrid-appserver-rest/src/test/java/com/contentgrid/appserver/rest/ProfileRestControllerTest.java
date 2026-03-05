@@ -98,7 +98,7 @@ class ProfileRestControllerTest {
 
     @Test
     void getProfileEntity_blueprintInformation() throws Exception {
-        mockMvc.perform(get("/profile/invoices").accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(get("/profile/invoices").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
                         {
