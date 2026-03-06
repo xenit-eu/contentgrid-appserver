@@ -866,7 +866,7 @@ class ContentRestControllerTest {
         }
 
         @Test
-        void upload_multipart_no_content_type_fails() throws Exception {
+        void upload_multipart_no_content_type_success_text_plain() throws Exception {
             String invoiceId = createInvoice(null);
 
             MockMultipartFile file = new MockMultipartFile(
@@ -878,16 +878,11 @@ class ContentRestControllerTest {
 
             mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
                             .file(file))
-                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withTitle("Missing Content-Type for multipart field")
-                            .withDetail("Multipart form field 'file' must have a Content-Type specified")
-                    );
-
-            Mockito.verifyNoInteractions(contentStoreSpy);
+                    .andExpect(status().isNoContent());
 
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("text/plain"));
         }
 
 
