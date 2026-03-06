@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
@@ -11,6 +12,9 @@ import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.Validator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ContentAttributeModificationValidator implements Validator {
     private final EntityInstance entityData;
+    private final List<AttributeName> dereferencedAttributeNames = new ArrayList<>();
+
+    public List<AttributeName> getDereferencedAttributeNames() {
+        return Collections.unmodifiableList(dereferencedAttributeNames);
+    }
 
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
@@ -45,8 +54,7 @@ public class ContentAttributeModificationValidator implements Validator {
                     }
                 }
             } else if (hasContent && dataEntry instanceof NullDataEntry) {
-                // TODO: mark content for deletion, it can only be deleted in ContentStore
-                //  after database transaction has completed
+                dereferencedAttributeNames.add(attributePath.getFirst());
             }
         }
 

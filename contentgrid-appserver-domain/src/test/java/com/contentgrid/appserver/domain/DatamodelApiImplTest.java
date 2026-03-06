@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -106,6 +107,8 @@ class DatamodelApiImplTest {
     private ContentStore contentStore;
     @Mock
     private DomainEventDispatcher domainEventDispatcher;
+    @Mock
+    private ContentReferenceTracker contentReferenceTracker;
     @Spy
     private CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
 
@@ -142,7 +145,8 @@ class DatamodelApiImplTest {
                 contentStore,
                 domainEventDispatcher,
                 codec,
-                clock
+                clock,
+                contentReferenceTracker
         );
     }
 
@@ -1696,6 +1700,143 @@ class DatamodelApiImplTest {
                             AuthorizationContext.allowAll())
             ).isInstanceOf(EntityIdNotFoundException.class);
 
+        }
+    }
+
+    @Nested
+    class ContentReferenceTracking {
+
+        @Test
+        void upload_incrementsReference() throws InvalidPropertyDataException, UnwritableContentException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var fileId = "uploaded-file.bin";
+            Mockito.when(queryEngine.create(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
+            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
+
+            datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                    "number", "invoice-1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "content", new FileDataEntry("file.pdf", "application/pdf", inputStreamWithSize(10))
+            )), AuthorizationContext.allowAll());
+
+            Mockito.verify(contentReferenceTracker).incrementReference(ContentReference.of(fileId));
+        }
+
+        @Test
+        void update_contentCleared_decrementsReference() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var existingContentId = "existing-content.bin";
+            setupEntityQueryWithContent(existingContentId);
+            var entity = EntityData.builder().name(INVOICE.getName()).id(entityId).build();
+            Mockito.when(queryEngine.update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(new UpdateResult(entity, entity));
+
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "content", NullDataEntry.INSTANCE
+                    )), AuthorizationContext.allowAll());
+
+            Mockito.verify(contentReferenceTracker).decrementReference(ContentReference.of(existingContentId));
+        }
+
+        @Test
+        void update_contentWasEmpty_doesNotDecrementReference() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupEntityQuery(); // existing entity has no content
+            var entity = EntityData.builder().name(INVOICE.getName()).id(entityId).build();
+            Mockito.when(queryEngine.update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(new UpdateResult(entity, entity));
+
+            datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
+                            "number", "invoice-1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "content", NullDataEntry.INSTANCE
+                    )), AuthorizationContext.allowAll());
+
+            Mockito.verifyNoInteractions(contentReferenceTracker);
+        }
+
+        @Test
+        void partialUpdate_contentCleared_decrementsReference() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var existingContentId = "existing-content.bin";
+            setupEntityQueryWithContent(existingContentId);
+            var entity = EntityData.builder().name(INVOICE.getName()).id(entityId).build();
+            Mockito.when(queryEngine.update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(new UpdateResult(entity, entity));
+
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
+                            "content", NullDataEntry.INSTANCE
+                    )), AuthorizationContext.allowAll());
+
+            Mockito.verify(contentReferenceTracker).decrementReference(ContentReference.of(existingContentId));
+        }
+
+        @Test
+        void deleteEntity_withContent_decrementsReference() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var contentId = "content-to-delete.bin";
+            var deletedData = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .attribute(CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), contentId))
+                            .build())
+                    .build();
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(Optional.of(deletedData));
+
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    AuthorizationContext.allowAll());
+
+            Mockito.verify(contentReferenceTracker).decrementReference(ContentReference.of(contentId));
+        }
+
+        @Test
+        void deleteEntity_withoutContent_doesNotDecrementReference() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var deletedData = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .attributes(List.of())
+                    .build();
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(Optional.of(deletedData));
+
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    AuthorizationContext.allowAll());
+
+            Mockito.verifyNoInteractions(contentReferenceTracker);
+        }
+
+        @Test
+        void deleteEntity_withEmptyContent_doesNotDecrementReference() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            // Content attribute present but id is null (no content was uploaded)
+            var deletedData = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .attribute(CompositeAttributeData.builder()
+                            .name(INVOICE_CONTENT.getName())
+                            .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), (String) null))
+                            .build())
+                    .build();
+            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(Optional.of(deletedData));
+
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    AuthorizationContext.allowAll());
+
+            Mockito.verifyNoInteractions(contentReferenceTracker);
         }
     }
 }

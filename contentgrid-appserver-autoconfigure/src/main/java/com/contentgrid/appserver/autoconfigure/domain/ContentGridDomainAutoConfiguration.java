@@ -2,6 +2,8 @@ package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.lifecycle.ContentLifecycleAutoConfiguration;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
@@ -18,7 +20,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
-@AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
+@AutoConfiguration(after={ContentGridEventsAutoConfiguration.class, ContentLifecycleAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
 public class ContentGridDomainAutoConfiguration {
 
@@ -45,8 +47,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
-            CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
+            CursorCodec cursorCodec, Clock clock, ContentReferenceTracker contentReferenceTracker) {
+        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock, contentReferenceTracker);
     }
 
     @Bean

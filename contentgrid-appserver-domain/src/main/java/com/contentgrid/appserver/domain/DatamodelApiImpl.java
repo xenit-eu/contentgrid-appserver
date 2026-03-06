@@ -1,8 +1,12 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.content.lifecycle.ContentReferenceTracker;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.contentstore.api.ContentReference;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -68,6 +72,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +86,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
+    private final ContentReferenceTracker contentReferenceTracker;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -109,7 +115,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 ))
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new ContentUploadAttributeMapper(contentStore),
+                                new ContentUploadAttributeMapper(contentStore, contentReferenceTracker),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
@@ -273,6 +279,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
+        var contentValidator = new ContentAttributeModificationValidator(existingEntity);
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
@@ -281,7 +288,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        new AttributeValidationDataMapper(contentValidator),
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
@@ -302,6 +309,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        if (existingEntity instanceof InternalEntityInstance internalExisting) {
+            extractClearedContentReferences(application, existingEntity.getIdentity().getEntityName(),
+                    internalExisting, contentValidator.getDereferencedAttributeNames())
+                    .forEach(contentReferenceTracker::decrementReference);
+        }
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -312,6 +325,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull RequestInputData data,
             @NonNull AuthorizationContext authorizationContext
     ) throws QueryEngineException, InvalidPropertyDataException {
+        var contentValidator = new ContentAttributeModificationValidator(existingEntity);
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
@@ -320,7 +334,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
-                                        new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
+                                        new AttributeValidationDataMapper(contentValidator),
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
@@ -341,6 +355,12 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
         var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        if (existingEntity instanceof InternalEntityInstance internalExisting) {
+            extractClearedContentReferences(application, existingEntity.getIdentity().getEntityName(),
+                    internalExisting, contentValidator.getDereferencedAttributeNames())
+                    .forEach(contentReferenceTracker::decrementReference);
+        }
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -354,7 +374,38 @@ public class DatamodelApiImpl implements DatamodelApi {
         var deleted =  queryEngine.delete(application, entityRequest, authorizationContext.predicate(), onDelete)
                 .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
 
-        return outputMapper.mapAttributes(deleted);
+        var deletedInstance = outputMapper.mapAttributes(deleted);
+        extractContentReferences(application, entityRequest.getEntityName(), deletedInstance)
+                .forEach(contentReferenceTracker::decrementReference);
+
+        return deletedInstance;
+    }
+
+    private List<ContentReference> extractContentReferences(Application application, EntityName entityName, InternalEntityInstance entityInstance) {
+        return application.getRequiredEntityByName(entityName).getContentAttributes().stream()
+                .flatMap(contentAttribute -> extractContentReference(entityInstance, contentAttribute).stream())
+                .toList();
+    }
+
+    private List<ContentReference> extractClearedContentReferences(Application application, EntityName entityName,
+            InternalEntityInstance entityInstance, List<AttributeName> clearedAttributeNames) {
+        var entity = application.getRequiredEntityByName(entityName);
+        return clearedAttributeNames.stream()
+                .flatMap(name -> entity.getContentAttributes().stream()
+                        .filter(ca -> ca.getName().equals(name))
+                        .findFirst()
+                        .flatMap(ca -> extractContentReference(entityInstance, ca))
+                        .stream())
+                .toList();
+    }
+
+    private Optional<ContentReference> extractContentReference(InternalEntityInstance entityInstance, ContentAttribute contentAttribute) {
+        return entityInstance.getByAttributeName(contentAttribute.getName(), CompositeAttributeData.class)
+                .flatMap(data -> data.getAttributeByName(contentAttribute.getId().getName()))
+                .filter(SimpleAttributeData.class::isInstance)
+                .map(SimpleAttributeData.class::cast)
+                .map(d -> (String) d.getValue())
+                .map(ContentReference::of);
     }
 
     @Override
