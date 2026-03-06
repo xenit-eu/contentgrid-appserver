@@ -40,8 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
@@ -557,14 +555,14 @@ class RelationRestControllerTest {
     @Nested
     class InvalidInput {
 
-        static Stream<String> invalidUrls() {
+        static Stream<Arguments> invalidUrls() {
             var targetId = EntityId.of(UUID.randomUUID());
             return Stream.of(
-                    "http://localhost/persons/%s%n".formatted(targetId), // person instead of invoice
-                    "http://localhost/invoices%n".formatted(), // collection url
-                    "http://localhost/invoices/%s/next-invoice%n".formatted(targetId), // relation url
-                    "http://example.com/invoices/%s%n".formatted(targetId), // wrong domain
-                    "}%s%n".formatted(targetId) // illegal url
+                    Arguments.argumentSet("person instead of invoice", "http://localhost/persons/%s%n".formatted(targetId), true),
+                    Arguments.argumentSet("collection url", "http://localhost/invoices%n".formatted(), true),
+                    Arguments.argumentSet("relation url", "http://localhost/invoices/%s/next-invoice%n".formatted(targetId), true),
+                    Arguments.argumentSet("wrong domain", "http://example.com/invoices/%s%n".formatted(targetId), true),
+                    Arguments.argumentSet("illegal url", "}%s%n".formatted(targetId), false)
             );
         }
 
@@ -634,19 +632,30 @@ class RelationRestControllerTest {
 
         @ParameterizedTest
         @MethodSource("invalidUrls")
-        void setRelationInvalidUrl(String url) throws Exception {
+        void setRelationInvalidUrl(String url, boolean validSyntax) throws Exception {
             var invoice = createEntity(INVOICE);
-            mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
+            var result = mockMvc.perform(put("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
                             .contentType("text/uri-list")
-                            .content(url))
-                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                                    .withError(error -> error.withType("https://contentgrid.cloud/problems/input/validation/type/format")
-                                            .withDetail("Expected value of type relation to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}'")
-                                            .withField("expected_type", "entity:invoice")
-                                            .withField("field", "previous_invoice")
-                                            .withField("format_error", "Must match 'http://localhost/invoices/{id}'")
-                                    )
-                    );
+                            .content(url));
+            if(validSyntax) {
+                result.andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                        .withError(error -> error.withType(
+                                        "https://contentgrid.cloud/problems/input/validation/type/format")
+                                .withDetail(
+                                        "Expected value of type relation to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}'")
+                                .withField("expected_type", "entity:invoice")
+                                .withField("field", "previous_invoice")
+                                .withField("format_error", "Must match 'http://localhost/invoices/{id}'")
+                        )
+                );
+            } else {
+                result.andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withType("https://contentgrid.cloud/problems/invalid-request/body/uri-list")
+                        .withStatusCode(HttpStatus.BAD_REQUEST)
+                        .withTitle("Request body is invalid")
+                        .withDetail("Invalid URI at line 1: Illegal character in path")
+                );
+            }
         }
 
         @ParameterizedTest
@@ -695,19 +704,27 @@ class RelationRestControllerTest {
 
         @ParameterizedTest
         @MethodSource("invalidUrls")
-        void addRelationInvalidUrl(String url) throws Exception {
+        void addRelationInvalidUrl(String url, boolean validSyntax) throws Exception {
             var person = createEntity(PERSON);
-            mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
+            var result = mockMvc.perform(post("/persons/{sourceId}/invoices", person.getEntityId())
                             .contentType("text/uri-list")
-                            .content(url))
-                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                            .withError(error -> error
-                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
-                                    .withTitle("Invalid format")
-                                    .withField("field", "invoices")
-                                    .withField("expected_type", "entity_collection:invoice")
-                            )
-                    );
+                            .content(url));
+            if(validSyntax) {
+                result.andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                        .withError(error -> error
+                                .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                .withTitle("Invalid format")
+                                .withField("field", "invoices")
+                                .withField("expected_type", "entity_collection:invoice")
+                        )
+                );
+            } else {
+                result.andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withType("https://contentgrid.cloud/problems/invalid-request/body/uri-list")
+                        .withTitle("Request body is invalid")
+                        .withDetail("Invalid URI at line 1: Illegal character in path")
+                );
+            }
         }
 
         static Stream<Arguments> unsupportedMethod() {

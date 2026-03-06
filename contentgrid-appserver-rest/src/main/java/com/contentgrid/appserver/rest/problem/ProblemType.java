@@ -20,7 +20,9 @@ public enum ProblemType implements ProblemTypeResolvable {
     INVALID_QUERY_PARAMETER_SORT_TARGET("invalid-query-parameter", "sort", "target"),
     INVALID_QUERY_PARAMETER_PAGINATION("invalid-query-parameter", "pagination"),
 
+    INVALID_REQUEST_BODY("invalid-request", "body"),
     INVALID_REQUEST_BODY_JSON("invalid-request", "body", "json"),
+    INVALID_REQUEST_BODY_URI_LIST("invalid-request", "body", "uri-list"),
     INVALID_REQUEST_BODY_SINGLE_LINK("invalid-request", "body", "single-link"),
 
     INVALID_REQUEST_REQUIRED_HEADER("invalid-request", "required-header"),

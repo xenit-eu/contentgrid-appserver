@@ -25,16 +25,6 @@ public class ContentGridExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @ExceptionHandler
-    ResponseEntity<Problem> handleInvalidUriInList(@NonNull InvalidUriInListException exception) {
-        return createResponse(
-                problemFactory.createProblem(ProblemType.INPUT_VALIDATION_INVALID_TYPE_FORMAT)
-                        .withStatus(HttpStatus.BAD_REQUEST)
-                        .withDetail(exception.getMessage())
-                        .withProperties(properties -> properties.put("reference", exception.getInvalid()))
-        );
-    }
-
     static ResponseEntity<Problem> createResponse(Problem problem) {
         var responseBuilder = ResponseEntity.internalServerError();
         if (problem.getStatus() != null) {

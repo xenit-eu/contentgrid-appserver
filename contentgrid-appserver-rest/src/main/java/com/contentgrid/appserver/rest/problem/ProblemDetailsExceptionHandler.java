@@ -25,6 +25,7 @@ import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViol
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
+import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
 import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
@@ -46,6 +47,7 @@ import org.springframework.hateoas.mediatype.problem.Problem.ExtendedProblem;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -110,8 +112,7 @@ public class ProblemDetailsExceptionHandler {
                                 "field", String.join(".", e.getPropertyPath().toList()),
                                 "conflicting_item", linkFactoryProvider.toItem(e.getConflictingEntity()).toUri().toString()
                         )))
-                .toList())
-                .withStatus(HttpStatus.CONFLICT));
+                .toList()));
     }
 
     @ExceptionHandler
@@ -232,6 +233,19 @@ public class ProblemDetailsExceptionHandler {
     }
 
     @ExceptionHandler
+    ResponseEntity<Problem> invalidRequest(HttpMessageNotReadableException exception) {
+        if (exception.getCause() instanceof JsonParseException ex) {
+            // JsonParseException is sometimes the _cause_ of the HttpMessageNotReadableException,
+            // but this handler always gets called first because resolution goes from root exception down the cause chain
+            // So explicitly go down the necessary path here
+            return invalidRequest(ex);
+        }
+        return createResponse(problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY)
+                .withStatus(HttpStatus.BAD_REQUEST)
+        );
+    }
+
+    @ExceptionHandler
     ResponseEntity<Problem> invalidRequest(JsonParseException exception) {
         var message = Objects.requireNonNullElse(exception.getOriginalMessage(), "No message");
         var location = exception.getLocation();
@@ -241,6 +255,14 @@ public class ProblemDetailsExceptionHandler {
         return createResponse(problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_JSON)
                 .withStatus(HttpStatus.BAD_REQUEST)
                 .withDetail(message));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> invalidRequest(InvalidUriInListException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.INVALID_REQUEST_BODY_URI_LIST)
+                .withStatus(HttpStatus.BAD_REQUEST)
+                .withDetail(exception.getMessage())
+        );
     }
 
     @ExceptionHandler(exception = {MissingRelationTargetException.class, MultipleRelationTargetsException.class})

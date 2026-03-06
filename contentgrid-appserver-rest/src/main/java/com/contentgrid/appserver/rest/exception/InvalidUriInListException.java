@@ -1,15 +1,23 @@
 package com.contentgrid.appserver.rest.exception;
 
+import java.net.URISyntaxException;
 import lombok.Getter;
+import lombok.NonNull;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 
 public class InvalidUriInListException extends HttpMessageNotReadableException {
     @Getter
-    private final String invalid;
+    private final long lineNumber;
 
-    public InvalidUriInListException(String invalid, Throwable cause, HttpInputMessage httpInputMessage) {
-        super("Invalid URI in text/uri-list: " + invalid, cause, httpInputMessage);
-        this.invalid = invalid;
+    public InvalidUriInListException(long lineNumber, @NonNull URISyntaxException cause, @NonNull HttpInputMessage inputMessage) {
+        super("Invalid URI at line %s: %s".formatted(lineNumber, cause.getReason()), cause, inputMessage);
+        this.lineNumber = lineNumber;
     }
+
+    @Override
+    public synchronized URISyntaxException getCause() {
+        return (URISyntaxException) super.getCause();
+    }
+
 }
