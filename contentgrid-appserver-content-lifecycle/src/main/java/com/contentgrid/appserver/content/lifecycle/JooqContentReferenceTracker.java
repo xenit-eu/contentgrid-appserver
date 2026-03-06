@@ -19,7 +19,8 @@ public class JooqContentReferenceTracker implements ContentReferenceTracker {
                 .set(ContentReferenceTable.FIRST_REFERENCED_AT, OffsetDateTime.now())
                 .onConflict(ContentReferenceTable.CONTENT_ID)
                 .doUpdate()
-                .set(ContentReferenceTable.REFERENCE_COUNT, ContentReferenceTable.REFERENCE_COUNT.add(1))
+                .set(ContentReferenceTable.REFERENCE_COUNT,
+                        DSL.field(DSL.name("_content_references", "reference_count"), Integer.class).add(1))
                 .set(ContentReferenceTable.MARKED_FOR_DELETION_AT, (OffsetDateTime) null)
                 .execute();
     }
