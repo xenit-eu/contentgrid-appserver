@@ -3,6 +3,7 @@ package com.contentgrid.appserver.content.lifecycle;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import lombok.RequiredArgsConstructor;
+import org.jooq.Allow;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -12,6 +13,7 @@ public class JooqContentReferenceVerificationQuery implements ContentReferenceVe
     private final DSLContext dslContext;
 
     @Override
+    @Allow.PlainSQL
     public boolean isReferenced(Application application, ContentReference ref) {
         return application.getEntities().stream()
                 .anyMatch(entity -> entity.getContentAttributes().stream()

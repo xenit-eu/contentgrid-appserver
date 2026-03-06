@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration(after = ApplicationResolverAutoConfiguration.class)
 @ConditionalOnClass(JooqContentReferenceTracker.class)
@@ -30,6 +31,7 @@ public class ContentLifecycleAutoConfiguration {
     }
 
     @Bean
+    @Primary
     ContentReferenceTracker contentReferenceTracker(JooqContentReferenceTracker jooqTracker) {
         return new DeferredContentReferenceTracker(jooqTracker);
     }

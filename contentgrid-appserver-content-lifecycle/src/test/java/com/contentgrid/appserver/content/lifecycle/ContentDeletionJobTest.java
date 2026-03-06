@@ -15,8 +15,11 @@ import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.SelectField;
+import org.jooq.Table;
 import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
@@ -53,9 +56,9 @@ class ContentDeletionJobTest {
     }
 
     private void givenCandidates(List<String> contentIds) {
-        given(dslContext.select(any())
-                .from(any())
-                .where(any())
+        given(dslContext.select(ArgumentMatchers.<SelectField<String>>any())
+                .from(ArgumentMatchers.<Table<?>>any())
+                .where(ArgumentMatchers.<Condition>any())
                 .limit(anyInt())
                 .fetch(ArgumentMatchers.<Field<String>>any()))
                 .willReturn(contentIds);

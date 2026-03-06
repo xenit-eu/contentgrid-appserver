@@ -89,6 +89,7 @@ public class JOOQTableCreator implements TableCreator {
         dropContentReferencesTable(dslContext);
     }
 
+    @Allow.PlainSQL
     private void createContentReferencesTable(DSLContext dslContext) {
         dslContext.createTableIfNotExists("_content_references")
                 .column(DSL.field("content_id", String.class), org.jooq.impl.SQLDataType.VARCHAR.nullable(false))
@@ -100,6 +101,7 @@ public class JOOQTableCreator implements TableCreator {
                 .execute();
     }
 
+    @Allow.PlainSQL
     private void dropContentReferencesTable(DSLContext dslContext) {
         dslContext.dropTableIfExists("_content_references").execute();
     }

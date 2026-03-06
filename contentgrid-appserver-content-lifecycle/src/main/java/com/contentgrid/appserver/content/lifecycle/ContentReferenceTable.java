@@ -1,11 +1,13 @@
 package com.contentgrid.appserver.content.lifecycle;
 
 import java.time.OffsetDateTime;
+import org.jooq.Allow;
 import org.jooq.Field;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 
+@Allow.PlainSQL
 final class ContentReferenceTable {
 
     static final Table<?> TABLE = DSL.table("_content_references");

@@ -1709,6 +1709,7 @@ class DatamodelApiImplTest {
         @Test
         void upload_incrementsReference() throws InvalidPropertyDataException, UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
             var fileId = "uploaded-file.bin";
             Mockito.when(queryEngine.create(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
@@ -1718,7 +1719,8 @@ class DatamodelApiImplTest {
                     "number", "invoice-1",
                     "amount", 1.50,
                     "confidentiality", "public",
-                    "content", new FileDataEntry("file.pdf", "application/pdf", inputStreamWithSize(10))
+                    "content", new FileDataEntry("file.pdf", "application/pdf", inputStreamWithSize(10)),
+                    "customer", new RelationDataEntry(PERSON.getName(), personId)
             )), AuthorizationContext.allowAll());
 
             Mockito.verify(contentReferenceTracker).incrementReference(ContentReference.of(fileId));

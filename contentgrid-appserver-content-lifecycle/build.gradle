@@ -16,6 +16,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     annotationProcessor "org.jooq:jooq-checker:3.20.11"
+    testAnnotationProcessor "org.jooq:jooq-checker:3.20.11"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
