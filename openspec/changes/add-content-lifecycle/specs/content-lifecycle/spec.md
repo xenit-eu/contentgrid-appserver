@@ -75,10 +75,3 @@ The `ContentDeletionJob` SHALL find all `_content_references` entries where `mar
 - **AND** the `content.deletion.failure` metric is incremented for each failure
 - **AND** each failure is logged with the `content_id`
 
-### Requirement: Content lifecycle tracking is optional and configurable
-The content lifecycle feature SHALL be independently configurable. When disabled, the system SHALL behave as before (no reference tracking, no deletion).
-
-#### Scenario: Lifecycle tracking disabled by configuration
-- **WHEN** `contentgrid.content.lifecycle.enabled` is set to `false`
-- **THEN** no entries are written to `_content_references` on upload or dereference
-- **AND** `ContentStore.remove()` is never called by the lifecycle module

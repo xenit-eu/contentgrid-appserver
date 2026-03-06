@@ -3,7 +3,7 @@
 - [ ] 1.1 Create `contentgrid-appserver-content-lifecycle` module directory and `build.gradle` with dependencies on
   `contentgrid-appserver-contentstore-api`, `spring-boot-starter`, and `jooq`
 - [ ] 1.2 Register the new module in `settings.gradle`
-- [ ] 1.3 Add the module as an optional dependency in `contentgrid-appserver-domain/build.gradle`
+- [ ] 1.3 Add the module as a required dependency in `contentgrid-appserver-domain/build.gradle`
 
 ## 2. Database Schema
 
@@ -31,10 +31,10 @@
 
 ## 4. Domain Integration — Upload (Increment)
 
-- [ ] 4.1 Inject `ContentReferenceTracker` (optional/nullable) into `ContentUploadAttributeMapper`
+- [ ] 4.1 Inject `ContentReferenceTracker` into `ContentUploadAttributeMapper`
 - [ ] 4.2 After `contentStore.writeContent()` succeeds, call `contentReferenceTracker.incrementReference()` with the new
   `ContentReference`
-- [ ] 4.3 Write tests verifying increment is called on upload and skipped when tracker is null
+- [ ] 4.3 Write tests verifying increment is called on upload
 
 ## 5. Domain Integration — Content Cleared (Decrement)
 
@@ -69,9 +69,9 @@
 
 ## 8. Configuration and Auto-Configuration
 
-- [ ] 8.1 Define `ContentLifecycleProperties` with `enabled` (default `true`), `deletion.enabled` (default `true`),
+- [ ] 8.1 Define `ContentLifecycleProperties` with `deletion.enabled` (default `true`),
   `deletion.grace-period` (default `P7D`), `deletion.batch-size` (default `100`)
-- [ ] 8.2 Write `ContentLifecycleAutoConfiguration` that conditionally creates `JooqContentReferenceTracker`,
+- [ ] 8.2 Write `ContentLifecycleAutoConfiguration` that creates `JooqContentReferenceTracker`,
   `DeferredContentReferenceTracker`, `ContentReferenceVerificationQuery`, and `ContentDeletionJob` beans
 - [ ] 8.3 Register the auto-configuration in
   `contentgrid-appserver-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`

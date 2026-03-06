@@ -18,7 +18,7 @@ is required so that backups can be made before content is permanently removed.
   immediately.
 - A K8s CronJob runs the `ContentDeletionJob`, which finds content past the grace period, performs a safety verification
   against all entity tables, and only then deletes from the `ContentStore`.
-- **BREAKING**: `contentgrid-appserver-domain` gains an optional dependency on the content lifecycle module.
+- **BREAKING**: `contentgrid-appserver-domain` gains a required dependency on the content lifecycle module.
 
 ## Capabilities
 

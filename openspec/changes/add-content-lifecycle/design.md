@@ -59,9 +59,8 @@ via Spring auto-configuration.
 - *Inline in `contentgrid-appserver-domain`*: Couples database lifecycle concerns with the domain logic; harder to
   disable or replace.
 
-**Rationale:** Keeping lifecycle tracking in its own module makes it independently deployable and configurable (
-`contentgrid.content.lifecycle.enabled`). The domain module uses the `ContentReferenceTracker` interface and tolerates a
-null/no-op implementation when the module is absent.
+**Rationale:** Keeping lifecycle tracking in its own module makes it independently deployable. The domain module depends
+on the `ContentReferenceTracker` interface; the implementation is provided by the lifecycle module.
 
 ### Decision 3: Decrement-after-commit via `TransactionSynchronizationManager`
 
@@ -132,10 +131,8 @@ independently scalable, and is easy to trigger or disable without redeploying th
    ) AS all_refs
    GROUP BY content_id;
    ```
-3. Enable the deletion job in configuration (`contentgrid.content.lifecycle.deletion.enabled: true`) after the backfill
-   has been verified.
-4. Rollback: Set `contentgrid.content.lifecycle.enabled: false` — the domain module treats the tracker as absent and
-   falls back to no-op behavior. No data is lost by disabling.
+3. Enable the deletion job (`contentgrid.content.lifecycle.deletion.enabled: true`) after the backfill has been
+   verified.
 
 ## Open Questions
 
