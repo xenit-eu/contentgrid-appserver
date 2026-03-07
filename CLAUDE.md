@@ -2,4 +2,4 @@
 
 ## Testing
 
-Always run `./gradlew check` before pushing.
+Always run `./gradlew check` before considering work done.
