@@ -1112,6 +1112,8 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort/format")
                             .withTitle("Sort query parameter has an invalid format")
+                            .withField("query_parameter", "_sort")
+                            .withField("format_error", f -> assertThat(f).isNotNull())
                     );
 
             // Multiple invalid sort directions
@@ -1120,6 +1122,8 @@ class EntityRestControllerTest {
                             .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType("https://contentgrid.cloud/problems/invalid-query-parameter/sort/format")
                             .withTitle("Sort query parameter has an invalid format")
+                            .withField("query_parameter", "_sort")
+                            .withField("format_error", f -> assertThat(f).isNotNull())
                     );
 
             // Invalid sort field

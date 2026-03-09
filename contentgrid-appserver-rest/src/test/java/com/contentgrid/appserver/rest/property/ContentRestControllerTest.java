@@ -744,8 +744,10 @@ class ContentRestControllerTest {
                             .content(INVOICE_CONTENT_FILE.getBytes()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/required-header")
                             .withTitle("Missing required header")
                             .withDetail("Required header 'Content-Type' is not present")
+                            .withField("header", "Content-Type")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);
@@ -765,8 +767,10 @@ class ContentRestControllerTest {
                             .content(INVOICE_CONTENT_FILE.getBytes()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/required-header")
                             .withTitle("Missing required header")
                             .withDetail("Required header 'Content-Type' is not present")
+                            .withField("header", "Content-Type")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);

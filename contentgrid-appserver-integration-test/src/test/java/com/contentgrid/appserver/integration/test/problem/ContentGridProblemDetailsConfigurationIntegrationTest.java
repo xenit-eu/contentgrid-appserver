@@ -10,8 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -28,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -285,7 +284,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
 
             // multipart/form-data
@@ -295,7 +299,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("counterparty", "http://localhost/customers/%s".formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
         }
 
@@ -312,7 +321,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "counterparty"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty")
+                            )
                     );
 
             // multipart/form-data
@@ -322,7 +336,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("number", UUID.randomUUID().toString())
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "counterparty"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty")
+                            )
                     );
         }
 
@@ -381,7 +400,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
 
             mockMvc.perform(patch("/invoices/{id}", invoiceId)
@@ -394,7 +418,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
         }
 
@@ -482,41 +511,33 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class DeletionViolations {
 
         @Test
-        @Disabled("ACC-2416: problem details not wrapped in a validation constraint violation")
         void deleteEntity_targetOfRequiredManyToOneRelation() throws Exception {
             var invoiceId = createInvoice();
             var counterparty = invoicingApi.findInvoiceCounterparty(invoiceId).orElseThrow();
             // This customer is linked to the invoice
             mockMvc.perform(delete("/customers/{id}", counterparty.getIdentity().getEntityId()))
-                    .andExpect(validationConstraintViolation()
+                    .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX+"integrity/required-relation")
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withField("field", "invoices"))
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'counterparty' on Entity 'invoice' %s is required".formatted(invoiceId.getValue()))
+                            .withField("affected_relation", "http://localhost/invoices/%s/counterparty".formatted(invoiceId.getValue()))
                     );
         }
 
         @Test
-        void deleteEntity_targetOfRequiredOneToOneRelation_not500() throws Exception {
+        void deleteEntity_targetOfRequiredOneToOneRelation() throws Exception {
             var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
+            var refund = invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
             mockMvc.perform(delete("/invoices/{id}", invoiceId))
                     .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX+"integrity/required-relation")
                             .withStatusCode(HttpStatus.CONFLICT)
-                    );
-        }
-
-        @Test
-        @Disabled("ACC-2416: returns 500 - PSQLException: null value in column \"invoice\" of relation \"refund\" violates not-null constraint")
-        void deleteEntity_targetOfRequiredOneToOneRelation() throws Exception {
-            var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
-            // Now there is a refund that references our invoice
-
-            mockMvc.perform(delete("/invoices/{id}", invoiceId))
-                    .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withField("field", "refund"))
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'invoice' on Entity 'refund' %s is required".formatted(refund.getIdentity().getEntityId().getValue()))
+                            .withField("affected_relation", "http://localhost/refunds/%s/invoice".formatted(refund.getIdentity().getEntityId().getValue()))
                     );
         }
 
@@ -633,12 +654,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(get("/customers?_sort=xyz")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort/target")
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Sort target is invalid")
+                            .withDetail("Sort target 'xyz' does not exist on customer")
+                            .withField("query_parameter", "_sort")
+                            .withField("target_name", "xyz")
                     )
-//                    .andExpect(jsonPath("$.property").value("xyz"))
-//                    .andExpect(jsonPath("$.query_parameter").value("_sort"))
-//                    .andExpect(jsonPath("$.invalid_value").value("xyz,asc"))
             ;
         }
 
@@ -648,10 +670,14 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/filter/format")
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Filter query parameter has an invalid format")
+                            .withDetail("Filter query parameter 'birthday' can not be converted to datetime")
+                            .withField("query_parameter", "birthday")
+                            .withField("expected_type", "datetime")
+                            .withField("format_error", "Text 'invalid' could not be parsed at index 0")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("birthday"))
             ;
         }
 
@@ -663,40 +689,20 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     @Nested
     class PaginationParameterErrors {
 
-        @Test
-        void invalidSizeParameter_zero() throws Exception {
-            mockMvc.perform(get("/customers?_size=0")
+        @ParameterizedTest
+        @ValueSource(strings = {"0", "-10", "abc"})
+        void invalidSizeParameter(String size) throws Exception {
+            mockMvc.perform(get("/customers?_size={size}", size)
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"));
-        }
-
-        @Test
-        void invalidSizeParameter_negative() throws Exception {
-            mockMvc.perform(get("/customers?_size=-10")
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"));
-        }
-
-        @Test
-        void invalidSizeParameter_nonnumber() throws Exception {
-            mockMvc.perform(get("/customers?_size=abc")
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"));
+                            .withTitle("Pagination query parameter is invalid")
+                            .withDetail("Query parameter '_size' is not valid: Value must be between 1 and 1000")
+                            .withField("query_parameter", "_size")
+                            .withField("format_error", "Value must be between 1 and 1000")
+                    );
         }
 
         @Test
@@ -705,10 +711,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Pagination query parameter is invalid")
+                            .withDetail("Query parameter '_cursor' is not valid: Cursor is too small to be valid")
+                            .withField("query_parameter", "_cursor")
+                            .withField("format_error", "Cursor is too small to be valid")
                     )
-                    .andExpect(jsonPath("$.query_parameter").value("_cursor"))
             ;
         }
     }

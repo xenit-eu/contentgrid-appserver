@@ -136,6 +136,7 @@ class InternalInverseRelationBlindOverwriteTest {
                         .contentType("text/uri-list")
                         .content(employeeUrl))
                 .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                        .withType("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite")
                         .withStatusCode(HttpStatus.CONFLICT)
                         // existing-item should point to the place where you can fix it (i.e. remove alice from this dept first)
                         .withField("existing_item", departmentEngineeringUrl)
