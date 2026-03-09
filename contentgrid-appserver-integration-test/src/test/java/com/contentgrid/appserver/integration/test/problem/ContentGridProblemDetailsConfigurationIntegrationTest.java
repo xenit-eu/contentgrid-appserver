@@ -127,10 +127,16 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                         "vat": "123",
                                         "total_spend": "none yet"
                                 }
-                                    """)
+                                """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "total_spend"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withTitle("Invalid data type")
+                                    .withDetail("Expected value of type long, but got string")
+                                    .withField("expected_type", "long")
+                                    .withField("actual_type", "string")
+                                    .withField("field", "total_spend"))
                     );
 
         }
@@ -149,7 +155,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "content"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withTitle("Invalid data type")
+                                    .withDetail("Expected value of type object, but got string")
+                                    .withField("expected_type", "object")
+                                    .withField("actual_type", "string")
+                                    .withField("field", "content"))
                     );
         }
 
@@ -167,7 +179,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "birthday"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type datetime, but the format is incorrect:"))
+                                    .withField("expected_type", "datetime")
+                                    .withField("format_error", e -> assertThat((String)e).contains("Text '2022-01-01' could not be parsed"))
+                                    .withField("field", "birthday"))
                     );
         }
 
@@ -424,34 +442,31 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         }
 
         @Test
-        @Disabled("ACC-2416: problem details not wrapped in a validation constraint violation")
         void removeRequiredEntityRelation_thisSide() throws Exception {
             var invoiceId = createInvoice();
             mockMvc.perform(delete("/invoices/{id}/counterparty", invoiceId))
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "counterparty"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty"))
                     );
         }
 
         @Test
-        void removeRequiredEntityRelation_otherSide_not500() throws Exception {
-            var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
-            // Now there is a refund that references our invoice
-
-            mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
-                    .andExpect(status().is4xxClientError());
-        }
-        @Test
-        @Disabled("ACC-2416: returns 500 - PSQLException: null value in column \"invoice\" of relation \"refund\" violates not-null constraint")
         void removeRequiredEntityRelation_otherSide() throws Exception {
             var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
+            var refund = invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
             mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
-                    .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "refund"))
+                    .andExpect(problemDetails()
+                            .withType("https://contentgrid.cloud/problems/integrity/required-relation")
+                            .withStatusCode(HttpStatus.CONFLICT)
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'invoice' on Entity 'refund' %s is required".formatted(refund.getIdentity().getEntityId().getValue()))
+                            .withField("affected_relation", "http://localhost/refunds/%s/invoice".formatted(refund.getIdentity().getEntityId().getValue()))
                     );
         }
     }
@@ -518,12 +533,11 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class DatabaseConstraintViolations {
 
         @Test
-        @Disabled("ACC-2416: problem-details not wrapped in a validation constraint violation, detail: 'vat validation errors'")
         void uniqueConstraintViolation_create() throws Exception {
             var customerVat = UUID.randomUUID();
 
             // First time goes through
-            mockMvc.perform(post("/customers")
+            var customerOne = mockMvc.perform(post("/customers")
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -532,7 +546,10 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(MockMvcResultMatchers.status().isCreated());
+                    .andExpect(MockMvcResultMatchers.status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getRedirectedUrl();
 
             // Second time results in a unique constraint error
             mockMvc.perform(post("/customers")
@@ -545,19 +562,24 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerVat))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withField("field", "vat"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/duplicate")
+                                    .withTitle("Value is not unique")
+                                    .withDetail((String) null)
+                                    .withField("field", "vat")
+                                    .withField("conflicting_item", customerOne)
+
+                            )
                     );
         }
 
         @Test
-        @Disabled("ACC-2416: problem-details not wrapped in a validation constraint violation, detail: 'vat validation errors'")
         void uniqueConstraintViolation_update() throws Exception {
             var customerId = createCustomer();
             var customerVat = UUID.randomUUID();
 
             // Create goes through
-            mockMvc.perform(post("/customers")
+            var secondCustomer = mockMvc.perform(post("/customers")
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -566,7 +588,10 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(MockMvcResultMatchers.status().isCreated());
+                    .andExpect(MockMvcResultMatchers.status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getRedirectedUrl();
 
             // Update to same id fails
             mockMvc.perform(patch("/customers/{id}", customerId)
@@ -579,8 +604,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerVat))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withField("field", "vat"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/duplicate")
+                                    .withTitle("Value is not unique")
+                                    .withDetail((String) null)
+                                    .withField("field", "vat")
+                                    .withField("conflicting_item", secondCustomer)
+                            )
                     );
         }
 
