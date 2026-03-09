@@ -2,6 +2,7 @@ package com.contentgrid.appserver.integration.test.problem;
 
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.validationConstraintViolation;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -184,7 +185,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "counterparty"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type relation to entity 'customer', but the format is incorrect:"))
+                                    .withField("expected_type", "entity:customer")
+                                    .withField("format_error", "Invalid entity URL 'ZZEY'")
+                                    .withField("field", "counterparty"))
                     );
         }
 
@@ -202,8 +209,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(INVOICE_ID_UPDATE))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "counterparty")
-                            )
+                                    .withError(error -> error
+                                            .withType("https://contentgrid.cloud/problems/input/validation/type")
+                                            .withTitle("Invalid data type")
+                                            .withDetail("Expected value of type relation to entity 'customer', but got relation to entity 'invoice'")
+                                            .withField("expected_type", "entity:customer")
+                                            .withField("actual_type", "entity:invoice")
+                                            .withField("field", "counterparty"))
                     )
             ;
         }

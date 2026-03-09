@@ -11,7 +11,8 @@ import lombok.NonNull;
  *
  * @see InvalidDataTypeException Which is used when the data <b>type</b> is incorrect
  */
-public class InvalidDataFormatException extends InvalidDataException {
+public class InvalidDataFormatException extends InvalidDataException implements
+        ExceptionWithExpectedType<InvalidDataFormatException> {
 
     @NonNull
     @Getter
@@ -24,7 +25,13 @@ public class InvalidDataFormatException extends InvalidDataException {
 
     @Override
     public String getMessage() {
-        return "Invalid format for type %s: %s".formatted(expectedType, getCause().getMessage());
+        return "Invalid format for type %s: %s".formatted(expectedType.getHumanDescription(), getCause().getMessage());
     }
 
+    @Override
+    public InvalidDataFormatException withSpecializedExpectedType(DataType expectedType) {
+        var ex = new InvalidDataFormatException(expectedType, getCause());
+        ex.setStackTrace(getStackTrace());
+        return ex;
+    }
 }

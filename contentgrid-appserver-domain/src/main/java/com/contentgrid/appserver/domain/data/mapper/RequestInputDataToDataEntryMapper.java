@@ -23,6 +23,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.ExceptionWithExpectedType;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.RequestInputData.DataResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.MissingResult;
@@ -129,14 +130,17 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         var relationName = relation.getSourceEndPoint().getName();
         try {
             var entry = inputData.get(relationName.getValue(), RelationDataEntry.class);
-            if(entry instanceof RelationDataEntry e) {
+            if (entry instanceof RelationDataEntry e) {
                 if(!Objects.equals(relation.getTargetEndPoint().getEntity(), e.getTargetEntity())) {
                     throw new InvalidDataTypeException(DataType.of(relation), DataType.of(e));
                 }
             }
             return Optional.of(entry);
-        } catch (InvalidDataException e) {
-            throw e.withinProperty(relationName);
+        } catch (InvalidDataException invalidDataException) {
+            if (invalidDataException instanceof ExceptionWithExpectedType<?> withExpectedType) {
+                invalidDataException = withExpectedType.withSpecializedExpectedType(DataType.of(relation));
+            }
+            throw invalidDataException.withinProperty(relationName);
         }
     }
 
@@ -174,8 +178,11 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                 case MissingResult<List<? extends DataEntry>> v -> Optional.of(MissingDataEntry.INSTANCE);
                 case NullResult<List<? extends DataEntry>> v -> Optional.of(NullDataEntry.INSTANCE);
             };
-        } catch (InvalidDataException e) {
-            throw e.withinProperty(relationName);
+        } catch (InvalidDataException invalidDataException) {
+            if (invalidDataException instanceof ExceptionWithExpectedType<?> withExpectedType) {
+                invalidDataException = withExpectedType.withSpecializedExpectedType(DataType.of(relation));
+            }
+            throw invalidDataException.withinProperty(relationName);
         }
 
     }
