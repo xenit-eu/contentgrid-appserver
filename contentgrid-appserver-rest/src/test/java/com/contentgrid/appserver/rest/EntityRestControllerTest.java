@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -41,6 +42,7 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -393,6 +395,30 @@ class EntityRestControllerTest {
             mockMvc.perform(get(url).accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.price", is(5)));
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void failToCreateEntityWithLongForBoolean(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            assumeThat(mediaTypeConfiguration).hasToString("json"); // other formats result in a type format error
+            var person = createPerson();
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/invoices"), Map.of(
+                                    "number", UUID.randomUUID().toString(),
+                                    "amount", 123,
+                                    "confidentiality", "public",
+                                    "customer", Objects.requireNonNull(person.getRedirectedUrl()),
+                                    "is_paid", 123
+                            ))
+                    ).andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withTitle("Invalid data type")
+                                    .withDetail("Expected value of type boolean, but got long")
+                                    .withField("expected_type", "boolean")
+                                    .withField("actual_type", "long")
+                                    .withField("field", "is_paid")
+                            )
+                    );
         }
 
         @Test
