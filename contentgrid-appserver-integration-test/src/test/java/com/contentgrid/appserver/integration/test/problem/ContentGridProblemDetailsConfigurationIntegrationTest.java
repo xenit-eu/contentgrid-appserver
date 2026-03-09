@@ -17,6 +17,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -309,7 +310,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
 
             // multipart/form-data
@@ -320,7 +327,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("gender", "illegal")
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
         }
 
@@ -369,7 +382,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
 
             mockMvc.perform(patch("/customers/{id}", customerId)
@@ -382,7 +401,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withField("field", "gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
         }
 
