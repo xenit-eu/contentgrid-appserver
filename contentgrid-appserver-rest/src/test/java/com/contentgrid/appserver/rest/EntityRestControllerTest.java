@@ -355,7 +355,7 @@ class EntityRestControllerTest {
                                     .withDetail(d -> assertThat(d).startsWith("Expected value of type decimal, but the format is incorrect:"))
                                     .withField("field", "price")
                                     .withField("expected_type", "decimal")
-                                    .withField("format_error", f -> assertThat(f).isNotNull())
+                                    .withField("format_error", "Character n is neither a decimal digit number, decimal point, nor \"e\" notation exponential mark.")
                             ));
         }
 
@@ -369,11 +369,11 @@ class EntityRestControllerTest {
                             ))
                     ).andExpect(status().isBadRequest())
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
-                                    .withTitle("Invalid format")
-                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type long, but the format is incorrect:"))
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withTitle("Invalid data type")
+                                    .withDetail("Expected value of type long, but got decimal")
                                     .withField("expected_type", "long")
-                                    .withField("format_error", f -> assertThat(f).isNotNull())
+                                    .withField("actual_type", "decimal")
                                     .withField("field", "age")
                             )
                     );
@@ -400,7 +400,6 @@ class EntityRestControllerTest {
         @ParameterizedTest
         @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
         void failToCreateEntityWithLongForBoolean(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
-            assumeThat(mediaTypeConfiguration).hasToString("json"); // other formats result in a type format error
             var person = createPerson();
             mockMvc.perform(mediaTypeConfiguration.configure(post("/invoices"), Map.of(
                                     "number", UUID.randomUUID().toString(),

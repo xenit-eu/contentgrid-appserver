@@ -18,6 +18,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
+import com.contentgrid.appserver.rest.data.DataTypeExceptionSpecifyingRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
@@ -168,7 +169,7 @@ public class EntityRestController {
                 MultipartRequestInputData.fromRequest(request),
                 conversionService
         );
-        return createEntity(application, entityName, inputData, authorizationContext, userLocales, linkFactoryProvider);
+        return createEntity(application, entityName, new DataTypeExceptionSpecifyingRequestInputData(inputData), authorizationContext, userLocales, linkFactoryProvider);
     }
 
     @PutMapping("/{entityName}/{id}")
