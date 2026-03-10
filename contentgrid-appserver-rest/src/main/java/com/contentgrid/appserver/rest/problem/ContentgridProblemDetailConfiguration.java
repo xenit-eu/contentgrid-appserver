@@ -26,15 +26,9 @@ public class ContentgridProblemDetailConfiguration {
     }
 
     @Bean
-    @Order(-2)
+    @Order(-1)
     ProblemDetailsExceptionHandler contentGridProblemDetailsExceptionHandler(ProblemFactory problemFactory) {
         return new ProblemDetailsExceptionHandler(problemFactory);
-    }
-
-    @Bean
-    @Order(-1)
-    ContentGridExceptionHandler contentGridExceptionHandler(ProblemFactory problemFactory) {
-        return new ContentGridExceptionHandler(problemFactory);
     }
 
 }

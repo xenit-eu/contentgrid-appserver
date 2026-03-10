@@ -19,6 +19,7 @@ import com.contentgrid.appserver.exception.InvalidSortParameterException.Invalid
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
@@ -43,7 +44,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.mediatype.problem.Problem;
-import org.springframework.hateoas.mediatype.problem.Problem.ExtendedProblem;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -388,6 +388,11 @@ public class ProblemDetailsExceptionHandler {
                 .withProperties(Map.of(
                         "affected_relation", linkFactoryProvider.toRelation(exception.getTargetRelationIdentity()).orElseThrow().toUri().toString()
                 )));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<?> permissionDenied(PermissionDeniedException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     private static <E extends Throwable> Stream<E> allExceptions(E e, Class<E> clazz) {
