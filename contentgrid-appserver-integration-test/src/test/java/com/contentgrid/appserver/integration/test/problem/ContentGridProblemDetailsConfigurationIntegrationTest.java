@@ -130,11 +130,11 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(validationConstraintViolation()
                             .withError(error -> error
-                                    .withType("https://contentgrid.cloud/problems/input/validation/type")
-                                    .withTitle("Invalid data type")
-                                    .withDetail("Expected value of type long, but got string")
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail("Expected value of type long, but the format is incorrect: Error at index 0 in: \"none yet\"")
                                     .withField("expected_type", "long")
-                                    .withField("actual_type", "string")
+                                    .withField("format_error", "Error at index 0 in: \"none yet\"")
                                     .withField("field", "total_spend"))
                     );
 
@@ -183,7 +183,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     .withTitle("Invalid format")
                                     .withDetail(d -> assertThat(d).startsWith("Expected value of type datetime, but the format is incorrect:"))
                                     .withField("expected_type", "datetime")
-                                    .withField("format_error", e -> assertThat((String)e).contains("Text '2022-01-01' could not be parsed"))
+                                    .withField("format_error", "Text '2022-01-01' could not be parsed at index 10")
                                     .withField("field", "birthday"))
                     );
         }
