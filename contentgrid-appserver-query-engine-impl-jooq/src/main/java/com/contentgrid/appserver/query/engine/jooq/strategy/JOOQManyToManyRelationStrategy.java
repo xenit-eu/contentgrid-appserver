@@ -65,7 +65,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void add(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
+    public void add(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityIdentity sourceIdentity, Set<EntityIdentity> targetIdentities) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
@@ -74,8 +74,8 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
             DslContextUtils.executeInSavepoint(dslContext, () -> {
                 var step = dslContext.insertInto(table, sourceRef, targetRef);
 
-                for (var targetId : targetIds) {
-                    step = step.values(id.getValue(), targetId.getValue());
+                for (var targetIdentity : targetIdentities) {
+                    step = step.values(sourceIdentity.getEntityId().getValue(), targetIdentity.getEntityId().getValue());
                 }
                 return step.onDuplicateKeyIgnore().execute();
             });
@@ -89,7 +89,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
                     var targetTableName = JOOQUtils.resolveTable(targetEntity);
                     var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
 
-                    var targetUuids = targetIds.stream().map(EntityId::getValue).collect(Collectors.toSet());
+                    var targetUuids = targetIdentities.stream().map(t -> t.getEntityId().getValue()).collect(Collectors.toSet());
                     var existingTargetUuids = dslContext.select(targetPrimaryKey)
                             .from(targetTableName)
                             .where(targetPrimaryKey.in(targetUuids))
@@ -98,11 +98,10 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
 
                     return ExceptionUtils.<UUID, EntityIdNotFoundException>createMultiple(targetUuids, targetUuid -> new RelationTargetNotFoundException(
                                     EntityIdentity.forEntity(targetEntityName, EntityId.of(targetUuid)),
-                                    RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint()
-                                            .getName())
+                                    RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName())
                             ))
                             // If all target entities are present, targetUuids will be empty, so it must be the source entity that does not exist
-                            .orElseGet(() -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+                            .orElseGet(() -> new EntityIdNotFoundException(sourceIdentity));
                 });
             }
             throw e;
@@ -110,30 +109,30 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
     }
 
     @Override
-    public void remove(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id, Set<EntityId> targetIds) {
+    public void remove(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityIdentity sourceIdentity, Set<EntityIdentity> targetIdentities) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
-        var refs = targetIds.stream()
-                .map(EntityId::getValue)
+        var refs = targetIdentities.stream()
+                .map(t -> t.getEntityId().getValue())
                 .toList();
 
         var deleted = dslContext.deleteFrom(table)
-                .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
+                .where(DSL.and(sourceRef.eq(sourceIdentity.getEntityId().getValue()), targetRef.in(refs)))
                 .returning(targetRef)
                 .fetchSet(targetRef);
 
-        checkModifiedItems(refs, deleted, targetId -> new RelationLinkNotFoundException(relation, id, targetId));
+        checkModifiedItems(refs, deleted, targetId -> new RelationLinkNotFoundException(relation, sourceIdentity.getEntityId(), targetId));
 
     }
 
     @Override
-    public void delete(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityId id) {
+    public void delete(DSLContext dslContext, Application application, ManyToManyRelation relation, EntityIdentity sourceIdentity) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
 
         dslContext.deleteFrom(table)
-                .where(sourceRef.eq(id.getValue()))
+                .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                 .execute();
     }
 

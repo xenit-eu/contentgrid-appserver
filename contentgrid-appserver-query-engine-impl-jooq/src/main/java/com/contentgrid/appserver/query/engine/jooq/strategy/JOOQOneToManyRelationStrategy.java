@@ -65,34 +65,30 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
         dslContext.alterTable(table).dropColumnIfExists(sourceRef).execute();
     }
 
-    private Collection<UUID> getRefs(Set<EntityId> data) {
-        return data.stream().map(EntityId::getValue).toList();
+    private Collection<UUID> getRefs(Set<EntityIdentity> data) {
+        return data.stream().map(e -> e.getEntityId().getValue()).toList();
     }
 
     @Override
-    public void add(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id,
-            Set<EntityId> targetIds) {
+    public void add(DSLContext dslContext, Application application, OneToManyRelation relation, EntityIdentity sourceIdentity,
+            Set<EntityIdentity> targetIdentities) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
-        var refs = getRefs(targetIds);
+        var refs = getRefs(targetIdentities);
 
         try {
             var updatedItems = dslContext.update(table)
-                    .set(sourceRef, DSL.coalesce(sourceRef, id.getValue())) // Only use the new value when sourceRef was null, otherwise it's a blind relation overwrite
+                    .set(sourceRef, DSL.coalesce(sourceRef, sourceIdentity.getEntityId().getValue())) // Only use the new value when sourceRef was null, otherwise it's a blind relation overwrite
                     .where(targetRef.in(refs))
                     .returning(sourceRef, targetRef)
                     .fetch();
 
 
             var maybeException = ExceptionUtils.createMultiple(updatedItems.stream()
-                            .filter(updatedItem -> !Objects.equals(updatedItem.get(sourceRef), id.getValue())),
+                            .filter(updatedItem -> !Objects.equals(updatedItem.get(sourceRef), sourceIdentity.getEntityId().getValue())),
                     item -> new BlindRelationOverwriteException(
-                            RelationIdentity.forRelation(
-                                    relation.getSourceEndPoint().getEntity(),
-                                    id,
-                                    relation.getSourceEndPoint().getName()
-                            ),
+                            RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName()),
                             EntityIdentity.forEntity(
                                     relation.getTargetEndPoint().getEntity(),
                                     EntityId.of(item.get(targetRef))
@@ -112,7 +108,7 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                     updatedItems.stream().map(i -> i.get(targetRef)).collect(Collectors.toSet()),
                     targetId -> new RelationTargetNotFoundException(
                             EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId),
-                            RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint().getName())
+                            RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName())
                     )
             );
 
@@ -120,34 +116,34 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
             if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.FOREIGN_KEY_CONSTRAINT_VIOLATION)) {
                 // Foreign key violation indicates that the source entity id doesn't exist.
                 // (We tried to insert into a column that has an FK to the source entity)
-                throw ExceptionUtils.handleException(e, () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+                throw ExceptionUtils.handleException(e, () -> new EntityIdNotFoundException(sourceIdentity));
             }
             throw e;
         }
     }
 
     @Override
-    public void remove(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id,
-            Set<EntityId> targetIds) {
+    public void remove(DSLContext dslContext, Application application, OneToManyRelation relation, EntityIdentity sourceIdentity,
+            Set<EntityIdentity> targetIdentities) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
-        var refs = getRefs(targetIds);
+        var refs = getRefs(targetIdentities);
 
         try {
             var updated = dslContext.update(table)
                     .set(sourceRef, (UUID) null)
-                    .where(DSL.and(sourceRef.eq(id.getValue()), targetRef.in(refs)))
+                    .where(DSL.and(sourceRef.eq(sourceIdentity.getEntityId().getValue()), targetRef.in(refs)))
                     .returning(targetRef)
                     .fetchSet(targetRef);
 
-            checkModifiedItems(refs, updated, targetId -> new RelationLinkNotFoundException(relation, id, targetId));
+            checkModifiedItems(refs, updated, targetId -> new RelationLinkNotFoundException(relation, sourceIdentity.getEntityId(), targetId));
 
         } catch (DataAccessException e) {
             if (PostgresqlErrorType.from(e).is(PostgresqlErrorType.NOT_NULL_CONSTRAINT_VIOLATION) && relation.getTargetEndPoint().isRequired()) {
                 // If sourceRef is required to be present in one case, it will obviously be required in all cases
-                throw ExceptionUtils.handleException(e, () -> ExceptionUtils.createMultiple(targetIds,
-                                targetId -> new EntityLinkedByRequiredRelationException(relation, id, targetId))
+                throw ExceptionUtils.handleException(e, () -> ExceptionUtils.createMultiple(targetIdentities,
+                                targetIdentity -> new EntityLinkedByRequiredRelationException(relation, sourceIdentity.getEntityId(), targetIdentity.getEntityId()))
                         // This shouldn't happen, we can't get a non-null constraint violation if nothing is being removed
                         .orElseThrow());
             } else {
@@ -157,7 +153,7 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     }
 
     @Override
-    public void delete(DSLContext dslContext, Application application, OneToManyRelation relation, EntityId id) {
+    public void delete(DSLContext dslContext, Application application, OneToManyRelation relation, EntityIdentity sourceIdentity) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
@@ -166,7 +162,7 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
             // This query needs to be isolated in a savepoint, so we can run a query in the exception handler
             DslContextUtils.executeInSavepoint(dslContext, () -> dslContext.update(table)
                     .set(sourceRef, (UUID) null)
-                    .where(sourceRef.eq(id.getValue()))
+                    .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                     .execute()
             );
         } catch (DataAccessException e) {
@@ -175,14 +171,14 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
                     // Fetch one example target ID that is covered by this constraint
                     var targetId = dslContext.select(targetRef)
                             .from(table)
-                            .where(sourceRef.eq(id.getValue()))
+                            .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                             .limit(1)
                             .fetchSingle(targetRef);
                     // If the original exception is being thrown, there must be at least one matching row for the where clause.
                     // Given the definition that target is *required*, it also can't be null. So this assert is just here to make
                     // the linter happy.
                     assert targetId != null;
-                    return new EntityLinkedByRequiredRelationException(relation, id, EntityId.of(targetId));
+                    return new EntityLinkedByRequiredRelationException(relation, sourceIdentity.getEntityId(), EntityId.of(targetId));
                 });
             }
             throw e;
