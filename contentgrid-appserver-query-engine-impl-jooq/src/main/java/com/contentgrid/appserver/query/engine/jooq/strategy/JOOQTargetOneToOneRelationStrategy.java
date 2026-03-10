@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwri
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -117,9 +118,9 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
         // A new record must be present, otherwise we are trying to write to an entity that does not exist
         if(newRecord == null) {
-            throw new EntityIdNotFoundException(
-                    relation.getTargetEndPoint().getEntity(),
-                    targetId
+            throw new RelationTargetNotFoundException(
+                    EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId),
+                    RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint().getName())
             );
         } else if(newRecord.get(sourceRef) != null) {
             throw new BlindRelationOverwriteException(

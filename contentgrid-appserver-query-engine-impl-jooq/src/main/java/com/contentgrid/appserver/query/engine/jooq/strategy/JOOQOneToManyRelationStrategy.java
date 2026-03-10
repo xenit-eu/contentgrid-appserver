@@ -9,6 +9,7 @@ import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwri
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -109,7 +110,10 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
             checkModifiedItems(
                     refs,
                     updatedItems.stream().map(i -> i.get(targetRef)).collect(Collectors.toSet()),
-                    targetId -> new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(), targetId)
+                    targetId -> new RelationTargetNotFoundException(
+                            EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId),
+                            RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint().getName())
+                    )
             );
 
         } catch (DataAccessException e) {

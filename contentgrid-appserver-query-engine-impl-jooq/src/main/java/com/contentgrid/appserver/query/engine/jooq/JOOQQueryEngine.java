@@ -18,6 +18,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
@@ -46,6 +47,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -626,9 +628,12 @@ public class JOOQQueryEngine implements QueryEngine {
 
         return ExceptionUtils.createMultiple(
                 fieldRelationMap.entrySet(),
-                entry -> new EntityIdNotFoundException(
-                        entry.getValue().getTargetEndPoint().getEntity(),
-                        EntityId.of(entityData.get(entry.getKey()))
+                entry -> new RelationTargetNotFoundException(
+                        EntityIdentity.forEntity(
+                                entry.getValue().getTargetEndPoint().getEntity(),
+                                EntityId.of(entityData.get(entry.getKey()))
+                        ),
+                        RelationIdentity.forRelation(entityIdentity, entry.getValue().getSourceEndPoint().getName())
                 )
         ).orElse(null);
     }

@@ -3,8 +3,11 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -93,7 +96,11 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
                             .fetch(targetPrimaryKey);
                     targetUuids.removeAll(existingTargetUuids);
 
-                    return ExceptionUtils.createMultiple(targetUuids, targetUuid -> new EntityIdNotFoundException(targetEntityName, EntityId.of(targetUuid)))
+                    return ExceptionUtils.<UUID, EntityIdNotFoundException>createMultiple(targetUuids, targetUuid -> new RelationTargetNotFoundException(
+                                    EntityIdentity.forEntity(targetEntityName, EntityId.of(targetUuid)),
+                                    RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint()
+                                            .getName())
+                            ))
                             // If all target entities are present, targetUuids will be empty, so it must be the source entity that does not exist
                             .orElseGet(() -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
                 });

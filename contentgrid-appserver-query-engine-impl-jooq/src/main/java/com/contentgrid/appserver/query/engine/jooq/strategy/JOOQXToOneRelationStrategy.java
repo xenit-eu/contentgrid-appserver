@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
@@ -147,8 +148,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                     if(targetValue != null) {
                         // A foreign-key constraint violation can only happen when *setting* a new value
                         // (because the target id that is being set does not actually exist
-                        return new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(),
-                                EntityId.of(targetValue));
+                        return new RelationTargetNotFoundException(
+                                EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), EntityId.of(targetValue)),
+                                RelationIdentity.forRelation(relation.getSourceEndPoint().getEntity(), id, relation.getSourceEndPoint().getName())
+                        );
                     }
                     return null;
                 });

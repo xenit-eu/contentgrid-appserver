@@ -18,11 +18,9 @@ import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
-import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import java.util.Objects;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -97,7 +95,7 @@ public class XToOneRelationRestController {
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
-    ) throws RelationTargetNotFoundException, MissingRelationTargetException, InvalidRelationTargetException, MultipleRelationTargetsException {
+    ) throws MissingRelationTargetException, InvalidRelationTargetException, MultipleRelationTargetsException {
         var relation = getRequiredRelation(application, entityName, propertyName);
         var relationIdent = RelationIdentity.forRelation(
                 relation.getSourceEndPoint().getEntity(),
@@ -119,23 +117,15 @@ public class XToOneRelationRestController {
                     element
             );
         }
-        try {
-            var relationRequest = RelationRequest.forRelation(
-                    relation.getSourceEndPoint().getEntity(),
-                    id,
-                    relation.getSourceEndPoint().getName()
-            ).withVersionConstraint(versionConstraint);
-            var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
-            return ResponseEntity.noContent()
-                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
-                    .build();
-        } catch (EntityIdNotFoundException e) {
-            if(Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
-                throw new EntityIdNotFoundException(e.getEntityName(), e.getId());
-            } else {
-                throw new RelationTargetNotFoundException(e);
-            }
-        }
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        ).withVersionConstraint(versionConstraint);
+        var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
+                .build();
     }
 
     @DeleteMapping
