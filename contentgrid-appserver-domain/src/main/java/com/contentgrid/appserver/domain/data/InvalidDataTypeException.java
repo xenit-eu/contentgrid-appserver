@@ -12,7 +12,8 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 @Getter
-public class InvalidDataTypeException extends InvalidDataException {
+public class InvalidDataTypeException extends InvalidDataException implements
+        ExceptionWithExpectedType<InvalidDataTypeException> {
 
     @NonNull
     private final DataType expectedType;
@@ -24,5 +25,12 @@ public class InvalidDataTypeException extends InvalidDataException {
     public String getMessage() {
         return "Expected type %s, but got type %s".formatted(expectedType.getHumanDescription(), actualType.getHumanDescription());
 
+    }
+
+    @Override
+    public InvalidDataTypeException withSpecializedExpectedType(DataType expectedType) {
+        var ex = new InvalidDataTypeException(expectedType, actualType);
+        ex.setStackTrace(getStackTrace());
+        return ex;
     }
 }

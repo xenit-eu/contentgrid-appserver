@@ -105,7 +105,11 @@ public class XToManyRelationRestController {
             var maybeId = matcher.tryMatch(element.toString());
             if (maybeId.isEmpty()) {
                 // Invalid Relation Target: wrong entity (e.g., person instead of invoice) or wrong link format
-                throw new InvalidRelationTargetException(element.toString());
+                throw new InvalidRelationTargetException(
+                        relation.getSourceEndPoint().getEntity(),
+                        relation.getSourceEndPoint().getName(),
+                        element
+                );
             }
             targetIds.add(maybeId.get());
         }

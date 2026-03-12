@@ -2,6 +2,7 @@ package com.contentgrid.appserver.integration.test.problem;
 
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.validationConstraintViolation;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -9,14 +10,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -110,7 +111,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                     )
                     .andExpect(problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-request-body/json")
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-request/body/json")
                     );
         }
 
@@ -124,11 +125,17 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     {
                                         "vat": "123",
                                         "total_spend": "none yet"
-                                    }
-                                    """)
+                                }
+                                """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("total_spend"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail("Expected value of type long, but the format is incorrect: Error at index 0 in: \"none yet\"")
+                                    .withField("expected_type", "long")
+                                    .withField("format_error", "Error at index 0 in: \"none yet\"")
+                                    .withField("field", "total_spend"))
                     );
 
         }
@@ -147,7 +154,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("content"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withTitle("Invalid data type")
+                                    .withDetail("Expected value of type object, but got string")
+                                    .withField("expected_type", "object")
+                                    .withField("actual_type", "string")
+                                    .withField("field", "content"))
                     );
         }
 
@@ -165,7 +178,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("birthday"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type datetime, but the format is incorrect:"))
+                                    .withField("expected_type", "datetime")
+                                    .withField("format_error", "Text '2022-01-01' could not be parsed at index 10")
+                                    .withField("field", "birthday"))
                     );
         }
 
@@ -183,7 +202,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail(d -> assertThat(d).startsWith("Expected value of type relation to entity 'customer', but the format is incorrect:"))
+                                    .withField("expected_type", "entity:customer")
+                                    .withField("format_error", "Invalid entity URL 'ZZEY'")
+                                    .withField("field", "counterparty"))
                     );
         }
 
@@ -201,8 +226,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(INVOICE_ID_UPDATE))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty")
-                            )
+                                    .withError(error -> error
+                                            .withType("https://contentgrid.cloud/problems/input/validation/type")
+                                            .withTitle("Invalid data type")
+                                            .withDetail("Expected value of type relation to entity 'customer', but got relation to entity 'invoice'")
+                                            .withField("expected_type", "entity:customer")
+                                            .withField("actual_type", "entity:invoice")
+                                            .withField("field", "counterparty"))
                     )
             ;
         }
@@ -254,7 +284,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
 
             // multipart/form-data
@@ -264,7 +299,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("counterparty", "http://localhost/customers/%s".formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
         }
 
@@ -281,7 +321,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty")
+                            )
                     );
 
             // multipart/form-data
@@ -291,7 +336,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("number", UUID.randomUUID().toString())
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty")
+                            )
                     );
         }
 
@@ -309,7 +359,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(UUID.randomUUID()))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
 
             // multipart/form-data
@@ -320,7 +376,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .param("gender", "illegal")
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
         }
 
@@ -338,7 +400,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerId))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
 
             mockMvc.perform(patch("/invoices/{id}", invoiceId)
@@ -351,7 +418,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("number"))
+                            .withError(error -> error
+                                    .withType(PROBLEM_TYPE_PREFIX+"input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "number")
+                            )
                     );
         }
 
@@ -369,7 +441,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
 
             mockMvc.perform(patch("/customers/{id}", customerId)
@@ -382,39 +460,42 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """)
                     )
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("gender"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [female, male]")
+                                    .withField("field", "gender")
+                                    .withField("allowed_values", List.of("female", "male"))
+                            )
                     );
         }
 
         @Test
-        @Disabled("ACC-2416: problem details not wrapped in a validation constraint violation")
         void removeRequiredEntityRelation_thisSide() throws Exception {
             var invoiceId = createInvoice();
             mockMvc.perform(delete("/invoices/{id}/counterparty", invoiceId))
                     .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("counterparty"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/required")
+                                    .withTitle("Mandatory field")
+                                    .withDetail("A value must be present, but it is missing or empty")
+                                    .withField("field", "counterparty"))
                     );
         }
 
         @Test
-        void removeRequiredEntityRelation_otherSide_not500() throws Exception {
-            var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
-            // Now there is a refund that references our invoice
-
-            mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
-                    .andExpect(status().is4xxClientError());
-        }
-        @Test
-        @Disabled("ACC-2416: returns 500 - PSQLException: null value in column \"invoice\" of relation \"refund\" violates not-null constraint")
         void removeRequiredEntityRelation_otherSide() throws Exception {
             var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
+            var refund = invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
             mockMvc.perform(delete("/invoices/{id}/refund", invoiceId))
-                    .andExpect(validationConstraintViolation()
-                            .withError(error -> error.withProperty("refund"))
+                    .andExpect(problemDetails()
+                            .withType("https://contentgrid.cloud/problems/integrity/required-relation")
+                            .withStatusCode(HttpStatus.CONFLICT)
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'invoice' on Entity 'refund' %s is required".formatted(refund.getIdentity().getEntityId().getValue()))
+                            .withField("affected_relation", "http://localhost/refunds/%s/invoice".formatted(refund.getIdentity().getEntityId().getValue()))
                     );
         }
     }
@@ -430,41 +511,33 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class DeletionViolations {
 
         @Test
-        @Disabled("ACC-2416: problem details not wrapped in a validation constraint violation")
         void deleteEntity_targetOfRequiredManyToOneRelation() throws Exception {
             var invoiceId = createInvoice();
             var counterparty = invoicingApi.findInvoiceCounterparty(invoiceId).orElseThrow();
             // This customer is linked to the invoice
             mockMvc.perform(delete("/customers/{id}", counterparty.getIdentity().getEntityId()))
-                    .andExpect(validationConstraintViolation()
+                    .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX+"integrity/required-relation")
                             .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("invoices"))
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'counterparty' on Entity 'invoice' %s is required".formatted(invoiceId.getValue()))
+                            .withField("affected_relation", "http://localhost/invoices/%s/counterparty".formatted(invoiceId.getValue()))
                     );
         }
 
         @Test
-        void deleteEntity_targetOfRequiredOneToOneRelation_not500() throws Exception {
+        void deleteEntity_targetOfRequiredOneToOneRelation() throws Exception {
             var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
+            var refund = invoicingApi.createRefund(invoiceId);
             // Now there is a refund that references our invoice
 
             mockMvc.perform(delete("/invoices/{id}", invoiceId))
                     .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX+"integrity/required-relation")
                             .withStatusCode(HttpStatus.CONFLICT)
-                    );
-        }
-
-        @Test
-        @Disabled("ACC-2416: returns 500 - PSQLException: null value in column \"invoice\" of relation \"refund\" violates not-null constraint")
-        void deleteEntity_targetOfRequiredOneToOneRelation() throws Exception {
-            var invoiceId = createInvoice();
-            invoicingApi.createRefund(invoiceId);
-            // Now there is a refund that references our invoice
-
-            mockMvc.perform(delete("/invoices/{id}", invoiceId))
-                    .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("refund"))
+                            .withTitle("Relation is required")
+                            .withDetail("Relation 'invoice' on Entity 'refund' %s is required".formatted(refund.getIdentity().getEntityId().getValue()))
+                            .withField("affected_relation", "http://localhost/refunds/%s/invoice".formatted(refund.getIdentity().getEntityId().getValue()))
                     );
         }
 
@@ -481,12 +554,11 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class DatabaseConstraintViolations {
 
         @Test
-        @Disabled("ACC-2416: problem-details not wrapped in a validation constraint violation, detail: 'vat validation errors'")
         void uniqueConstraintViolation_create() throws Exception {
             var customerVat = UUID.randomUUID();
 
             // First time goes through
-            mockMvc.perform(post("/customers")
+            var customerOne = mockMvc.perform(post("/customers")
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -495,7 +567,10 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(MockMvcResultMatchers.status().isCreated());
+                    .andExpect(MockMvcResultMatchers.status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getRedirectedUrl();
 
             // Second time results in a unique constraint error
             mockMvc.perform(post("/customers")
@@ -508,19 +583,24 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerVat))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("vat"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/duplicate")
+                                    .withTitle("Value is not unique")
+                                    .withDetail((String) null)
+                                    .withField("field", "vat")
+                                    .withField("conflicting_item", customerOne)
+
+                            )
                     );
         }
 
         @Test
-        @Disabled("ACC-2416: problem-details not wrapped in a validation constraint violation, detail: 'vat validation errors'")
         void uniqueConstraintViolation_update() throws Exception {
             var customerId = createCustomer();
             var customerVat = UUID.randomUUID();
 
             // Create goes through
-            mockMvc.perform(post("/customers")
+            var secondCustomer = mockMvc.perform(post("/customers")
                             .contentType(MediaType.APPLICATION_JSON)
                             .accept(MediaTypes.HAL_FORMS_JSON, MediaTypes.HAL_JSON)
                             .content("""
@@ -529,7 +609,10 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     }
                                     """.formatted(customerVat))
                     )
-                    .andExpect(MockMvcResultMatchers.status().isCreated());
+                    .andExpect(MockMvcResultMatchers.status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getRedirectedUrl();
 
             // Update to same id fails
             mockMvc.perform(patch("/customers/{id}", customerId)
@@ -542,8 +625,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                                     """.formatted(customerVat))
                     )
                     .andExpect(validationConstraintViolation()
-                            .withStatusCode(HttpStatus.CONFLICT)
-                            .withError(error -> error.withProperty("vat"))
+                            .withError(error -> error
+                                    .withType("https://contentgrid.cloud/problems/input/validation/duplicate")
+                                    .withTitle("Value is not unique")
+                                    .withDetail((String) null)
+                                    .withField("field", "vat")
+                                    .withField("conflicting_item", secondCustomer)
+                            )
                     );
         }
 
@@ -566,12 +654,13 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             mockMvc.perform(get("/customers?_sort=xyz")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort/target")
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/sort")
+                            .withTitle("Sort target is invalid")
+                            .withDetail("Sort target 'xyz' does not exist on customer")
+                            .withField("query_parameter", "_sort")
+                            .withField("target_name", "xyz")
                     )
-//                    .andExpect(jsonPath("$.property").value("xyz"))
-//                    .andExpect(jsonPath("$.query_parameter").value("_sort"))
-//                    .andExpect(jsonPath("$.invalid_value").value("xyz,asc"))
             ;
         }
 
@@ -581,11 +670,14 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
+                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/filter/format")
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-filter-parameter/format")
+                            .withTitle("Filter query parameter has an invalid format")
+                            .withDetail("Filter query parameter 'birthday' can not be converted to datetime")
+                            .withField("query_parameter", "birthday")
+                            .withField("expected_type", "datetime")
+                            .withField("format_error", "Text 'invalid' could not be parsed at index 0")
                     )
-                    .andExpect(jsonPath("$.property").value("birthday"))
-                    .andExpect(jsonPath("$.invalid_value").value("invalid"))
             ;
         }
 
@@ -598,55 +690,18 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     class PaginationParameterErrors {
 
         @Test
-        void invalidSizeParameter_zero() throws Exception {
-            mockMvc.perform(get("/customers?_size=0")
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("0"));
-        }
-
-        @Test
-        void invalidSizeParameter_negative() throws Exception {
-            mockMvc.perform(get("/customers?_size=-10")
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("-10"));
-        }
-
-        @Test
-        void invalidSizeParameter_nonnumber() throws Exception {
-            mockMvc.perform(get("/customers?_size=abc")
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                    )
-                    .andExpect(jsonPath("$.query_parameter").value("_size"))
-                    .andExpect(jsonPath("$.invalid_value").value("abc"));
-        }
-
-        @Test
         void invalidPageParameter() throws Exception {
             mockMvc.perform(get("/customers?_cursor=abc")
                             .accept(MediaType.APPLICATION_JSON)
                     )
                     .andExpect(problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
                             .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Pagination query parameter is invalid")
+                            .withDetail("Query parameter '_cursor' is not valid: Cursor is too small to be valid")
+                            .withField("query_parameter", "_cursor")
+                            .withField("format_error", "Cursor is too small to be valid")
                     )
-//                    .andExpect(jsonPath("$.query_parameter").value("_cursor"))
-//                    .andExpect(jsonPath("$.invalid_value").value("abc"))
             ;
         }
     }

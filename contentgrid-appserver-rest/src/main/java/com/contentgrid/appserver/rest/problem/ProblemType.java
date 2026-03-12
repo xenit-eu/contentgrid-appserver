@@ -13,34 +13,29 @@ public enum ProblemType implements ProblemTypeResolvable {
     INPUT_VALIDATION_REQUIRED_VALUE("input", "validation", "required"),
     INPUT_VALIDATION_ALLOWED_VALUES("input", "validation", "allowed-values"),
     INPUT_VALIDATION_NO_CONTENT("input", "validation", "no-content"),
+    INPUT_VALIDATION_MISSING_RELATION_TARGET("input", "validation", "missing-relation-target"),
 
-    INVALID_FILTER_PARAMETER("invalid-filter-parameter"),
-    INVALID_FILTER_PARAMETER_FORMAT("invalid-filter-parameter", "format"),
-    INVALID_SORT_PARAMETER("invalid-query-parameter", "sort"),
-    INVALID_PAGINATION_PARAMETER("invalid-query-parameter", "pagination"),
+    INVALID_QUERY_PARAMETER_FILTER_FORMAT("invalid-query-parameter", "filter", "format"),
+    INVALID_QUERY_PARAMETER_SORT_FORMAT("invalid-query-parameter", "sort", "format"),
+    INVALID_QUERY_PARAMETER_SORT_TARGET("invalid-query-parameter", "sort", "target"),
+    INVALID_QUERY_PARAMETER_PAGINATION("invalid-query-parameter", "pagination"),
 
-    INVALID_REQUEST_BODY("invalid-request-body"),
-    INVALID_REQUEST_BODY_TYPE("invalid-request-body", "type"),
-    INVALID_REQUEST_BODY_JSON("invalid-request-body", "json"),
-    INVALID_REQUEST_BODY_NO_RELATIONS("invalid-request-body", "no-relations"),
-    INVALID_REQUEST_BODY_TOO_MANY_RELATIONS("invalid-request-body", "too-many-relations"),
+    INVALID_REQUEST_BODY("invalid-request", "body"),
+    INVALID_REQUEST_BODY_JSON("invalid-request", "body", "json"),
+    INVALID_REQUEST_BODY_URI_LIST("invalid-request", "body", "uri-list"),
+    INVALID_REQUEST_BODY_SINGLE_LINK("invalid-request", "body", "single-link"),
 
-    MISSING_REQUIRED_HEADER("missing-required-header"),
-    MISSING_CONTENT_TYPE("missing-content-type"),
-    UNSUPPORTED_CONTENT_TYPE("unsupported-content-type"),
-    UNSUPPORTED_REQUEST_HEADER("unsupported-request-header"),
+    INVALID_REQUEST_REQUIRED_HEADER("invalid-request", "required-header"),
+    INVALID_REQUEST_FORBIDDEN_HEADER("invalid-request", "forbidden-header"),
 
     UNSATISFIED_VERSION("unsatisfied-version"),
 
-    NOT_FOUND_ENTITY_DEFINITION("not-found", "entity-definition"),
+    NOT_FOUND_ENDPOINT("not-found", "endpoint"),
     NOT_FOUND_ENTITY_ITEM("not-found", "entity-item"),
     NOT_FOUND_RELATION_ITEM("not-found", "relation-item"), // Specific item not linked in a relation
-    NOT_FOUND_EMPTY_RELATION("not-found", "empty-relation"), // To-one relation has no target
 
-    INTEGRITY_INVALID_RELATION_TARGET("integrity", "invalid-relation-target"),
     INTEGRITY_RELATION_BLIND_OVERWRITE("integrity", "blind-relation-overwrite"),
-    INTEGRITY_RELATION_REQUIRED("integrity", "relation-required"),
-    INTEGRITY_REQUIRED("integrity", "required")
+    INTEGRITY_REQUIRED_RELATION("integrity", "required-relation"),
     ;
 
     ProblemType(String... params) {

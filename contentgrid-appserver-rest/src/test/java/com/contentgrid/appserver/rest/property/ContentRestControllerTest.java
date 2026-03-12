@@ -138,11 +138,11 @@ class ContentRestControllerTest {
                 Arguments.argumentSet("non-existent ID", "/invoices/" + UUID.randomUUID() + "/content",
                         "https://contentgrid.cloud/problems/not-found/entity-item"),
                 Arguments.argumentSet("invalid ID format", "/invoices/invalid-id/content",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition"),
+                        "https://contentgrid.cloud/problems/not-found/endpoint"),
                 Arguments.argumentSet("non-existent entity", "/nonexistent/{instanceId}/content",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition"),
+                        "https://contentgrid.cloud/problems/not-found/endpoint"),
                 Arguments.argumentSet("non-existent property", "/invoices/{instanceId}/nonexistent",
-                        "https://contentgrid.cloud/problems/not-found/entity-definition")
+                        "https://contentgrid.cloud/problems/not-found/endpoint")
         );
     }
 
@@ -328,11 +328,11 @@ class ContentRestControllerTest {
                             .withTitle("Object has changed")
                             .withSatisfy(pd -> {
                                 assertThat(pd.getDetail()).isEqualTo(
-                                        "Requested version constraint 'is any of [exactly 'my-value']' can not be satisfied (actual version exactly '%s')"
-                                                .formatted(pd.getProperties().get("actual-version"))
+                                        "The requested object is now exactly '%s', which does not match requested is any of [exactly 'my-value']"
+                                                .formatted(pd.getProperties().get("actual_version"))
                                 );
                             })
-                            .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                            .withField("actual_version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                     );
         }
 
@@ -744,8 +744,10 @@ class ContentRestControllerTest {
                             .content(INVOICE_CONTENT_FILE.getBytes()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/required-header")
                             .withTitle("Missing required header")
                             .withDetail("Required header 'Content-Type' is not present")
+                            .withField("header", "Content-Type")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);
@@ -765,8 +767,10 @@ class ContentRestControllerTest {
                             .content(INVOICE_CONTENT_FILE.getBytes()))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/required-header")
                             .withTitle("Missing required header")
                             .withDetail("Required header 'Content-Type' is not present")
+                            .withField("header", "Content-Type")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);
@@ -843,7 +847,7 @@ class ContentRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/unsatisfied-version")
                             .withTitle("Object has changed")
                             // details is different for If-Match/If-None-Match, so not asserted here
-                            .withField("actual-version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
+                            .withField("actual_version", v -> assertThat(v).asString().matches("[a-z0-9]+"))
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);
@@ -866,7 +870,7 @@ class ContentRestControllerTest {
         }
 
         @Test
-        void upload_multipart_no_content_type_fails() throws Exception {
+        void upload_multipart_no_content_type_success_text_plain() throws Exception {
             String invoiceId = createInvoice(null);
 
             MockMultipartFile file = new MockMultipartFile(
@@ -878,16 +882,11 @@ class ContentRestControllerTest {
 
             mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
                             .file(file))
-                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withTitle("Missing Content-Type for multipart field")
-                            .withDetail("Multipart form field 'file' must have a Content-Type specified")
-                    );
-
-            Mockito.verifyNoInteractions(contentStoreSpy);
+                    .andExpect(status().isNoContent());
 
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType("text/plain"));
         }
 
 
@@ -965,8 +964,10 @@ class ContentRestControllerTest {
                             .content("updated")) // replace 'test' with 'updated'
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withTitle("Unsupported request header")
-                            .withDetail("Request header 'Content-Range' is not supported")
+                            .withType("https://contentgrid.cloud/problems/invalid-request/forbidden-header")
+                            .withTitle("Forbidden request header")
+                            .withDetail("Request header 'Content-Range' is not allowed")
+                            .withField("header", "Content-Range")
                     );
 
             Mockito.verifyNoInteractions(contentStoreSpy);

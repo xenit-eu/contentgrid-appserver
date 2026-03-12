@@ -106,8 +106,8 @@ public final class ProblemDetailsMockMvcMatchers {
 
             for (var field : fields.entrySet()) {
                 assertThat(problemDetails.getProperties())
-                        .extractingByKey(field.getKey())
                         .as("problem field %s", field.getKey())
+                        .extractingByKey(field.getKey())
                         .satisfies(field.getValue());
             }
 
@@ -194,10 +194,6 @@ public final class ProblemDetailsMockMvcMatchers {
                 return withField("detail", detail);
             }
 
-            public ErrorDescription withProperty(ThrowingConsumer<String> property) {
-                return withField("property", property);
-            }
-
             public ErrorDescription withType(String value) {
                 return withType(t -> assertThat(t).isEqualTo(value));
             }
@@ -208,10 +204,6 @@ public final class ProblemDetailsMockMvcMatchers {
 
             public ErrorDescription withDetail(String value) {
                 return withDetail(t -> assertThat(t).isEqualTo(value));
-            }
-
-            public ErrorDescription withProperty(String value) {
-                return withProperty(t -> assertThat(t).isEqualTo(value));
             }
 
             public ErrorDescription withField(String field, Object fieldValue) {

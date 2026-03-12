@@ -3,39 +3,26 @@ package com.contentgrid.appserver.rest.data;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
@@ -43,34 +30,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JsonRequestInputData implements RequestInputData {
     private final ObjectNode rootNode;
-    private final ObjectCodec codec;
-
-    private static final ClassMapping<StringDataEntry, String> STRING_CLASS_MAPPING = new ClassMapping<>(
-            StringDataEntry.class, String.class, StringDataEntry::new);
-    private static final Map<Class<? extends ScalarDataEntry>, ClassMapping<?, ?>> CLASS_MAPPING = Stream.of(
-            new ClassMapping<>(BooleanDataEntry.class, Boolean.class, BooleanDataEntry::new),
-            new ClassMapping<>(LongDataEntry.class, Long.class, LongDataEntry::new),
-            new ClassMapping<>(DecimalDataEntry.class, BigDecimal.class, DecimalDataEntry::new),
-            new ClassMapping<>(LocalDateDataEntry.class, LocalDate.class, LocalDateDataEntry::new),
-            new ClassMapping<>(InstantDataEntry.class, Instant.class, InstantDataEntry::new)
-    ).collect(Collectors.toUnmodifiableMap(ClassMapping::dataEntryClass, Function.identity()));
-
-    record ClassMapping<T extends ScalarDataEntry, U>(
-            Class<T> dataEntryClass,
-            Class<U> conversionClass,
-            Function<U, T> mapping
-    ) {
-        DataEntry parseUsing(JsonParser jsonParser) throws IOException {
-            var parsedValue = jsonParser.readValueAs(conversionClass);
-
-            if(parsedValue == null) {
-                return NullDataEntry.INSTANCE;
-            }
-
-            return mapping.apply(parsedValue);
-        }
-
-    }
 
     @Override
     public Stream<String> keys() {
@@ -103,7 +62,7 @@ public class JsonRequestInputData implements RequestInputData {
         };
     }
 
-    private DataType nodeToDataType(JsonNode node) {
+    private static DataType nodeToDataType(JsonNode node) {
         return switch (node.getNodeType()) {
             case ARRAY -> TechnicalDataType.LIST;
             case BOOLEAN -> TechnicalDataType.BOOLEAN;
@@ -120,24 +79,21 @@ public class JsonRequestInputData implements RequestInputData {
 
     private DataEntry convertNode(JsonNode node, Class<? extends DataEntry> typeHint)
             throws InvalidDataException {
-        if(node == null || node.isMissingNode()) {
+        if(node == null) {
             return MissingDataEntry.INSTANCE;
         }
-        if(node.isNull()) {
-            return NullDataEntry.INSTANCE;
-        }
-        if (node.isObject()) {
-            throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.OBJECT);
-        }
-        if (node.isArray()) {
-            throw new InvalidDataTypeException(DataType.of(typeHint), TechnicalDataType.LIST);
-        }
-        try (var parser = node.traverse(codec)){
-            var classMapping = CLASS_MAPPING.getOrDefault(typeHint, STRING_CLASS_MAPPING);
-            return classMapping.parseUsing(parser);
-        } catch (IOException e) {
-            throw new InvalidDataFormatException(DataType.of(typeHint), e);
-        }
+
+        return switch (node.getNodeType()) {
+            case POJO, OBJECT, ARRAY -> throw new InvalidDataTypeException(DataType.of(typeHint), nodeToDataType(node));
+            case BOOLEAN -> new BooleanDataEntry(node.booleanValue());
+            case MISSING -> MissingDataEntry.INSTANCE;
+            case NULL -> NullDataEntry.INSTANCE;
+            case NUMBER -> switch (node.numberType()) {
+                case INT, LONG, BIG_INTEGER -> new LongDataEntry(node.longValue());
+                case FLOAT, DOUBLE, BIG_DECIMAL -> new DecimalDataEntry(node.decimalValue());
+            };
+            case BINARY, STRING -> new StringDataEntry(node.textValue());
+        };
     }
 
     @Override
@@ -147,7 +103,7 @@ public class JsonRequestInputData implements RequestInputData {
             case null -> Result.missing();
             case MissingNode missingNode -> Result.missing();
             case NullNode nullNode-> Result.empty();
-            case ObjectNode objectNode -> Result.of(new JsonRequestInputData(objectNode, codec));
+            case ObjectNode objectNode -> Result.of(new JsonRequestInputData(objectNode));
             default -> throw new InvalidDataTypeException(DataType.of(MapDataEntry.class), nodeToDataType(node));
         };
     }

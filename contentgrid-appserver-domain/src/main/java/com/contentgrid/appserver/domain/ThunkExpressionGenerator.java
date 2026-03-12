@@ -66,8 +66,8 @@ public class ThunkExpressionGenerator {
                                     parsedValue
                             ));
                         } catch (Exception e) {
-                            throw new InvalidFilterParameterException(entity.getName().getValue(), entry.getKey(),
-                                    attribute.getType(), value, e);
+                            throw new InvalidFilterParameterException(entity.getName(), attributeSearchFilter.getName(),
+                                    attribute.getType(), e);
                         }
                     }
 

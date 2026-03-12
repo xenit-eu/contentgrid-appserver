@@ -13,8 +13,8 @@ public enum TechnicalDataType implements DataType {
     DATETIME,
     NULL,
     LIST,
-    RELATION,
-    RELATION_LIST,
+    ENTITY,
+    ENTITY_COLLECTION,
     OBJECT,
     CONTENT,
     MISSING;

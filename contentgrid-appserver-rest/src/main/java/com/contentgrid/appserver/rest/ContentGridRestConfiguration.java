@@ -8,6 +8,7 @@ import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsCo
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.converter.RequestInputDataJacksonModule;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter;
+import com.contentgrid.appserver.rest.data.conversion.LongDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToBooleanDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
@@ -32,7 +33,6 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.format.Formatter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
@@ -80,15 +80,12 @@ public class ContentGridRestConfiguration {
 
             @Override
             public void addFormatters(FormatterRegistry registry) {
-                if(registry instanceof ConversionService conversionService) {
-                    registry.addConverter(new StringDataEntryToBooleanDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToDecimalDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToInstantDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToLocalDateDataEntryConverter(conversionService));
-                    registry.addConverter(new StringDataEntryToLongDataEntryConverter(conversionService));
-                } else {
-                    throw new IllegalStateException("Registry is not a ConversionService");
-                }
+                registry.addConverter(new StringDataEntryToBooleanDataEntryConverter());
+                registry.addConverter(new StringDataEntryToDecimalDataEntryConverter());
+                registry.addConverter(new StringDataEntryToInstantDataEntryConverter());
+                registry.addConverter(new StringDataEntryToLocalDateDataEntryConverter());
+                registry.addConverter(new StringDataEntryToLongDataEntryConverter());
+                registry.addConverter(new LongDataEntryToDecimalDataEntryConverter());
                 registry.addFormatter(new Formatter<EntityId>() {
                     @Override
                     public EntityId parse(String text, Locale locale) throws ParseException {

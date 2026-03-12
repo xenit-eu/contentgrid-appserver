@@ -15,8 +15,6 @@ import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType
 @Configuration(proxyBeanMethods = false)
 public class ContentgridProblemDetailConfiguration {
 
-    private final ApplicationContext applicationContext;
-
     @Bean
     ProblemTypeUrlFactory contentGridProblemTypeUrlFactory() {
         return new ProblemTypeUrlFactory(UriTemplate.of("https://contentgrid.cloud/problems{/item*}"));
@@ -29,8 +27,8 @@ public class ContentgridProblemDetailConfiguration {
 
     @Bean
     @Order(-1)
-    ContentGridExceptionHandler contentGridExceptionHandler(ProblemFactory problemFactory) {
-        return new ContentGridExceptionHandler(problemFactory, new MessageSourceAccessor(applicationContext));
+    ProblemDetailsExceptionHandler contentGridProblemDetailsExceptionHandler(ProblemFactory problemFactory) {
+        return new ProblemDetailsExceptionHandler(problemFactory);
     }
 
 }
