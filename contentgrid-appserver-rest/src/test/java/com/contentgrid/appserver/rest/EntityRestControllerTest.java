@@ -1,8 +1,8 @@
 package com.contentgrid.appserver.rest;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
+import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -22,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
@@ -1279,8 +1278,14 @@ class EntityRestControllerTest {
             createProduct(1);
             mockMvc.perform(get("/products?_size={size}", requestedSize).accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.type").value("https://contentgrid.cloud/problems/invalid-query-parameter/pagination"));
+                    .andExpect(problemDetails()
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/pagination")
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withTitle("Pagination query parameter is invalid")
+                            .withDetail("Query parameter '_size' is not valid: Value must be between 1 and 1000")
+                            .withField("query_parameter", "_size")
+                            .withField("format_error", "Value must be between 1 and 1000")
+                    );
         }
     }
 

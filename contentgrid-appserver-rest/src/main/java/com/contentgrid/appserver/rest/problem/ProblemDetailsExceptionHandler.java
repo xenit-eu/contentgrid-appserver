@@ -30,7 +30,7 @@ import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
 import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
-import com.contentgrid.appserver.rest.exception.UnsupportedRequestHeaderException;
+import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.MergedProblemProperties;
@@ -284,7 +284,7 @@ public class ProblemDetailsExceptionHandler {
     }
 
     @ExceptionHandler
-    ResponseEntity<Problem> invalidRequest(UnsupportedRequestHeaderException exception) {
+    ResponseEntity<Problem> invalidRequest(ForbiddenRequestHeaderException exception) {
         return createResponse(problemFactory.createProblem(
                         ProblemType.INVALID_REQUEST_FORBIDDEN_HEADER,
                         exception.getHeader()

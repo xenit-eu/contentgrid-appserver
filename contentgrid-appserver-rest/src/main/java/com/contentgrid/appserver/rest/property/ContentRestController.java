@@ -15,7 +15,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.VersionValidator;
-import com.contentgrid.appserver.rest.exception.UnsupportedRequestHeaderException;
+import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -209,12 +209,12 @@ public class ContentRestController {
             @RequestHeader(value = HttpHeaders.CONTENT_DISPOSITION, required = false) String contentDisposition,
             @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
             AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException, UnsupportedRequestHeaderException {
+    ) throws InvalidPropertyDataException, ForbiddenRequestHeaderException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
         if (StringUtils.hasText(contentRange)) {
             // Partial PUT is not supported
-            throw new UnsupportedRequestHeaderException(HttpHeaders.CONTENT_RANGE);
+            throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
         }
 
         var filename = requestBody != null ? requestBody.getFilename() : null;
