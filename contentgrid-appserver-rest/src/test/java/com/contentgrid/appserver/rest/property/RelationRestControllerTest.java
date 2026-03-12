@@ -714,8 +714,10 @@ class RelationRestControllerTest {
                         .withError(error -> error
                                 .withType("https://contentgrid.cloud/problems/input/validation/type/format")
                                 .withTitle("Invalid format")
+                                .withDetail("Expected value of type relations to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}'")
                                 .withField("field", "invoices")
                                 .withField("expected_type", "entity_collection:invoice")
+                                .withField("format_error", "Must match 'http://localhost/invoices/{id}'")
                         )
                 );
             } else {
