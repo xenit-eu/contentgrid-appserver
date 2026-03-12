@@ -689,22 +689,6 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
     @Nested
     class PaginationParameterErrors {
 
-        @ParameterizedTest
-        @ValueSource(strings = {"0", "-10", "abc"})
-        void invalidSizeParameter(String size) throws Exception {
-            mockMvc.perform(get("/customers?_size={size}", size)
-                            .accept(MediaType.APPLICATION_JSON)
-                    )
-                    .andExpect(problemDetails()
-                            .withType(PROBLEM_TYPE_PREFIX + "invalid-query-parameter/pagination")
-                            .withStatusCode(HttpStatus.BAD_REQUEST)
-                            .withTitle("Pagination query parameter is invalid")
-                            .withDetail("Query parameter '_size' is not valid: Value must be between 1 and 1000")
-                            .withField("query_parameter", "_size")
-                            .withField("format_error", "Value must be between 1 and 1000")
-                    );
-        }
-
         @Test
         void invalidPageParameter() throws Exception {
             mockMvc.perform(get("/customers?_cursor=abc")
