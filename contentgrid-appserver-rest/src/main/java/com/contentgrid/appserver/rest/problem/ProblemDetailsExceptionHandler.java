@@ -29,7 +29,7 @@ import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
-import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
@@ -151,11 +151,11 @@ public class ProblemDetailsExceptionHandler {
     ResponseEntity<Problem> inputValidation(RelationTargetNotFoundException exception, LinkFactoryProvider linkFactoryProvider) {
         return createResponse(inputValidation(allExceptions(exception, RelationTargetNotFoundException.class)
                 .map(e -> {
-                    var identity = EntityIdentity.forEntity(e.getTargetEntityName(), e.getTargetEntityId());
+                    var identity = EntityIdentity.forEntity(e.getEntityName(), e.getId());
                     return problemFactory.createProblem(ProblemType.INPUT_VALIDATION_MISSING_RELATION_TARGET, identity)
                             .withStatus(HttpStatus.BAD_REQUEST)
                             .withProperties(Map.of(
-                                    // TODO: "field", ...,
+                                    "field", e.getRelation().getRelationName().getValue(),
                                     "missing_item", linkFactoryProvider.toItem(identity).toUri().toString()
                             ));
                 })

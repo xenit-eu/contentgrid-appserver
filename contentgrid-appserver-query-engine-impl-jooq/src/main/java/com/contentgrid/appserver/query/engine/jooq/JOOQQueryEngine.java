@@ -18,6 +18,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.NonExistingVersion;
@@ -46,6 +47,7 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -626,9 +628,12 @@ public class JOOQQueryEngine implements QueryEngine {
 
         return ExceptionUtils.createMultiple(
                 fieldRelationMap.entrySet(),
-                entry -> new EntityIdNotFoundException(
-                        entry.getValue().getTargetEndPoint().getEntity(),
-                        EntityId.of(entityData.get(entry.getKey()))
+                entry -> new RelationTargetNotFoundException(
+                        EntityIdentity.forEntity(
+                                entry.getValue().getTargetEndPoint().getEntity(),
+                                EntityId.of(entityData.get(entry.getKey()))
+                        ),
+                        RelationIdentity.forRelation(entityIdentity, entry.getValue().getSourceEndPoint().getName())
                 )
         ).orElse(null);
     }
@@ -665,7 +670,8 @@ public class JOOQQueryEngine implements QueryEngine {
             // Do not delete relations that are stored in this entity, as the row will be deleted anyway,
             // and we might run into relations that are required on this side (and thus can't be cleared)
             if(!(strategy instanceof HasSourceTableColumnRef<?>)) {
-                strategy.delete(dslContext, application, relation, entityRequest.getEntityId());
+                strategy.delete(dslContext, application, relation,
+                        EntityIdentity.forEntity(entityRequest.getEntityName(), entityRequest.getEntityId()));
             }
         }
 
@@ -732,7 +738,9 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forRelation(relation);
-        return strategy.isLinked(dslContext, application, relation, relationRequest.getEntityId(), targetId);
+        return strategy.isLinked(dslContext, application, relation,
+                EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()),
+                EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId));
     }
 
     @Override
@@ -746,7 +754,8 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
-        var maybeEntityId = strategy.findTarget(dslContext, application, relation, relationRequest.getEntityId());
+        var maybeEntityId = strategy.findTarget(dslContext, application, relation,
+                EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()));
         var version = getRelationVersion(relationRequest, maybeEntityId);
         if(!relationRequest.getVersionConstraint().isSatisfiedBy(version)) {
             throw new UnsatisfiedVersionException(version, relationRequest.getVersionConstraint());
@@ -770,7 +779,9 @@ public class JOOQQueryEngine implements QueryEngine {
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToOneRelation(relation);
         try {
-            strategy.create(dslContext, application, relation, relationRequest.getEntityId(), targetId, expectedId);
+            strategy.create(dslContext, application, relation,
+                    EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()),
+                    EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), targetId), expectedId);
         } catch (ExpectedIdMismatchException e) {
             var ex = new UnsatisfiedVersionException(
                     getRelationVersion(relationRequest, e.getActualEntityId()),
@@ -806,7 +817,9 @@ public class JOOQQueryEngine implements QueryEngine {
 
             try {
                 JOOQRelationStrategyFactory.forToOneRelation(relation)
-                        .delete(dslContext, application, relation, relationRequest.getEntityId(), expectedId);
+                        .delete(dslContext, application, relation,
+                                EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()),
+                                expectedId);
             } catch (ExpectedIdMismatchException e) {
                 var ex = new UnsatisfiedVersionException(
                         getRelationVersion(relationRequest, e.getActualEntityId()),
@@ -821,7 +834,8 @@ public class JOOQQueryEngine implements QueryEngine {
         }
 
         JOOQRelationStrategyFactory.forRelation(relation)
-                .delete(dslContext, application, relation, relationRequest.getEntityId());
+                .delete(dslContext, application, relation,
+                        EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()));
 
         // Also does permission check
         var newEntityData = getByIdRequired(application, relationRequest, permitUpdatePredicate);
@@ -839,7 +853,12 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.add(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
+        var targetIdentities = targetIds.stream()
+                .map(id -> EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), id))
+                .collect(Collectors.toSet());
+        strategy.add(dslContext, application, relation,
+                EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()),
+                targetIdentities);
 
         // Also does a permission check
         var newEntityData = getByIdRequired(application, relationRequest, permitUpdatePredicate);
@@ -857,7 +876,12 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var relation = application.getRequiredRelationForEntity(relationRequest.getEntityName(), relationRequest.getRelationName());
         var strategy = JOOQRelationStrategyFactory.forToManyRelation(relation);
-        strategy.remove(dslContext, application, relation, relationRequest.getEntityId(), targetIds);
+        var targetIdentities = targetIds.stream()
+                .map(id -> EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), id))
+                .collect(Collectors.toSet());
+        strategy.remove(dslContext, application, relation,
+                EntityIdentity.forEntity(relationRequest.getEntityName(), relationRequest.getEntityId()),
+                targetIdentities);
 
         // Also does a permission check
         var newEntityData = getByIdRequired(application, relationRequest, permitUpdatePredicate);
@@ -875,7 +899,7 @@ public class JOOQQueryEngine implements QueryEngine {
     private EntityData getByIdRequired(@NotNull Application application, @NotNull EntityRequest entityRequest,
             @NotNull ThunkExpression<Boolean> permitPredicate) {
         return findById(application, entityRequest, permitPredicate)
-                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest.getEntityName(), entityRequest.getEntityId()));
+                .orElseThrow(() -> new EntityIdNotFoundException(entityRequest));
     }
 
     @Override

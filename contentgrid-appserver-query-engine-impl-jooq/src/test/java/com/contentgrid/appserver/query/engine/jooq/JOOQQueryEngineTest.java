@@ -81,6 +81,7 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
@@ -1929,8 +1930,8 @@ class JOOQQueryEngineTest {
         return Stream.of(
                 Arguments.argumentSet("non-existing source in owning -to-one relation", nonExisting, INVOICE_CUSTOMER, ALICE_ID, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
                 Arguments.argumentSet("non-existing source in non-owning -to-one relation", nonExisting, INVOICE_PREVIOUS.inverse(), INVOICE1_ID, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
-                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_CUSTOMER, nonExisting, new EntityIdNotFoundException(PERSON.getName(), nonExisting)),
-                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), nonExisting, new EntityIdNotFoundException(INVOICE.getName(), nonExisting)),
+                Arguments.argumentSet("non-existing target in owning -to-one relation", INVOICE1_ID, INVOICE_CUSTOMER, nonExisting, new RelationTargetNotFoundException(EntityIdentity.forEntity(PERSON.getName(), nonExisting), RelationIdentity.forRelation(INVOICE.getName(), INVOICE1_ID, INVOICE_CUSTOMER.getSourceEndPoint().getName()))),
+                Arguments.argumentSet("non-existing target in non-owning -to-one relation", INVOICE2_ID, INVOICE_PREVIOUS.inverse(), nonExisting, new RelationTargetNotFoundException(EntityIdentity.forEntity(INVOICE.getName(), nonExisting), RelationIdentity.forRelation(INVOICE.getName(), INVOICE2_ID, INVOICE_PREVIOUS.getTargetEndPoint().getName()))),
                 Arguments.argumentSet("duplicate value for owning one-to-one relation", INVOICE3_ID, INVOICE_PREVIOUS,
                         INVOICE1_ID, new BlindRelationOverwriteException(
                                 RelationIdentity.forRelation(INVOICE.getName(), INVOICE3_ID, INVOICE_PREVIOUS.getSourceEndPoint().getName()),
@@ -1960,7 +1961,7 @@ class JOOQQueryEngineTest {
                 targetId,
                 TRUE_EXPRESSION, linkEventConsumer
         ));
-        assertEquals(thrown.getMessage(), exception.getMessage());
+        assertEquals(exception.getMessage(), thrown.getMessage());
         assertNothingChanged();
     }
 

@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwri
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
@@ -68,14 +69,14 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
     }
 
     @Override
-    public void create(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityId id,
-            EntityId targetId, ExpectedId expectedTargetId) throws ExpectedIdMismatchException {
+    public void create(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityIdentity sourceIdentity,
+            EntityIdentity targetIdentity, ExpectedId expectedTargetId) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
-        var newRowCondition = targetRef.eq(targetId.getValue());
-        var oldRowCondition = sourceRef.eq(id.getValue());
+        var newRowCondition = targetRef.eq(targetIdentity.getEntityId().getValue());
+        var oldRowCondition = sourceRef.eq(sourceIdentity.getEntityId().getValue());
 
         var newRowField = DSL.field(newRowCondition).as("_new_row_"+UUID.randomUUID());
         var oldRowField = DSL.field(oldRowCondition).as("_old_row_"+UUID.randomUUID());
@@ -117,17 +118,13 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
         // A new record must be present, otherwise we are trying to write to an entity that does not exist
         if(newRecord == null) {
-            throw new EntityIdNotFoundException(
-                    relation.getTargetEndPoint().getEntity(),
-                    targetId
+            throw new RelationTargetNotFoundException(
+                    targetIdentity,
+                    RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName())
             );
         } else if(newRecord.get(sourceRef) != null) {
             throw new BlindRelationOverwriteException(
-                    RelationIdentity.forRelation(
-                            relation.getSourceEndPoint().getEntity(),
-                            id,
-                            relation.getSourceEndPoint().getName()
-                    ),
+                    RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName()),
                     EntityIdentity.forEntity(
                             relation.getTargetEndPoint().getEntity(),
                             EntityId.of(newRecord.get(targetRef))
@@ -154,7 +151,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             // because the other execution has not seen 2 rows, and thus has not executed the update above
 
             dslContext.update(table)
-                    .set(sourceRef, id.getValue())
+                    .set(sourceRef, sourceIdentity.getEntityId().getValue())
                     .where(newRowCondition)
                     .execute();
 
@@ -164,7 +161,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
             // (because newRecord.get(sourceRef) also would not be null
             switch (PostgresqlErrorType.from(e)) {
                 case FOREIGN_KEY_CONSTRAINT_VIOLATION -> throw ExceptionUtils.handleException(e,
-                        () -> new EntityIdNotFoundException(relation.getSourceEndPoint().getEntity(), id));
+                        () -> new EntityIdNotFoundException(sourceIdentity));
                 // Unique constraint violation may happen under concurrent execution.
                 // This is not directly recoverable. It can be recovered by retrying the whole transaction
                 case UNIQUE_CONSTRAINT_VIOLATION -> throw new ConcurrencyFailureException(e);
@@ -175,7 +172,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
     }
 
     @Override
-    public void delete(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityId id,
+    public void delete(DSLContext dslContext, Application application, TargetOneToOneRelation relation, EntityIdentity sourceIdentity,
             ExpectedId expectedTargetId) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
@@ -184,7 +181,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
         try {
             var maybeResult = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext.update(table)
                     .set(sourceRef, expectedTargetId.mapToNewValue(targetRef, sourceRef, null))
-                    .where(sourceRef.eq(id.getValue()))
+                    .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                     .returning(sourceRef, targetRef)
                     .fetchOptional());
 
@@ -211,10 +208,10 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
                 throw ExceptionUtils.handleException(e, () -> {
                     var targetId = dslContext.select(targetRef)
                             .from(table)
-                            .where(sourceRef.eq(id.getValue()))
+                            .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                             .fetchSingle(targetRef);
                     assert targetId != null;
-                    return new EntityLinkedByRequiredRelationException(relation, id, EntityId.of(targetId));
+                    return new EntityLinkedByRequiredRelationException(relation, sourceIdentity.getEntityId(), EntityId.of(targetId));
                 });
             }
         }

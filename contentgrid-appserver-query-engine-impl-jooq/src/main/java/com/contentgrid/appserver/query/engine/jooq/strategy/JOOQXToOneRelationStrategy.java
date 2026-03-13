@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwriteException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
@@ -58,47 +59,47 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
     }
 
     @Override
-    public boolean isLinked(DSLContext dslContext, Application application, R relation, EntityId sourceId, EntityId targetId) {
+    public boolean isLinked(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity, EntityIdentity targetIdentity) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
         return dslContext.fetchExists(DSL.selectOne().from(table)
-                .where(DSL.and(sourceRef.eq(sourceId.getValue()), targetRef.eq(targetId.getValue()))));
+                .where(DSL.and(sourceRef.eq(sourceIdentity.getEntityId().getValue()), targetRef.eq(targetIdentity.getEntityId().getValue()))));
     }
 
-    public Optional<EntityId> findTarget(DSLContext dslContext, Application application, R relation, EntityId id) {
+    public Optional<EntityId> findTarget(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity) {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
 
         return dslContext.select(targetRef)
                 .from(table)
-                .where(sourceRef.eq(id.getValue()))
+                .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                 .fetchOptional()
                 .map(Record1::value1)
                 .map(EntityId::of);
     }
 
-    public void create(DSLContext dslContext, Application application, R relation, EntityId id, EntityId targetId,
+    public void create(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity, EntityIdentity targetIdentity,
             ExpectedId expectedTargetId)
             throws ExpectedIdMismatchException {
-        setValue(dslContext, application, relation, id, expectedTargetId, targetId.getValue());
+        setValue(dslContext, application, relation, sourceIdentity, expectedTargetId, targetIdentity.getEntityId().getValue());
     }
 
     @Override
     // This exception actually doesn't happen here, because we don't expect any ID
     @SneakyThrows(ExpectedIdMismatchException.class)
-    public void delete(DSLContext dslContext, Application application, R relation, EntityId id) {
-        delete(dslContext, application, relation, id, ExpectedId.unspecified());
+    public void delete(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity) {
+        delete(dslContext, application, relation, sourceIdentity, ExpectedId.unspecified());
     }
 
-    public void delete(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId)
+    public void delete(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity, ExpectedId expectedTargetId)
             throws ExpectedIdMismatchException {
-        setValue(dslContext, application, relation, id, expectedTargetId, null);
+        setValue(dslContext, application, relation, sourceIdentity, expectedTargetId, null);
     }
 
-    private void setValue(DSLContext dslContext, Application application, R relation, EntityId id, ExpectedId expectedTargetId, UUID targetValue) throws ExpectedIdMismatchException {
+    private void setValue(DSLContext dslContext, Application application, R relation, EntityIdentity sourceIdentity, ExpectedId expectedTargetId, UUID targetValue) throws ExpectedIdMismatchException {
         var table = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
@@ -107,13 +108,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         try {
             var newValue = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext.update(table)
                     .set(targetRef, expectedTargetId.mapToNewValue(targetRef, targetRef, targetValue))
-                    .where(sourceRef.eq(id.getValue()))
+                    .where(sourceRef.eq(sourceIdentity.getEntityId().getValue()))
                     .returning(targetRef)
                     .fetchOptional()
-                    .orElseThrow(() -> {
-                        var entityName = relation.getSourceEndPoint().getEntity();
-                        return new EntityIdNotFoundException(entityName, id);
-                    })
+                    .orElseThrow(() -> new EntityIdNotFoundException(sourceIdentity))
                     .get(targetRef));
 
             if (!Objects.equals(newValue, targetValue)) {
@@ -128,11 +126,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                             .fetchOptional(sourceRef);
 
                     return new BlindRelationOverwriteException(
-                            RelationIdentity.forRelation(
-                                    relation.getSourceEndPoint().getEntity(),
-                                    id,
-                                    relation.getSourceEndPoint().getName()
-                            ),
+                            RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName()),
                             EntityIdentity.forEntity(
                                     relation.getTargetEndPoint().getEntity(),
                                     EntityId.of(targetValue)
@@ -147,8 +141,10 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                     if(targetValue != null) {
                         // A foreign-key constraint violation can only happen when *setting* a new value
                         // (because the target id that is being set does not actually exist
-                        return new EntityIdNotFoundException(relation.getTargetEndPoint().getEntity(),
-                                EntityId.of(targetValue));
+                        return new RelationTargetNotFoundException(
+                                EntityIdentity.forEntity(relation.getTargetEndPoint().getEntity(), EntityId.of(targetValue)),
+                                RelationIdentity.forRelation(sourceIdentity, relation.getSourceEndPoint().getName())
+                        );
                     }
                     return null;
                 });
@@ -156,8 +152,8 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                     // A not null constraint violation can only happen when clearing a value
                     // (because otherwise, we would not be setting a null value)
                     return new RequiredConstraintViolationException(
-                            relation.getSourceEndPoint().getEntity(),
-                            id,
+                            sourceIdentity.getEntityName(),
+                            sourceIdentity.getEntityId(),
                             new RelationPath(relation.getSourceEndPoint().getName(), null)
                     );
                 });

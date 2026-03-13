@@ -16,13 +16,11 @@ import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundExce
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
-import com.contentgrid.appserver.rest.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider.CollectionParameters;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import java.util.Objects;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -83,7 +81,7 @@ public class XToManyRelationRestController {
             @RequestBody(required = false) URIList body,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
-    ) throws RelationTargetNotFoundException, MissingRelationTargetException, InvalidRelationTargetException {
+    ) throws MissingRelationTargetException, InvalidRelationTargetException {
         var relation = getRequiredRelation(application, entityName, propertyName);
         if (body == null || body.uris().isEmpty()) {
             throw new MissingRelationTargetException(RelationIdentity.forRelation(
@@ -113,17 +111,7 @@ public class XToManyRelationRestController {
             }
             targetIds.add(maybeId.get());
         }
-        try {
-            datamodelApi.addRelationItems(application, relationRequest, targetIds, authorizationContext);
-        } catch (EntityIdNotFoundException e) {
-            if (Objects.equals(e.getEntityName(), relation.getSourceEndPoint().getEntity()) && Objects.equals(e.getId(), id)) {
-                // Can't find entity that's meant to have the relation
-                throw e;
-            } else {
-                // Can't find some of the entities to put in the relation
-                throw new RelationTargetNotFoundException(e);
-            }
-        }
+        datamodelApi.addRelationItems(application, relationRequest, targetIds, authorizationContext);
         return ResponseEntity.noContent().build();
     }
 
