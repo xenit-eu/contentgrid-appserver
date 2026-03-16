@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.lifecycle.ContentLifecycleAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -42,6 +43,8 @@ class ContentGridRestAutoConfigurationTest {
                     JOOQQueryEngineAutoConfiguration.class,
                     // autoconfiguration for content store
                     FilesystemContentStoreAutoConfiguration.class,
+                    // autoconfiguration for content lifecycle
+                    ContentLifecycleAutoConfiguration.class,
                     // autoconfiguration for domain
                     ContentGridDomainAutoConfiguration.class,
                     ContentGridEventsAutoConfiguration.class,

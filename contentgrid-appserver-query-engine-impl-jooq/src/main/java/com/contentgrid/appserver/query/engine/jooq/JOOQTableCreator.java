@@ -35,6 +35,8 @@ public class JOOQTableCreator implements TableCreator {
         }
         // Create extensions schema and functions
         createCGPrefixSearchNormalize(dslContext);
+        // Create content lifecycle tracking table
+        createContentReferencesTable(dslContext);
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -83,6 +85,25 @@ public class JOOQTableCreator implements TableCreator {
 
         // Drop extensions schema and functions
         dropCGPrefixSearchNormalize(dslContext);
+        // Drop content lifecycle tracking table
+        dropContentReferencesTable(dslContext);
+    }
+
+    @Allow.PlainSQL
+    private void createContentReferencesTable(DSLContext dslContext) {
+        dslContext.createTableIfNotExists("_content_references")
+                .column(DSL.field("content_id", String.class), org.jooq.impl.SQLDataType.VARCHAR.nullable(false))
+                .column(DSL.field("reference_count", Integer.class), org.jooq.impl.SQLDataType.INTEGER.nullable(false))
+                .column(DSL.field("first_referenced_at", java.time.OffsetDateTime.class), org.jooq.impl.SQLDataType.TIMESTAMPWITHTIMEZONE.nullable(false))
+                .column(DSL.field("last_dereferenced_at", java.time.OffsetDateTime.class), org.jooq.impl.SQLDataType.TIMESTAMPWITHTIMEZONE.nullable(true))
+                .column(DSL.field("marked_for_deletion_at", java.time.OffsetDateTime.class), org.jooq.impl.SQLDataType.TIMESTAMPWITHTIMEZONE.nullable(true))
+                .primaryKey("content_id")
+                .execute();
+    }
+
+    @Allow.PlainSQL
+    private void dropContentReferencesTable(DSLContext dslContext) {
+        dslContext.dropTableIfExists("_content_references").execute();
     }
 
     @Allow.PlainSQL
