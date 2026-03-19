@@ -24,7 +24,8 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
+import com.contentgrid.appserver.contentstore.api.ContentReference;
+import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
@@ -970,9 +971,10 @@ class ContentRestControllerTest {
         void upload_contentStoreWriteFails_returnsServerError(HttpMethod method) throws Exception {
             String invoiceId = createInvoice(null);
 
-            // Simulate S3 broken pipe: CompletionException wrapping IOException,
-            // exactly as MinioAsyncClient.putObject().join() would throw
-            Mockito.doThrow(new CompletionException(new java.io.IOException("Broken pipe")))
+            // Simulate S3 broken pipe: S3ContentStore catches the CompletionException from
+            // MinioAsyncClient.putObject().get() and wraps it as UnwritableContentException
+            Mockito.doThrow(new UnwritableContentException(
+                            ContentReference.of("test"), new java.io.IOException("Broken pipe")))
                     .when(contentStoreSpy).writeContent(Mockito.any());
 
             mockMvc.perform(request(method, "/invoices/{instanceId}/content", invoiceId)
@@ -995,7 +997,8 @@ class ContentRestControllerTest {
         void upload_multipart_contentStoreWriteFails_returnsServerError() throws Exception {
             String invoiceId = createInvoice(null);
 
-            Mockito.doThrow(new CompletionException(new java.io.IOException("Broken pipe")))
+            Mockito.doThrow(new UnwritableContentException(
+                            ContentReference.of("test"), new java.io.IOException("Broken pipe")))
                     .when(contentStoreSpy).writeContent(Mockito.any());
 
             MockMultipartFile file = new MockMultipartFile(

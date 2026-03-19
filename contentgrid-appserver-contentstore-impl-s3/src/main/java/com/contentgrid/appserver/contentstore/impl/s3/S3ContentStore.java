@@ -92,6 +92,7 @@ public class S3ContentStore implements ContentStore {
     }
 
     @Override
+    @SneakyThrows(InterruptedException.class)
     public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         try {
@@ -100,24 +101,25 @@ public class S3ContentStore implements ContentStore {
                             .object(contentReference.getValue())
                             .stream(inputStream, -1, PART_SIZE)
                             .build())
-                    .join();
+                    .get();
             return new S3ContentAccessor(contentReference);
         } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
-                 NoSuchAlgorithmException | XmlParserException e) {
+                 NoSuchAlgorithmException | XmlParserException | ExecutionException e) {
             throw new UnwritableContentException(contentReference, e);
         }
     }
 
     @Override
+    @SneakyThrows(InterruptedException.class)
     public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
             client.removeObject(RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(contentReference.getValue())
                     .build())
-                    .join();
+                    .get();
         } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
-                 NoSuchAlgorithmException | XmlParserException e) {
+                 NoSuchAlgorithmException | XmlParserException | ExecutionException e) {
             throw new UnwritableContentException(contentReference, e);
         }
 

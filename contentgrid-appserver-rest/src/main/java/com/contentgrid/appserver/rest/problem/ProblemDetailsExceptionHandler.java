@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.problem;
 
+import com.contentgrid.appserver.contentstore.api.ContentStoreException;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
@@ -388,6 +389,12 @@ public class ProblemDetailsExceptionHandler {
                 .withProperties(Map.of(
                         "affected_relation", linkFactoryProvider.toRelation(exception.getTargetRelationIdentity()).orElseThrow().toUri().toString()
                 )));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> contentStoreError(ContentStoreException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.INTERNAL_CONTENT_STORE)
+                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     @ExceptionHandler
