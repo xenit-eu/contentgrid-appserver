@@ -13,7 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -24,6 +26,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
@@ -952,6 +955,67 @@ class ContentRestControllerTest {
                             .filename(INVOICE_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build()
                             .toString()))
                     .andExpect(content().bytes(new byte[0]));
+        }
+
+        /**
+         * Reproducer: when the content store write fails with a CompletionException
+         * (e.g. broken pipe to S3), the exception escapes uncaught through S3ContentStore,
+         * ContentUploadAttributeMapper, and the controller. The response should be a server
+         * error (5xx), but because the CompletionException bypasses all catch blocks, the
+         * response status depends on unspecified error handling behavior.
+         *
+         * Additionally, the content must not be persisted in the database — a subsequent GET
+         * should return 404.
+         */
+        @ParameterizedTest
+        @CsvSource({"PUT", "POST"})
+        void upload_contentStoreWriteFails_returnsServerError(HttpMethod method) throws Exception {
+            String invoiceId = createInvoice(null);
+
+            // Simulate S3 broken pipe: CompletionException wrapping IOException,
+            // exactly as MinioAsyncClient.putObject().join() would throw
+            Mockito.doThrow(new UnwritableContentException(ContentReference.UNKNOWN, new java.io.IOException("Broken pipe")))
+                    .when(contentStoreSpy).writeContent(Mockito.any());
+
+            mockMvc.perform(request(method, "/invoices/{instanceId}/content", invoiceId)
+                            .contentType(INVOICE_CONTENT_FILE.getContentType())
+                            .content(INVOICE_CONTENT_FILE.getBytes()))
+                    .andExpect(status().is5xxServerError());
+
+            Mockito.reset(contentStoreSpy);
+
+            // Content must not have been persisted
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isNotFound());
+        }
+
+        /**
+         * Same as above but with multipart upload, which is the exact path triggered
+         * by the Python client in production.
+         */
+        @Test
+        void upload_multipart_contentStoreWriteFails_returnsServerError() throws Exception {
+            String invoiceId = createInvoice(null);
+
+            Mockito.doThrow(new UnwritableContentException(ContentReference.UNKNOWN, new java.io.IOException("Broken pipe")))
+                    .when(contentStoreSpy).writeContent(Mockito.any());
+
+            MockMultipartFile file = new MockMultipartFile(
+                    "file",
+                    INVOICE_CONTENT_FILE.getOriginalFilename(),
+                    INVOICE_CONTENT_FILE.getContentType(),
+                    INVOICE_CONTENT_FILE.getBytes()
+            );
+
+            mockMvc.perform(multipart("/invoices/{instanceId}/content", invoiceId)
+                            .file(file))
+                    .andExpect(status().is5xxServerError());
+
+            Mockito.reset(contentStoreSpy);
+
+            // Content must not have been persisted
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(status().isNotFound());
         }
 
         @Test
