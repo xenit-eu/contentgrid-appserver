@@ -78,8 +78,10 @@ public class S3ContentStore implements ContentStore {
             var reader = new S3ContentReader(object);
 
             return new GuardedContentReader(reader);
-        } catch(MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException | ExecutionException e) {
+        } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
             throw new UnreadableContentException(contentReference, e);
+        } catch (ExecutionException e) {
+            throw new UnreadableContentException(contentReference, e.getCause());
         }
     }
 
@@ -92,6 +94,7 @@ public class S3ContentStore implements ContentStore {
     }
 
     @Override
+    @SneakyThrows(InterruptedException.class)
     public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         try {
@@ -100,25 +103,30 @@ public class S3ContentStore implements ContentStore {
                             .object(contentReference.getValue())
                             .stream(inputStream, -1, PART_SIZE)
                             .build())
-                    .join();
+                    .get();
             return new S3ContentAccessor(contentReference);
         } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
                  NoSuchAlgorithmException | XmlParserException e) {
             throw new UnwritableContentException(contentReference, e);
+        } catch (ExecutionException e) {
+            throw new UnwritableContentException(contentReference, e.getCause());
         }
     }
 
     @Override
+    @SneakyThrows(InterruptedException.class)
     public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
             client.removeObject(RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(contentReference.getValue())
                     .build())
-                    .join();
+                    .get();
         } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
                  NoSuchAlgorithmException | XmlParserException e) {
             throw new UnwritableContentException(contentReference, e);
+        } catch (ExecutionException e) {
+            throw new UnwritableContentException(contentReference, e.getCause());
         }
 
     }
