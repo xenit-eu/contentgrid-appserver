@@ -4,7 +4,10 @@ import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoCo
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import io.minio.MinioAsyncClient;
+import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
+import okhttp3.ConnectionPool;
+import okhttp3.OkHttpClient;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -12,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
@@ -26,14 +30,25 @@ public class S3ContentStoreAutoConfiguration {
         String accessKey,
         String secretKey,
         @NonNull String bucket,
-        String region
+        String region,
+        @DefaultValue("0") int connectionPoolSize,
+        @DefaultValue("1") int connectionPoolKeepAliveSeconds
     ) {}
 
     @Bean
     @ConditionalOnMissingBean
     MinioAsyncClient s3MinioAsyncClient(S3Properties properties) {
+        var okHttpClient = new OkHttpClient.Builder()
+                .connectionPool(new ConnectionPool(
+                        properties.connectionPoolSize(),
+                        properties.connectionPoolKeepAliveSeconds(),
+                        TimeUnit.SECONDS))
+                .retryOnConnectionFailure(true)
+                .build();
+
         var builder = MinioAsyncClient.builder()
-                .endpoint(properties.url());
+                .endpoint(properties.url())
+                .httpClient(okHttpClient);
 
         if (properties.accessKey() != null && properties.secretKey() != null) {
             builder.credentials(properties.accessKey(), properties.secretKey());

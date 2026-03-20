@@ -54,11 +54,38 @@ class S3ContentStoreAutoConfigurationTest {
                         "contentgrid.appserver.content.s3.accessKey=accessKey",
                         "contentgrid.appserver.content.s3.secretKey=secretKey",
                         "contentgrid.appserver.content.s3.bucket=fake",
-                        "contentgrid.appserver.content.s3.region=none"
+                        "contentgrid.appserver.content.s3.region=none",
+                        "contentgrid.appserver.content.s3.connection-pool-size=5",
+                        "contentgrid.appserver.content.s3.connection-pool-keep-alive-seconds=30"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(S3ContentStore.class);
+                    var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
+                    assertThat(properties.url()).isEqualTo("http://localhost");
+                    assertThat(properties.accessKey()).isEqualTo("accessKey");
+                    assertThat(properties.secretKey()).isEqualTo("secretKey");
+                    assertThat(properties.bucket()).isEqualTo("fake");
+                    assertThat(properties.region()).isEqualTo("none");
+                    assertThat(properties.connectionPoolSize()).isEqualTo(5);
+                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(30);
+                });
+    }
+
+    @Test
+    void checkS3_defaultConnectionPoolSettings() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content-store.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost",
+                        "contentgrid.appserver.content.s3.bucket=fake"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
+                    assertThat(properties.connectionPoolSize()).isEqualTo(0);
+                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(1);
                 });
     }
 
