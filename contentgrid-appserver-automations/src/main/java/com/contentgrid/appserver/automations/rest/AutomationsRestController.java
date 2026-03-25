@@ -31,7 +31,7 @@ public class AutomationsRestController {
     @NonNull
     private final AbacContextSupplier abacContextSupplier;
 
-    private static final AutomationModelVisitor VISITOR = new AutomationModelVisitor();
+    private static final AutomationModelPermissionEvaluator PERMISSION_EVALUATOR = new AutomationModelPermissionEvaluator();
 
     public AutomationsRestController(Resource resource, AutomationRepresentationModelAssembler assembler,
             AbacContextSupplier abacContextSupplier) {
@@ -77,11 +77,7 @@ public class AutomationsRestController {
             return automations;
         }
         return automations.stream()
-                .filter(automation -> {
-                    var result = abacContext.accept(VISITOR, automation);
-                    result.assertResultType(Boolean.class);
-                    return (Boolean) result.getValue();
-                })
+                .filter(automation -> PERMISSION_EVALUATOR.isAllowed(abacContext, automation))
                 .toList();
     }
 
