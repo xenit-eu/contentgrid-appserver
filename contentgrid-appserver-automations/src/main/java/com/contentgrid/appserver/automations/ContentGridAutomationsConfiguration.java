@@ -9,10 +9,11 @@ import com.contentgrid.appserver.automations.rest.AutomationsRestController;
 import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.Resource;
 import org.springframework.hateoas.server.RepresentationModelProcessor;
 
 @Import({
@@ -22,16 +23,14 @@ import org.springframework.hateoas.server.RepresentationModelProcessor;
 @Configuration(proxyBeanMethods = false)
 public class ContentGridAutomationsConfiguration {
 
-    private static final String AUTOMATIONS_RESOURCE = "classpath:automation/automations.json";
-
     @Bean
     AutomationsRestController automationsRestController(
-            ResourceLoader resourceLoader,
+            @Value("${contentgrid.appserver.automation-model:}") Resource resource,
             AutomationRepresentationModelAssembler assembler,
             AbacContextSupplier abacContextSupplier
     ) {
         return new AutomationsRestController(
-                resourceLoader.getResource(AUTOMATIONS_RESOURCE),
+                resource,
                 assembler,
                 abacContextSupplier
         );

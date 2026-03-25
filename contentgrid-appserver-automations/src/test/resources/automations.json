@@ -1,0 +1,33 @@
+{
+  "automations": [ {
+    "id": "a0da9322-3dae-4b5a-8f92-c3cb53989938",
+    "system": "my-system",
+    "name": "my-automation",
+    "data": {
+      "foo": "bar"
+    },
+    "annotations": [ {
+      "id": "92aeb778-e2b8-42c1-8c3b-513d18ff01cb",
+      "subject": {
+        "type": "entity",
+        "entity": "invoice"
+      },
+      "entity": "invoice",
+      "data": {
+        "color": "blue"
+      }
+    },
+      {
+        "id": "4fb6993d-a163-4746-a1aa-4a0018a796d4",
+        "subject": {
+          "type": "attribute",
+          "entity": "invoice",
+          "attribute": "content"
+        },
+        "entity": "invoice",
+        "data": {
+          "type": "input"
+        }
+      } ]
+  } ]
+}
