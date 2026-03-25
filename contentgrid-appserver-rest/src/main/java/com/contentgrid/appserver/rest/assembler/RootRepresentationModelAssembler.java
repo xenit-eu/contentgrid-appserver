@@ -11,9 +11,9 @@ import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 
 public class RootRepresentationModelAssembler implements
-        RepresentationModelContextAssembler<Application, EmptyRepresentationModel, Context> {
+        RepresentationModelContextAssembler<Application, RootRepresentationModel, Context> {
 
-    public RepresentationModelAssembler<Application, EmptyRepresentationModel> withContext(
+    public RepresentationModelAssembler<Application, RootRepresentationModel> withContext(
             LinkFactoryProvider linkFactoryProvider) {
         return withContext(new Context(linkFactoryProvider));
     }
@@ -23,8 +23,8 @@ public class RootRepresentationModelAssembler implements
     }
 
     @Override
-    public EmptyRepresentationModel toModel(@NonNull Application application, @NonNull Context context) {
-        var model = new EmptyRepresentationModel();
+    public RootRepresentationModel toModel(@NonNull Application application, @NonNull Context context) {
+        var model = new RootRepresentationModel();
         model.add(context.linkFactoryProvider().toRoot().withSelfRel())
                 .add(context.linkFactoryProvider().toProfileRoot().withRel(IanaLinkRelations.PROFILE));
         for (var entity : application.getEntities()) {

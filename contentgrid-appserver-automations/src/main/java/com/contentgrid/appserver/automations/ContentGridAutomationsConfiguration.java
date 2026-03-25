@@ -7,6 +7,7 @@ import com.contentgrid.appserver.automations.rest.AutomationAnnotationRepresenta
 import com.contentgrid.appserver.automations.rest.AutomationRepresentationModelAssembler;
 import com.contentgrid.appserver.automations.rest.AutomationsRestController;
 import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
+import com.contentgrid.appserver.rest.assembler.RootRepresentationModel;
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,11 +43,11 @@ public class ContentGridAutomationsConfiguration {
     }
 
     @Bean
-    RepresentationModelProcessor<EmptyRepresentationModel> automationRepositoryLinksRepresentationModelProcessor() {
+    RepresentationModelProcessor<RootRepresentationModel> automationRepositoryLinksRepresentationModelProcessor() {
         // This must be a class instead of a lambda so the generic parameter can be determined by spring-hateoas
-        return new RepresentationModelProcessor<EmptyRepresentationModel>() {
+        return new RepresentationModelProcessor<RootRepresentationModel>() {
             @Override
-            public EmptyRepresentationModel process(EmptyRepresentationModel model) {
+            public RootRepresentationModel process(RootRepresentationModel model) {
                 return model.add(
                         linkTo(methodOn(AutomationsRestController.class).getAutomations(null))
                                 .withRel(AutomationLinkRelations.REGISTRATIONS)
