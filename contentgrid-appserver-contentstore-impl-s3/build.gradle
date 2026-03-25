@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'io.freefair.lombok'
+    id 'java-test-fixtures'
 }
 
 dependencies {
@@ -9,11 +10,12 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-utils')
     implementation 'io.minio:minio'
 
+    testFixturesImplementation "org.testcontainers:testcontainers"
+
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:junit-jupiter"
 
-    testImplementation "org.testcontainers:minio"
     testImplementation "org.testcontainers:localstack"
 }
 

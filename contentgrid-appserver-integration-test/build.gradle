@@ -29,7 +29,7 @@ dependencies {
     testImplementation 'org.springframework:spring-tx'
     testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.hamcrest:hamcrest'
+    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-s3'))
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:minio'
     testImplementation 'io.minio:minio'
 }

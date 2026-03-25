@@ -21,3 +21,6 @@ build
 .idea/
 
 .vscode/
+
+.opencode/
+.claude/
