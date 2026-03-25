@@ -1,5 +1,5 @@
 package com.contentgrid.appserver.rest.assembler;
 
-public class RootRepresentationModel extends EmptyRepresentationModel<RootRepresentationModel> {
+public class RootRepresentationModel extends RepresentationModelWithTemplates<RootRepresentationModel> {
 
 }

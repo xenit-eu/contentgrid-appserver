@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.rest.assembler.profile;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.links.ContentGridLinkRelations;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;

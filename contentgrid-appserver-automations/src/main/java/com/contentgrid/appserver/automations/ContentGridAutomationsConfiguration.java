@@ -6,7 +6,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.contentgrid.appserver.automations.rest.AutomationAnnotationRepresentationModelAssembler;
 import com.contentgrid.appserver.automations.rest.AutomationRepresentationModelAssembler;
 import com.contentgrid.appserver.automations.rest.AutomationsRestController;
-import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.RootRepresentationModel;
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;

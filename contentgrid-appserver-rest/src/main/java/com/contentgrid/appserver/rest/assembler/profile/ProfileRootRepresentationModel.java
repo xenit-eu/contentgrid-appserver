@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest.assembler.profile;
 
-import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
+import com.contentgrid.appserver.rest.assembler.RepresentationModelWithTemplates;
 
-public class ProfileRootRepresentationModel extends EmptyRepresentationModel<ProfileRootRepresentationModel> {
+public class ProfileRootRepresentationModel extends RepresentationModelWithTemplates<ProfileRootRepresentationModel> {
 
 }

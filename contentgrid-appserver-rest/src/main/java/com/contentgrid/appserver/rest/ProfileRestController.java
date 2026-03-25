@@ -3,7 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.rest.assembler.EmptyRepresentationModel;
+import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.ProfileRootRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModel;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
@@ -30,7 +30,7 @@ public class ProfileRestController {
     private final JsonSchemaAssembler jsonSchemaAssembler = new JsonSchemaAssembler();
 
     @GetMapping
-    public EmptyRepresentationModel getProfile(Application application, LinkFactoryProvider linkFactoryProvider) {
+    public ProfileRootRepresentationModel getProfile(Application application, LinkFactoryProvider linkFactoryProvider) {
         return profileRootAssembler.withContext(linkFactoryProvider).toModel(application);
     }
 
