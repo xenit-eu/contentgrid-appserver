@@ -33,7 +33,6 @@ public class AutomationsModel {
 
         @NonNull String id;
         @NonNull Map<String, String> subject;
-        @NonNull String entity;
         @NonNull Map<String, Object> data;
     }
 }

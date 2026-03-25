@@ -25,7 +25,6 @@ class AutomationsModelTest {
     private static final String ATTRIBUTE_ANNOTATION_ID = "4fb6993d-a163-4746-a1aa-4a0018a796d4";
     private static final Map<String, String> ATTRIBUTE_ANNOTATION_SUBJECT = Map.of("type", "attribute", "entity", "invoice", "attribute", "content");
     private static final Map<String, Object> ATTRIBUTE_ANNOTATION_DATA = Map.of("type", "input");
-    private static final String ENTITY = "invoice";
 
     private static final AutomationsModel MODEL = AutomationsModel.builder()
             .automations(List.of(
@@ -38,13 +37,11 @@ class AutomationsModelTest {
                                     AutomationAnnotationModel.builder()
                                             .id(ENTITY_ANNOTATION_ID)
                                             .subject(ENTITY_ANNOTATION_SUBJECT)
-                                            .entity(ENTITY)
                                             .data(ENTITY_ANNOTATION_DATA)
                                             .build(),
                                     AutomationAnnotationModel.builder()
                                             .id(ATTRIBUTE_ANNOTATION_ID)
                                             .subject(ATTRIBUTE_ANNOTATION_SUBJECT)
-                                            .entity(ENTITY)
                                             .data(ATTRIBUTE_ANNOTATION_DATA)
                                             .build()
                             ))
@@ -90,7 +87,6 @@ class AutomationsModelTest {
                                 "type": "entity",
                                 "entity": "invoice"
                             },
-                            "entity": "invoice",
                             "data": {
                                 "color": "blue"
                             }
@@ -102,7 +98,6 @@ class AutomationsModelTest {
                                 "entity": "invoice",
                                 "attribute": "content"
                             },
-                            "entity": "invoice",
                             "data": {
                                 "type": "input"
                             }

@@ -56,7 +56,6 @@ class AutomationsRestControllerTest {
     private static final String RELATION_ANNOTATION_ID = UUID.randomUUID().toString();
     private static final Map<String, String> RELATION_ANNOTATION_SUBJECT = Map.of("type", "relation", "entity", "invoice", "relation", "products");
     private static final Map<String, Object> RELATION_ANNOTATION_DATA = Map.of("type", "output");
-    private static final String ENTITY = "invoice";
 
     // true = true
     private static final Comparison DEFAULT_POLICY = Comparison.areEqual(Scalar.of(true), Scalar.of(true));
@@ -100,13 +99,11 @@ class AutomationsRestControllerTest {
                                         AutomationAnnotationModel.builder()
                                                 .id(ENTITY_ANNOTATION_ID)
                                                 .subject(ENTITY_ANNOTATION_SUBJECT)
-                                                .entity(ENTITY)
                                                 .data(ENTITY_ANNOTATION_DATA)
                                                 .build(),
                                         AutomationAnnotationModel.builder()
                                                 .id(ATTRIBUTE_ANNOTATION_ID)
                                                 .subject(ATTRIBUTE_ANNOTATION_SUBJECT)
-                                                .entity(ENTITY)
                                                 .data(ATTRIBUTE_ANNOTATION_DATA)
                                                 .build()
                                 ))
@@ -120,7 +117,6 @@ class AutomationsRestControllerTest {
                                         AutomationAnnotationModel.builder()
                                                 .id(RELATION_ANNOTATION_ID)
                                                 .subject(RELATION_ANNOTATION_SUBJECT)
-                                                .entity(ENTITY)
                                                 .data(RELATION_ANNOTATION_DATA)
                                                 .build()
                                 ))

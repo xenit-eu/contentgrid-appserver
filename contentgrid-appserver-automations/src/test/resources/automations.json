@@ -12,7 +12,6 @@
         "type": "entity",
         "entity": "invoice"
       },
-      "entity": "invoice",
       "data": {
         "color": "blue"
       }
@@ -24,7 +23,6 @@
           "entity": "invoice",
           "attribute": "content"
         },
-        "entity": "invoice",
         "data": {
           "type": "input"
         }

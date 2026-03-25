@@ -21,7 +21,7 @@ public class AutomationAnnotationRepresentationModelAssembler implements
     }
 
     private Link getTargetEntityLink(AutomationAnnotationModel annotation, LinkFactoryProvider linkFactoryProvider) {
-        return linkFactoryProvider.toProfile(EntityName.of(annotation.getEntity()))
+        return linkFactoryProvider.toProfile(EntityName.of(annotation.getSubject().get("entity")))
                 .withRel(AutomationLinkRelations.TARGET_ENTITY);
     }
 }
