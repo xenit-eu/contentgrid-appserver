@@ -215,6 +215,11 @@ class RabbitMqEventHandlersTest {
                           "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
                           "name": "blueprint",
                           "templated": true
+                        },
+                        {
+                            "href": "https://contentgrid.cloud/rels/automation/{rel}",
+                            "name": "automation",
+                            "templated": true
                         }
                       ]
                     }
@@ -255,6 +260,11 @@ class RabbitMqEventHandlersTest {
                           "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
                           "name": "blueprint",
                           "templated": true
+                        },
+                        {
+                            "href": "https://contentgrid.cloud/rels/automation/{rel}",
+                            "name": "automation",
+                            "templated": true
                         }
                       ]
                     }
@@ -296,6 +306,11 @@ class RabbitMqEventHandlersTest {
                           "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
                           "name": "blueprint",
                           "templated": true
+                        },
+                        {
+                            "href": "https://contentgrid.cloud/rels/automation/{rel}",
+                            "name": "automation",
+                            "templated": true
                         }
                       ]
                     }
@@ -330,6 +345,11 @@ class RabbitMqEventHandlersTest {
                           "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
                           "name": "blueprint",
                           "templated": true
+                        },
+                        {
+                            "href": "https://contentgrid.cloud/rels/automation/{rel}",
+                            "name": "automation",
+                            "templated": true
                         }
                       ]
                     }
