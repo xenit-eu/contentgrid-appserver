@@ -3,7 +3,7 @@ package com.contentgrid.appserver.automations.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.ListValue;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;

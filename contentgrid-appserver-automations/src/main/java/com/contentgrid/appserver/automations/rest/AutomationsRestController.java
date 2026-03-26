@@ -1,16 +1,13 @@
 package com.contentgrid.appserver.automations.rest;
 
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModelResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.springframework.core.io.Resource;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AutomationsRestController {
 
-    @Setter
     @NonNull
-    private AutomationsModel model;
+    private AutomationsModelResolver modelResolver;
     @NonNull
     private final AutomationRepresentationModelAssembler assembler;
     @NonNull
@@ -33,42 +29,27 @@ public class AutomationsRestController {
 
     private static final AutomationModelPermissionEvaluator PERMISSION_EVALUATOR = new AutomationModelPermissionEvaluator();
 
-    public AutomationsRestController(Resource resource, AutomationRepresentationModelAssembler assembler,
-            AbacContextSupplier abacContextSupplier) {
-        this.assembler = assembler;
-        this.model = loadConfig(resource);
-        this.abacContextSupplier = abacContextSupplier;
-    }
-
     @GetMapping
-    public ResponseEntity<CollectionModel<AutomationRepresentationModel>> getAutomations(LinkFactoryProvider linkFactoryProvider) {
+    public ResponseEntity<CollectionModel<AutomationRepresentationModel>> getAutomations(Application application, LinkFactoryProvider linkFactoryProvider) {
+        var model = modelResolver.resolve(application);
         var automations = filterAutomations(model.getAutomations());
-        return ResponseEntity.ok(assembler.withContext(linkFactoryProvider).toCollectionModel(automations));
+        return ResponseEntity.ok(assembler.withContext(application, linkFactoryProvider).toCollectionModel(automations));
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<AutomationRepresentationModel> getAutomation(LinkFactoryProvider linkFactoryProvider, @PathVariable(name = "id") String id) {
+    public ResponseEntity<AutomationRepresentationModel> getAutomation(
+            Application application,
+            LinkFactoryProvider linkFactoryProvider,
+            @PathVariable(name = "id") String id
+    ) {
+        var model = modelResolver.resolve(application);
         var automation = filterAutomations(model.getAutomations()).stream()
                 .filter(aut -> aut.getId().equals(id))
                 .findFirst();
 
-        return automation.map(aut -> assembler.toModel(aut, linkFactoryProvider, true))
+        return automation.map(aut -> assembler.toModel(aut, new AutomationRepresentationModelContext(application, linkFactoryProvider), true))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    static AutomationsModel loadConfig(Resource resource) {
-        if (resource != null) {
-            try {
-                @NonNull ObjectMapper objectMapper = new ObjectMapper()
-                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-                return objectMapper.readValue(resource.getInputStream(), AutomationsModel.class);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            return AutomationsModel.builder().automations(List.of()).build();
-        }
     }
 
     private List<AutomationModel> filterAutomations(List<AutomationModel> automations) {

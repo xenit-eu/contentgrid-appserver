@@ -8,33 +8,18 @@ import com.contentgrid.appserver.automations.rest.AutomationRepresentationModelA
 import com.contentgrid.appserver.automations.rest.AutomationsRestController;
 import com.contentgrid.appserver.rest.assembler.RootRepresentationModel;
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
-import com.contentgrid.thunx.spring.security.AbacContextSupplier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.Resource;
 import org.springframework.hateoas.server.RepresentationModelProcessor;
 
 @Import({
         AutomationRepresentationModelAssembler.class,
         AutomationAnnotationRepresentationModelAssembler.class,
+        AutomationsRestController.class,
 })
 @Configuration(proxyBeanMethods = false)
 public class ContentGridAutomationsConfiguration {
-
-    @Bean
-    AutomationsRestController automationsRestController(
-            @Value("${contentgrid.appserver.automation-model:}") Resource resource,
-            AutomationRepresentationModelAssembler assembler,
-            AbacContextSupplier abacContextSupplier
-    ) {
-        return new AutomationsRestController(
-                resource,
-                assembler,
-                abacContextSupplier
-        );
-    }
 
     @Bean
     CurieProviderCustomizer automationCurieProvider() {
@@ -47,8 +32,9 @@ public class ContentGridAutomationsConfiguration {
         return new RepresentationModelProcessor<RootRepresentationModel>() {
             @Override
             public RootRepresentationModel process(RootRepresentationModel model) {
+                // TODO: application unknown, but static resource /.contentgrid/automations
                 return model.add(
-                        linkTo(methodOn(AutomationsRestController.class).getAutomations(null))
+                        linkTo(methodOn(AutomationsRestController.class).getAutomations(null, null))
                                 .withRel(AutomationLinkRelations.REGISTRATIONS)
                 );
             }

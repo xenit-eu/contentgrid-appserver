@@ -1,10 +1,10 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.automations.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationAnnotationModel;
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationAnnotationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -54,7 +54,7 @@ class AutomationsModelTest {
     @Test
     void loadConfigNull() {
         // No config file provided, expect empty AutomationsModel
-        assertThat(AutomationsRestController.loadConfig(null))
+        assertThat(AutomationsModel.fromConfig(null))
                 .isEqualTo(AutomationsModel.builder()
                         .automations(List.of())
                         .build());
@@ -66,13 +66,13 @@ class AutomationsModelTest {
         Resource missingResource = Mockito.mock(Resource.class);
         Mockito.when(missingResource.exists())
                 .thenReturn(false);
-        assertThatThrownBy(() -> AutomationsRestController.loadConfig(missingResource))
+        assertThatThrownBy(() -> AutomationsModel.fromConfig(missingResource))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void loadConfig() {
-        assertThat(AutomationsRestController.loadConfig(new ByteArrayResource("""
+        assertThat(AutomationsModel.fromConfig(new ByteArrayResource("""
                 {
                     "automations": [ {
                         "id": "${AUTOMATION_ID}",
@@ -114,7 +114,7 @@ class AutomationsModelTest {
     @Test
     void loadFileConfig() {
         var resource = resourceLoader.getResource("classpath:automations.json");
-        assertThat(AutomationsRestController.loadConfig(resource))
+        assertThat(AutomationsModel.fromConfig(resource))
                 .isEqualTo(MODEL);
     }
 }

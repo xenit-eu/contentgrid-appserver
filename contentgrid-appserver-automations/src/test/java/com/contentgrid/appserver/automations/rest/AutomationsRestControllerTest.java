@@ -7,8 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationAnnotationModel;
-import com.contentgrid.appserver.automations.rest.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationAnnotationModel;
+import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.automations.model.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.automations.rest.AutomationsRestControllerTest.TestConfig;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -22,7 +24,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -73,9 +74,6 @@ class AutomationsRestControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @Autowired
-    AutomationsRestController controller;
-
     @TestConfiguration
     static class TestConfig {
 
@@ -84,45 +82,45 @@ class AutomationsRestControllerTest {
         public SingleApplicationResolver singleApplicationResolver() {
             return new SingleApplicationResolver(APPLICATION);
         }
-    }
 
-    @BeforeEach
-    void setup() {
-        controller.setModel(AutomationsModel.builder()
-                .automations(List.of(
-                        AutomationModel.builder()
-                                .id(AUTOMATION_1_ID)
-                                .system(SYSTEM_1_ID)
-                                .name("my-automation")
-                                .data(AUTOMATION_DATA)
-                                .annotations(List.of(
-                                        AutomationAnnotationModel.builder()
-                                                .id(ENTITY_ANNOTATION_ID)
-                                                .subject(ENTITY_ANNOTATION_SUBJECT)
-                                                .data(ENTITY_ANNOTATION_DATA)
-                                                .build(),
-                                        AutomationAnnotationModel.builder()
-                                                .id(ATTRIBUTE_ANNOTATION_ID)
-                                                .subject(ATTRIBUTE_ANNOTATION_SUBJECT)
-                                                .data(ATTRIBUTE_ANNOTATION_DATA)
-                                                .build()
-                                ))
-                                .build(),
-                        AutomationModel.builder()
-                                .id(AUTOMATION_2_ID)
-                                .system(SYSTEM_2_ID)
-                                .name("other-automation")
-                                .data(Map.of())
-                                .annotations(List.of(
-                                        AutomationAnnotationModel.builder()
-                                                .id(RELATION_ANNOTATION_ID)
-                                                .subject(RELATION_ANNOTATION_SUBJECT)
-                                                .data(RELATION_ANNOTATION_DATA)
-                                                .build()
-                                ))
-                                .build()
-                ))
-                .build());
+        @Bean
+        public SingleAutomationsModelResolver singleAutomationsModelResolver() {
+            return new SingleAutomationsModelResolver(AutomationsModel.builder()
+                    .automations(List.of(
+                            AutomationModel.builder()
+                                    .id(AUTOMATION_1_ID)
+                                    .system(SYSTEM_1_ID)
+                                    .name("my-automation")
+                                    .data(AUTOMATION_DATA)
+                                    .annotations(List.of(
+                                            AutomationAnnotationModel.builder()
+                                                    .id(ENTITY_ANNOTATION_ID)
+                                                    .subject(ENTITY_ANNOTATION_SUBJECT)
+                                                    .data(ENTITY_ANNOTATION_DATA)
+                                                    .build(),
+                                            AutomationAnnotationModel.builder()
+                                                    .id(ATTRIBUTE_ANNOTATION_ID)
+                                                    .subject(ATTRIBUTE_ANNOTATION_SUBJECT)
+                                                    .data(ATTRIBUTE_ANNOTATION_DATA)
+                                                    .build()
+                                    ))
+                                    .build(),
+                            AutomationModel.builder()
+                                    .id(AUTOMATION_2_ID)
+                                    .system(SYSTEM_2_ID)
+                                    .name("other-automation")
+                                    .data(Map.of())
+                                    .annotations(List.of(
+                                            AutomationAnnotationModel.builder()
+                                                    .id(RELATION_ANNOTATION_ID)
+                                                    .subject(RELATION_ANNOTATION_SUBJECT)
+                                                    .data(RELATION_ANNOTATION_DATA)
+                                                    .build()
+                                    ))
+                                    .build()
+                    ))
+                    .build());
+        }
     }
 
     @Test
