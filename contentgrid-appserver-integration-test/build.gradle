@@ -30,6 +30,5 @@ dependencies {
     testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:minio'
-    testImplementation 'io.minio:minio'
+    testImplementation 'com.adobe.testing:s3mock-testcontainers'
 }
