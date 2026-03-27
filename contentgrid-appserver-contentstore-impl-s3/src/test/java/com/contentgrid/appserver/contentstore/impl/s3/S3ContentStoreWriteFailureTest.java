@@ -14,7 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.MinIOContainer;
+import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -34,15 +34,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class S3ContentStoreWriteFailureTest {
 
     @Container
-    private static final MinIOContainer minioContainer = new MinIOContainer("minio/minio:RELEASE.2025-07-23T15-54-02Z");
+    private static final S3MockContainer s3MockContainer = new S3MockContainer("latest");
 
     private MinioAsyncClient client;
 
     @BeforeEach
     void setUp() {
         client = MinioAsyncClient.builder()
-                .endpoint(minioContainer.getS3URL())
-                .credentials(minioContainer.getUserName(), minioContainer.getPassword())
+                .endpoint(s3MockContainer.getHttpEndpoint())
+                .credentials("test", "test")
                 .build();
     }
 

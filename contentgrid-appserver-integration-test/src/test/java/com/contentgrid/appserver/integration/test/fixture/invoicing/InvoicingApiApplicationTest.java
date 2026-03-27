@@ -26,8 +26,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioAsyncClient;
+import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,7 +73,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
-import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -106,8 +104,6 @@ class InvoicingApiApplicationTest {
 
     static final String BUCKET_NAME = "test-bucket";
 
-    static boolean BUCKET_CREATED = false;
-
     static final String URI_LIST_MIMETYPE = "text/uri-list";
 
     @Autowired
@@ -122,21 +118,15 @@ class InvoicingApiApplicationTest {
     @Autowired
     PlatformTransactionManager transactionManager;
 
-    @Autowired
-    MinioAsyncClient client;
-
     @Container
-    static MinIOContainer minIOContainer = new MinIOContainer("minio/minio")
-            // This makes minio accept virtual host bucket access
-            .withEnv("MINIO_DOMAIN", "localhost")
-            .withUserName("test")
-            .withPassword("password");
+    static S3MockContainer s3MockContainer = new S3MockContainer("latest")
+            .withInitialBuckets(BUCKET_NAME);
 
     @DynamicPropertySource
     static void s3Properties(DynamicPropertyRegistry registry) {
-        registry.add("contentgrid.appserver.content.s3.url", () -> minIOContainer.getS3URL());
-        registry.add("contentgrid.appserver.content.s3.accessKey", () -> minIOContainer.getUserName());
-        registry.add("contentgrid.appserver.content.s3.secretKey", () -> minIOContainer.getPassword());
+        registry.add("contentgrid.appserver.content.s3.url", s3MockContainer::getHttpEndpoint);
+        registry.add("contentgrid.appserver.content.s3.accessKey", () -> "test");
+        registry.add("contentgrid.appserver.content.s3.secretKey", () -> "test");
         registry.add("contentgrid.appserver.content.s3.bucket", () -> BUCKET_NAME);
     }
 
@@ -153,11 +143,6 @@ class InvoicingApiApplicationTest {
 
     @BeforeEach
     void setupTestData() throws Exception {
-        if (!BUCKET_CREATED) {
-            // Create the bucket if it doesn't exist yet
-            client.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
-            BUCKET_CREATED = true;
-        }
         PROMO_XMAS_ID = invoicingApi.createPromotionCampaign("XMAS-2022", "10% off ").getIdentity().getEntityId();
         PROMO_SHIPPING_ID = invoicingApi.createPromotionCampaign("FREE-SHIP", "Free Shipping").getIdentity().getEntityId();
         var promoCyber = invoicingApi.createPromotionCampaign("CYBER-MON", "Cyber Monday");
