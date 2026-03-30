@@ -61,7 +61,8 @@ class ProfileRestControllerTest {
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/profile"))
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/profile/persons"))
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/profile/invoices"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='products')].href").value("http://localhost/profile/products"));
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='products')].href").value("http://localhost/profile/products"))
+                .andExpect(jsonPath("$._links.automation:registrations").doesNotExist());
     }
 
     @Test

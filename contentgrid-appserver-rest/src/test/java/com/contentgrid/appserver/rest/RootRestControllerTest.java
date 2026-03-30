@@ -67,6 +67,7 @@ class RootRestControllerTest {
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/persons"))
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/invoices"))
                 .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice-items')].href").value("http://localhost/invoice-items"))
+                .andExpect(jsonPath("$._links.automation:registrations.href").value("http://localhost/.contentgrid/automations"))
                 .andExpect(jsonPath("$._links.curies").isArray());
     }
 
@@ -81,7 +82,8 @@ class RootRestControllerTest {
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/"))
                 .andExpect(jsonPath("$._links.profile.href").value("http://localhost/profile"))
                 .andExpect(jsonPath("$._links.cg:entity").doesNotExist())
-                .andExpect(jsonPath("$._links.curies").doesNotExist()); // no curies, because there is no link with a curie prefix
+                .andExpect(jsonPath("$._links.automation:registrations.href").value("http://localhost/.contentgrid/automations"))
+                .andExpect(jsonPath("$._links.curies").isArray()); // curies are still present, because there is a link with automation curie prefix
     }
 
 }

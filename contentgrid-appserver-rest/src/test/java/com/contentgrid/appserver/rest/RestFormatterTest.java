@@ -8,7 +8,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
-import com.contentgrid.appserver.domain.events.EntityFormatter;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.example.ContentgridApp;
@@ -105,6 +104,11 @@ class RestFormatterTest {
                         {
                             "href": "https://contentgrid.cloud/rels/blueprint/{rel}",
                             "name": "blueprint",
+                            "templated": true
+                        },
+                        {
+                            "href": "https://contentgrid.cloud/rels/automation/{rel}",
+                            "name": "automation",
                             "templated": true
                         }
                     ]
