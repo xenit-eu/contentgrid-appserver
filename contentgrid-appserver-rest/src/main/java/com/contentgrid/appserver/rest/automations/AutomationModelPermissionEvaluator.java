@@ -1,6 +1,6 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.rest.automations;
 
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
 import com.contentgrid.thunx.predicates.model.CollectionValue;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.ListValue;

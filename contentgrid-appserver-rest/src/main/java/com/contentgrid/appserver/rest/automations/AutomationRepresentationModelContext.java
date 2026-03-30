@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.rest.automations;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;

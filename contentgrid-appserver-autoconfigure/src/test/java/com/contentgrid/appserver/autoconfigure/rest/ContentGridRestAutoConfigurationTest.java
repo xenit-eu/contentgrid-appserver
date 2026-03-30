@@ -8,9 +8,11 @@ import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentSto
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
+import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.automations.AutomationsRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -65,6 +67,19 @@ class ContentGridRestAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EntityRestController.class);
+                });
+    }
+
+    @Test
+    void checkWithAutomations() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.automations-model=automations/automations.json"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(AutomationsRestController.class);
+                    assertThat(context).hasSingleBean(AutomationsModelResolver.class);
                 });
     }
 

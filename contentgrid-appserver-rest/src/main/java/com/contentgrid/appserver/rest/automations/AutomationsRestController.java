@@ -1,8 +1,8 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.rest.automations;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
-import com.contentgrid.appserver.automations.model.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
 import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
 import java.util.List;

@@ -1,7 +1,6 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.rest.automations;
 
-import com.contentgrid.appserver.automations.AutomationLinkRelations;
-import com.contentgrid.appserver.automations.model.AutomationsModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

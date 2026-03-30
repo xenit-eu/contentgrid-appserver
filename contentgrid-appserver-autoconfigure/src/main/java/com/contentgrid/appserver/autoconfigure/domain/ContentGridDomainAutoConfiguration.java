@@ -7,16 +7,21 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
+import com.contentgrid.appserver.domain.automations.AutomationsModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.Resource;
 
 @AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
@@ -57,5 +62,12 @@ public class ContentGridDomainAutoConfiguration {
     @Bean
     CursorCodec cursorCodec() {
         return new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    AutomationsModelResolver automationsResolver(@Value("${contentgrid.appserver.automation-model:}") Resource resource) {
+        var model = AutomationsModel.fromConfig(resource);
+        return new SingleAutomationsModelResolver(model);
     }
 }

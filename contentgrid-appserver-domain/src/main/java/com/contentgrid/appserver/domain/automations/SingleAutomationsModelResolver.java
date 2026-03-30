@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.automations.model;
+package com.contentgrid.appserver.domain.automations;
 
 import com.contentgrid.appserver.application.model.Application;
 import lombok.RequiredArgsConstructor;

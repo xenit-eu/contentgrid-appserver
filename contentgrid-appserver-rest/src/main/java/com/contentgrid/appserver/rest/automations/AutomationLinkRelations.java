@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.automations;
+package com.contentgrid.appserver.rest.automations;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.hateoas.LinkRelation;

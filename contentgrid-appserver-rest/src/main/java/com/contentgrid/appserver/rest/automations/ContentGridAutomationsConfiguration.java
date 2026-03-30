@@ -1,11 +1,8 @@
-package com.contentgrid.appserver.automations;
+package com.contentgrid.appserver.rest.automations;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import com.contentgrid.appserver.automations.rest.AutomationAnnotationRepresentationModelAssembler;
-import com.contentgrid.appserver.automations.rest.AutomationRepresentationModelAssembler;
-import com.contentgrid.appserver.automations.rest.AutomationsRestController;
 import com.contentgrid.appserver.rest.assembler.RootRepresentationModel;
 import com.contentgrid.appserver.rest.links.curie.CurieProviderCustomizer;
 import org.springframework.context.annotation.Bean;

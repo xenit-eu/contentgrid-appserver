@@ -1,10 +1,10 @@
-package com.contentgrid.appserver.automations.model;
+package com.contentgrid.appserver.domain.automations;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationAnnotationModel;
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

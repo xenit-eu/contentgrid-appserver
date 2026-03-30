@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.automations.rest;
+package com.contentgrid.appserver.rest.automations;
 
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
 import static org.hamcrest.Matchers.hasSize;
@@ -7,11 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.automations.model.AutomationsModel;
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationAnnotationModel;
-import com.contentgrid.appserver.automations.model.AutomationsModel.AutomationModel;
-import com.contentgrid.appserver.automations.model.SingleAutomationsModelResolver;
-import com.contentgrid.appserver.automations.rest.AutomationsRestControllerTest.TestConfig;
+import com.contentgrid.appserver.domain.automations.AutomationsModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
+import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
+import com.contentgrid.appserver.rest.automations.AutomationsRestControllerTest.TestConfig;
 import com.contentgrid.appserver.example.ContentgridApp;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.test.WithMockJwt;

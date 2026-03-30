@@ -6,6 +6,7 @@ import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelationsConfiguration;
 import com.contentgrid.appserver.rest.assembler.profile.hal.ProfileEntityRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.automations.ContentGridAutomationsConfiguration;
 import com.contentgrid.appserver.rest.converter.RequestInputDataJacksonModule;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter;
 import com.contentgrid.appserver.rest.data.conversion.LongDataEntryToDecimalDataEntryConverter;
@@ -73,6 +74,7 @@ import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolv
         VersionConstraintArgumentResolver.class,
         LinkProviderArgumentResolver.class,
         UserLocalesArgumentResolver.class,
+        ContentGridAutomationsConfiguration.class,
 })
 public class ContentGridRestConfiguration {
     @Bean

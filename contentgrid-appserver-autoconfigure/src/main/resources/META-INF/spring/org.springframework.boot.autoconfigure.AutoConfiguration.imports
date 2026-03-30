@@ -1,4 +1,3 @@
-com.contentgrid.appserver.autoconfigure.automation.ContentGridAutomationAutoConfiguration
 com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration
 com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration
 com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration

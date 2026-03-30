@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.automations.model;
+package com.contentgrid.appserver.domain.automations;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
