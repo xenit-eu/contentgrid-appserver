@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest.EndpointRequestMatcher;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
@@ -16,10 +17,10 @@ import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.actuate.metrics.MetricsEndpoint;
 import org.springframework.boot.actuate.metrics.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.Resource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
@@ -29,8 +30,6 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @RequiredArgsConstructor
 public class ActuatorConfiguration {
 
-    private final ApplicationContext applicationContext;
-
     @Bean
     PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
         return PolicyVariables.builder()
@@ -39,8 +38,9 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables) {
-        return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
+    PolicyActuator policyActuator(PolicyVariables policyVariables,
+            @Value("${contentgrid.appserver.policy-model:classpath:rego/policy.rego}") Resource resource) {
+        return new PolicyActuator(resource, policyVariables);
     }
 
     @Bean
@@ -52,9 +52,9 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables) {
-        return new WebhookConfigActuator(applicationContext.getResource("classpath:eventhandler/webhooks.json"),
-                webhookVariables);
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables,
+            @Value("${contentgrid.appserver.webhooks-model:classpath:eventhandler/webhooks.json}") Resource resource) {
+        return new WebhookConfigActuator(resource, webhookVariables);
     }
 
     @Bean
