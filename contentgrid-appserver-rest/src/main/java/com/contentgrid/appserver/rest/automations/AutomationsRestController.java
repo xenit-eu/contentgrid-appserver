@@ -33,7 +33,7 @@ public class AutomationsRestController {
     public ResponseEntity<CollectionModel<AutomationRepresentationModel>> getAutomations(Application application, LinkFactoryProvider linkFactoryProvider) {
         var model = modelResolver.resolve(application);
         var automations = filterAutomations(model.getAutomations());
-        return ResponseEntity.ok(assembler.withContext(application, linkFactoryProvider).toCollectionModel(automations));
+        return ResponseEntity.ok(assembler.withContext(application, linkFactoryProvider, false).toCollectionModel(automations));
     }
 
     @GetMapping("{id}")
@@ -47,7 +47,7 @@ public class AutomationsRestController {
                 .filter(aut -> aut.getId().equals(id))
                 .findFirst();
 
-        return automation.map(aut -> assembler.toModel(aut, new AutomationRepresentationModelContext(application, linkFactoryProvider), true))
+        return automation.map(aut -> assembler.withContext(application, linkFactoryProvider, true).toModel(aut))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

@@ -16,19 +16,15 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AutomationRepresentationModelAssembler implements
-        RepresentationModelContextAssembler<AutomationModel, AutomationRepresentationModel, AutomationRepresentationModelContext> {
+        RepresentationModelContextAssembler<AutomationModel, AutomationRepresentationModel, AutomationRepresentationModelAssembler.AutomationRepresentationModelContext> {
 
     @NonNull
     private final AutomationAnnotationRepresentationModelAssembler annotationAssembler;
 
     @Override
     public AutomationRepresentationModel toModel(AutomationModel automation, AutomationRepresentationModelContext context) {
-        return toModel(automation, context, false);
-    }
-
-    public AutomationRepresentationModel toModel(AutomationModel automation, AutomationRepresentationModelContext context, boolean expandAnnotations) {
         AutomationRepresentationModel result;
-        if (expandAnnotations) {
+        if (context.expandAnnotations()) {
             result = AutomationRepresentationModel.expandedFrom(automation, annotationAssembler.toCollectionModel(
                     automation.getAnnotations(), context.linkFactoryProvider()));
         } else {
@@ -48,8 +44,10 @@ public class AutomationRepresentationModelAssembler implements
     }
 
     public RepresentationModelAssembler<AutomationModel, AutomationRepresentationModel> withContext(
-            Application application, LinkFactoryProvider linkFactoryProvider
+            Application application, LinkFactoryProvider linkFactoryProvider, boolean expandAnnotations
     ) {
-        return withContext(new AutomationRepresentationModelContext(application, linkFactoryProvider));
+        return withContext(new AutomationRepresentationModelContext(application, linkFactoryProvider, expandAnnotations));
     }
+
+    record AutomationRepresentationModelContext(Application application, LinkFactoryProvider linkFactoryProvider, boolean expandAnnotations) {}
 }

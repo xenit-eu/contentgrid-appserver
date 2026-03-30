@@ -6,7 +6,7 @@ import org.springframework.hateoas.UriTemplate;
 import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
 
 @UtilityClass
-public class AutomationLinkRelations {
+class AutomationLinkRelations {
     static final String CURIE = "automation";
     static final UriTemplate TEMPLATE = UriTemplate.of("https://contentgrid.cloud/rels/automation/{rel}");
 

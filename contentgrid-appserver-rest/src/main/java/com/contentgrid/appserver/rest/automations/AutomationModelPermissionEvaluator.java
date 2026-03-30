@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyAccessorFactory;
 
-public class AutomationModelPermissionEvaluator {
+class AutomationModelPermissionEvaluator {
 
     private static final AutomationModelPermissionVisitor VISITOR = new AutomationModelPermissionVisitor();
 
