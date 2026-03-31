@@ -2,14 +2,21 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -17,18 +24,34 @@ import org.springframework.http.ResponseEntity;
                 "contentgrid.system.policyPackage=xfb0e9318f3894300a64edba3532e6ac0",
                 "contentgrid.system.deploymentId=fb0e9318-f389-4300-a64e-dba3532e6ac0",
                 "contentgrid.system.applicationId=336d61a5-94cd-4b7a-b90b-369fbe2ef78c",
-                "contentgrid.appserver.webhooks-model=classpath:webhooks.json",
-                "contentgrid.appserver.policy-model=classpath:policy.rego",
                 "management.endpoints.web.exposure.include=*",
                 "management.server.port=0" // random, different port from main port
         }
 )
-public class ContentgridActuatorConfigurationTest {
+public class ContentgridActuatorConfigurationTempDirTest {
     @Autowired
     private TestRestTemplate rest;
 
     @Value("${local.management.port}")
     int managementPort;
+
+    @TempDir
+    private static Path tempDir;
+
+    @DynamicPropertySource
+    static void locationProperties(DynamicPropertyRegistry registry) throws IOException {
+        var originalWebhooksPath = Path.of(new ClassPathResource("webhooks.json").getURI());
+        var originalPolicyPath = Path.of(new ClassPathResource("policy.rego").getURI());
+
+        var newWebhooksPath = tempDir.resolve(originalWebhooksPath.getFileName());
+        var newPolicyPath = tempDir.resolve(originalPolicyPath.getFileName());
+
+        Files.copy(originalWebhooksPath, newWebhooksPath);
+        Files.copy(originalPolicyPath, newPolicyPath);
+
+        registry.add("contentgrid.appserver.webhooks-model", newWebhooksPath::toUri);
+        registry.add("contentgrid.appserver.policy-model", newPolicyPath::toUri);
+    }
 
     @SpringBootApplication
     static class TestApplication {
