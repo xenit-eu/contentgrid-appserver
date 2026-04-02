@@ -8,6 +8,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import lombok.Getter;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -20,10 +21,12 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 
 class ArchiveExtractionBeanFactoryPostProcessor implements BeanFactoryPostProcessor,
-        EnvironmentAware, ApplicationContextAware, DisposableBean {
+        EnvironmentAware, ApplicationContextAware, DisposableBean, ArchiveExtractionTempDirProvider {
 
     private Environment environment;
     private ApplicationContext applicationContext;
+
+    @Getter
     private Path tempDir;
 
     @Override
