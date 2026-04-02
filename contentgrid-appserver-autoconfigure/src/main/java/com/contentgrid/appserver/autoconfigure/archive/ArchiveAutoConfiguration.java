@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Bean;
 public class ArchiveAutoConfiguration {
 
     private static final List<String> DEFAULT_FLYWAY_LOCATIONS = List.of("archive:db/migration");
+    private static final List<String> DEFAULT_STATIC_RESOURCE_LOCATIONS = List.of(
+            "archive:META-INF/resources", "archive:resources", "archive:static", "archive:public"
+    );
 
     @Bean
     public ArchiveExtractionBeanFactoryPostProcessor archiveExtractionPostProcessor() {
@@ -26,10 +29,23 @@ public class ArchiveAutoConfiguration {
     }
 
     @Bean
+    @ConfigurationProperties("contentgrid.web.resources")
+    ContentGridStaticResourcesProperties contentGridStaticResourcesProperties() {
+        return new ContentGridStaticResourcesProperties();
+    }
+
+    @Bean
     FlywayConfigurationCustomizer springFlywayLocationsCustomizer(ArchiveExtractionTempDirProvider tempDirProvider, ContentGridFlywayProperties flywayProperties) {
         var locations = configureLocations(flywayProperties.getLocations(), DEFAULT_FLYWAY_LOCATIONS, tempDirProvider);
         return configuration -> configuration.locations(locations);
     }
+
+//    @Bean
+//    @Primary
+//    ResourceHandlerRegistrationCustomizer staticResourceHandlerRegistrationCustomizer(ArchiveExtractionTempDirProvider tempDirProvider, ContentGridStaticResourcesProperties staticResourcesProperties) {
+//        var locations = configureLocations(staticResourcesProperties.getLocations(), DEFAULT_STATIC_RESOURCE_LOCATIONS, tempDirProvider);
+//        return registration -> registration.addResourceLocations(locations);
+//    }
 
     private String[] configureLocations(List<String> locations, List<String> defaultLocations, ArchiveExtractionTempDirProvider tempDirProvider) {
         if (locations == null || locations.isEmpty()) {
@@ -48,6 +64,11 @@ public class ArchiveAutoConfiguration {
 
     @Data
     public static class ContentGridFlywayProperties {
+        private List<String> locations;
+    }
+
+    @Data
+    public static class ContentGridStaticResourcesProperties {
         private List<String> locations;
     }
 }
