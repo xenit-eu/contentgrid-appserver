@@ -360,6 +360,29 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "pattern",
+              "description": "The type of constraint (e.g., unique, foreign key, allowed values)."
+            },
+            "regex": {
+              "type": "string",
+              "description": "The Java regular expression that will be used to validate the attribute value. The regular expression must match the entire value, and is implicitly anchored on both start and end."
+            },
+            "htmlPattern": {
+              "type": "string",
+              "description": "A html input pattern regular expression that will be sent to clients, and can be used for client-side validation of the attribute value. If omitted, defaults to the value of 'pattern'"
+            }
+          },
+          "required": [
+            "type",
+            "regex"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "unique",
               "description": "The type of constraint (e.g., unique, foreign key, allowed values)."
             }

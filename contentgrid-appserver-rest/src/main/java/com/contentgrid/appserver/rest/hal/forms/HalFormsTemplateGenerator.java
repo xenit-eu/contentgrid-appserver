@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.hal.forms;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
@@ -255,7 +256,8 @@ public class HalFormsTemplateGenerator {
         var property = HalFormsProperty.named(prefixed.name())
                 .withPrompt(prefixed.prompt())
                 .withAttributeType(attribute.getType())
-                .withRequired(attribute.hasConstraint(RequiredConstraint.class));
+                .withRequired(attribute.hasConstraint(RequiredConstraint.class))
+                .withRegex(attribute.getConstraint(RegexPatternConstraint.class).map(RegexPatternConstraint::getHtmlPattern).orElse(null));
         return addAllowedValues(property, attribute, false);
     }
 

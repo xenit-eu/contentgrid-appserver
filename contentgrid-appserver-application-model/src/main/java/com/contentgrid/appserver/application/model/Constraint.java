@@ -3,11 +3,14 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.With;
 
 /**
  * Represents a constraint that can be applied to an attribute.
@@ -44,6 +47,16 @@ public sealed interface Constraint {
      */
     static AllowedValuesConstraint allowedValues(List<String> values) {
         return new AllowedValuesConstraint(values);
+    }
+
+    /**
+     * Creates a new regex constraint
+     * @param pattern the pattern that the attribute value must match
+     * @return a new RegexPatternConstraint instance
+     * @throws InvalidConstraintException if the pattern is not valid
+     */
+    static RegexPatternConstraint pattern(String pattern) {
+        return new RegexPatternConstraint(pattern);
     }
 
     /**
@@ -88,6 +101,34 @@ public sealed interface Constraint {
     @EqualsAndHashCode
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     final class UniqueConstraint implements Constraint {
+
+    }
+
+    /**
+     * A constraint that restricts an attribute's value to match a regex.
+     */
+    @Value
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    class RegexPatternConstraint implements Constraint {
+        @NonNull
+        Pattern pattern;
+
+        @With
+        String htmlPattern;
+
+        private RegexPatternConstraint(@NonNull String pattern) {
+            this(tryCompile(pattern), pattern);
+        }
+
+        private static @NonNull Pattern tryCompile(@NonNull String pattern) {
+            try{
+                return Pattern.compile(pattern);
+            } catch(IllegalArgumentException e) {
+                var exception = new InvalidConstraintException("Regex is invalid: "+e.getMessage());
+                exception.initCause(e);
+                throw exception;
+            }
+        }
 
     }
 }

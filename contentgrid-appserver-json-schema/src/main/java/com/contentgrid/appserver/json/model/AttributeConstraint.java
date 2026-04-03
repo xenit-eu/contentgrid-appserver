@@ -10,8 +10,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = AllowedValuesConstraint.class, name = "allowedValues"),
+        @JsonSubTypes.Type(value = PatternConstaint.class, name="pattern"),
         @JsonSubTypes.Type(value = UniqueConstraint.class, name = "unique"),
         @JsonSubTypes.Type(value = RequiredConstraint.class, name = "required")
 })
-public sealed interface AttributeConstraint permits AllowedValuesConstraint, UniqueConstraint, RequiredConstraint {
+public sealed interface AttributeConstraint permits AllowedValuesConstraint, PatternConstaint,
+        RequiredConstraint, UniqueConstraint {
 }
