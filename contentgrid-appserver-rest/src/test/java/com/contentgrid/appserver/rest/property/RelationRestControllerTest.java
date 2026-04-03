@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
@@ -38,6 +39,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -130,6 +132,11 @@ class RelationRestControllerTest {
                 });
                 sa.getConstraint(AllowedValuesConstraint.class).ifPresent(allowedValues -> {
                     params.set(sa.getName().getValue(), allowedValues.getValues().getFirst());
+                });
+                sa.getConstraint(RegexPatternConstraint.class).ifPresent(regexPatternConstraint -> {
+                    if(regexPatternConstraint.getHtmlPattern().equals("[0-9]+")) {
+                        params.set(sa.getName().getValue(), String.valueOf(new Random().nextInt(0, Integer.MAX_VALUE)));
+                    }
                 });
             }
 

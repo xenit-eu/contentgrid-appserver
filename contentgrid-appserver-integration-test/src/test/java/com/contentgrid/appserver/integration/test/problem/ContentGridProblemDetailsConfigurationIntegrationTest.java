@@ -17,6 +17,7 @@ import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,8 +67,12 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
         return invoicingApi.createCustomer(null, "vat-" + UUID.randomUUID()).getIdentity().getEntityId();
     }
 
+    private static String randomNumber() {
+        return String.valueOf(new Random().nextLong(0, Long.MAX_VALUE));
+    }
+
     private EntityId createInvoice() throws InvalidPropertyDataException {
-        return invoicingApi.createInvoice("invoice-" + UUID.randomUUID(), false, false, createCustomer(), null)
+        return invoicingApi.createInvoice(randomNumber(), false, false, createCustomer(), null)
                 .getIdentity().getEntityId();
     }
 
@@ -94,7 +99,7 @@ class ContentGridProblemDetailsConfigurationIntegrationTest {
             var customerId = invoicingApi.createCustomer(null, "vat-" + UUID.randomUUID()).getIdentity().getEntityId();
             CUSTOMER_ID_UPDATE = customerId.toString();
 
-            var invoiceId = invoicingApi.createInvoice("invoice-" + UUID.randomUUID(), false, false, customerId, null)
+            var invoiceId = invoicingApi.createInvoice(randomNumber(), false, false, customerId, null)
                     .getIdentity().getEntityId();
             INVOICE_ID_UPDATE = invoiceId.toString();
         }

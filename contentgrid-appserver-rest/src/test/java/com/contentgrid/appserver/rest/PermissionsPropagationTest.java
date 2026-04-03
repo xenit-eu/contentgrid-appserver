@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -163,7 +164,7 @@ class PermissionsPropagationTest {
                         .file(new MockMultipartFile("content", "my-file.pdf", "application/pdf", new byte[12]))
                         .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("number", UUID.randomUUID().toString())
+                        .param("number", String.valueOf(randomNumber()))
                         .param("amount", amount.toPlainString())
                         .param("confidentiality", "public")
                         .param("customer", createPerson())
@@ -221,7 +222,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(post("/invoices")
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("number", UUID.randomUUID().toString())
+                .param("number", String.valueOf(randomNumber()))
                 .param("amount", AMOUNT_THRESHOLD_FOR_TEST.toPlainString())
                 .param("confidentiality", "public")
                 .param("customer", createPerson())
@@ -249,7 +250,7 @@ class PermissionsPropagationTest {
         var invoice = createInvoice(AMOUNT_THRESHOLD_FOR_TEST);
 
         var content = Map.of(
-                "number", UUID.randomUUID().toString(),
+                "number", String.valueOf(randomNumber()),
                 "amount", AMOUNT_THRESHOLD_ALWAYS_ALLOWED.toPlainString(),
                 "confidentiality", "public"
         );
@@ -259,6 +260,10 @@ class PermissionsPropagationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsBytes(content))
         ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
+    }
+
+    private long randomNumber() {
+        return new Random().nextLong(0, Long.MAX_VALUE);
     }
 
     @ParameterizedTest
@@ -272,7 +277,7 @@ class PermissionsPropagationTest {
         var invoice = createInvoice(AMOUNT_THRESHOLD_ALWAYS_ALLOWED);
 
         var content = Map.of(
-                "number", UUID.randomUUID().toString(),
+                "number", String.valueOf(randomNumber()),
                 "amount", AMOUNT_THRESHOLD_FOR_TEST.toPlainString(),
                 "confidentiality", "public"
         );

@@ -244,6 +244,7 @@ public class ModelTestFixtures {
             .type(Type.TEXT)
             .constraint(Constraint.required())
             .constraint(Constraint.unique())
+            .constraint(Constraint.pattern("[0-9]+"))
             .build();
 
     public static final SimpleAttribute INVOICE_AMOUNT = SimpleAttribute.builder()
