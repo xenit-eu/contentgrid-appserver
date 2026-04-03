@@ -4,8 +4,17 @@ import java.util.List;
 
 /**
  * A collection of named entries backed by a specific storage location (filesystem directory, ZIP archive, classpath, …).
+ * <p>
+ * The artifact's identity is expressed as an {@link ArtifactReference}.
  */
 public interface Artifact {
+
+    /**
+     * Returns the reference that identifies this artifact.
+     *
+     * @return the artifact's reference
+     */
+    ArtifactReference getReference();
 
     /**
      * Loads a single entry at the given path within this artifact.
