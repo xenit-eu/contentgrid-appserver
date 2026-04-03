@@ -1,0 +1,105 @@
+# Invalid media types per RFC 9110 ABNF
+
+# --- Missing type or subtype ---
+text/
+/plain
+/
+//
+
+# --- Missing slash separator entirely ---
+textplain
+application
+json
+
+# --- Empty string (TOKEN requires 1+ chars) ---
+
+
+# --- Multiple slashes ---
+text/plain/extra
+application//json
+text//
+
+# --- Whitespace in type or subtype (SP/HTAB are not tchar) ---
+te xt/plain
+text/pla in
+te	xt/plain
+text/pla	in
+
+# --- Leading or trailing whitespace (not consumed by OWS since OWS only appears around ";") ---
+ text/plain
+	text/plain
+
+# --- Whitespace within parameter value (unquoted) ---
+text/plain; charset=utf 8
+text/plain; charset=utf	8
+text/plain; boundary=--my boundary
+
+# --- Space around "=" in parameter (no OWS defined around "=") ---
+text/plain; charset =utf-8
+text/plain; charset= utf-8
+text/plain; charset = utf-8
+text/plain; charset	=utf-8
+text/plain; charset=	utf-8
+
+# --- Parameter without value ---
+text/plain; charset
+text/plain; charset;
+text/plain; charset=
+text/plain; a=1; charset; b=2
+
+# --- Parameter without name ---
+text/plain; =utf-8
+text/plain; =
+text/plain; ="utf-8"
+
+# --- Unclosed quoted string ---
+text/plain; charset="utf-8
+text/plain; charset="
+text/plain; foo="unterminated
+
+# --- Characters that are not tchar in type or subtype ---
+# tchar = !#$%&*+-.^_`|~ / DIGIT / ALPHA — everything else is invalid
+text@domain/plain
+text/plain?q=1
+[text]/plain
+text/[plain]
+text/plain(comment)
+(text)/plain
+text/plain{v2}
+{text}/plain
+text/plain<v2>
+<text>/plain
+text/plain>nope
+text/pl,ain
+text,type/plain
+text/plain\extra
+text\\plain/something
+
+# --- Slash in parameter name or value (not a tchar) ---
+text/plain; foo/bar=baz
+text/plain; charset=utf/8
+
+# --- At-sign, colon, comma etc. in token positions ---
+text/plain; foo@bar=baz
+text/plain; fo:o=bar
+text/plain; foo=bar@baz
+text/plain; foo=bar:baz
+
+# --- Unicode / non-ASCII in type or subtype (outside obs-text range, and obs-text not allowed in tokens) ---
+tëxt/plain
+text/plàin
+tèxt/hïml
+application/ünknown
+
+# --- Double semicolons with no content when parameter IS required ---
+# (note: ; with no parameter is valid, but ; with just spaces and then another ; and then nothing is also valid;
+#  this entry tests something that does NOT fit the regex regardless)
+text/plain; charset="foo"extra
+text/plain; charset="foo" extra
+
+# --- Content after closing quote that isn't a semicolon ---
+text/plain; foo="bar"baz
+text/plain; foo="bar" baz
+
+# --- Semicolon as the entire value ---
+text/plain; ;=value

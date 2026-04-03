@@ -322,6 +322,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(contentMimetype.getPrompt()).isEqualTo("content: Mimetype");
                     assertThat(contentMimetype.isReadOnly()).isFalse();
                     assertThat(contentMimetype.isRequired()).isFalse();
+                    assertThat(contentMimetype.getRegex()).isNotEmpty();
                     assertThat(contentMimetype.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 }
         );
