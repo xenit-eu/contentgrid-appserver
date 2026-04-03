@@ -12,6 +12,7 @@ public enum ProblemType implements ProblemTypeResolvable {
     INPUT_VALIDATION_INVALID_TYPE_FORMAT("input", "validation", "type", "format"),
     INPUT_VALIDATION_REQUIRED_VALUE("input", "validation", "required"),
     INPUT_VALIDATION_ALLOWED_VALUES("input", "validation", "allowed-values"),
+    INPUT_VALIDATION_PATTERN("input", "validation", "pattern"),
     INPUT_VALIDATION_NO_CONTENT("input", "validation", "no-content"),
     INPUT_VALIDATION_MISSING_RELATION_TARGET("input", "validation", "missing-relation-target"),
 
