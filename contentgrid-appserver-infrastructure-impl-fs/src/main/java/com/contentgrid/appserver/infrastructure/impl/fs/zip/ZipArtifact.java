@@ -2,6 +2,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -23,7 +24,15 @@ public class ZipArtifact implements Artifact {
 
     @Override
     public ArtifactEntry load(String path) throws ArtifactException {
-        return new ZipArtifactEntry(getReference(), zipPath, path);
+        var ref = getReference();
+        try (var zipFile = new ZipFile(zipPath.toFile())) {
+            if (zipFile.getEntry(path) == null) {
+                throw new ArtifactEntryNotFoundException(ref, path);
+            }
+        } catch (IOException e) {
+            throw new ArtifactException(ref, e);
+        }
+        return new ZipArtifactEntry(ref, zipPath, path);
     }
 
     @Override

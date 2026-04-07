@@ -3,6 +3,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.IOException;
@@ -47,9 +48,9 @@ class ClassPathArtifactTest {
         }
 
         @Test
-        void load_missingEntry_throwsOnGetInputStream() throws ArtifactException {
-            assertThatThrownBy(() -> artifact.load("missing.yaml").getInputStream())
-                    .isInstanceOf(ArtifactEntryUnreadableException.class);
+        void load_missingEntry_throwsArtifactEntryNotFoundException() {
+            assertThatThrownBy(() -> artifact.load("missing.yaml"))
+                    .isInstanceOf(ArtifactEntryNotFoundException.class);
         }
 
         @Test

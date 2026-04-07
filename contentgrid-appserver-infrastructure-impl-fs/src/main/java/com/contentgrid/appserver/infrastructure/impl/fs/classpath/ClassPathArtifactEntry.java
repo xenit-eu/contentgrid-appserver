@@ -16,11 +16,6 @@ public class ClassPathArtifactEntry implements ArtifactEntry {
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {
-        var resourceName = path.toString().replace('\\', '/');
-        var stream = classLoader.getResourceAsStream(resourceName);
-        if (stream == null) {
-            throw new ArtifactEntryUnreadableException(reference, "resource not found: " + resourceName);
-        }
-        return stream;
+        return classLoader.getResourceAsStream(path.toString().replace('\\', '/'));
     }
 }

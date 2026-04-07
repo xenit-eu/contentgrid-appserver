@@ -22,10 +22,6 @@ public class ZipArtifactEntry implements ArtifactEntry {
         try {
             var zipFile = new ZipFile(zipPath.toFile());
             var entry = zipFile.getEntry(entryName);
-            if (entry == null) {
-                zipFile.close();
-                throw new ArtifactEntryUnreadableException(reference, "entry not found: " + entryName);
-            }
             var stream = zipFile.getInputStream(entry);
             return new FilterInputStream(stream) {
                 @Override
