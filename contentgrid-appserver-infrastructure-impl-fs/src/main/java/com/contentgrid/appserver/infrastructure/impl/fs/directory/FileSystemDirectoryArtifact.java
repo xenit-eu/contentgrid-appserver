@@ -2,6 +2,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.directory;
 
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -23,7 +24,12 @@ public class FileSystemDirectoryArtifact implements Artifact {
 
     @Override
     public ArtifactEntry load(String path) throws ArtifactException {
-        return new FileSystemDirectoryArtifactEntry(getReference(), directory.resolve(path).normalize());
+        var ref = getReference();
+        var file = directory.resolve(path).normalize();
+        if (!Files.exists(file)) {
+            throw new ArtifactEntryNotFoundException(ref, path);
+        }
+        return new FileSystemDirectoryArtifactEntry(ref, file);
     }
 
     @Override

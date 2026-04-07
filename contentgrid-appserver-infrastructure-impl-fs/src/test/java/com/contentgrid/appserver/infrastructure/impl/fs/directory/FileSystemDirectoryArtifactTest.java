@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.directory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,6 +50,12 @@ class FileSystemDirectoryArtifactTest {
         var entries = artifact.loadAll("file.txt");
 
         assertThat(entries).hasSize(1);
+    }
+
+    @Test
+    void load_missingEntry_throwsArtifactEntryNotFoundException() {
+        assertThatThrownBy(() -> artifact.load("nonexistent.txt"))
+                .isInstanceOf(ArtifactEntryNotFoundException.class);
     }
 
     @Test

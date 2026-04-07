@@ -2,6 +2,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -26,7 +27,13 @@ public class ClassPathArtifact implements Artifact {
 
     @Override
     public ArtifactEntry load(String path) throws ArtifactException {
-        return new ClassPathArtifactEntry(getReference(), classLoader, directory.resolve(path).normalize());
+        var ref = getReference();
+        var targetPath = directory.resolve(path).normalize();
+        var resourceName = targetPath.toString().replace('\\', '/');
+        if (classLoader.getResource(resourceName) == null) {
+            throw new ArtifactEntryNotFoundException(ref, path);
+        }
+        return new ClassPathArtifactEntry(ref, classLoader, targetPath);
     }
 
     @Override
