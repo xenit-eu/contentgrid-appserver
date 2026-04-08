@@ -73,9 +73,6 @@ class ContentGridRestAutoConfigurationTest {
     @Test
     void checkWithAutomations() {
         contextRunner
-                .withPropertyValues(
-                        "contentgrid.appserver.automations-model=automations/automations.json"
-                )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(AutomationsRestController.class);
