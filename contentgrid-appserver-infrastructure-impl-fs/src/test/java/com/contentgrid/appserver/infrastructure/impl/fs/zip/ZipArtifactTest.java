@@ -42,7 +42,7 @@ class ZipArtifactTest {
 
     @Test
     void load_readsEntryContents() throws Exception {
-        var entry = artifact.load("config/a.yaml");
+        var entry = artifact.load(Path.of("config/a.yaml"));
         try (var stream = entry.getInputStream()) {
             assertThat(stream).hasContent("key: a");
         }
@@ -50,13 +50,13 @@ class ZipArtifactTest {
 
     @Test
     void load_missingEntry_throwsArtifactEntryNotFoundException() {
-        assertThatThrownBy(() -> artifact.load("nonexistent.yaml"))
+        assertThatThrownBy(() -> artifact.load(Path.of("nonexistent.yaml")))
                 .isInstanceOf(ArtifactEntryNotFoundException.class);
     }
 
     @Test
     void loadAll_listsRecursivelyUnderPath() throws ArtifactException {
-        var entries = artifact.loadAll("config");
+        var entries = artifact.loadAll(Path.of("config"));
 
         assertThat(entries).hasSize(3) // a.yaml, b.yaml, sub/c.yaml
                 .allSatisfy(e -> assertThat(e).isInstanceOf(ZipArtifactEntry.class));
@@ -64,27 +64,27 @@ class ZipArtifactTest {
 
     @Test
     void loadAll_withTrailingSlash_listsRecursively() throws ArtifactException {
-        var entries = artifact.loadAll("config/");
+        var entries = artifact.loadAll(Path.of("config/"));
 
         assertThat(entries).hasSize(3);
     }
 
     @Test
     void loadAll_rootPath_listsAllEntries() throws ArtifactException {
-        var entries = artifact.loadAll("");
+        var entries = artifact.loadAll(Path.of(""));
 
         assertThat(entries).hasSize(4); // a.yaml, b.yaml, sub/c.yaml, file.txt
     }
 
     @Test
     void loadAll_onSingleFile_returnsThatFile() throws ArtifactException {
-        var entries = artifact.loadAll("file.txt");
+        var entries = artifact.loadAll(Path.of("file.txt"));
     }
 
     @Test
     void loadAll_nonExistentZip_throwsArtifactException() {
         var missing = new ZipArtifact(tempDir.resolve("missing.zip"));
-        assertThatThrownBy(() -> missing.loadAll(""))
+        assertThatThrownBy(() -> missing.loadAll(Path.of("")))
                 .isInstanceOf(ArtifactException.class);
     }
 }

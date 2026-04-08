@@ -26,7 +26,7 @@ public class ClassPathArtifact implements Artifact {
     }
 
     @Override
-    public ArtifactEntry load(String path) throws ArtifactException {
+    public ArtifactEntry load(Path path) throws ArtifactException {
         var ref = getReference();
         var targetPath = directory.resolve(path).normalize();
         var resourceName = targetPath.toString().replace('\\', '/');
@@ -37,7 +37,7 @@ public class ClassPathArtifact implements Artifact {
     }
 
     @Override
-    public List<ArtifactEntry> loadAll(String path) throws ArtifactException {
+    public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
         var ref = getReference();
         var targetPath = directory.resolve(path).normalize();
         var resourceName = targetPath.toString().replace('\\', '/');

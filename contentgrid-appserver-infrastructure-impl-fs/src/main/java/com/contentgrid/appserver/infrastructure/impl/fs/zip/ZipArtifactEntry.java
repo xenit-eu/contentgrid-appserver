@@ -15,13 +15,13 @@ public class ZipArtifactEntry implements ArtifactEntry {
 
     private final ArtifactReference reference;
     private final Path zipPath;
-    private final String entryName;
+    private final Path entryPath;
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {
         try {
             var zipFile = new ZipFile(zipPath.toFile());
-            var entry = zipFile.getEntry(entryName);
+            var entry = zipFile.getEntry(entryPath.toString());
             var stream = zipFile.getInputStream(entry);
             return new FilterInputStream(stream) {
                 @Override

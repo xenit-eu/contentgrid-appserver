@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.infrastructure.api;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -23,7 +24,7 @@ public interface Artifact {
      * @return the entry at that path
      * @throws ArtifactException if the artifact cannot be accessed
      */
-    ArtifactEntry load(String path) throws ArtifactException;
+    ArtifactEntry load(Path path) throws ArtifactException;
 
     /**
      * Loads all entries at or under the given path within this artifact, recursively.
@@ -32,5 +33,24 @@ public interface Artifact {
      * @return all entries found under that path
      * @throws ArtifactException if the artifact cannot be accessed
      */
-    List<ArtifactEntry> loadAll(String path) throws ArtifactException;
+    List<ArtifactEntry> loadAll(Path path) throws ArtifactException;
+
+    default Artifact subDir(Path subDir) {
+        return new Artifact() {
+            @Override
+            public ArtifactReference getReference() {
+                return Artifact.this.getReference();
+            }
+
+            @Override
+            public ArtifactEntry load(Path path) throws ArtifactException {
+                return Artifact.this.load(subDir.resolve(path).normalize());
+            }
+
+            @Override
+            public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
+                return Artifact.this.loadAll(subDir.resolve(path).normalize());
+            }
+        };
+    }
 }

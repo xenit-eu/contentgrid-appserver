@@ -23,10 +23,10 @@ public class ZipArtifact implements Artifact {
     }
 
     @Override
-    public ArtifactEntry load(String path) throws ArtifactException {
+    public ArtifactEntry load(Path path) throws ArtifactException {
         var ref = getReference();
         try (var zipFile = new ZipFile(zipPath.toFile())) {
-            if (zipFile.getEntry(path) == null) {
+            if (zipFile.getEntry(path.toString()) == null) {
                 throw new ArtifactEntryNotFoundException(ref, path);
             }
         } catch (IOException e) {
@@ -36,15 +36,15 @@ public class ZipArtifact implements Artifact {
     }
 
     @Override
-    public List<ArtifactEntry> loadAll(String path) throws ArtifactException {
+    public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
         var ref = getReference();
-        var prefix = path.isEmpty() ? "" : (path.endsWith("/") ? path : path + "/");
+        var prefix = path.normalize();
         var result = new ArrayList<ArtifactEntry>();
         try (var zipFile = new ZipFile(zipPath.toFile())) {
             zipFile.entries().asIterator().forEachRemaining(entry -> {
-                var name = entry.getName();
-                if (name.startsWith(prefix) && !entry.isDirectory()) {
-                    result.add(new ZipArtifactEntry(ref, zipPath, name));
+                var entryPath = Path.of(entry.getName());
+                if ((prefix.toString().isEmpty() || entryPath.startsWith(prefix)) && !entry.isDirectory()) {
+                    result.add(new ZipArtifactEntry(ref, zipPath, entryPath));
                 }
             });
         } catch (IOException e) {

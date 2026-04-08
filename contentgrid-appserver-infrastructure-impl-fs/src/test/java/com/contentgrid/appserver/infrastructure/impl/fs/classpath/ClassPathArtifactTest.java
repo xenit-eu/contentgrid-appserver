@@ -40,7 +40,7 @@ class ClassPathArtifactTest {
 
         @Test
         void load_readsEntry() throws ArtifactException, ArtifactEntryUnreadableException {
-            try (var stream = artifact.load("a.yaml").getInputStream()) {
+            try (var stream = artifact.load(Path.of("a.yaml")).getInputStream()) {
                 assertThat(stream).hasContent("key: a");
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -49,19 +49,19 @@ class ClassPathArtifactTest {
 
         @Test
         void load_missingEntry_throwsArtifactEntryNotFoundException() {
-            assertThatThrownBy(() -> artifact.load("missing.yaml"))
+            assertThatThrownBy(() -> artifact.load(Path.of("missing.yaml")))
                     .isInstanceOf(ArtifactEntryNotFoundException.class);
         }
 
         @Test
         void loadAll_returnsAllEntriesRecursively() throws ArtifactException {
-            var entries = artifact.loadAll("");
+            var entries = artifact.loadAll(Path.of(""));
             assertThat(entries).hasSize(3); // a.yaml, b.yaml, sub/c.yaml
         }
 
         @Test
         void loadAll_onSubDirectory_returnsOnlyEntriesUnderIt() throws ArtifactException {
-            var entries = artifact.loadAll("sub");
+            var entries = artifact.loadAll(Path.of("sub"));
             assertThat(entries).hasSize(1);
         }
     }
@@ -99,7 +99,7 @@ class ClassPathArtifactTest {
 
         @Test
         void load_readsEntry() throws ArtifactException, ArtifactEntryUnreadableException {
-            try (var stream = artifact.load("a.yaml").getInputStream()) {
+            try (var stream = artifact.load(Path.of("a.yaml")).getInputStream()) {
                 assertThat(stream).hasContent("key: a");
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -108,13 +108,13 @@ class ClassPathArtifactTest {
 
         @Test
         void loadAll_returnsAllEntriesRecursively() throws ArtifactException {
-            var entries = artifact.loadAll("");
+            var entries = artifact.loadAll(Path.of(""));
             assertThat(entries).hasSize(3); // a.yaml, b.yaml, sub/c.yaml
         }
 
         @Test
         void loadAll_onSubDirectory_returnsOnlyEntriesUnderIt() throws ArtifactException {
-            var entries = artifact.loadAll("sub");
+            var entries = artifact.loadAll(Path.of("sub"));
             assertThat(entries).hasSize(1);
         }
     }

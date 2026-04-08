@@ -32,7 +32,7 @@ class FileSystemDirectoryArtifactTest {
 
     @Test
     void load_readsFileContents() throws Exception {
-        var entry = artifact.load("file.txt");
+        var entry = artifact.load(Path.of("file.txt"));
         try (var stream = entry.getInputStream()) {
             assertThat(stream).hasContent("hello");
         }
@@ -40,27 +40,27 @@ class FileSystemDirectoryArtifactTest {
 
     @Test
     void loadAll_listsRecursively() throws ArtifactException {
-        var entries = artifact.loadAll("config");
+        var entries = artifact.loadAll(Path.of("config"));
 
         assertThat(entries).hasSize(3);
     }
 
     @Test
     void loadAll_onSingleFile_returnsThatFile() throws ArtifactException {
-        var entries = artifact.loadAll("file.txt");
+        var entries = artifact.loadAll(Path.of("file.txt"));
 
         assertThat(entries).hasSize(1);
     }
 
     @Test
     void load_missingEntry_throwsArtifactEntryNotFoundException() {
-        assertThatThrownBy(() -> artifact.load("nonexistent.txt"))
+        assertThatThrownBy(() -> artifact.load(Path.of("nonexistent.txt")))
                 .isInstanceOf(ArtifactEntryNotFoundException.class);
     }
 
     @Test
     void loadAll_onMissingDirectory_returnsEmptyList() throws ArtifactException {
-        var entries = artifact.loadAll("nonexistent");
+        var entries = artifact.loadAll(Path.of("nonexistent"));
 
         assertThat(entries).isEmpty();
     }
