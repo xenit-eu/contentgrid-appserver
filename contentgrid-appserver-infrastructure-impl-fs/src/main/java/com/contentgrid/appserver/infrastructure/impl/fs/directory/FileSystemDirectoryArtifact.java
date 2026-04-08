@@ -23,7 +23,7 @@ public class FileSystemDirectoryArtifact implements Artifact {
     }
 
     @Override
-    public ArtifactEntry load(String path) throws ArtifactException {
+    public ArtifactEntry load(Path path) throws ArtifactException {
         var ref = getReference();
         var file = directory.resolve(path).normalize();
         if (!Files.exists(file)) {
@@ -33,7 +33,7 @@ public class FileSystemDirectoryArtifact implements Artifact {
     }
 
     @Override
-    public List<ArtifactEntry> loadAll(String path) throws ArtifactException {
+    public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
         var ref = getReference();
         var dir = directory.resolve(path).normalize();
         var result = new ArrayList<ArtifactEntry>();
