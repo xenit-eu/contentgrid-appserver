@@ -8,7 +8,7 @@ javaPlatform {
 }
 
 dependencies {
-    api platform('org.springframework.boot:spring-boot-dependencies:3.5.12')
+    api platform('org.springframework.boot:spring-boot-dependencies:3.5.13')
     api platform('com.contentgrid.thunx:thunx-bom:0.15.0')
 
     constraints {
