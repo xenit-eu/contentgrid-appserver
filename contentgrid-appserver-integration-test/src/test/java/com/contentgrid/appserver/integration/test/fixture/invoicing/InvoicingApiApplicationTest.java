@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
@@ -48,7 +49,6 @@ import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -119,7 +119,7 @@ class InvoicingApiApplicationTest {
     PlatformTransactionManager transactionManager;
 
     @Container
-    static S3MockContainer s3MockContainer = new S3MockContainer("latest")
+    static S3MockContainer s3MockContainer = new S3MockContainer(S3MockUtils.S3_MOCK_VERSION)
             .withInitialBuckets(BUCKET_NAME);
 
     @DynamicPropertySource
