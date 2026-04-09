@@ -20,6 +20,7 @@ dependencies {
     // should not be used for most integration tests, but relevant for encryption compatibility
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
+    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'

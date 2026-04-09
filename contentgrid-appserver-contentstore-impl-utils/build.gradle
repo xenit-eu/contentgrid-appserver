@@ -11,6 +11,7 @@ dependencies {
     testImplementation 'commons-io:commons-io:2.21.0'
 
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
+    testFixturesImplementation 'com.adobe.testing:s3mock-testcontainers'
     testFixturesImplementation project(':contentgrid-appserver-contentstore-impl-fs')
 }
 
