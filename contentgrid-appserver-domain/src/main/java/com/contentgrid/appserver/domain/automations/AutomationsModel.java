@@ -41,7 +41,7 @@ public class AutomationsModel {
     }
 
     public static AutomationsModel fromConfig(Resource resource) {
-        if (resource != null) {
+        if (resource.exists()) {
             try {
                 @NonNull ObjectMapper objectMapper = new ObjectMapper()
                         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);

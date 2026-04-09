@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.domain.automations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
@@ -52,22 +51,14 @@ class AutomationsModelTest {
     private final ResourceLoader resourceLoader = new DefaultResourceLoader(AutomationsModelTest.class.getClassLoader());
 
     @Test
-    void loadConfigNull() {
-        // No config file provided, expect empty AutomationsModel
-        assertThat(AutomationsModel.fromConfig(null))
-                .isEqualTo(AutomationsModel.builder()
-                        .automations(List.of())
-                        .build());
-    }
-
-    @Test
     void loadConfigNotFound() {
-        // Throw when provided config file doesn't exist
         Resource missingResource = Mockito.mock(Resource.class);
         Mockito.when(missingResource.exists())
                 .thenReturn(false);
-        assertThatThrownBy(() -> AutomationsModel.fromConfig(missingResource))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(AutomationsModel.fromConfig(missingResource))
+                .isEqualTo(AutomationsModel.builder()
+                        .automations(List.of())
+                        .build());
     }
 
     @Test

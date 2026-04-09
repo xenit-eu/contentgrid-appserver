@@ -17,8 +17,6 @@ import org.springframework.http.ResponseEntity;
                 "contentgrid.system.policyPackage=xfb0e9318f3894300a64edba3532e6ac0",
                 "contentgrid.system.deploymentId=fb0e9318-f389-4300-a64e-dba3532e6ac0",
                 "contentgrid.system.applicationId=336d61a5-94cd-4b7a-b90b-369fbe2ef78c",
-                "contentgrid.appserver.webhooks-model=classpath:webhooks.json",
-                "contentgrid.appserver.policy-model=classpath:policy.rego",
                 "management.endpoints.web.exposure.include=*",
                 "management.server.port=0" // random, different port from main port
         }

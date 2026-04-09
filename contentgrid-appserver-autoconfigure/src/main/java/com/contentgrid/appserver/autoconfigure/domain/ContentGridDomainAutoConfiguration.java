@@ -16,16 +16,19 @@ import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCurso
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.Resource;
 
 @AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
 public class ContentGridDomainAutoConfiguration {
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
     @Bean
     @ConditionalOnMissingBean
@@ -66,8 +69,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    AutomationsModelResolver automationsResolver(@Value("${contentgrid.appserver.automation-model:}") Resource resource) {
-        var model = AutomationsModel.fromConfig(resource);
+    AutomationsModelResolver automationsResolver() {
+        var model = AutomationsModel.fromConfig(applicationContext.getResource("classpath:automation/automations.json"));
         return new SingleAutomationsModelResolver(model);
     }
 }
