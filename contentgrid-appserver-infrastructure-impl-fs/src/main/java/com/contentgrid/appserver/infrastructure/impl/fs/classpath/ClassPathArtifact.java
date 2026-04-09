@@ -63,9 +63,8 @@ public class ClassPathArtifact implements Artifact {
                     }
                     case "jar" -> {
                         var jarConn = (JarURLConnection) url.openConnection();
-                        var jarPrefix = resourceName + "/";
                         jarConn.getJarFile().entries().asIterator().forEachRemaining(entry -> {
-                            if (entry.getName().startsWith(jarPrefix) && !entry.isDirectory()) {
+                            if ((resourceName.isEmpty() || Path.of(entry.getName()).startsWith(targetPath)) && !entry.isDirectory()) {
                                 result.add(new ClassPathArtifactEntry(ref, classLoader,
                                         Path.of(entry.getName())));
                             }
