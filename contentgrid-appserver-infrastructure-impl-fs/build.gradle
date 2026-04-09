@@ -8,5 +8,6 @@ dependencies {
     implementation project(':contentgrid-appserver-infrastructure-api')
 
     testImplementation 'org.assertj:assertj-core'
+    testImplementation testFixtures(project(':contentgrid-appserver-infrastructure-api'))
 }
 

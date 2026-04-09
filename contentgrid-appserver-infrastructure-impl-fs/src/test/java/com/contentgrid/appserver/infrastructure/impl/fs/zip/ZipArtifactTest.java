@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
+import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
+import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class ZipArtifactTest {
+class ZipArtifactTest extends AbstractArtifactTest {
 
     @TempDir
     static Path tempDir;
@@ -40,45 +40,9 @@ class ZipArtifactTest {
         zos.closeEntry();
     }
 
-    @Test
-    void load_readsEntryContents() throws Exception {
-        var entry = artifact.load(Path.of("config/a.yaml"));
-        try (var stream = entry.getInputStream()) {
-            assertThat(stream).hasContent("key: a");
-        }
-    }
-
-    @Test
-    void load_missingEntry_throwsArtifactEntryNotFoundException() {
-        assertThatThrownBy(() -> artifact.load(Path.of("nonexistent.yaml")))
-                .isInstanceOf(ArtifactEntryNotFoundException.class);
-    }
-
-    @Test
-    void loadAll_listsRecursivelyUnderPath() throws ArtifactException {
-        var entries = artifact.loadAll(Path.of("config"));
-
-        assertThat(entries).hasSize(3) // a.yaml, b.yaml, sub/c.yaml
-                .allSatisfy(e -> assertThat(e).isInstanceOf(ZipArtifactEntry.class));
-    }
-
-    @Test
-    void loadAll_withTrailingSlash_listsRecursively() throws ArtifactException {
-        var entries = artifact.loadAll(Path.of("config/"));
-
-        assertThat(entries).hasSize(3);
-    }
-
-    @Test
-    void loadAll_rootPath_listsAllEntries() throws ArtifactException {
-        var entries = artifact.loadAll(Path.of(""));
-
-        assertThat(entries).hasSize(4); // a.yaml, b.yaml, sub/c.yaml, file.txt
-    }
-
-    @Test
-    void loadAll_onSingleFile_returnsThatFile() throws ArtifactException {
-        var entries = artifact.loadAll(Path.of("file.txt"));
+    @Override
+    protected Artifact getArtifact() {
+        return artifact;
     }
 
     @Test
