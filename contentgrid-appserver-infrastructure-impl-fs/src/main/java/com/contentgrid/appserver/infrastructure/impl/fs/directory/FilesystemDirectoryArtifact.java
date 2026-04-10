@@ -14,7 +14,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class FileSystemDirectoryArtifact implements Artifact {
+public class FilesystemDirectoryArtifact implements Artifact {
 
     private final Path directory;
 
@@ -30,7 +30,7 @@ public class FileSystemDirectoryArtifact implements Artifact {
         if (!Files.exists(file)) {
             throw new ArtifactEntryNotFoundException(ref);
         }
-        return new FileSystemDirectoryArtifactEntry(ref, file);
+        return new FilesystemDirectoryArtifactEntry(ref, file);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class FileSystemDirectoryArtifact implements Artifact {
         if (Files.isDirectory(dir)) {
             try (var stream = Files.walk(dir)) {
                 stream.filter(Files::isRegularFile)
-                        .map(file -> new FileSystemDirectoryArtifactEntry(
+                        .map(file -> new FilesystemDirectoryArtifactEntry(
                                 ArtifactEntryReference.of(ref, directory.relativize(file).toString()),
                                 file))
                         .forEach(result::add);
@@ -49,7 +49,7 @@ public class FileSystemDirectoryArtifact implements Artifact {
                 throw new ArtifactException(ref, e);
             }
         } else if (Files.exists(dir)) {
-            result.add(new FileSystemDirectoryArtifactEntry(ArtifactEntryReference.of(ref, path.toString()), dir));
+            result.add(new FilesystemDirectoryArtifactEntry(ArtifactEntryReference.of(ref, path.toString()), dir));
         }
         return result;
     }

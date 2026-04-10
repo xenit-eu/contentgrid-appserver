@@ -8,16 +8,16 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-class FileSystemDirectoryArtifactTest extends AbstractArtifactTest {
+class FilesystemDirectoryArtifactTest extends AbstractArtifactTest {
 
     @TempDir
     static Path tempDir;
 
-    static FileSystemDirectoryArtifact artifact;
+    static FilesystemDirectoryArtifact artifact;
 
     @BeforeAll
     static void setup() throws IOException {
-        artifact = new FileSystemDirectoryArtifact(tempDir);
+        artifact = new FilesystemDirectoryArtifact(tempDir);
         Files.writeString(tempDir.resolve("file.txt"), "hello");
 
         Files.createDirectories(tempDir.resolve("config/sub"));
