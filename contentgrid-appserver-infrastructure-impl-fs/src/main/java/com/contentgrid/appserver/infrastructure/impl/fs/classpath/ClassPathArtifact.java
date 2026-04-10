@@ -3,6 +3,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -27,13 +28,13 @@ public class ClassPathArtifact implements Artifact {
 
     @Override
     public ArtifactEntry load(Path path) throws ArtifactException {
-        var ref = getReference();
-        var targetPath = directory.resolve(path).normalize();
-        var resourceName = targetPath.toString().replace('\\', '/');
+        var ref = ArtifactEntryReference.of(getReference(), path.toString());
+        var classpathPath = directory.resolve(path).normalize();
+        var resourceName = classpathPath.toString().replace('\\', '/');
         if (classLoader.getResource(resourceName) == null) {
-            throw new ArtifactEntryNotFoundException(ref, path);
+            throw new ArtifactEntryNotFoundException(ref);
         }
-        return new ClassPathArtifactEntry(ref, classLoader, targetPath);
+        return new ClassPathArtifactEntry(ref, classLoader, classpathPath);
     }
 
     @Override
@@ -53,20 +54,32 @@ public class ClassPathArtifact implements Artifact {
                         if (Files.isDirectory(fsPath)) {
                             try (var stream = Files.walk(fsPath)) {
                                 stream.filter(Files::isRegularFile)
-                                        .map(file -> new ClassPathArtifactEntry(ref, classLoader,
-                                                targetPath.resolve(fsPath.relativize(file))))
-                                        .forEach(result::add);
+                                        .forEach(file -> {
+                                            var classpathPath = targetPath.resolve(fsPath.relativize(file));
+                                            var relativePath = directory.relativize(classpathPath);
+                                            result.add(new ClassPathArtifactEntry(
+                                                    ArtifactEntryReference.of(ref, relativePath.toString()),
+                                                    classLoader,
+                                                    classpathPath));
+                                        });
                             }
                         } else if (Files.isRegularFile(fsPath)) {
-                            result.add(new ClassPathArtifactEntry(ref, classLoader, targetPath));
+                            result.add(new ClassPathArtifactEntry(
+                                    ArtifactEntryReference.of(ref, path.toString()),
+                                    classLoader,
+                                    targetPath));
                         }
                     }
                     case "jar" -> {
                         var jarConn = (JarURLConnection) url.openConnection();
                         jarConn.getJarFile().entries().asIterator().forEachRemaining(entry -> {
                             if ((resourceName.isEmpty() || Path.of(entry.getName()).startsWith(targetPath)) && !entry.isDirectory()) {
-                                result.add(new ClassPathArtifactEntry(ref, classLoader,
-                                        Path.of(entry.getName())));
+                                var classpathPath = Path.of(entry.getName());
+                                var relativePath = directory.relativize(classpathPath);
+                                result.add(new ClassPathArtifactEntry(
+                                        ArtifactEntryReference.of(ref, relativePath.toString()),
+                                        classLoader,
+                                        classpathPath));
                             }
                         });
                     }

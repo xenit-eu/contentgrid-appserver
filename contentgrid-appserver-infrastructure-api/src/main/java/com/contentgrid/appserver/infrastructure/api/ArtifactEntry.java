@@ -8,6 +8,13 @@ import java.io.InputStream;
 public interface ArtifactEntry {
 
     /**
+     * Returns the reference identifying this entry and the artifact it belongs to.
+     *
+     * @return the entry reference
+     */
+    ArtifactEntryReference getEntryReference();
+
+    /**
      * Opens a stream for reading this entry.
      * <p>
      * The caller is responsible for closing the returned stream after use.

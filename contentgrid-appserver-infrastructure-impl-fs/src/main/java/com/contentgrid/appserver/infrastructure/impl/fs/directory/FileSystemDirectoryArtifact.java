@@ -3,6 +3,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.directory;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -24,10 +25,10 @@ public class FileSystemDirectoryArtifact implements Artifact {
 
     @Override
     public ArtifactEntry load(Path path) throws ArtifactException {
-        var ref = getReference();
+        var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var file = directory.resolve(path).normalize();
         if (!Files.exists(file)) {
-            throw new ArtifactEntryNotFoundException(ref, path);
+            throw new ArtifactEntryNotFoundException(ref);
         }
         return new FileSystemDirectoryArtifactEntry(ref, file);
     }
@@ -40,13 +41,15 @@ public class FileSystemDirectoryArtifact implements Artifact {
         if (Files.isDirectory(dir)) {
             try (var stream = Files.walk(dir)) {
                 stream.filter(Files::isRegularFile)
-                        .map(file -> new FileSystemDirectoryArtifactEntry(ref, file))
+                        .map(file -> new FileSystemDirectoryArtifactEntry(
+                                ArtifactEntryReference.of(ref, directory.relativize(file).toString()),
+                                file))
                         .forEach(result::add);
             } catch (IOException e) {
                 throw new ArtifactException(ref, e);
             }
         } else if (Files.exists(dir)) {
-            result.add(new FileSystemDirectoryArtifactEntry(ref, dir));
+            result.add(new FileSystemDirectoryArtifactEntry(ArtifactEntryReference.of(ref, path.toString()), dir));
         }
         return result;
     }
