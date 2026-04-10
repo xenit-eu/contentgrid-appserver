@@ -3,10 +3,14 @@ package com.contentgrid.appserver.autoconfigure.json.schema;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.io.IOException;
+import java.nio.file.Path;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -17,14 +21,24 @@ import org.springframework.core.io.Resource;
 
 @AutoConfiguration
 @ConditionalOnClass({Application.class, SingleApplicationResolver.class, DefaultApplicationNameExtractor.class})
-@ConditionalOnProperty("contentgrid.appserver.application-model")
 public class ApplicationResolverAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty("contentgrid.appserver.application-model")
     ApplicationResolver applicationResolver(@Value("${contentgrid.appserver.application-model}") Resource resource) throws IOException, InvalidJsonException {
         var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
         var application = applicationSchemaConverter.convert(resource.getInputStream());
+        return new SingleApplicationResolver(application);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "contentgrid.appserver.application-model", havingValue = "false", matchIfMissing = true)
+    ApplicationResolver artifactApplicationResolver(Artifact artifact) throws ArtifactException, ArtifactEntryUnreadableException, InvalidJsonException {
+        var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
+        var artifactEntry = artifact.load(Path.of("application-model.json"));
+        var application = applicationSchemaConverter.convert(artifactEntry.getInputStream());
         return new SingleApplicationResolver(application);
     }
 }
