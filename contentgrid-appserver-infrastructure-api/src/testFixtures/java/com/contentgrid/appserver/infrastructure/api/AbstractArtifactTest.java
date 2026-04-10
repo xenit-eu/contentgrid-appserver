@@ -37,7 +37,10 @@ public abstract class AbstractArtifactTest {
         var artifact = getArtifact();
         var entries = artifact.loadAll(Path.of("config"));
 
-        assertThat(entries).hasSize(3);
+        assertThat(entries)
+                .map(ArtifactEntry::getEntryReference)
+                .map(ArtifactEntryReference::getRelativePath)
+                .containsExactlyInAnyOrder("config/a.yaml", "config/b.yaml", "config/sub/c.yaml");
     }
 
     @Test
@@ -45,7 +48,8 @@ public abstract class AbstractArtifactTest {
         var artifact = getArtifact();
         var entries = artifact.loadAll(Path.of("file.txt"));
 
-        assertThat(entries).hasSize(1);
+        assertThat(entries).singleElement().satisfies(entry ->
+                assertThat(entry.getEntryReference().getRelativePath()).isEqualTo("file.txt"));
     }
 
     @ParameterizedTest
@@ -54,7 +58,10 @@ public abstract class AbstractArtifactTest {
         var artifact = getArtifact();
         var entries = artifact.loadAll(Path.of(root));
 
-        assertThat(entries).hasSize(4); // a.yaml, b.yaml, sub/c.yaml, file.txt
+        assertThat(entries)
+                .map(ArtifactEntry::getEntryReference)
+                .map(ArtifactEntryReference::getRelativePath)
+                .containsExactlyInAnyOrder("config/a.yaml", "config/b.yaml", "config/sub/c.yaml", "file.txt");
     }
 
     @Test
