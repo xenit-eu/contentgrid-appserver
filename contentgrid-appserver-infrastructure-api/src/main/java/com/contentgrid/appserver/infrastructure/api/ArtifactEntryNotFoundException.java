@@ -10,14 +10,21 @@ import lombok.Getter;
 public class ArtifactEntryNotFoundException extends ArtifactException {
 
     /** The path within the artifact that was requested but not found. */
-    private final Path entryPath;
+    private final String entryPath;
 
     /**
      * @param reference the artifact that was searched
      * @param entryPath the path within the artifact that was not found
      */
-    public ArtifactEntryNotFoundException(ArtifactReference reference, Path entryPath) {
+    public ArtifactEntryNotFoundException(ArtifactReference reference, String entryPath) {
         super(reference, "entry not found: " + entryPath);
         this.entryPath = entryPath;
+    }
+
+    /**
+     * @param reference the artifact entry reference that was not found
+     */
+    public ArtifactEntryNotFoundException(ArtifactEntryReference reference) {
+        this(reference.getArtifactReference(), reference.getRelativePath());
     }
 }

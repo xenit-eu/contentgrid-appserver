@@ -9,24 +9,24 @@ import lombok.Getter;
 @Getter
 public class ArtifactEntryUnreadableException extends Exception {
 
-    /** The reference identifying the artifact that contains the unreadable entry. */
-    private final ArtifactReference reference;
+    /** The reference identifying the unreadable artifact entry. */
+    private final ArtifactEntryReference reference;
 
     /**
-     * @param reference the artifact containing the unreadable entry
+     * @param reference the unreadable artifact entry
      * @param message   a description of the failure
      */
-    public ArtifactEntryUnreadableException(ArtifactReference reference, String message) {
-        super("Artifact " + reference + ": " + message);
+    public ArtifactEntryUnreadableException(ArtifactEntryReference reference, String message) {
+        super("Artifact entry " + reference + ": " + message);
         this.reference = reference;
     }
 
     /**
-     * @param reference the artifact containing the unreadable entry
+     * @param reference the unreadable artifact entry
      * @param cause     the underlying exception
      */
-    public ArtifactEntryUnreadableException(ArtifactReference reference, Throwable cause) {
-        super("Artifact " + reference + ": " + cause.getMessage(), cause);
+    public ArtifactEntryUnreadableException(ArtifactEntryReference reference, Throwable cause) {
+        super("Artifact entry " + reference + ": " + cause.getMessage(), cause);
         this.reference = reference;
     }
 }

@@ -3,6 +3,7 @@ package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
@@ -25,14 +26,15 @@ public class ZipArtifact implements Artifact {
     @Override
     public ArtifactEntry load(Path path) throws ArtifactException {
         var ref = getReference();
+        var entryRef = ArtifactEntryReference.of(ref, path.toString());
         try (var zipFile = new ZipFile(zipPath.toFile())) {
             if (zipFile.getEntry(path.toString()) == null) {
-                throw new ArtifactEntryNotFoundException(ref, path);
+                throw new ArtifactEntryNotFoundException(entryRef);
             }
         } catch (IOException e) {
             throw new ArtifactException(ref, e);
         }
-        return new ZipArtifactEntry(ref, zipPath, path);
+        return new ZipArtifactEntry(entryRef, zipPath);
     }
 
     @Override
@@ -44,7 +46,7 @@ public class ZipArtifact implements Artifact {
             zipFile.entries().asIterator().forEachRemaining(entry -> {
                 var entryPath = Path.of(entry.getName());
                 if ((prefix.toString().isEmpty() || entryPath.startsWith(prefix)) && !entry.isDirectory()) {
-                    result.add(new ZipArtifactEntry(ref, zipPath, entryPath));
+                    result.add(new ZipArtifactEntry(ArtifactEntryReference.of(ref, entry.getName()), zipPath));
                 }
             });
         } catch (IOException e) {
