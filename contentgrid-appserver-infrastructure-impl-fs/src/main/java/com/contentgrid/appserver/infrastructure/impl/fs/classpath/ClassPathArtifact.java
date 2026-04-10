@@ -6,10 +6,11 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundExcepti
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
+import com.contentgrid.appserver.infrastructure.impl.fs.directory.FileSystemDirectoryArtifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipArtifact;
 import java.io.IOException;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,42 +51,29 @@ public class ClassPathArtifact implements Artifact {
                 var url = urls.nextElement();
                 switch (url.getProtocol()) {
                     case "file" -> {
-                        var fsPath = Path.of(url.toURI());
-                        if (Files.isDirectory(fsPath)) {
-                            try (var stream = Files.walk(fsPath)) {
-                                stream.filter(Files::isRegularFile)
-                                        .forEach(file -> {
-                                            var classpathPath = targetPath.resolve(fsPath.relativize(file));
-                                            var relativePath = directory.relativize(classpathPath);
-                                            result.add(new ClassPathArtifactEntry(
-                                                    ArtifactEntryReference.of(ref, relativePath.toString()),
-                                                    classLoader,
-                                                    classpathPath));
-                                        });
-                            }
-                        } else if (Files.isRegularFile(fsPath)) {
+                        var fsArtifact = new FileSystemDirectoryArtifact(Path.of(url.toURI()));
+                        for (var entry : fsArtifact.loadAll(Path.of(""))) {
+                            var classpathPath = targetPath.resolve(entry.getEntryReference().getRelativePath());
                             result.add(new ClassPathArtifactEntry(
-                                    ArtifactEntryReference.of(ref, path.toString()),
+                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
                                     classLoader,
-                                    targetPath));
+                                    classpathPath));
                         }
                     }
                     case "jar" -> {
                         var jarConn = (JarURLConnection) url.openConnection();
-                        jarConn.getJarFile().entries().asIterator().forEachRemaining(entry -> {
-                            if ((resourceName.isEmpty() || Path.of(entry.getName()).startsWith(targetPath)) && !entry.isDirectory()) {
-                                var classpathPath = Path.of(entry.getName());
-                                var relativePath = directory.relativize(classpathPath);
-                                result.add(new ClassPathArtifactEntry(
-                                        ArtifactEntryReference.of(ref, relativePath.toString()),
-                                        classLoader,
-                                        classpathPath));
-                            }
-                        });
+                        var zipArtifact = new ZipArtifact(Path.of(jarConn.getJarFileURL().toURI()));
+                        for (var entry : zipArtifact.loadAll(targetPath)) {
+                            var classpathPath = Path.of(entry.getEntryReference().getRelativePath());
+                            result.add(new ClassPathArtifactEntry(
+                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
+                                    classLoader,
+                                    classpathPath));
+                        }
                     }
                 }
             }
-        } catch (IOException | URISyntaxException e) {
+        } catch (ArtifactException | IOException | URISyntaxException e) {
             throw new ArtifactException(ref, e);
         }
 
