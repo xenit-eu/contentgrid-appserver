@@ -6,7 +6,8 @@ import java.util.List;
 /**
  * A collection of named entries backed by a specific storage location (filesystem directory, ZIP archive, classpath, …).
  * <p>
- * The artifact's identity is expressed as an {@link ArtifactReference}.
+ * The artifact's identity is expressed as an {@link ArtifactReference}, which can be used to reconstruct the artifact
+ * via an {@link ArtifactReferenceResolver}.
  */
 public interface Artifact {
 
