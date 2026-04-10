@@ -1,6 +1,9 @@
 package com.contentgrid.appserver.autoconfigure.flyway;
 
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import java.nio.file.Path;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.resource.LoadableResource;
 import org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -8,7 +11,7 @@ import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomiz
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
-@ConditionalOnClass({Flyway.class, PostgreSQLConfigurationExtension.class})
+@ConditionalOnClass(Flyway.class)
 public class FlywayPostgresAutoConfiguration {
 
     /**
@@ -17,8 +20,16 @@ public class FlywayPostgresAutoConfiguration {
      * @see <a href="https://documentation.red-gate.com/fd/postgresql-transactional-lock-184127530.html">Flyway documentation<a>
      */
     @Bean
+    @ConditionalOnClass(PostgreSQLConfigurationExtension.class)
     FlywayConfigurationCustomizer postgresqlFlywayConfigurationCustomizerDisableTransactionalLock() {
         return configuration ->
             configuration.getPluginRegister().getPlugin(PostgreSQLConfigurationExtension.class).setTransactionalLock(false);
+    }
+
+    @Bean
+    @ConditionalOnClass(LoadableResource.class)
+    FlywayConfigurationCustomizer infrastructureResourceProviderFlywayConfigurationCustomizer(Artifact artifact) {
+        var resourceProvider = new ArtifactFlywayResourceProvider(artifact.subDir(Path.of("db", "migration")));
+        return configuration -> configuration.resourceProvider(resourceProvider);
     }
 }
