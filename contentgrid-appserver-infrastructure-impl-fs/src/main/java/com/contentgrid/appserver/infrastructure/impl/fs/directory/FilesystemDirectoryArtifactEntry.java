@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class FileSystemDirectoryArtifactEntry implements ArtifactEntry {
+public class FilesystemDirectoryArtifactEntry implements ArtifactEntry {
 
     private final ArtifactEntryReference entryReference;
     private final Path absolutePath;

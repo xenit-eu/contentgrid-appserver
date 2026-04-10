@@ -6,7 +6,7 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundExcepti
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.impl.fs.directory.FileSystemDirectoryArtifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryArtifact;
 import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipArtifact;
 import java.io.IOException;
 import java.net.JarURLConnection;
@@ -51,7 +51,7 @@ public class ClassPathArtifact implements Artifact {
                 var url = urls.nextElement();
                 switch (url.getProtocol()) {
                     case "file" -> {
-                        var fsArtifact = new FileSystemDirectoryArtifact(Path.of(url.toURI()));
+                        var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()));
                         for (var entry : fsArtifact.loadAll(Path.of(""))) {
                             var classpathPath = targetPath.resolve(entry.getEntryReference().getRelativePath());
                             result.add(new ClassPathArtifactEntry(
