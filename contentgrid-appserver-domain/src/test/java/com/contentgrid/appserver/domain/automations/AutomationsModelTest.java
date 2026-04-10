@@ -4,14 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
 class AutomationsModelTest {
 
@@ -48,64 +45,18 @@ class AutomationsModelTest {
             ))
             .build();
 
-    private final ResourceLoader resourceLoader = new DefaultResourceLoader(AutomationsModelTest.class.getClassLoader());
-
     @Test
     void loadConfigNotFound() {
-        Resource missingResource = Mockito.mock(Resource.class);
-        Mockito.when(missingResource.exists())
-                .thenReturn(false);
-        assertThat(AutomationsModel.fromConfig(missingResource))
+        assertThat(AutomationsModel.fromConfig(null))
                 .isEqualTo(AutomationsModel.builder()
                         .automations(List.of())
                         .build());
     }
 
     @Test
-    void loadConfig() {
-        assertThat(AutomationsModel.fromConfig(new ByteArrayResource("""
-                {
-                    "automations": [ {
-                        "id": "${AUTOMATION_ID}",
-                        "system": "${SYSTEM_ID}",
-                        "name": "my-automation",
-                        "data": {
-                            "foo": "bar"
-                        },
-                        "annotations": [ {
-                            "id": "${ENTITY_ANNOTATION_ID}",
-                            "subject": {
-                                "type": "entity",
-                                "entity": "invoice"
-                            },
-                            "data": {
-                                "color": "blue"
-                            }
-                        },
-                        {
-                            "id": "${ATTRIBUTE_ANNOTATION_ID}",
-                            "subject": {
-                                "type": "attribute",
-                                "entity": "invoice",
-                                "attribute": "content"
-                            },
-                            "data": {
-                                "type": "input"
-                            }
-                        } ]
-                    } ]
-                }
-                """.replace("${AUTOMATION_ID}", AUTOMATION_ID)
-                .replace("${SYSTEM_ID}", SYSTEM_ID)
-                .replace("${ENTITY_ANNOTATION_ID}", ENTITY_ANNOTATION_ID)
-                .replace("${ATTRIBUTE_ANNOTATION_ID}", ATTRIBUTE_ANNOTATION_ID).getBytes())))
-                .isEqualTo(MODEL);
-    }
-
-    @Test
-    void loadFileConfig() {
-        var resource = resourceLoader.getResource("classpath:automations.json");
-        assertThat(AutomationsModel.fromConfig(resource))
-                .isEqualTo(MODEL);
+    void loadFileConfig() throws Exception {
+        var artifact = new ClassPathArtifact(AutomationsModelTest.class.getClassLoader(), Path.of(""));
+        var artifactEntry = artifact.load(Path.of("automations.json"));
+        assertThat(AutomationsModel.fromConfig(artifactEntry)).isEqualTo(MODEL);
     }
 }

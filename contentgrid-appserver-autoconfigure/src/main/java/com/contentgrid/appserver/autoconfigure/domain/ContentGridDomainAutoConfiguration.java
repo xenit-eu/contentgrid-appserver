@@ -14,8 +14,13 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import java.nio.file.Path;
 import java.time.Clock;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -68,9 +73,16 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
+    @SneakyThrows
     @ConditionalOnMissingBean
-    AutomationsModelResolver automationsResolver() {
-        var model = AutomationsModel.fromConfig(applicationContext.getResource("classpath:automation/automations.json"));
+    AutomationsModelResolver automationsResolver(Artifact artifact) {
+        ArtifactEntry artifactEntry;
+        try {
+            artifactEntry = artifact.load(Path.of("automation", "automations.json"));
+        } catch (ArtifactEntryNotFoundException e) {
+            artifactEntry = null;
+        }
+        var model = AutomationsModel.fromConfig(artifactEntry);
         return new SingleAutomationsModelResolver(model);
     }
 }

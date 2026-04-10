@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.domain.automations;
 
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -40,13 +42,13 @@ public class AutomationsModel {
         @NonNull Map<String, Object> data;
     }
 
-    public static AutomationsModel fromConfig(Resource resource) {
-        if (resource.exists()) {
+    public static AutomationsModel fromConfig(ArtifactEntry artifactEntry) {
+        if (artifactEntry != null) {
             try {
                 @NonNull ObjectMapper objectMapper = new ObjectMapper()
                         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-                return objectMapper.readValue(resource.getInputStream(), AutomationsModel.class);
-            } catch (IOException e) {
+                return objectMapper.readValue(artifactEntry.getInputStream(), AutomationsModel.class);
+            } catch (IOException | ArtifactEntryUnreadableException e) {
                 throw new IllegalStateException(e);
             }
         } else {
