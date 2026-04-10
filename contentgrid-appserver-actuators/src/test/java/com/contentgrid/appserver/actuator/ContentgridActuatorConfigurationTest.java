@@ -2,6 +2,9 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +12,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(
@@ -32,6 +36,11 @@ public class ContentgridActuatorConfigurationTest {
     static class TestApplication {
         public static void main(String[] args) {
             SpringApplication.run(TestApplication.class, args);
+        }
+
+        @Bean
+        Artifact TestArtifact() {
+            return new ClassPathArtifact(ContentgridActuatorConfigurationTest.class.getClassLoader(), Path.of(""));
         }
     }
 

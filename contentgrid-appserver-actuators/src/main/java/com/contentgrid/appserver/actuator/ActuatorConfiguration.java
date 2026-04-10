@@ -4,10 +4,15 @@ import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest.EndpointRequestMatcher;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
@@ -16,7 +21,6 @@ import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.actuate.metrics.MetricsEndpoint;
 import org.springframework.boot.actuate.metrics.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -29,8 +33,6 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @RequiredArgsConstructor
 public class ActuatorConfiguration {
 
-    private final ApplicationContext applicationContext;
-
     @Bean
     PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
         return PolicyVariables.builder()
@@ -39,8 +41,15 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables) {
-        return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
+    @SneakyThrows
+    PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact) {
+        ArtifactEntry entry;
+        try {
+            entry = artifact.load(Path.of("rego", "policy.rego"));
+        } catch (ArtifactEntryNotFoundException e) {
+            entry = null; // not found
+        }
+        return new PolicyActuator(entry, policyVariables);
     }
 
     @Bean
@@ -52,9 +61,15 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables) {
-        return new WebhookConfigActuator(applicationContext.getResource("classpath:eventhandler/webhooks.json"),
-                webhookVariables);
+    @SneakyThrows
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact) {
+        ArtifactEntry entry;
+        try {
+            entry = artifact.load(Path.of("eventhandler", "webhooks.json"));
+        } catch (ArtifactEntryNotFoundException e) {
+            entry = null; // not found
+        }
+        return new WebhookConfigActuator(entry, webhookVariables);
     }
 
     @Bean
