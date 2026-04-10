@@ -21,9 +21,9 @@ class FileSystemDirectoryArtifactTest extends AbstractArtifactTest {
         Files.writeString(tempDir.resolve("file.txt"), "hello");
 
         Files.createDirectories(tempDir.resolve("config/sub"));
-        Files.writeString(tempDir.resolve("config/a.yml"), "key: a");
-        Files.writeString(tempDir.resolve("config/b.yml"), "key: b");
-        Files.writeString(tempDir.resolve("config/sub/c.yml"), "key: c");
+        Files.writeString(tempDir.resolve("config/a.yaml"), "key: a");
+        Files.writeString(tempDir.resolve("config/b.yaml"), "key: b");
+        Files.writeString(tempDir.resolve("config/sub/c.yaml"), "key: c");
     }
 
     @Override
