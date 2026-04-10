@@ -4,18 +4,20 @@ import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @RequiredArgsConstructor
 public class ActuatorConfiguration {
-
-    private final ApplicationContext applicationContext;
 
     @Bean
     PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
@@ -25,8 +27,15 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables) {
-        return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
+    @SneakyThrows
+    PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact) {
+        ArtifactEntry entry;
+        try {
+            entry = artifact.load(Path.of("rego", "policy.rego"));
+        } catch (ArtifactEntryNotFoundException e) {
+            entry = null; // not found
+        }
+        return new PolicyActuator(entry, policyVariables);
     }
 
     @Bean
@@ -43,9 +52,15 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables) {
-        return new WebhookConfigActuator(applicationContext.getResource("classpath:eventhandler/webhooks.json"),
-                webhookVariables);
+    @SneakyThrows
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact) {
+        ArtifactEntry entry;
+        try {
+            entry = artifact.load(Path.of("eventhandler", "webhooks.json"));
+        } catch (ArtifactEntryNotFoundException e) {
+            entry = null; // not found
+        }
+        return new WebhookConfigActuator(entry, webhookVariables);
     }
 
     @Bean

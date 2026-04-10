@@ -10,6 +10,7 @@ dependencies {
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
 
+    implementation project(':contentgrid-appserver-infrastructure-api')
     implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
 
     implementation 'org.springframework.security:spring-security-web'
@@ -17,6 +18,7 @@ dependencies {
     implementation 'jakarta.servlet:jakarta.servlet-api'
 
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
+    testImplementation project(':contentgrid-appserver-infrastructure-impl-fs')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.hamcrest:hamcrest'
