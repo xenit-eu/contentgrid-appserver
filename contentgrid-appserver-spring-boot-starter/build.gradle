@@ -6,10 +6,11 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-autoconfigure')
     api project(':contentgrid-appserver-application-model')
+    api project(':contentgrid-appserver-application-model-json')
     api project(':contentgrid-appserver-domain')
     api project(':contentgrid-appserver-query-engine-api')
     api project(':contentgrid-appserver-contentstore-api')
-    api project(':contentgrid-appserver-application-model-json')
+    api project(':contentgrid-appserver-infrastructure-api')
     api project(':contentgrid-appserver-rest')
     api 'org.springframework.boot:spring-boot-starter-web'
 
@@ -19,6 +20,7 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-fs')
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')
+    implementation project(':contentgrid-appserver-infrastructure-impl-fs')
     implementation project(':contentgrid-appserver-webjars')
     implementation ("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
         capabilities {
