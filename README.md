@@ -19,7 +19,7 @@ The project is organized into modules:
 - **contentgrid-appserver-contentstore-impl-utils**: Content utils for dealing with input and output streams.
 - **contentgrid-appserver-domain**: Core domain layer defining apis and implementations to deal with entities, relations and content.
 - **contentgrid-appserver-domain-values**: Defines core data structures for representing input and output data.
-- **contentgrid-appserver-json-schema**: Serialization and deserialization of Applications.
+- **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
 - **contentgrid-appserver-platform**: Platform defining dependencies for contentgrid-appserver.
 - **contentgrid-appserver-query-engine-api**: Defines interfaces and data structures to query database.
 - **contentgrid-appserver-query-engine-impl-jooq**: Implementation of *contentgrid-appserver-query-engine-api* using [JOOQ](https://www.jooq.org/).
