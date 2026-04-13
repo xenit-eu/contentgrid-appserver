@@ -18,6 +18,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -225,6 +226,19 @@ public class ContentAttribute implements CompositeAttribute {
                         .filter(Predicate.not(ABNFCharRange::isEmpty))
                         .map(ABNFCharRange::toRegexCharacterClass)
                         .collect(Collectors.joining());
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o instanceof ABNFCharCompositeRange that)) {
+                    return false;
+                }
+                return Objects.deepEquals(ranges, that.ranges);
+            }
+
+            @Override
+            public int hashCode() {
+                return Arrays.hashCode(ranges);
             }
 
             @Override
