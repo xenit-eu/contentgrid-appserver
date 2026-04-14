@@ -13,7 +13,7 @@ class ArtifactReferenceTest {
         var ref = ArtifactReference.parse("file:/some/path");
         assertThat(ref.getScheme()).isEqualTo(Scheme.FILE);
         assertThat(ref.getPath()).isEqualTo("/some/path");
-        assertThat(ref.toString()).isEqualTo("file:/some/path");
+        assertThat(ref).hasToString("file:/some/path");
     }
 
     @Test
@@ -21,6 +21,7 @@ class ArtifactReferenceTest {
         var ref = ArtifactReference.parse("zip:/some/path/artifact.zip");
         assertThat(ref.getScheme()).isEqualTo(Scheme.ZIP);
         assertThat(ref.getPath()).isEqualTo("/some/path/artifact.zip");
+        assertThat(ref).hasToString("zip:/some/path/artifact.zip");
     }
 
     @Test
@@ -28,6 +29,7 @@ class ArtifactReferenceTest {
         var ref = ArtifactReference.parse("classpath:some/relative/path");
         assertThat(ref.getScheme()).isEqualTo(Scheme.CLASSPATH);
         assertThat(ref.getPath()).isEqualTo("some/relative/path");
+        assertThat(ref).hasToString("classpath:some/relative/path");
     }
 
     @Test

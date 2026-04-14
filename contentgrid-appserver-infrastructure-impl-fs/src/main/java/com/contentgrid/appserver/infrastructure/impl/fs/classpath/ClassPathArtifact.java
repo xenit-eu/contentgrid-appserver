@@ -71,6 +71,7 @@ public class ClassPathArtifact implements Artifact {
                                     classpathPath));
                         }
                     }
+                    default -> throw new UnsupportedOperationException("Protocol %s not supported".formatted(url.getProtocol()));
                 }
             }
         } catch (ArtifactException | IOException | URISyntaxException e) {

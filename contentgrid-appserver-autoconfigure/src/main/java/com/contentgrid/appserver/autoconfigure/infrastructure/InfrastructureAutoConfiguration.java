@@ -8,7 +8,7 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactReferenceResolverReg
 import com.contentgrid.appserver.infrastructure.impl.fs.FilesystemArtifactReferenceResolver;
 import java.util.List;
 import lombok.NonNull;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -20,12 +20,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration
+@RequiredArgsConstructor
 @ConditionalOnClass({Artifact.class, ArtifactReferenceResolverRegistry.class})
 @EnableConfigurationProperties(InfrastructureProperties.class)
 public class InfrastructureAutoConfiguration {
 
-    @Autowired
-    private ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
 
     @ConfigurationProperties(prefix = "contentgrid.appserver.infrastructure")
     public record InfrastructureProperties(
