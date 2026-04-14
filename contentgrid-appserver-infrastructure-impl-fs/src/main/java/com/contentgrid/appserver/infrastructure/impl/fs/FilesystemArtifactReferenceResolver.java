@@ -10,11 +10,11 @@ import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DefaultArtifactReferenceResolver implements ArtifactReferenceResolver {
+public class FilesystemArtifactReferenceResolver implements ArtifactReferenceResolver {
 
     private final ClassLoader classLoader;
 
-    public DefaultArtifactReferenceResolver() {
+    public FilesystemArtifactReferenceResolver() {
         this(Thread.currentThread().getContextClassLoader());
     }
 
@@ -25,6 +25,7 @@ public class DefaultArtifactReferenceResolver implements ArtifactReferenceResolv
             case FILE -> new FilesystemDirectoryArtifact(path);
             case ZIP -> new ZipArtifact(path);
             case CLASSPATH -> new ClassPathArtifact(classLoader, path);
+            default -> null;
         };
     }
 }

@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference.Scheme;
 import org.junit.jupiter.api.Test;
 
-public class ArtifactReferenceTest {
+class ArtifactReferenceTest {
 
     @Test
     void parse_fileScheme() {
