@@ -24,12 +24,10 @@ public class ArtifactEntryReference implements Serializable {
 
     /**
      * The absolute path to the entry, including the path to the artifact.
+     * The path can point to a location that doesn't exist, e.g. path inside a zip archive.
      */
     public String getAbsolutePath() {
-        return switch (artifactReference.getScheme()) {
-            case FILE, CLASSPATH -> Path.of(artifactReference.getPath()).resolve(relativePath).toString();
-            case ZIP -> artifactReference.getPath() + '!' + relativePath;
-        };
+        return Path.of(artifactReference.getPath()).resolve(relativePath).toString();
     }
 
     /**

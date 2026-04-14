@@ -3,7 +3,6 @@ package com.contentgrid.appserver.infrastructure.api;
 import java.io.Serializable;
 import java.net.URI;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
 /**
@@ -18,7 +17,7 @@ public class ArtifactReference implements Serializable {
 
     /** The type of storage backing the artifact. */
     @NonNull
-    Scheme scheme;
+    String scheme;
 
     /** The location within the storage identified by {@link #scheme}. */
     @NonNull
@@ -33,49 +32,12 @@ public class ArtifactReference implements Serializable {
      */
     public static ArtifactReference parse(String value) {
         var uri = URI.create(value);
-        return of(Scheme.parse(uri.getScheme()), uri.getSchemeSpecificPart());
+        return of(uri.getScheme(), uri.getSchemeSpecificPart());
     }
 
     /** Returns the string form {@code scheme:path}. */
     @Override
     public String toString() {
         return scheme + ":" + path;
-    }
-
-    /**
-     * The storage type backing an {@link Artifact}.
-     */
-    @RequiredArgsConstructor
-    public enum Scheme {
-        /** A directory on the local filesystem. */
-        FILE("file"),
-        /** A ZIP archive on the local filesystem. */
-        ZIP("zip"),
-        /** A path on the JVM classpath. */
-        CLASSPATH("classpath");
-
-        private final String value;
-
-        /**
-         * Returns the {@link Scheme} for the given URI scheme string.
-         *
-         * @param value the URI scheme (e.g. {@code "file"})
-         * @return the matching scheme
-         * @throws IllegalArgumentException if no scheme matches
-         */
-        public static Scheme parse(String value) {
-            for (var scheme : values()) {
-                if (scheme.value.equals(value)) {
-                    return scheme;
-                }
-            }
-            throw new IllegalArgumentException("Unknown artifact scheme: " + value);
-        }
-
-        /** Returns the URI scheme string (e.g. {@code "file"}). */
-        @Override
-        public String toString() {
-            return value;
-        }
     }
 }

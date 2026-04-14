@@ -16,11 +16,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ZipArtifact implements Artifact {
 
+    public static final String SCHEME = "zip";
+
     private final Path zipPath;
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(ArtifactReference.Scheme.ZIP, zipPath.toAbsolutePath().toString());
+        return ArtifactReference.of(SCHEME, zipPath.toAbsolutePath().toString());
     }
 
     @Override
