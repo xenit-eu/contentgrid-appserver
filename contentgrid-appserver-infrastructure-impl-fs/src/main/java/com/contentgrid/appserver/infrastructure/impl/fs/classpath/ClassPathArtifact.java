@@ -19,12 +19,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ClassPathArtifact implements Artifact {
 
+    public static final String SCHEME = "classpath";
+
     private final ClassLoader classLoader;
     private final Path directory;
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(ArtifactReference.Scheme.CLASSPATH, directory.toString());
+        return ArtifactReference.of(SCHEME, directory.toString());
     }
 
     @Override

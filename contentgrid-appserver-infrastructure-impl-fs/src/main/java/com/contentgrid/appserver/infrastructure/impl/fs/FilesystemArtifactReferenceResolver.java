@@ -22,9 +22,9 @@ public class FilesystemArtifactReferenceResolver implements ArtifactReferenceRes
     public Artifact resolve(ArtifactReference reference) {
         var path = Path.of(reference.getPath());
         return switch (reference.getScheme()) {
-            case FILE -> new FilesystemDirectoryArtifact(path);
-            case ZIP -> new ZipArtifact(path);
-            case CLASSPATH -> new ClassPathArtifact(classLoader, path);
+            case FilesystemDirectoryArtifact.SCHEME -> new FilesystemDirectoryArtifact(path);
+            case ZipArtifact.SCHEME -> new ZipArtifact(path);
+            case ClassPathArtifact.SCHEME -> new ClassPathArtifact(classLoader, path);
             default -> null;
         };
     }

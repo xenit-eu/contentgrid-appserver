@@ -16,11 +16,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FilesystemDirectoryArtifact implements Artifact {
 
+    public static final String SCHEME = "file";
+
     private final Path directory;
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(ArtifactReference.Scheme.FILE, directory.toAbsolutePath().toString());
+        return ArtifactReference.of(SCHEME, directory.toAbsolutePath().toString());
     }
 
     @Override
