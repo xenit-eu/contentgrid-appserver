@@ -180,8 +180,13 @@ public class ContentAttribute implements CompositeAttribute {
         private static final String PARAMETER = PARAMETER_NAME+ABNFCharRange.of('=')+PARAMETER_VALUE;
         private static final String PARAMETERS = "(?:"+OWS+ABNFCharRange.of(';')+OWS+"(?:"+PARAMETER+")?)*";
 
+        // Prevents a wildcard character being present as first character
+        private static final String NO_WILDCARD = "(?!"+ABNFCharRange.of('*')+")";
+
         //  https://www.rfc-editor.org/rfc/rfc9110.html#name-media-type
-        public static final String MEDIA_TYPE = TOKEN+"/"+TOKEN+PARAMETERS;
+        // But wildcards are not allowed, because this has to be a concrete media type (not an Accept header)
+        public static final String MEDIA_TYPE = NO_WILDCARD+TOKEN+ABNFCharRange.of('/')+NO_WILDCARD+TOKEN+PARAMETERS;
+
 
         private sealed interface ABNFCharRange {
             static ABNFCharRange of(char character) {

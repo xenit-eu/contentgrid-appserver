@@ -30,16 +30,12 @@ t/1
 0/0
 
 # --- All special tchar characters used in type/subtype ---
-# tchar allows: ! # $ % & * + - . ^ _ ` | ~
+# tchar allows: ! # $ % & * + - . ^ _ ` | ~, but using the wildcard (*) is not allowed
 !/!
 #/#
 $/b
 %/b
 &/b
-*/plain
-a/*
-*/*
-text/*
 +/+
 -/-
 ./b
@@ -105,11 +101,6 @@ text/plain; charset=utf-8;
 # --- Parameter value using all tchar in token ---
 text/plain; boundary=!#$%&*+-.^_`|~azAZ09
 
-# --- Wildcard combinations (asterisk is tchar) ---
-*/*
-*/plain
-text/*
-**/**
 
 # --- x- prefix types ---
 x-custom/x-type

@@ -95,3 +95,9 @@ text/plain; foo="bar" baz
 
 # --- Semicolon as the entire value ---
 text/plain; ;=value
+
+# --- Wildcard combinations (asterisk is tchar, but a defined mediatype can't have a wildcard) ---
+*/*
+*/plain
+text/*
+**/**
