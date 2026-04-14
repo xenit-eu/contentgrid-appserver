@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model.attributes;
 
+import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
@@ -13,9 +15,14 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -29,6 +36,10 @@ import lombok.experimental.Delegate;
 
 @Value
 public class ContentAttribute implements CompositeAttribute {
+
+    // package-private for testing
+    static final RegexPatternConstraint MIMETYPE_PATTERN_CONSTRAINT = Constraint.pattern(MediaTypeABNF.mediaType(true))
+            .withHtmlPattern(MediaTypeABNF.mediaType(false));
 
     @NonNull
     AttributeName name;
@@ -95,7 +106,9 @@ public class ContentAttribute implements CompositeAttribute {
                 .type(Type.TEXT).build();
         this.mimetype = SimpleAttribute.builder().name(AttributeName.of("mimetype")).column(mimetypeColumn)
                 .translations(resourceBundleTranslations.withPrefix("mimetype.").asConfigurable())
-                .type(Type.TEXT).build();
+                .type(Type.TEXT)
+                .constraint(MIMETYPE_PATTERN_CONSTRAINT)
+                .build();
         this.length = SimpleAttribute.builder().name(AttributeName.of("length")).column(lengthColumn)
                 .translations(resourceBundleTranslations.withPrefix("length.").asConfigurable())
                 .type(Type.LONG)
@@ -127,5 +140,175 @@ public class ContentAttribute implements CompositeAttribute {
             return translationsBy(Locale.ROOT, t -> t.withDescription(description));
         }
 
+    }
+
+    /**
+     * Constructs the media-type validation regex based on RFC9110 ABNF definitions
+     */
+    private static class MediaTypeABNF {
+        // https://www.rfc-editor.org/rfc/rfc5234#appendix-B.1
+        private static final ABNFCharRange DQUOTE = ABNFCharRange.of(0x22);
+        private static final ABNFCharRange HTAB = ABNFCharRange.of(0x09);
+        private static final ABNFCharRange SP = ABNFCharRange.of(0x20);
+        private static final ABNFCharRange VCHAR = ABNFCharRange.range(0x21, 0x7e);
+        private static final ABNFCharRange DIGIT = ABNFCharRange.range(0x30, 0x39);
+        private static final ABNFCharRange ALPHA = new ABNFCharCompositeRange(
+                ABNFCharRange.range(0x41, 0x5A),
+                ABNFCharRange.range(0x61, 0x7A)
+        );
+
+        // https://www.rfc-editor.org/rfc/rfc9110.html#name-field-values
+        private static final ABNFCharRange OBS_TEXT = ABNFCharRange.range(0x80, 0xff);
+
+        // https://www.rfc-editor.org/rfc/rfc9110.html#name-tokens
+        private static final ABNFCharRange TCHAR = new ABNFCharCompositeRange(
+                ABNFCharRange.of('!', '#', '$', '%', '&', '*', '+', '-', '.', '^', '_', '`', '|', '~'),
+                DIGIT,
+                ALPHA
+        );
+        private static final String TOKEN = TCHAR+"+";
+
+        // https://www.rfc-editor.org/rfc/rfc9110.html#name-whitespace
+        private static final String OWS = new ABNFCharCompositeRange(SP, HTAB)+"*";
+
+        // https://www.rfc-editor.org/rfc/rfc9110.html#name-quoted-strings
+        private static final ABNFCharRange QDTEXT = new ABNFCharCompositeRange(HTAB, SP, ABNFCharRange.of(0x21), ABNFCharRange.range(0x23, 0x5B), ABNFCharRange.range(0x5D, 0x7E), OBS_TEXT);
+        private static final String QUOTED_PAIR = "(?:"+ABNFCharRange.of('\\')+new ABNFCharCompositeRange(HTAB, SP, VCHAR, OBS_TEXT)+")";
+
+        private static final String QUOTED_STRING = "(?:"+DQUOTE + "(?:"+QDTEXT +"|"+QUOTED_PAIR+")*"+DQUOTE+")";
+
+        // https://www.rfc-editor.org/rfc/rfc9110.html#parameter
+        private static final String PARAMETER_NAME = TOKEN;
+        private static final String PARAMETER_VALUE = "(?:"+TOKEN+"|"+QUOTED_STRING+")";
+        private static final String PARAMETER = PARAMETER_NAME+ABNFCharRange.of('=')+PARAMETER_VALUE;
+        // Prevents a wildcard character being present as first character
+        private static final String NO_WILDCARD = "(?!"+ABNFCharRange.of('*')+")";
+
+        private static String parameters(boolean restrictCharset) {
+            var anyParameter = PARAMETER;
+            if(restrictCharset) {
+                // Prevents unknown charsets being used in the charset= parameter
+                final String KNOWN_CHARSETS = Charset.availableCharsets().values().stream()
+                        .flatMap(charset -> Stream.concat(Stream.of(charset.name()), charset.aliases().stream()))
+                        .map(Pattern::quote)
+                        .collect(Collectors.joining("|"));
+
+                // A charset parameter: name is 'charset' (case-insensitive), value must be a known charset (case-insensitive, optionally quoted)
+                final String CHARSET_PARAMETER =
+                        "(?i:charset)=(?:(?i:" + KNOWN_CHARSETS + ")|" + DQUOTE + "(?i:" + KNOWN_CHARSETS + ")" + DQUOTE
+                                + ")";
+                // A non-charset parameter: any parameter where name is not 'charset' (case-insensitive)
+                final String NON_CHARSET_PARAMETER = "(?!(?i:charset)=)" + PARAMETER;
+                anyParameter = "(?:"+CHARSET_PARAMETER+"|"+NON_CHARSET_PARAMETER+")";
+            }
+
+            return "(?:"+OWS+ABNFCharRange.of(';')+OWS+"(?:"+anyParameter+")?)*";
+        }
+
+        //  https://www.rfc-editor.org/rfc/rfc9110.html#name-media-type
+        // But wildcards are not allowed, because this has to be a concrete media type (not an Accept header)
+        public static String mediaType(boolean restrictCharset) {
+            return NO_WILDCARD+TOKEN+ABNFCharRange.of('/')+NO_WILDCARD+TOKEN+parameters(restrictCharset);
+        }
+
+
+        private sealed interface ABNFCharRange {
+            static ABNFCharRange of(char character) {
+                return range(character, character);
+            }
+
+            static ABNFCharRange of(int character) {
+                return of((char)character);
+            }
+
+            static ABNFCharRange of(char ...characters) {
+                var ranges = new ABNFCharRange[characters.length];
+                for (int i = 0; i < characters.length; i++) {
+                    ranges[i] = ABNFCharRange.of(characters[i]);
+                }
+                return new ABNFCharCompositeRange(ranges);
+            }
+
+            static ABNFCharRange range(int start, int endInclusive) {
+                if(endInclusive < start) {
+                    // This is an empty range
+                    return new ABNFCharCompositeRange();
+                }
+                return new ABNFCharSingleRange(start, endInclusive);
+            }
+
+            boolean isEmpty();
+
+            String toRegexCharacterClass();
+        }
+
+        private record ABNFCharCompositeRange(ABNFCharRange ...ranges) implements ABNFCharRange {
+
+            @Override
+            public boolean isEmpty() {
+                return Arrays.stream(ranges).allMatch(ABNFCharRange::isEmpty);
+            }
+
+            @Override
+            public String toRegexCharacterClass() {
+                return Arrays.stream(ranges)
+                        .filter(Predicate.not(ABNFCharRange::isEmpty))
+                        .map(ABNFCharRange::toRegexCharacterClass)
+                        .collect(Collectors.joining());
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o instanceof ABNFCharCompositeRange that)) {
+                    return false;
+                }
+                return Objects.deepEquals(ranges, that.ranges);
+            }
+
+            @Override
+            public int hashCode() {
+                return Arrays.hashCode(ranges);
+            }
+
+            @Override
+            public String toString() {
+                return "["+toRegexCharacterClass()+"]";
+            }
+        }
+
+        private record ABNFCharSingleRange(int start, int endInclusive) implements ABNFCharRange {
+
+            @Override
+            public boolean isEmpty() {
+                return endInclusive < start;
+            }
+
+            private static String encodeCharacter(int character) {
+                var hexString = Integer.toHexString(character);
+                return switch (hexString.length()) {
+                    case 1 -> "\\x0" + hexString;
+                    case 2 -> "\\x" + hexString;
+                    case 3 -> "\\u0" + hexString;
+                    case 4 -> "\\u" + hexString;
+                    default -> "\\x{" + hexString + "}";
+                };
+            }
+
+            @Override
+            public String toRegexCharacterClass() {
+                if(start == endInclusive) {
+                    return encodeCharacter(start);
+                }
+                return encodeCharacter(start)+"-"+ encodeCharacter(endInclusive);
+            }
+
+            @Override
+            public String toString() {
+                if(start == endInclusive) {
+                    return encodeCharacter(start);
+                }
+                return "["+toRegexCharacterClass()+"]";
+            }
+        }
     }
 }

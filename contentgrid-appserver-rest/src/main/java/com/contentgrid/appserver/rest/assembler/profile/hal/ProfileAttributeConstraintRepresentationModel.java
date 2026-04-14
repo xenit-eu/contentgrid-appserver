@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 import com.contentgrid.appserver.rest.assembler.profile.BlueprintLinkRelations;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import lombok.NonNull;
 import lombok.Value;
 import org.springframework.hateoas.server.core.Relation;
 
@@ -13,6 +14,10 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
 
     static AllowedValuesConstraintRepresentationModel allowedValues(List<String> values) {
         return new AllowedValuesConstraintRepresentationModel(values);
+    }
+
+    static PatternAttributeConstraintRepresentationModel pattern(@NonNull String pattern) {
+        return new PatternAttributeConstraintRepresentationModel(pattern);
     }
 
     static ProfileAttributeConstraintRepresentationModel required() {
@@ -48,6 +53,17 @@ public sealed interface ProfileAttributeConstraintRepresentationModel {
         @Override
         public String getType() {
             return "allowed-values";
+        }
+    }
+
+    @Value
+    @Relation(BlueprintLinkRelations.CONSTRAINT_STRING)
+    class PatternAttributeConstraintRepresentationModel implements ProfileAttributeConstraintRepresentationModel {
+        String pattern;
+
+        @Override
+        public String getType() {
+            return "pattern";
         }
     }
 

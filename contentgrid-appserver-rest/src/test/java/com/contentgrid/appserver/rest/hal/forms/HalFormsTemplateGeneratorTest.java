@@ -58,6 +58,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.isReadOnly()).isFalse();
                     assertThat(number.isRequired()).isTrue();
+                    assertThat(number.getRegex()).isEqualTo("[0-9]+");
                     assertThat(number.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 amount -> {
@@ -261,6 +262,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.isReadOnly()).isFalse();
                     assertThat(number.isRequired()).isTrue();
+                    assertThat(number.getRegex()).isEqualTo("[0-9]+");
                     assertThat(number.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 },
                 amount -> {
@@ -320,6 +322,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(contentMimetype.getPrompt()).isEqualTo("content: Mimetype");
                     assertThat(contentMimetype.isReadOnly()).isFalse();
                     assertThat(contentMimetype.isRequired()).isFalse();
+                    assertThat(contentMimetype.getRegex()).hasSizeGreaterThan(10).hasSizeLessThan(1024); // Ensure that we're sending the correct regex, but not multiple kilobytes of data
                     assertThat(contentMimetype.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                 }
         );
@@ -339,6 +342,7 @@ class HalFormsTemplateGeneratorTest {
                 number -> {
                     assertThat(number.getName()).isEqualTo("number");
                     assertThat(number.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(number.getRegex()).isNull(); // No regex on the search field
                 },
                 amount -> {
                     assertThat(amount.getName()).isEqualTo("amount");
@@ -424,6 +428,7 @@ class HalFormsTemplateGeneratorTest {
                 previousNumber -> {
                     assertThat(previousNumber.getName()).isEqualTo("previous_invoice.number");
                     assertThat(previousNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(previousNumber.getRegex()).isNull();
                 },
                 previousConfidentiality -> {
                     assertThat(previousConfidentiality.getName()).isEqualTo("previous_invoice.confidentiality");
@@ -441,6 +446,7 @@ class HalFormsTemplateGeneratorTest {
                 nextNumber -> {
                     assertThat(nextNumber.getName()).isEqualTo("next_invoice.number");
                     assertThat(nextNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(nextNumber.getRegex()).isNull();
                 },
                 nextConfidentiality -> {
                     assertThat(nextConfidentiality.getName()).isEqualTo("next_invoice.confidentiality");
@@ -550,6 +556,7 @@ class HalFormsTemplateGeneratorTest {
                 invoicesNumber -> {
                     assertThat(invoicesNumber.getName()).isEqualTo("invoices.number");
                     assertThat(invoicesNumber.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(invoicesNumber.getRegex()).isNull(); // no regex on the search fields
                 },
                 invoicesConfidentiality -> {
                     assertThat(invoicesConfidentiality.getName()).isEqualTo("invoices.confidentiality");

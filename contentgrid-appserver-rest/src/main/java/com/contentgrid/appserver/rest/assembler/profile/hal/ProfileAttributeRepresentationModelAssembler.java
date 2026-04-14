@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.assembler.profile.hal;
 
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
@@ -15,7 +16,6 @@ import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateF
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.AttributePath;
@@ -118,6 +118,8 @@ public class ProfileAttributeRepresentationModelAssembler {
             case UniqueConstraint ignored -> ProfileAttributeConstraintRepresentationModel.unique();
             case AllowedValuesConstraint allowedValuesConstraint ->
                 ProfileAttributeConstraintRepresentationModel.allowedValues(allowedValuesConstraint.getValues());
+            case RegexPatternConstraint regexPatternConstraint ->
+                ProfileAttributeConstraintRepresentationModel.pattern(regexPatternConstraint.getHtmlPattern());
         };
     }
 

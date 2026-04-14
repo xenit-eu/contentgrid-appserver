@@ -119,6 +119,9 @@ class ProfileRestControllerTest {
                                             type: "required"
                                         }, {
                                             type: "unique"
+                                        }, {
+                                            type: "pattern",
+                                            pattern: "[0-9]+"
                                         }],
                                         "blueprint:search-param": [{
                                             name: "number",

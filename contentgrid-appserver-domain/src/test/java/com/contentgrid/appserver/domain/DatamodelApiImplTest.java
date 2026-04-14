@@ -188,7 +188,7 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "received", LocalDate.now(clock),
                             "pay_before", LocalDate.now(clock).plusDays(30),
@@ -206,7 +206,7 @@ class DatamodelApiImplTest {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
                         .containsExactlyInAnyOrder(
-                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
                         new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), LocalDate.now(clock).plusDays(30)),
@@ -292,7 +292,7 @@ class DatamodelApiImplTest {
 
             assertThatThrownBy(() -> {
                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                        "number", "invoice-1",
+                        "number", "1",
                         "amount", 1.50,
                         "received", LocalDate.now(clock),
                         "pay_before", LocalDate.now(clock).plusDays(30),
@@ -325,7 +325,7 @@ class DatamodelApiImplTest {
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "confidentiality", "public",
                             "customer", new RelationDataEntry(PERSON.getName(), personId),
@@ -342,7 +342,7 @@ class DatamodelApiImplTest {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
                         .containsExactlyInAnyOrder(
-                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
@@ -446,7 +446,7 @@ class DatamodelApiImplTest {
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
+                    "number", "1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
@@ -491,7 +491,7 @@ class DatamodelApiImplTest {
                     List.of());
 
             var result = datamodelApi.update(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
+                    "number", "1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
@@ -534,7 +534,7 @@ class DatamodelApiImplTest {
                     List.of());
 
             var result = datamodelApi.updatePartial(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
+                    "number", "1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId)
@@ -581,7 +581,7 @@ class DatamodelApiImplTest {
 
             assertThatThrownBy(() -> {
                  datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                        "number", "invoice-1",
+                        "number", "1",
                         "amount", 1.50,
                         "confidentiality", "public",
                         "customer", customer,
@@ -628,7 +628,7 @@ class DatamodelApiImplTest {
             Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
+                    "number", "1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
@@ -641,7 +641,7 @@ class DatamodelApiImplTest {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
                         .containsExactlyInAnyOrder(
-                                new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                                new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                                 new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                                 new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                                 new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -670,7 +670,7 @@ class DatamodelApiImplTest {
         void contentAttributes_fails() {
             var personId = EntityId.of(UUID.randomUUID());
             assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "invoice-1",
+                    "number", "1",
                     "amount", 1.50,
                     "confidentiality", "public",
                     "customer", new RelationDataEntry(PERSON.getName(), personId),
@@ -719,7 +719,7 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "received", LocalDate.now(clock),
                             "confidentiality", "public",
@@ -732,7 +732,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
-                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
@@ -793,7 +793,7 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "confidentiality", "public",
                             "content", Map.of(
@@ -809,7 +809,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
-                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     // Missing values are set to null
@@ -836,7 +836,7 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                                "number", "invoice-1",
+                                "number", "1",
                                 "amount", 1.50,
                                 "content", Map.of(
                                         "filename", "file-123.pdf",
@@ -868,7 +868,7 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                                "number", "invoice-1",
+                                "number", "1",
                                 "amount", 1.50,
                                 "content", Map.of(
                                         "filename", "file-123.pdf",
@@ -900,7 +900,7 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "confidentiality", "public",
                             "content", Map.of(
@@ -914,7 +914,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
-                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     // Missing values are set to null
@@ -952,7 +952,7 @@ class DatamodelApiImplTest {
 
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", 1.50,
                             "confidentiality", "public",
                             "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(50))
@@ -963,7 +963,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
-                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     // Missing values are set to null
@@ -1004,7 +1004,7 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                            "number", "invoice-1",
+                            "number", "1",
                             "amount", MissingDataEntry.INSTANCE, // Required value is missing completely
                             "confidentiality", "public",
                             "received", LocalDate.now(clock),
@@ -1018,7 +1018,7 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
             assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
-                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "invoice-1"),
+                    new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     // amount is missing here, and thus not overwritten
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
@@ -1151,7 +1151,7 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                        "number", "invoice-1",
+                        "number", "1",
                         "amount", 1.50,
                         "confidentiality", "public",
                         "content", Map.of(

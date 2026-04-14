@@ -1,0 +1,112 @@
+# Valid media types per RFC 9110 ABNF
+# type "/" subtype *( OWS ";" OWS [ parameter ] )
+# where parameter = token "=" (token | quoted-string)
+# and token = 1*tchar, tchar = !#$%&*+-.^_`|~ / DIGIT / ALPHA
+
+# --- Everyday types ---
+text/plain
+image/jpeg
+application/json
+video/mp4
+audio/mpeg
+font/woff2
+model/gltf+json
+
+# --- Uppercase and mixed-case (ALPHA includes A-Z) ---
+TEXT/PLAIN
+IMAGE/JPEG
+APPLICATION/JSON
+Text/Plain
+tExT/hTmL
+
+# --- Single-character type or subtype ---
+a/b
+x/y
+t/1
+
+# --- All-digit token (DIGIT is valid tchar) ---
+1/2
+123/456
+0/0
+
+# --- All special tchar characters used in type/subtype ---
+# tchar allows: ! # $ % & * + - . ^ _ ` | ~, but using the wildcard (*) is not allowed
+!/!
+#/#
+$/b
+%/b
+&/b
++/+
+-/-
+./b
+^/b
+_/b
+`/b
+|/b
+~/b
+
+# --- Dotted and hyphenated subtypes ---
+application/vnd.ms-excel
+application/vnd.api+json
+application/ld+json
+application/x-www-form-urlencoded
+application/octet-stream
+application/x-tar
+image/svg+xml
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+video/x-msvideo
+application/x-7z-compressed
+application/vnd.oasis.opendocument.text
+application/x.custom-type
+
+# --- Parameters: unquoted token values ---
+text/plain; charset=utf-8
+text/html; charset=us-ascii
+multipart/form-data; boundary=----WebKitFormBoundary
+text/plain; charset=utf-8; format=flowed
+application/json; charset=utf-8
+text/plain;charset=utf-8
+text/plain;a=1;b=2;c=3
+
+# --- Parameters: OWS (optional whitespace) around semicolon ---
+text/plain ; charset=utf-8
+text/plain	;charset=utf-8
+text/plain ;	charset=utf-8
+text/plain	;	charset=utf-8
+text/plain; charset=utf-8 ; format=flowed
+
+# --- Parameters: quoted-string values ---
+text/plain; charset="utf-8"
+text/plain; charset="us-ascii"
+text/plain; foo="bar baz"
+text/plain; foo="bar	baz"
+text/plain; foo="hello world"
+
+# --- Quoted-string: escaped characters (quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )) ---
+text/plain; foo="bar\"baz"
+text/plain; foo="\\"
+text/plain; foo="\ "
+text/plain; foo="\	"
+text/plain; foo="a\"b\"c"
+
+# --- Quoted-string: empty value ---
+text/plain; foo=""
+
+# --- Semicolons with no parameter (PARAMETER is optional in PARAMETERS) ---
+text/plain;
+text/plain; ; charset=utf-8
+text/plain; charset=utf-8;
+
+# --- Parameter value using all tchar in token ---
+text/plain; boundary=!#$%&*+-.^_`|~azAZ09
+
+
+# --- x- prefix types ---
+x-custom/x-type
+x-/x-
+
+# --- Vendor types ---
+application/vnd.github+json
+application/vnd.collection+json
+application/vnd.hal+json
+application/problem+json

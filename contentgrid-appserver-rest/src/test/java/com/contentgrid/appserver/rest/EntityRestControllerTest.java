@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -401,7 +402,7 @@ class EntityRestControllerTest {
         void failToCreateEntityWithLongForBoolean(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
             var person = createPerson();
             mockMvc.perform(mediaTypeConfiguration.configure(post("/invoices"), Map.of(
-                                    "number", UUID.randomUUID().toString(),
+                                    "number", String.valueOf(new Random().nextLong(0, Long.MAX_VALUE)),
                                     "amount", 123,
                                     "confidentiality", "public",
                                     "customer", Objects.requireNonNull(person.getRedirectedUrl()),
@@ -468,6 +469,28 @@ class EntityRestControllerTest {
                             )
                     );
         }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
+        void testFailToCreateWithRegexMismatch(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
+            var person = createPerson();
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/invoices"), Map.of(
+                                    "number", "non-matching-value",
+                                    "amount", 123,
+                                    "confidentiality", "public",
+                                    "customer", Objects.requireNonNull(person.getRedirectedUrl())
+                            ))
+                    ).andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/pattern")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must match the pattern '[0-9]+'")
+                                    .withField("pattern", "[0-9]+")
+                                    .withField("field", "number")
+                            )
+                    );
+        }
+
 
         @ParameterizedTest
         @MethodSource("com.contentgrid.appserver.rest.EntityRestControllerTest#supportedMediaTypes")
@@ -910,7 +933,7 @@ class EntityRestControllerTest {
 
         static Stream<Arguments> testListEntityInstances_withQueryParam() {
             return Stream.of(
-                    Arguments.of("?number=invoice1", 1),
+                    Arguments.of("?number=1", 1),
                     Arguments.of("?amount=12.0", 1),
                     Arguments.of("?amount~gt=10.0&amount~lt=20.0", 1),
                     Arguments.of("?amount~gte=12.0&amount~lte=12.5", 1),
@@ -923,9 +946,9 @@ class EntityRestControllerTest {
                     Arguments.of("?customer=00000000-0000-0000-0000-000000000000", 0),
                     Arguments.of("?customer.name~prefix=a", 1),
                     Arguments.of("?customer.vat=vat1", 1),
-                    Arguments.of("?previous_invoice.number=invoice1", 1),
+                    Arguments.of("?previous_invoice.number=1", 1),
                     Arguments.of("?previous_invoice.confidentiality=confidential", 1),
-                    Arguments.of("?next_invoice.number=invoice2", 1),
+                    Arguments.of("?next_invoice.number=2", 1),
                     Arguments.of("?next_invoice.confidentiality=public", 1)
             );
         }
@@ -950,7 +973,7 @@ class EntityRestControllerTest {
             assertThat(person1link).isNotBlank();
 
             var invoice1 = new HashMap<String, Object>();
-            invoice1.put("number", "invoice1");
+            invoice1.put("number", "1");
             invoice1.put("amount", 12.0);
             invoice1.put("received", "2025-01-01");
             invoice1.put("pay_before", "2026-01-01");
@@ -987,7 +1010,7 @@ class EntityRestControllerTest {
             assertThat(person2link).isNotBlank();
 
             var invoice2 = new HashMap<String, Object>();
-            invoice2.put("number", "invoice2");
+            invoice2.put("number", "2");
             invoice2.put("amount", 20.0);
             invoice2.put("received", "2025-01-02");
             invoice2.put("pay_before", "2025-01-31");

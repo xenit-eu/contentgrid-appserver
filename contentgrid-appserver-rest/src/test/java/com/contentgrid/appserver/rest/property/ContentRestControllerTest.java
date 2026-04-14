@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
@@ -114,7 +115,7 @@ class ContentRestControllerTest {
     }
 
     private String createInvoice(MockMultipartFile contentFile) throws Exception {
-        String invoiceNumber = "INV-" + UUID.randomUUID().toString().substring(0, 8);
+        String invoiceNumber = String.valueOf(new Random().nextLong(0, Long.MAX_VALUE));
 
         var requestBuilder = multipart("/invoices");
         if (contentFile != null) {

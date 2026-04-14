@@ -262,29 +262,15 @@ public class JsonSchema {
         }
 
         /**
-         * Configures the {@link JsonSchemaProperty} to require the given regular expression as pattern.
-         *
-         * @param regex must not be {@literal null}.
-         * @return
-         */
-        public JsonSchemaProperty withRegex(String regex) {
-
-            Assert.hasText(regex, "Regular expression must not be null or empty");
-            return withPattern(Pattern.compile(regex));
-        }
-
-        /**
          * Configures the {@link JsonSchemaProperty} to require the given {@link Pattern}.
          *
          * @param pattern must not be {@literal null}.
          * @return
          */
-        public JsonSchemaProperty withPattern(Pattern pattern) {
+        public JsonSchemaProperty withPattern(String pattern) {
 
-            Assert.notNull(pattern, "Pattern must not be null");
-
-            this.pattern = pattern.toString();
-            return withType(JsonSchemaType.STRING);
+            this.pattern = pattern;
+            return this;
         }
 
         /**

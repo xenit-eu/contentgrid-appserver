@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.assembler.profile.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
@@ -95,6 +96,12 @@ public class JsonSchemaAssembler {
             property = new EnumProperty(property.getName(), property.getTitle(), values, property.getDescription(),
                     property.isRequired());
         }
+
+        if(simpleAttribute.hasConstraint(RegexPatternConstraint.class)) {
+            var htmlPattern = simpleAttribute.getConstraint(RegexPatternConstraint.class).orElseThrow().getHtmlPattern();
+            property = property.withPattern(htmlPattern);
+        }
+
         return property;
     }
 

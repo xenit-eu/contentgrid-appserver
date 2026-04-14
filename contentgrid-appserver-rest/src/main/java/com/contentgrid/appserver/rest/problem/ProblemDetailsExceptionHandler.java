@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.RegexPatternConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -91,6 +92,10 @@ public class ProblemDetailsExceptionHandler {
                         case AllowedValuesConstraintViolationInvalidDataException allowedValuesConstraintViolation -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_ALLOWED_VALUES, allowedValuesConstraintViolation.getAllowedValues())
                                 .withProperties(Map.of(
                                         "allowed_values", allowedValuesConstraintViolation.getAllowedValues()
+                                ));
+                        case RegexPatternConstraintViolationInvalidDataException regexPatternConstraintViolationInvalidDataException -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_PATTERN, regexPatternConstraintViolationInvalidDataException.getPattern().pattern())
+                                .withProperties(Map.of(
+                                        "pattern", regexPatternConstraintViolationInvalidDataException.getPattern().pattern()
                                 ));
                         // All exception types should be covered above, this is a fallback for when there are additional
                         // exceptions added without adding a case.

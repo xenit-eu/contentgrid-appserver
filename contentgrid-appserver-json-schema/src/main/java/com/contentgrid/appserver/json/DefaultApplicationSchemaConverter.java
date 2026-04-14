@@ -60,6 +60,7 @@ import com.contentgrid.appserver.json.model.Entity;
 import com.contentgrid.appserver.json.model.ManyToManyRelation;
 import com.contentgrid.appserver.json.model.OneToManyRelation;
 import com.contentgrid.appserver.json.model.OneToOneRelation;
+import com.contentgrid.appserver.json.model.PatternConstaint;
 import com.contentgrid.appserver.json.model.PropertyPathElement;
 import com.contentgrid.appserver.json.model.PropertyPathElement.PropertyPathElementType;
 import com.contentgrid.appserver.json.model.Relation;
@@ -70,11 +71,12 @@ import com.contentgrid.appserver.json.model.SimpleAttribute;
 import com.contentgrid.appserver.json.model.SortableField;
 import com.contentgrid.appserver.json.model.Translations;
 import com.contentgrid.appserver.json.model.Translations.EmptyTranslation;
+import com.contentgrid.appserver.json.model.Translations.MultipleTranslations;
+import com.contentgrid.appserver.json.model.Translations.SingleTranslation;
 import com.contentgrid.appserver.json.model.UniqueConstraint;
 import com.contentgrid.appserver.json.model.UserAttribute;
 import com.contentgrid.appserver.json.validation.ApplicationSchemaValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -303,6 +305,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             case AllowedValuesConstraint avc -> Constraint.allowedValues(avc.getValues());
             case UniqueConstraint ignored -> Constraint.unique();
             case RequiredConstraint ignored -> Constraint.required();
+            case PatternConstaint patternConstaint -> {
+                var regexPatternConstraint = Constraint.pattern(patternConstaint.getRegex());
+                if (patternConstaint.getHtmlPattern() != null) {
+                    regexPatternConstraint = regexPatternConstraint.withHtmlPattern(patternConstaint.getHtmlPattern());
+                }
+                yield regexPatternConstraint;
+            }
         };
     }
 
@@ -320,7 +329,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 : fromJsonAttributeSearchFilter(jsonFilter, type, propertyPath, filterName);
     }
 
-    private com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter fromJsonFullTextSearchFilter(
+    private FullTextSearchAttributeSearchFilter fromJsonFullTextSearchFilter(
             SearchFilter jsonFilter, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
         Locale locale = Objects.requireNonNull(jsonFilter.getLocale(), "Full-text search filters require a locale to be set.");
 
@@ -556,15 +565,24 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private AttributeConstraint toJsonConstraint(Constraint constraint) {
         return switch (constraint) {
-            case com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint allowedValuesConstraint -> {
+            case Constraint.AllowedValuesConstraint allowedValuesConstraint -> {
                 var avc = new AllowedValuesConstraint();
                 avc.setValues(allowedValuesConstraint.getValues());
                 yield avc;
             }
-            case com.contentgrid.appserver.application.model.Constraint.UniqueConstraint ignored ->
-                    new UniqueConstraint();
-            case com.contentgrid.appserver.application.model.Constraint.RequiredConstraint ignored ->
-                    new RequiredConstraint();
+            case Constraint.UniqueConstraint ignored -> new UniqueConstraint();
+            case Constraint.RequiredConstraint ignored -> new RequiredConstraint();
+            case Constraint.RegexPatternConstraint regexPatternConstraint -> {
+                var javaPattern = regexPatternConstraint.getPattern().pattern();
+                var htmlPattern = regexPatternConstraint.getHtmlPattern();
+                var pc = new PatternConstaint();
+                pc.setRegex(javaPattern);
+                // Canonical representation: htmlPattern is only present when it's not the same as the Java pattern
+                if (!Objects.equals(javaPattern, htmlPattern)) {
+                    pc.setHtmlPattern(htmlPattern);
+                }
+                yield  pc;
+            }
         };
     }
 
@@ -716,8 +734,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             return EmptyTranslation.INSTANCE;
         }
         if(translations.size() == 1 && translations.containsKey(Locale.ROOT)) {
-            return new Translations.SingleTranslation(translations.get(Locale.ROOT));
+            return new SingleTranslation(translations.get(Locale.ROOT));
         }
-        return new Translations.MultipleTranslations(translations);
+        return new MultipleTranslations(translations);
     }
 }

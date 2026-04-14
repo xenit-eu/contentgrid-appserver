@@ -151,7 +151,14 @@
           "description": "Employee's email address",
           "type": "simple",
           "columnName": "email",
-          "dataType": "text"
+          "dataType": "text",
+          "constraints": [
+            {
+              "type": "pattern",
+              "regex": ".+@.+\\..+",
+              "htmlPattern": ".+@.+"
+            }
+          ]
         },
         {
           "name": "hireDate",
@@ -188,7 +195,13 @@
               "description": "Employee's phone number",
               "type": "simple",
               "columnName": "phone",
-              "dataType": "text"
+              "dataType": "text",
+              "constraints": [
+                {
+                  "type": "pattern",
+                  "regex": "\\+[0-9]+"
+                }
+              ]
             },
             {
               "name": "address",
