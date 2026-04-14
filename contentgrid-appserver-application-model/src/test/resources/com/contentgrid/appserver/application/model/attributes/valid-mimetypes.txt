@@ -99,8 +99,6 @@ text/plain; foo=""
 
 # --- Semicolons with no parameter (PARAMETER is optional in PARAMETERS) ---
 text/plain;
-text/plain;
-text/plain;
 text/plain; ; charset=utf-8
 text/plain; charset=utf-8;
 

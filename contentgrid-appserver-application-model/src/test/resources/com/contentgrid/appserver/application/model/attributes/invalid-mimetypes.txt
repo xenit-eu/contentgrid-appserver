@@ -11,8 +11,6 @@ textplain
 application
 json
 
-# --- Empty string (TOKEN requires 1+ chars) ---
-
 
 # --- Multiple slashes ---
 text/plain/extra
@@ -90,12 +88,6 @@ tëxt/plain
 text/plàin
 tèxt/hïml
 application/ünknown
-
-# --- Double semicolons with no content when parameter IS required ---
-# (note: ; with no parameter is valid, but ; with just spaces and then another ; and then nothing is also valid;
-#  this entry tests something that does NOT fit the regex regardless)
-text/plain; charset="foo"extra
-text/plain; charset="foo" extra
 
 # --- Content after closing quote that isn't a semicolon ---
 text/plain; foo="bar"baz
