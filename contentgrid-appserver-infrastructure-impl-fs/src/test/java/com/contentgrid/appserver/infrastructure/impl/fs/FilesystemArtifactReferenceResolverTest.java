@@ -13,9 +13,9 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class DefaultArtifactReferenceResolverTest {
+class FilesystemArtifactReferenceResolverTest {
 
-    DefaultArtifactReferenceResolver resolver = new DefaultArtifactReferenceResolver();
+    private final FilesystemArtifactReferenceResolver resolver = new FilesystemArtifactReferenceResolver();
 
     @Test
     void resolve_fileReference_returnsFileSystemDirectoryArtifact(@TempDir Path dir) {
