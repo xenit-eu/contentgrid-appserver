@@ -1,9 +1,11 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'io.freefair.lombok'
 }
 
 dependencies {
+    implementation project(':contentgrid-appserver-infrastructure-api')
 
     implementation 'jakarta.servlet:jakarta.servlet-api'
     implementation 'org.springframework:spring-webmvc'
@@ -11,6 +13,7 @@ dependencies {
     implementation 'org.webjars:hal-explorer:2.3.0'
     implementation 'org.webjars:webjars-locator-core'
 
+    testImplementation project(':contentgrid-appserver-infrastructure-impl-fs')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     testRuntimeOnly 'jakarta.servlet:jakarta.servlet-api'

@@ -3,12 +3,16 @@ package com.contentgrid.appserver.webjars;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
 import com.contentgrid.appserver.webjars.WebjarsApplicationTest.TestRestController;
+import java.nio.file.Path;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +40,11 @@ class WebjarsApplicationTest {
         @GetMapping("/{entity:invoices|products}")
         ResponseEntity<String> entityCollection(@PathVariable("entity") String entity) {
             return ResponseEntity.ok("%s collection".formatted(entity));
+        }
+
+        @Bean
+        Artifact testArtifact() {
+            return new ClassPathArtifact(WebjarsApplicationTest.class.getClassLoader(), Path.of(""));
         }
     }
 
@@ -116,5 +125,12 @@ class WebjarsApplicationTest {
                 .andExpect(MockMvcResultMatchers.content().string(Matchers.containsString("url: \"/openapi.yml\"")));
     }
 
+    @Test
+    void openApiSpec() throws Exception {
+        this.mockMvc.perform(get("/openapi.yml"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                // assert content-type is application/yaml instead of application/octet-stream (from spring static resources)
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_YAML));
+    }
 
 }
