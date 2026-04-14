@@ -90,7 +90,6 @@ text/plain; foo="\	"
 text/plain; foo="a\"b\"c"
 
 # --- Quoted-string: empty value ---
-text/plain; charset=""
 text/plain; foo=""
 
 # --- Semicolons with no parameter (PARAMETER is optional in PARAMETERS) ---

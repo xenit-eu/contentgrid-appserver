@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -102,7 +103,11 @@ class ContentAttributeTest {
         @ParameterizedTest
         @MethodSource
         void validMimetypes(String mediaType) {
+            // server-side validation pattern matches
             assertThat(ContentAttribute.MIMETYPE_PATTERN_CONSTRAINT.getPattern().matcher(mediaType).matches()).isTrue();
+            // client-side validation pattern matches
+            assertThat(Pattern.matches(ContentAttribute.MIMETYPE_PATTERN_CONSTRAINT.getHtmlPattern(), mediaType)).isTrue();
+            // media type parsing is also valid
             assertThatCode(() -> {
                 MediaType.parseMediaType(mediaType);
             }).doesNotThrowAnyException();

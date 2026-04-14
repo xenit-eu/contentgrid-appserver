@@ -15,12 +15,14 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -36,7 +38,8 @@ import lombok.experimental.Delegate;
 public class ContentAttribute implements CompositeAttribute {
 
     // package-private for testing
-    static final RegexPatternConstraint MIMETYPE_PATTERN_CONSTRAINT = Constraint.pattern(MediaTypeABNF.MEDIA_TYPE);
+    static final RegexPatternConstraint MIMETYPE_PATTERN_CONSTRAINT = Constraint.pattern(MediaTypeABNF.mediaType(true))
+            .withHtmlPattern(MediaTypeABNF.mediaType(false));
 
     @NonNull
     AttributeName name;
@@ -178,14 +181,35 @@ public class ContentAttribute implements CompositeAttribute {
         private static final String PARAMETER_NAME = TOKEN;
         private static final String PARAMETER_VALUE = "(?:"+TOKEN+"|"+QUOTED_STRING+")";
         private static final String PARAMETER = PARAMETER_NAME+ABNFCharRange.of('=')+PARAMETER_VALUE;
-        private static final String PARAMETERS = "(?:"+OWS+ABNFCharRange.of(';')+OWS+"(?:"+PARAMETER+")?)*";
-
         // Prevents a wildcard character being present as first character
         private static final String NO_WILDCARD = "(?!"+ABNFCharRange.of('*')+")";
 
+        private static String parameters(boolean restrictCharset) {
+            var anyParameter = PARAMETER;
+            if(restrictCharset) {
+                // Prevents unknown charsets being used in the charset= parameter
+                final String KNOWN_CHARSETS = Charset.availableCharsets().values().stream()
+                        .flatMap(charset -> Stream.concat(Stream.of(charset.name()), charset.aliases().stream()))
+                        .map(Pattern::quote)
+                        .collect(Collectors.joining("|"));
+
+                // A charset parameter: name is 'charset' (case-insensitive), value must be a known charset (case-insensitive, optionally quoted)
+                final String CHARSET_PARAMETER =
+                        "(?i:charset)=(?:(?i:" + KNOWN_CHARSETS + ")|" + DQUOTE + "(?i:" + KNOWN_CHARSETS + ")" + DQUOTE
+                                + ")";
+                // A non-charset parameter: any parameter where name is not 'charset' (case-insensitive)
+                final String NON_CHARSET_PARAMETER = "(?!(?i:charset)=)" + PARAMETER;
+                anyParameter = "(?:"+CHARSET_PARAMETER+"|"+NON_CHARSET_PARAMETER+")";
+            }
+
+            return "(?:"+OWS+ABNFCharRange.of(';')+OWS+"(?:"+anyParameter+")?)*";
+        }
+
         //  https://www.rfc-editor.org/rfc/rfc9110.html#name-media-type
         // But wildcards are not allowed, because this has to be a concrete media type (not an Accept header)
-        public static final String MEDIA_TYPE = NO_WILDCARD+TOKEN+ABNFCharRange.of('/')+NO_WILDCARD+TOKEN+PARAMETERS;
+        public static String mediaType(boolean restrictCharset) {
+            return NO_WILDCARD+TOKEN+ABNFCharRange.of('/')+NO_WILDCARD+TOKEN+parameters(restrictCharset);
+        }
 
 
         private sealed interface ABNFCharRange {

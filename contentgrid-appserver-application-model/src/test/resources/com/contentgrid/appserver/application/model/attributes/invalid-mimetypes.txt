@@ -55,6 +55,11 @@ text/plain; charset="utf-8
 text/plain; charset="
 text/plain; foo="unterminated
 
+# --- Invalid charset ---
+text/plain; charset=""
+text/plain; charset="abc def"
+text/plain; charset=abc
+
 # --- Characters that are not tchar in type or subtype ---
 # tchar = !#$%&*+-.^_`|~ / DIGIT / ALPHA — everything else is invalid
 text@domain/plain
