@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.attributes;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.MediaType;
 
 class ContentAttributeTest {
 
@@ -101,6 +103,9 @@ class ContentAttributeTest {
         @MethodSource
         void validMimetypes(String mediaType) {
             assertThat(ContentAttribute.MIMETYPE_PATTERN_CONSTRAINT.getPattern().matcher(mediaType).matches()).isTrue();
+            assertThatCode(() -> {
+                MediaType.parseMediaType(mediaType);
+            }).doesNotThrowAnyException();
         }
 
         @ParameterizedTest
