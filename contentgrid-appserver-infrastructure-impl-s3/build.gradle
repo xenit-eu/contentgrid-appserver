@@ -6,8 +6,12 @@ plugins {
 
 dependencies {
     implementation project(':contentgrid-appserver-infrastructure-api')
+    implementation project(':contentgrid-appserver-infrastructure-impl-fs')
+    implementation 'io.minio:minio'
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation testFixtures(project(':contentgrid-appserver-infrastructure-api'))
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation "com.adobe.testing:s3mock-testcontainers"
 }
 
