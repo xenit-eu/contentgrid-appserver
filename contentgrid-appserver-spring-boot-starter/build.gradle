@@ -21,6 +21,11 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-fs')
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')
+<<<<<<< HEAD
+=======
+    implementation project(':contentgrid-appserver-infrastructure-impl-fs')
+    implementation project(':contentgrid-appserver-infrastructure-impl-s3')
+>>>>>>> 77751d4e (ACC-2780 add contentgrid-appserver-infrastructure-impl-s3)
     implementation project(':contentgrid-appserver-webjars')
     implementation ("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
         capabilities {
