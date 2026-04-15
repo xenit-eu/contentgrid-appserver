@@ -65,7 +65,7 @@ class DefaultApplicationSchemaConverterTest {
             assertTrue(jsonTarget.contains("entities"));
             assertTrue(jsonTarget.contains("relations"));
 
-            assertThat(jsonTarget, sameJSONAs(jsonSource).allowingAnyArrayOrdering());
+            assertThat(jsonTarget, sameJSONAs(jsonSource));
         }
     }
 
@@ -220,7 +220,7 @@ class DefaultApplicationSchemaConverterTest {
                         }
                     ]
                 }
-                """).allowingAnyArrayOrdering());
+                """));
     }
 
     @Test
@@ -335,7 +335,7 @@ class DefaultApplicationSchemaConverterTest {
                         }
                     ]
                 }
-                """).allowingAnyArrayOrdering());
+                """));
     }
 
     private static Entity getEntity(String name, String description, String table) {
