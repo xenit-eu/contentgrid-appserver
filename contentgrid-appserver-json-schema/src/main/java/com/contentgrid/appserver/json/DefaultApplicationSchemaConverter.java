@@ -84,7 +84,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -127,21 +126,17 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     @Override
     public Application convert(InputStream json) throws InvalidJsonException {
         var schema = getApplicationSchema(json);
-        Set<com.contentgrid.appserver.application.model.Entity> entities = new HashSet<>();
+        List<com.contentgrid.appserver.application.model.Entity> entities = new ArrayList<>();
         for (Entity entity : schema.getEntities()) {
             com.contentgrid.appserver.application.model.Entity convertEntity = fromJsonEntity(entity);
             entities.add(convertEntity);
         }
-        Set<com.contentgrid.appserver.application.model.relations.Relation> relations;
-        if (schema.getRelations() == null) {
-            relations = Set.of();
-        } else {
-            Set<com.contentgrid.appserver.application.model.relations.Relation> set = new HashSet<>();
+        List<com.contentgrid.appserver.application.model.relations.Relation> relations = new ArrayList<>();
+        if (schema.getRelations() != null) {
             for (Relation rel : schema.getRelations()) {
                 com.contentgrid.appserver.application.model.relations.Relation relation = fromJsonRelation(rel);
-                set.add(relation);
+                relations.add(relation);
             }
-            relations = set;
         }
         return Application.builder()
                 .name(ApplicationName.of(
@@ -275,16 +270,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
     }
 
-    private Set<AttributeFlag> fromJsonAttributeFlags(List<String> flags) throws UnknownFlagException {
+    private List<AttributeFlag> fromJsonAttributeFlags(List<String> flags) throws UnknownFlagException {
         if (flags == null) {
-            return Set.of();
+            return List.of();
         }
-        Set<AttributeFlag> set = new HashSet<>();
+        List<AttributeFlag> result = new ArrayList<>();
         for (String flag : flags) {
             AttributeFlag convertFlag = fromJsonAttributeFlag(flag);
-            set.add(convertFlag);
+            result.add(convertFlag);
         }
-        return set;
+        return result;
     }
 
     private AttributeFlag fromJsonAttributeFlag(String flag) throws UnknownFlagException {
@@ -360,20 +355,20 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
     }
 
-    private Set<SearchFilterFlag> fromJsonSearchFilterFlags(
+    private List<SearchFilterFlag> fromJsonSearchFilterFlags(
             List<String> flags
     ) throws UnknownFlagException {
         if(flags == null) {
-            return Set.of();
+            return List.of();
         }
-        Set<SearchFilterFlag> set = new HashSet<>();
+        List<SearchFilterFlag> result = new ArrayList<>();
         for (String flag : flags) {
-            set.add(switch (flag) {
+            result.add(switch (flag) {
                 case "hidden" -> HiddenSearchFilterFlag.INSTANCE;
                 default -> throw new UnknownFlagException("Unknown flag '%s'".formatted(flag));
             });
         }
-        return Collections.unmodifiableSet(set);
+        return Collections.unmodifiableList(result);
     }
 
     private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {
@@ -433,17 +428,17 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .build();
     }
 
-    private Set<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
-        Set<RelationEndpointFlag> set = new HashSet<>();
+    private List<RelationEndpointFlag> fromJsonRelationEndpointFlags(RelationEndPoint endPoint) throws UnknownFlagException {
+        List<RelationEndpointFlag> result = new ArrayList<>();
         for (String flag : Objects.requireNonNullElseGet(endPoint.getFlags(), List::<String>of)) {
             RelationEndpointFlag relationEndpointFlag = switch (flag) {
                 case "hidden" -> HiddenEndpointFlag.INSTANCE;
                 case "required" -> RequiredEndpointFlag.INSTANCE;
                 default -> throw new UnknownFlagException("Unknown relation endpoint flag '%s'".formatted(flag));
             };
-            set.add(relationEndpointFlag);
+            result.add(relationEndpointFlag);
         }
-        return Collections.unmodifiableSet(set);
+        return Collections.unmodifiableList(result);
     }
 
     /**
