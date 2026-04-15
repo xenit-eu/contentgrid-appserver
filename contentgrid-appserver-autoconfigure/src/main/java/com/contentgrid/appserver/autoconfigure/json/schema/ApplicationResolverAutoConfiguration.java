@@ -1,8 +1,8 @@
 package com.contentgrid.appserver.autoconfigure.json.schema;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.json.DefaultApplicationSchemaConverter;
-import com.contentgrid.appserver.json.exceptions.InvalidJsonException;
+import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
