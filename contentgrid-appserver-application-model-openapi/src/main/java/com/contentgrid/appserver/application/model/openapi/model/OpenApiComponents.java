@@ -3,6 +3,8 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -26,8 +28,18 @@ public class OpenApiComponents {
         @JsonAnyGetter
         final Map<String, T> items = new LinkedHashMap<>();
 
+        public Map<String, T> getItems() {
+            return Collections.unmodifiableMap(items);
+        }
+
+        public T getItem(String key) {
+            return items.get(key);
+        }
+
         public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Supplier<T> factory) {
-            items.computeIfAbsent(name, _unused -> factory.get());
+            if(!items.containsKey(name)) {
+                items.put(name, factory.get());
+            }
             return new OpenApiReference<T>(referencePrefix + name);
         }
 

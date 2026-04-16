@@ -3,10 +3,10 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -50,6 +50,11 @@ public class OpenApiPaths {
 
         public OpenApiPathItem method(@NonNull HttpMethod method, Consumer<OpenApiOperation> consumer) {
             consumer.accept(method(method));
+            return this;
+        }
+
+        public OpenApiPathItem each(BiConsumer<HttpMethod, OpenApiOperation> consumer) {
+            operations.forEach(consumer);
             return this;
         }
     }

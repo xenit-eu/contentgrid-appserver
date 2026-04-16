@@ -9,11 +9,13 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
 @Value
-@EqualsAndHashCode(callSuper = false)
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class JsonSchemaObject extends AbstractJsonSchemaDataType {
     Map<String, OpenApiPotentialReference<JsonSchema>> properties = new LinkedHashMap<>();
     List<String> required = new ArrayList<>();

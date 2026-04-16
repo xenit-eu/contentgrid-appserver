@@ -15,7 +15,7 @@ public class JsonSchemaEnum extends JsonSchemaString {
     List<String> enum_;
 
     @JsonProperty("enum")
-    public List<?> getEnum() {
+    public List<String> getEnum() {
         return this.enum_;
     }
 }

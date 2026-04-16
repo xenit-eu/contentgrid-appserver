@@ -1,13 +1,14 @@
 package com.contentgrid.appserver.application.model.openapi.model.jsonschema;
 
 
-import java.util.List;
-import java.util.Map;
 import lombok.AccessLevel;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public final class JsonSchemaBoolean extends AbstractJsonSchemaDataType {
 
     public JsonSchemaBoolean() {
