@@ -1,0 +1,1883 @@
+openapi: "3.0.2"
+info:
+  description: "ContentGrid app for demo/test"
+  version: "0.0.1-SNAPSHOT"
+  title: "TestApiApplication"
+tags:
+- name: "person"
+  description: ""
+- name: "shipment"
+  description: ""
+- name: "invoice"
+  description: ""
+paths:
+  /persons:
+    get:
+      tags:
+      - "person"
+      operationId: "get-persons"
+      summary: "Retrieve person list"
+      parameters:
+      - name: "first_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "last_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "comment~prefix"
+        in: "query"
+        description: "Starts with comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "comment~fts"
+        in: "query"
+        description: "Full text search comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "invoices.number"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "invoices.amount"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoices.amount~lt"
+        in: "query"
+        description: "Less than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoices.amount~lte"
+        in: "query"
+        description: "Less than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoices.amount~gt"
+        in: "query"
+        description: "Greater than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoices.amount~gte"
+        in: "query"
+        description: "Greater than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "friends.first_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "friends.last_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "friends.comment~prefix"
+        in: "query"
+        description: "Starts with comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "friends.comment~fts"
+        in: "query"
+        description: "Full text search comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "first_name,asc"
+            - "first_name,desc"
+            - "last_name,asc"
+            - "last_name,desc"
+            example: "first_name,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personCollection"
+    post:
+      tags:
+      - "person"
+      operationId: "create-person"
+      summary: "Create a new person"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/personPostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/personPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The person has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+        "400":
+          description: "The person can not be created due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The person can not be created due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /persons/{id}:
+    get:
+      tags:
+      - "person"
+      operationId: "get-person"
+      summary: "Retrieve the person"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+    put:
+      tags:
+      - "person"
+      operationId: "update-person"
+      summary: "Update all attributes of the person"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/personPutBody"
+      responses:
+        "200":
+          description: "The person has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+        "400":
+          description: "The person can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The person can not be updated due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "person"
+      operationId: "patch-person"
+      summary: "Update some attributes of the person"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/personPatchBody"
+      responses:
+        "200":
+          description: "The person has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+        "400":
+          description: "The person can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The person can not be updated due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "person"
+      operationId: "delete-person"
+      summary: "Delete the person"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The person has been deleted"
+        "409":
+          description: "The person can not be deleted because it is linked via a required\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /persons/{id}/invoices:
+    get:
+      tags:
+      - "person"
+      operationId: "get-person-invoices"
+      summary: "Retrieve the invoice list linked with person as invoices"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceCollection"
+    post:
+      tags:
+      - "person"
+      operationId: "add-person-invoices"
+      summary: "Add links to invoice list that is linked with person as invoices,\
+        \ in addition to existing invoice list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of invoice URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/invoices/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of invoice is linked with person as invoices"
+        "409":
+          description: "The URI list contains some invoice that is already linked\
+            \ with a different person as invoices"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "person"
+      operationId: "delete-person-invoices"
+      summary: "Removes all links to invoice from invoices"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to invoice have been removed from invoices"
+        "409":
+          description: "You can not remove the invoices link, because the inverse\
+            \ relation is marked as required"
+  /persons/{id}/invoices/{itemId}:
+    get:
+      tags:
+      - "person"
+      operationId: "get-person-invoices-item"
+      summary: "Retrieve the invoice identified by 'itemId' linked with person as\
+        \ invoices"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+        "404":
+          description: "The invoices relation does not link to the invoice identified\
+            \ by 'itemId'"
+    delete:
+      tags:
+      - "person"
+      operationId: "delete-person-invoices-item"
+      summary: "Removes the link to invoice identified by 'itemId' from invoices"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to invoice has been removed from invoices"
+        "409":
+          description: "You can not remove the invoices link, because the inverse\
+            \ relation is marked as required"
+  /persons/{id}/friends:
+    get:
+      tags:
+      - "person"
+      operationId: "get-person-friends"
+      summary: "Retrieve the person list linked with person as friends"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personCollection"
+    post:
+      tags:
+      - "person"
+      operationId: "add-person-friends"
+      summary: "Add links to person list that is linked with person as friends, in\
+        \ addition to existing person list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of person URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/persons/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of person is linked with person as friends"
+        "409":
+          description: "The URI list contains some person that is already linked with\
+            \ a different person as friends"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "person"
+      operationId: "delete-person-friends"
+      summary: "Removes all links to person from friends"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to person have been removed from friends"
+        "409":
+          description: "You can not remove the friends link, because the inverse relation\
+            \ is marked as required"
+  /persons/{id}/friends/{itemId}:
+    get:
+      tags:
+      - "person"
+      operationId: "get-person-friends-item"
+      summary: "Retrieve the person identified by 'itemId' linked with person as friends"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+        "404":
+          description: "The friends relation does not link to the person identified\
+            \ by 'itemId'"
+    delete:
+      tags:
+      - "person"
+      operationId: "delete-person-friends-item"
+      summary: "Removes the link to person identified by 'itemId' from friends"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to person has been removed from friends"
+        "409":
+          description: "You can not remove the friends link, because the inverse relation\
+            \ is marked as required"
+  /shipments:
+    get:
+      tags:
+      - "shipment"
+      operationId: "get-shipments"
+      summary: "Retrieve shipment list"
+      parameters:
+      - name: "address_city"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "address_country"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "address_residence_street"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "address_residence_number"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "invoice.number"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "invoice.amount"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoice.amount~lt"
+        in: "query"
+        description: "Less than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoice.amount~lte"
+        in: "query"
+        description: "Less than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoice.amount~gt"
+        in: "query"
+        description: "Greater than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "invoice.amount~gte"
+        in: "query"
+        description: "Greater than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "address_city,asc"
+            - "address_city,desc"
+            - "address_country,asc"
+            - "address_country,desc"
+            - "address_residence_street,asc"
+            - "address_residence_street,desc"
+            - "address_residence_number,asc"
+            - "address_residence_number,desc"
+            example: "address_city,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentCollection"
+    post:
+      tags:
+      - "shipment"
+      operationId: "create-shipment"
+      summary: "Create a new shipment"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/shipmentPostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/shipmentPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The shipment has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentResponse"
+        "400":
+          description: "The shipment can not be created due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The shipment can not be created due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /shipments/{id}:
+    get:
+      tags:
+      - "shipment"
+      operationId: "get-shipment"
+      summary: "Retrieve the shipment"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentResponse"
+    put:
+      tags:
+      - "shipment"
+      operationId: "update-shipment"
+      summary: "Update all attributes of the shipment"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/shipmentPutBody"
+      responses:
+        "200":
+          description: "The shipment has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentResponse"
+        "400":
+          description: "The shipment can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The shipment can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "shipment"
+      operationId: "patch-shipment"
+      summary: "Update some attributes of the shipment"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/shipmentPatchBody"
+      responses:
+        "200":
+          description: "The shipment has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentResponse"
+        "400":
+          description: "The shipment can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The shipment can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "shipment"
+      operationId: "delete-shipment"
+      summary: "Delete the shipment"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The shipment has been deleted"
+        "409":
+          description: "The shipment can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /shipments/{id}/invoice:
+    get:
+      tags:
+      - "shipment"
+      operationId: "get-shipment-invoice"
+      summary: "Retrieve the invoice linked with shipment as invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+        "404":
+          description: "The invoice relation does not link to any invoice"
+    put:
+      tags:
+      - "shipment"
+      operationId: "update-shipment-invoice"
+      summary: "Set the invoice that is linked with shipment as invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One invoice URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/invoices/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The invoice is linked with shipment as invoice"
+        "400":
+          description: "Multiple URIs are given, but invoice can only refer to one\
+            \ item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The invoice is already linked with a different shipment as\
+            \ invoice"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "shipment"
+      operationId: "delete-shipment-invoice"
+      summary: "Removes the link to invoice from invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to invoice has been removed from invoice"
+        "400":
+          description: "You can not remove the invoice link, because it is marked\
+            \ as required"
+        "409":
+          description: "You can not remove the invoice link, because the inverse relation\
+            \ is marked as required"
+  /invoices:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoices"
+      summary: "Retrieve invoice list"
+      parameters:
+      - name: "number"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "amount"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "amount~lt"
+        in: "query"
+        description: "Less than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "amount~lte"
+        in: "query"
+        description: "Less than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "amount~gt"
+        in: "query"
+        description: "Greater than amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "amount~gte"
+        in: "query"
+        description: "Greater than or equal to amount"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "shipments.address_city"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "shipments.address_country"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "shipments.address_residence_street"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "shipments.address_residence_number"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "customer.first_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "customer.last_name"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+      - name: "customer.comment~prefix"
+        in: "query"
+        description: "Starts with comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "customer.comment~fts"
+        in: "query"
+        description: "Full text search comment"
+        required: false
+        schema:
+          type: "string"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "number,asc"
+            - "number,desc"
+            - "amount,asc"
+            - "amount,desc"
+            example: "number,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceCollection"
+    post:
+      tags:
+      - "invoice"
+      operationId: "create-invoice"
+      summary: "Create a new invoice"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/invoicePostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/invoicePostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The invoice has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+        "400":
+          description: "The invoice can not be created due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The invoice can not be created due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /invoices/{id}:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoice"
+      summary: "Retrieve the invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+    put:
+      tags:
+      - "invoice"
+      operationId: "update-invoice"
+      summary: "Update all attributes of the invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/invoicePutBody"
+      responses:
+        "200":
+          description: "The invoice has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+        "400":
+          description: "The invoice can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The invoice can not be updated due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "invoice"
+      operationId: "patch-invoice"
+      summary: "Update some attributes of the invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/invoicePatchBody"
+      responses:
+        "200":
+          description: "The invoice has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/invoiceResponse"
+        "400":
+          description: "The invoice can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The invoice can not be updated due to a unique attribute already\
+            \ existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "invoice"
+      operationId: "delete-invoice"
+      summary: "Delete the invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The invoice has been deleted"
+        "409":
+          description: "The invoice can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /invoices/{id}/shipments:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoice-shipments"
+      summary: "Retrieve the shipment list linked with invoice as shipments"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentCollection"
+    post:
+      tags:
+      - "invoice"
+      operationId: "add-invoice-shipments"
+      summary: "Add links to shipment list that is linked with invoice as shipments,\
+        \ in addition to existing shipment list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of shipment URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/shipments/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of shipment is linked with invoice as shipments"
+        "409":
+          description: "The URI list contains some shipment that is already linked\
+            \ with a different invoice as shipments"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "invoice"
+      operationId: "delete-invoice-shipments"
+      summary: "Removes all links to shipment from shipments"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to shipment have been removed from shipments"
+        "409":
+          description: "You can not remove the shipments link, because the inverse\
+            \ relation is marked as required"
+  /invoices/{id}/shipments/{itemId}:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoice-shipments-item"
+      summary: "Retrieve the shipment identified by 'itemId' linked with invoice as\
+        \ shipments"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/shipmentResponse"
+        "404":
+          description: "The shipments relation does not link to the shipment identified\
+            \ by 'itemId'"
+    delete:
+      tags:
+      - "invoice"
+      operationId: "delete-invoice-shipments-item"
+      summary: "Removes the link to shipment identified by 'itemId' from shipments"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to shipment has been removed from shipments"
+        "409":
+          description: "You can not remove the shipments link, because the inverse\
+            \ relation is marked as required"
+  /invoices/{id}/customer:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoice-customer"
+      summary: "Retrieve the person linked with invoice as customer"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/personResponse"
+        "404":
+          description: "The customer relation does not link to any person"
+    put:
+      tags:
+      - "invoice"
+      operationId: "update-invoice-customer"
+      summary: "Set the person that is linked with invoice as customer"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One person URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/persons/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The person is linked with invoice as customer"
+        "400":
+          description: "Multiple URIs are given, but customer can only refer to one\
+            \ item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The person is already linked with a different invoice as customer"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "invoice"
+      operationId: "delete-invoice-customer"
+      summary: "Removes the link to person from customer"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to person has been removed from customer"
+        "400":
+          description: "You can not remove the customer link, because it is marked\
+            \ as required"
+        "409":
+          description: "You can not remove the customer link, because the inverse\
+            \ relation is marked as required"
+  /invoices/{id}/content:
+    get:
+      tags:
+      - "invoice"
+      operationId: "get-invoice-content"
+      summary: "Retrieve the content file stored with invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "404":
+          description: "No content file is stored with invoice"
+    put:
+      tags:
+      - "invoice"
+      operationId: "put-invoice-content"
+      summary: "Add or update the content file stored with invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    post:
+      tags:
+      - "invoice"
+      operationId: "post-invoice-content"
+      summary: "Add or update the content file stored with invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    delete:
+      tags:
+      - "invoice"
+      operationId: "delete-invoice-content"
+      summary: "Delete the content file stored with invoice"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The file has been deleted"
+components:
+  schemas:
+    Link:
+      type: "object"
+      properties:
+        href:
+          type: "string"
+      required:
+      - "href"
+    problemDetail:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        title:
+          type: "string"
+        status:
+          type: "integer"
+        detail:
+          type: "string"
+        instance:
+          type: "string"
+    problemDetailWithProperty:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          property:
+            type: "string"
+        required:
+        - "property"
+    problemDetailWithErrors:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          errors:
+            type: "array"
+            items:
+              oneOf:
+              - $ref: "#/components/schemas/problemDetail"
+              - $ref: "#/components/schemas/problemDetailWithProperty"
+        required:
+        - "errors"
+    problemDetailDiscriminator:
+      oneOf:
+      - $ref: "#/components/schemas/problemDetailWithErrors"
+      - $ref: "#/components/schemas/problemDetail"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetailWithErrors"
+          https://contentgrid.cloud/problems/input/duplicate-value: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/integrity/constraint-violation: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/type: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
+    page:
+      type: "object"
+      title: "Page metadata"
+      properties:
+        size:
+          type: "integer"
+          description: "Number of items shown on a single page"
+        total_items_estimate:
+          type: "integer"
+          description: "Estimated total number of items across all pages"
+        total_items_exact:
+          type: "integer"
+          description: "Exact total number of items across all pages (may be null\
+            \ if no exact number could be calculated)"
+          nullable: true
+        next_cursor:
+          type: "string"
+          description: "Cursor to access the next page of results (absent if there\
+            \ is no next page)"
+          example: "0msa4pz0"
+        prev_cursor:
+          type: "string"
+          description: "Cursor to access the previous page of results (absent if there\
+            \ is no previous page)"
+          example: "1mlpulv1"
+      required:
+      - "size"
+      - "total_items_estimate"
+      - "total_items_exact"
+    personResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        first_name:
+          type: "string"
+          nullable: true
+        last_name:
+          type: "string"
+          nullable: true
+        comment:
+          type: "string"
+          nullable: true
+        birth_date:
+          type: "string"
+          nullable: true
+          format: "date"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "first_name"
+      - "last_name"
+      - "comment"
+      - "birth_date"
+      - "_links"
+    invoiceResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        number:
+          type: "string"
+        amount:
+          type: "number"
+          format: "double"
+        content:
+          $ref: "#/components/schemas/ContentInfo"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "number"
+      - "amount"
+      - "content"
+      - "_links"
+    shipmentResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        shipped_timestamp:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        address_city:
+          type: "string"
+          nullable: true
+        address_country:
+          type: "string"
+          nullable: true
+        address_residence_street:
+          type: "string"
+          nullable: true
+        address_residence_number:
+          type: "string"
+          nullable: true
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "shipped_timestamp"
+      - "address_city"
+      - "address_country"
+      - "address_residence_street"
+      - "address_residence_number"
+      - "_links"
+    personCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/personResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    invoiceCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/invoiceResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    shipmentCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/shipmentResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    personPostBody:
+      type: "object"
+      properties:
+        first_name:
+          type: "string"
+          nullable: true
+        last_name:
+          type: "string"
+          nullable: true
+        comment:
+          type: "string"
+          nullable: true
+        birth_date:
+          type: "string"
+          nullable: true
+          format: "date"
+    personPostMultipartFormDataBody:
+      type: "object"
+      properties:
+        first_name:
+          type: "string"
+          nullable: true
+        last_name:
+          type: "string"
+          nullable: true
+        comment:
+          type: "string"
+          nullable: true
+        birth_date:
+          type: "string"
+          nullable: true
+          format: "date"
+    personPutBody:
+      type: "object"
+      properties:
+        first_name:
+          type: "string"
+          nullable: true
+        last_name:
+          type: "string"
+          nullable: true
+        comment:
+          type: "string"
+          nullable: true
+        birth_date:
+          type: "string"
+          nullable: true
+          format: "date"
+    personPatchBody:
+      type: "object"
+      properties:
+        first_name:
+          type: "string"
+          nullable: true
+        last_name:
+          type: "string"
+          nullable: true
+        comment:
+          type: "string"
+          nullable: true
+        birth_date:
+          type: "string"
+          nullable: true
+          format: "date"
+    shipmentPostBody:
+      type: "object"
+      properties:
+        shipped_timestamp:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        address_city:
+          type: "string"
+          nullable: true
+        address_country:
+          type: "string"
+          nullable: true
+        address_residence_street:
+          type: "string"
+          nullable: true
+        address_residence_number:
+          type: "string"
+          nullable: true
+        invoice:
+          type: "string"
+          nullable: true
+    shipmentPostMultipartFormDataBody:
+      type: "object"
+      properties:
+        shipped_timestamp:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        address_city:
+          type: "string"
+          nullable: true
+        address_country:
+          type: "string"
+          nullable: true
+        address_residence_street:
+          type: "string"
+          nullable: true
+        address_residence_number:
+          type: "string"
+          nullable: true
+        invoice:
+          type: "string"
+          nullable: true
+    shipmentPutBody:
+      type: "object"
+      properties:
+        shipped_timestamp:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        address_city:
+          type: "string"
+          nullable: true
+        address_country:
+          type: "string"
+          nullable: true
+        address_residence_street:
+          type: "string"
+          nullable: true
+        address_residence_number:
+          type: "string"
+          nullable: true
+    shipmentPatchBody:
+      type: "object"
+      properties:
+        shipped_timestamp:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        address_city:
+          type: "string"
+          nullable: true
+        address_country:
+          type: "string"
+          nullable: true
+        address_residence_street:
+          type: "string"
+          nullable: true
+        address_residence_number:
+          type: "string"
+          nullable: true
+    invoicePostBody:
+      type: "object"
+      properties:
+        number:
+          type: "string"
+        amount:
+          type: "number"
+          format: "double"
+        customer:
+          type: "string"
+          nullable: true
+      required:
+      - "number"
+      - "amount"
+    invoicePostMultipartFormDataBody:
+      type: "object"
+      properties:
+        number:
+          type: "string"
+        amount:
+          type: "number"
+          format: "double"
+        content:
+          type: "string"
+          format: "binary"
+        customer:
+          type: "string"
+          nullable: true
+      required:
+      - "number"
+      - "amount"
+    invoicePutBody:
+      type: "object"
+      properties:
+        number:
+          type: "string"
+        amount:
+          type: "number"
+          format: "double"
+        content:
+          $ref: "#/components/schemas/ContentInfoPUT"
+      required:
+      - "number"
+      - "amount"
+    invoicePatchBody:
+      type: "object"
+      properties:
+        number:
+          type: "string"
+        amount:
+          type: "number"
+          format: "double"
+        content:
+          $ref: "#/components/schemas/ContentInfoPATCH"
+    ContentInfo:
+      type: "object"
+      nullable: true
+      properties:
+        length:
+          type: "integer"
+          format: "int64"
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
+      required:
+      - "length"
+      - "mimetype"
+      - "filename"
+    ContentInfoPUT:
+      type: "object"
+      properties:
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
+      required:
+      - "mimetype"
+    ContentInfoPATCH:
+      type: "object"
+      properties:
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
