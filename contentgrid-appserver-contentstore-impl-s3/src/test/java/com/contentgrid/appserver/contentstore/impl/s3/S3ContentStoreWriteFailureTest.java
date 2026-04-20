@@ -35,7 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class S3ContentStoreWriteFailureTest {
 
     @Container
-    private static final S3MockContainer s3MockContainer = new S3MockContainer(S3MockUtils.S3_MOCK_VERSION);
+    private static final S3MockContainer s3MockContainer = S3MockUtils.s3MockContainer();
 
     private MinioAsyncClient client;
 

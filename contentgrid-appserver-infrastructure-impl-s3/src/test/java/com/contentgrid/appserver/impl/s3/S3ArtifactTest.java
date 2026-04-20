@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.impl.s3;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
+import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
 import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import io.minio.MakeBucketArgs;
@@ -9,7 +10,6 @@ import io.minio.PutObjectArgs;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,20 +23,9 @@ class S3ArtifactTest extends AbstractArtifactTest {
     private static final String OBJECT_KEY = "test.zip";
 
     @Container
-    private static final S3MockContainer S3_MOCK = new S3MockContainer(s3MockVersion());
+    private static final S3MockContainer S3_MOCK = S3MockUtils.s3MockContainer();
 
     private static S3Artifact artifact;
-
-    private static String s3MockVersion() {
-        var props = new Properties();
-        try (var is = S3MockContainer.class.getResourceAsStream(
-                "/META-INF/maven/com.adobe.testing/s3mock-testcontainers/pom.properties")) {
-            props.load(is);
-            return props.getProperty("version");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @BeforeAll
     static void setup() throws Exception {
