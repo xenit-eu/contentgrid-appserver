@@ -1,0 +1,902 @@
+{
+  "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+  "applicationName": "default",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "person",
+      "title": "Person",
+      "collectionTitle": "Persons",
+      "table": "person",
+      "pathSegment": "persons",
+      "linkName": "person",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "first_name",
+          "dataType": "text",
+          "columnName": "first_name",
+          "title": "First name"
+        },
+        {
+          "type": "simple",
+          "name": "last_name",
+          "dataType": "text",
+          "columnName": "last_name",
+          "title": "Last name"
+        },
+        {
+          "type": "simple",
+          "name": "comment",
+          "dataType": "text",
+          "columnName": "comment",
+          "title": "Comment"
+        },
+        {
+          "type": "simple",
+          "name": "birth_date",
+          "dataType": "date",
+          "columnName": "birth_date",
+          "title": "Birth date"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "first_name",
+          "attributePath": [
+            {
+              "name": "first_name",
+              "type": "attr"
+            }
+          ],
+          "title": "First name",
+          "type": "exact"
+        },
+        {
+          "name": "last_name",
+          "attributePath": [
+            {
+              "name": "last_name",
+              "type": "attr"
+            }
+          ],
+          "title": "Last name",
+          "type": "exact"
+        },
+        {
+          "name": "comment~prefix",
+          "attributePath": [
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Comment",
+          "type": "prefix"
+        },
+        {
+          "name": "comment~fts",
+          "attributePath": [
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Comment: Full Text",
+          "type": "full-text",
+          "locale": "en"
+        },
+        {
+          "name": "invoices.number",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Number",
+          "type": "exact"
+        },
+        {
+          "name": "invoices.amount",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Amount",
+          "type": "exact"
+        },
+        {
+          "name": "invoices.amount~gt",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Amount: Greater than",
+          "type": "greater"
+        },
+        {
+          "name": "invoices.amount~gte",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Amount: Min",
+          "type": "greater-or-equal"
+        },
+        {
+          "name": "invoices.amount~lt",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Amount: Less than",
+          "type": "less"
+        },
+        {
+          "name": "invoices.amount~lte",
+          "attributePath": [
+            {
+              "name": "invoices",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoices: Amount: Max",
+          "type": "less-or-equal"
+        },
+        {
+          "name": "friends.first_name",
+          "attributePath": [
+            {
+              "name": "friends",
+              "type": "rel"
+            },
+            {
+              "name": "first_name",
+              "type": "attr"
+            }
+          ],
+          "title": "Friends: First name",
+          "type": "exact"
+        },
+        {
+          "name": "friends.last_name",
+          "attributePath": [
+            {
+              "name": "friends",
+              "type": "rel"
+            },
+            {
+              "name": "last_name",
+              "type": "attr"
+            }
+          ],
+          "title": "Friends: Last name",
+          "type": "exact"
+        },
+        {
+          "name": "friends.comment~prefix",
+          "attributePath": [
+            {
+              "name": "friends",
+              "type": "rel"
+            },
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Friends: Comment",
+          "type": "prefix"
+        },
+        {
+          "name": "friends.comment~fts",
+          "attributePath": [
+            {
+              "name": "friends",
+              "type": "rel"
+            },
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Friends: Comment: Full Text",
+          "type": "full-text",
+          "locale": "en"
+        },
+        {
+          "name": "_internal_person__friends",
+          "attributePath": [
+            {
+              "name": "_internal_person__friends",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "first_name",
+          "attributePath": [
+            {
+              "name": "first_name",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "last_name",
+          "attributePath": [
+            {
+              "name": "last_name",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shipment",
+      "title": "Shipment",
+      "collectionTitle": "Shipments",
+      "table": "shipment",
+      "pathSegment": "shipments",
+      "linkName": "shipment",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "shipped_timestamp",
+          "dataType": "datetime",
+          "columnName": "shipped_timestamp",
+          "title": "Shipped timestamp"
+        },
+        {
+          "type": "simple",
+          "name": "address_city",
+          "dataType": "text",
+          "columnName": "address_city",
+          "title": "Address city"
+        },
+        {
+          "type": "simple",
+          "name": "address_country",
+          "dataType": "text",
+          "columnName": "address_country",
+          "title": "Address country"
+        },
+        {
+          "type": "simple",
+          "name": "address_residence_street",
+          "dataType": "text",
+          "columnName": "address_residence_street",
+          "title": "Address residence street"
+        },
+        {
+          "type": "simple",
+          "name": "address_residence_number",
+          "dataType": "text",
+          "columnName": "address_residence_number",
+          "title": "Address residence number"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "address_city",
+          "attributePath": [
+            {
+              "name": "address_city",
+              "type": "attr"
+            }
+          ],
+          "title": "Address city",
+          "type": "exact"
+        },
+        {
+          "name": "address_country",
+          "attributePath": [
+            {
+              "name": "address_country",
+              "type": "attr"
+            }
+          ],
+          "title": "Address country",
+          "type": "exact"
+        },
+        {
+          "name": "address_residence_street",
+          "attributePath": [
+            {
+              "name": "address_residence_street",
+              "type": "attr"
+            }
+          ],
+          "title": "Address residence street",
+          "type": "exact"
+        },
+        {
+          "name": "address_residence_number",
+          "attributePath": [
+            {
+              "name": "address_residence_number",
+              "type": "attr"
+            }
+          ],
+          "title": "Address residence number",
+          "type": "exact"
+        },
+        {
+          "name": "invoice.number",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Number",
+          "type": "exact"
+        },
+        {
+          "name": "invoice.amount",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Amount",
+          "type": "exact"
+        },
+        {
+          "name": "invoice.amount~gt",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Amount: Greater than",
+          "type": "greater"
+        },
+        {
+          "name": "invoice.amount~gte",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Amount: Min",
+          "type": "greater-or-equal"
+        },
+        {
+          "name": "invoice.amount~lt",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Amount: Less than",
+          "type": "less"
+        },
+        {
+          "name": "invoice.amount~lte",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Invoice: Amount: Max",
+          "type": "less-or-equal"
+        },
+        {
+          "name": "_internal_invoice__shipments",
+          "attributePath": [
+            {
+              "name": "invoice",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "address_city",
+          "attributePath": [
+            {
+              "name": "address_city",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "address_country",
+          "attributePath": [
+            {
+              "name": "address_country",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "address_residence_street",
+          "attributePath": [
+            {
+              "name": "address_residence_street",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "address_residence_number",
+          "attributePath": [
+            {
+              "name": "address_residence_number",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invoice",
+      "title": "Invoice",
+      "collectionTitle": "Invoices",
+      "table": "invoice",
+      "pathSegment": "invoices",
+      "linkName": "invoice",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "number",
+          "dataType": "text",
+          "columnName": "number",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ],
+          "title": "Number"
+        },
+        {
+          "type": "simple",
+          "name": "amount",
+          "dataType": "double",
+          "columnName": "amount",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "Amount"
+        },
+        {
+          "type": "content",
+          "name": "content",
+          "pathSegment": "content",
+          "linkName": "content",
+          "idColumn": "content__id",
+          "fileNameColumn": "content__filename",
+          "mimeTypeColumn": "content__mimetype",
+          "lengthColumn": "content__length",
+          "title": "Content"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "number",
+          "attributePath": [
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ],
+          "title": "Number",
+          "type": "exact"
+        },
+        {
+          "name": "amount",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Amount",
+          "type": "exact"
+        },
+        {
+          "name": "amount~gt",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Amount: Greater than",
+          "type": "greater"
+        },
+        {
+          "name": "amount~gte",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Amount: Min",
+          "type": "greater-or-equal"
+        },
+        {
+          "name": "amount~lt",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Amount: Less than",
+          "type": "less"
+        },
+        {
+          "name": "amount~lte",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ],
+          "title": "Amount: Max",
+          "type": "less-or-equal"
+        },
+        {
+          "name": "shipments.address_city",
+          "attributePath": [
+            {
+              "name": "shipments",
+              "type": "rel"
+            },
+            {
+              "name": "address_city",
+              "type": "attr"
+            }
+          ],
+          "title": "Shipments: Address city",
+          "type": "exact"
+        },
+        {
+          "name": "shipments.address_country",
+          "attributePath": [
+            {
+              "name": "shipments",
+              "type": "rel"
+            },
+            {
+              "name": "address_country",
+              "type": "attr"
+            }
+          ],
+          "title": "Shipments: Address country",
+          "type": "exact"
+        },
+        {
+          "name": "shipments.address_residence_street",
+          "attributePath": [
+            {
+              "name": "shipments",
+              "type": "rel"
+            },
+            {
+              "name": "address_residence_street",
+              "type": "attr"
+            }
+          ],
+          "title": "Shipments: Address residence street",
+          "type": "exact"
+        },
+        {
+          "name": "shipments.address_residence_number",
+          "attributePath": [
+            {
+              "name": "shipments",
+              "type": "rel"
+            },
+            {
+              "name": "address_residence_number",
+              "type": "attr"
+            }
+          ],
+          "title": "Shipments: Address residence number",
+          "type": "exact"
+        },
+        {
+          "name": "customer.first_name",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "first_name",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: First name",
+          "type": "exact"
+        },
+        {
+          "name": "customer.last_name",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "last_name",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Last name",
+          "type": "exact"
+        },
+        {
+          "name": "customer.comment~prefix",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Comment",
+          "type": "prefix"
+        },
+        {
+          "name": "customer.comment~fts",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "comment",
+              "type": "attr"
+            }
+          ],
+          "title": "Customer: Comment: Full Text",
+          "type": "full-text",
+          "locale": "en"
+        },
+        {
+          "name": "_internal_person__invoices",
+          "attributePath": [
+            {
+              "name": "customer",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "number",
+          "attributePath": [
+            {
+              "name": "number",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "attributePath": [
+            {
+              "name": "amount",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "invoices",
+        "pathSegment": "invoices",
+        "entityName": "person",
+        "title": "Invoices",
+        "linkName": "invoices"
+      },
+      "targetEndpoint": {
+        "name": "customer",
+        "pathSegment": "customer",
+        "entityName": "invoice",
+        "title": "Customer",
+        "linkName": "customer"
+      },
+      "sourceReference": "customer"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "friends",
+        "pathSegment": "friends",
+        "entityName": "person",
+        "title": "Friends",
+        "linkName": "friends"
+      },
+      "targetEndpoint": {
+        "name": "_internal_person__friends",
+        "entityName": "person",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "joinTable": "person__friends",
+      "sourceReference": "person_src_id",
+      "targetReference": "person_tgt_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "shipments",
+        "pathSegment": "shipments",
+        "entityName": "invoice",
+        "title": "Shipments",
+        "linkName": "shipments"
+      },
+      "targetEndpoint": {
+        "name": "invoice",
+        "pathSegment": "invoice",
+        "entityName": "shipment",
+        "title": "Invoice",
+        "linkName": "invoice"
+      },
+      "sourceReference": "invoice"
+    }
+  ]
+}

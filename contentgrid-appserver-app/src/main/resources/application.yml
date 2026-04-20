@@ -9,6 +9,9 @@ server:
   port: ${PORT:8080}
   tomcat:
     max-part-count: 200
+contentgrid:
+  appserver:
+    application-model: classpath:application-model.json
 management:
   endpoints:
     web:
