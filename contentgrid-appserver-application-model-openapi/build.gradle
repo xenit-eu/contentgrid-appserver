@@ -9,5 +9,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
 
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
 }
