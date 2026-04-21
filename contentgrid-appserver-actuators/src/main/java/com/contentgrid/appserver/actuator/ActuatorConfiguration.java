@@ -5,12 +5,8 @@ import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
-import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,15 +23,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    @SneakyThrows
     PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact) {
-        ArtifactEntry entry;
-        try {
-            entry = artifact.load(Path.of("rego", "policy.rego"));
-        } catch (ArtifactEntryNotFoundException e) {
-            entry = null; // not found
-        }
-        return new PolicyActuator(entry, policyVariables);
+        return new PolicyActuator(artifact, policyVariables);
     }
 
     @Bean
@@ -52,15 +41,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    @SneakyThrows
     WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact) {
-        ArtifactEntry entry;
-        try {
-            entry = artifact.load(Path.of("eventhandler", "webhooks.json"));
-        } catch (ArtifactEntryNotFoundException e) {
-            entry = null; // not found
-        }
-        return new WebhookConfigActuator(entry, webhookVariables);
+        return new WebhookConfigActuator(artifact, webhookVariables);
     }
 
     @Bean
