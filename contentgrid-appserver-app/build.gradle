@@ -7,8 +7,6 @@ plugins {
 dependencies {
 
     implementation project(':contentgrid-appserver-spring-boot-starter')
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-database-postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
