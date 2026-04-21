@@ -5,11 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.io.FileOutputStream;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -50,5 +54,27 @@ class ZipArtifactTest extends AbstractArtifactTest {
         var missing = new ZipArtifact(tempDir.resolve("missing.zip"));
         assertThatThrownBy(() -> missing.loadAll(Path.of("")))
                 .isInstanceOf(ArtifactException.class);
+    }
+
+    @Test
+    void loadAll_unreadableZip_throwsArtifactException() throws IOException {
+        Assumptions.assumeTrue(Files.getFileAttributeView(tempDir, PosixFileAttributeView.class) != null,
+                "Skipping on non-POSIX filesystem");
+        Assumptions.assumeFalse("root".equals(System.getProperty("user.name")),
+                "Skipping when running as root");
+
+        var unreadablePath = tempDir.resolve("unreadable.zip");
+        try (var zos = new ZipOutputStream(new FileOutputStream(unreadablePath.toFile()))) {
+            addEntry(zos, "file.txt", "hello");
+        }
+        var lockedArtifact = new ZipArtifact(unreadablePath);
+        Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
+        try {
+            assertThatThrownBy(() -> lockedArtifact.loadAll(Path.of("")))
+                    .isInstanceOf(ArtifactException.class);
+        } finally {
+            // Restore permissions, so that Junit can clean up the temp zip
+            Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("rw-r--r--"));
+        }
     }
 }
