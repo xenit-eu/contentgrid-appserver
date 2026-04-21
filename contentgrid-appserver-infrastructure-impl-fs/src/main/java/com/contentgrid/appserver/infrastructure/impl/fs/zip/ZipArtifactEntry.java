@@ -8,18 +8,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.zip.ZipFile;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ZipArtifactEntry implements ArtifactEntry {
 
+    @Getter
     private final ArtifactEntryReference entryReference;
     private final Path zipPath;
-
-    @Override
-    public ArtifactEntryReference getEntryReference() {
-        return entryReference;
-    }
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {

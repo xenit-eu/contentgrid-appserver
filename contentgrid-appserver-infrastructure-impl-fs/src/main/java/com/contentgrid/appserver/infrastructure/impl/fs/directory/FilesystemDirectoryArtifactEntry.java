@@ -7,18 +7,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class FilesystemDirectoryArtifactEntry implements ArtifactEntry {
 
+    @Getter
     private final ArtifactEntryReference entryReference;
     private final Path absolutePath;
-
-    @Override
-    public ArtifactEntryReference getEntryReference() {
-        return entryReference;
-    }
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {
