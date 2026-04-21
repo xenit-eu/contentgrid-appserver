@@ -59,9 +59,9 @@ class ProfileRestControllerTest {
         mockMvc.perform(get("/profile").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/profile"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/profile/persons"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/profile/invoices"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='products')].href").value("http://localhost/profile/products"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='person')].href").value("http://localhost/profile/persons"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice')].href").value("http://localhost/profile/invoices"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='product')].href").value("http://localhost/profile/products"))
                 .andExpect(jsonPath("$._links.automation:registrations").doesNotExist());
     }
 
