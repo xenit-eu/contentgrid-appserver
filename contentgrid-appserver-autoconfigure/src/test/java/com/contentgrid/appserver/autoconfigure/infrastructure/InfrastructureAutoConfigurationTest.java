@@ -42,7 +42,7 @@ class InfrastructureAutoConfigurationTest {
     @ValueSource(strings = {
             "classpath:my/location",
             "file:/my/path",
-            "zip:/my/artifact.zip"
+            "zip:/my/artifact.zip",
     })
     void withLocationProperty(String reference) {
         contextRunner
@@ -53,6 +53,18 @@ class InfrastructureAutoConfigurationTest {
                     assertThat(context).getBean(Artifact.class).satisfies(artifact ->
                             assertThat(artifact.getReference()).hasToString(reference));
                 });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "file/my/path",
+            "unknown:my/location",
+            "\"\"",
+    })
+    void withInvalidLocationProperty(String reference) {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.infrastructure.location=" + reference)
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
