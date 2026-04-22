@@ -1,12 +1,14 @@
-openapi: "3.0.2"
+openapi: "3.2.0"
 info:
-  version: "0.0.1-SNAPSHOT"
   title: "DemoApplication"
+  version: "1.0"
 tags:
 - name: "party"
   description: "An individual or organization"
+  kind: "nav"
 - name: "insurance-case"
   description: ""
+  kind: "nav"
 paths:
   /parties:
     get:
@@ -18,44 +20,37 @@ paths:
       - name: "name"
         in: "query"
         description: "Name of the party"
-        required: false
         schema:
           type: "string"
       - name: "name~prefix"
         in: "query"
         description: "Starts with name"
-        required: false
         schema:
           type: "string"
       - name: "subsidiary.name"
         in: "query"
-        description: "Name of the party"
-        required: false
+        description: "Subsidiary: Name of the party"
         schema:
           type: "string"
       - name: "subsidiary.name~prefix"
         in: "query"
-        description: "Starts with name"
-        required: false
+        description: "Subsidiary: Starts with name"
         schema:
           type: "string"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
           \ in the page metadata)"
-        required: false
         schema:
           type: "string"
           example: "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
-        required: false
         schema:
           type: "integer"
       - name: "_sort"
         in: "query"
-        required: false
         schema:
           type: "array"
           items:
@@ -309,28 +304,24 @@ paths:
       parameters:
       - name: "owning_party.name"
         in: "query"
-        description: "Name of the party"
-        required: false
+        description: "Owning party: Name of the party"
         schema:
           type: "string"
       - name: "owning_party.name~prefix"
         in: "query"
-        description: "Starts with name"
-        required: false
+        description: "Owning party: Starts with name"
         schema:
           type: "string"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
           \ in the page metadata)"
-        required: false
         schema:
           type: "string"
           example: "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
-        required: false
         schema:
           type: "integer"
       responses:
