@@ -11,9 +11,9 @@ import lombok.experimental.Accessors;
 public class OpenApiRequestBody {
     @JsonInclude(Include.NON_NULL)
     String description;
-    @JsonInclude(Include.NON_NULL)
-    final OpenApiMediaTypes content = new OpenApiMediaTypes();
     @JsonInclude(Include.NON_DEFAULT)
     boolean required;
+    @JsonInclude(Include.NON_NULL)
+    final OpenApiMediaTypes content = new OpenApiMediaTypes();
 
 }

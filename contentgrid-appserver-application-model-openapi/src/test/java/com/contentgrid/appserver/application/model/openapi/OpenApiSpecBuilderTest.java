@@ -507,9 +507,15 @@ class OpenApiSpecBuilderTest {
         // GET response
         assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse")).isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
             assertThat(jsonSchemaObject.getProperties().get("id")).isEqualTo(new JsonSchemaString());
-            assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaObject.class, content -> {
-                assertThat(content.getProperties())
-                        .containsOnlyKeys("length", "mimetype", "filename");
+            assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaOneOf.class, oneOf -> {
+                assertThat(oneOf.getOneOf())
+                        .satisfiesExactlyInAnyOrder(
+                                content -> assertThat(content).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                                    assertThat(object.getProperties())
+                                            .containsOnlyKeys("length", "mimetype", "filename");
+                                }),
+                                nullObject -> assertThat(nullObject).isInstanceOf(JsonSchemaNull.class)
+                        );
             });
 
         });
@@ -528,8 +534,17 @@ class OpenApiSpecBuilderTest {
         assertThat(spec.getComponents().getSchemas().getItem("test-entityPostMultipartFormDataBody"))
                 .isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
                     assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(
-                            JsonSchemaString.class, content -> {
-                                assertThat(content.getFormat()).isEqualTo(Format.BINARY);
+                            JsonSchemaOneOf.class, oneOf -> {
+                                assertThat(oneOf.getOneOf())
+                                        .satisfiesExactlyInAnyOrder(
+                                                content -> assertThat(content).isInstanceOfSatisfying(
+                                                        JsonSchemaString.class, string -> {
+                                                            assertThat(string.getFormat()).isEqualTo(Format.BINARY);
+                                                        }),
+
+                                                nullObject -> assertThat(nullObject).isInstanceOf(JsonSchemaNull.class)
+                                        );
+
                             });
                 });
 
@@ -539,8 +554,15 @@ class OpenApiSpecBuilderTest {
                 spec.getComponents().getSchemas().getItem("test-entityPatchBody")
         )).allSatisfy(schema -> {
             assertThat(schema).isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
-                assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaObject.class, content -> {
-                    assertThat(content.getProperties()).containsOnlyKeys("filename", "mimetype");
+                assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaOneOf.class, oneOf -> {
+                    assertThat(oneOf.getOneOf())
+                            .satisfiesExactlyInAnyOrder(
+                                    content -> assertThat(content).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                                        assertThat(object.getProperties())
+                                                .containsOnlyKeys("mimetype", "filename");
+                                    }),
+                                    nullObject -> assertThat(nullObject).isInstanceOf(JsonSchemaNull.class)
+                            );
                 });
             });
         });

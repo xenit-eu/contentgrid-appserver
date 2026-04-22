@@ -15,7 +15,7 @@ public class OpenApiSpec {
     String openapi;
     @NonNull
     OpenApiInfo info;
+    List<OpenApiTag> tags = new ArrayList<>();
     OpenApiPaths paths = new OpenApiPaths();
     OpenApiComponents components = new OpenApiComponents();
-    List<OpenApiTag> tags = new ArrayList<>();
 }

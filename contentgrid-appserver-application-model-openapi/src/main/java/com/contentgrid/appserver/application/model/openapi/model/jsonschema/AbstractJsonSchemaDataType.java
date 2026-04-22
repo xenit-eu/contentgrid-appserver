@@ -32,9 +32,9 @@ public abstract sealed class AbstractJsonSchemaDataType implements JsonSchema pe
     @JsonInclude(Include.NON_EMPTY)
     List<Object> examples;
 
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.NON_DEFAULT)
     boolean readOnly;
 
-    @JsonInclude(Include.NON_EMPTY)
+    @JsonInclude(Include.NON_DEFAULT)
     boolean writeOnly;
 }

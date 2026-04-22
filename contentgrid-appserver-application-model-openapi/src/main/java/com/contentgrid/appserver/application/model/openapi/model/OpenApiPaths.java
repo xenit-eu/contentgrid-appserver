@@ -3,8 +3,11 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -64,6 +67,11 @@ public class OpenApiPaths {
         PUT,
         POST,
         DELETE,
-        PATCH
+        PATCH;
+
+        @JsonValue
+        public String getJsonValue() {
+            return name().toLowerCase(Locale.ROOT);
+        }
     }
 }

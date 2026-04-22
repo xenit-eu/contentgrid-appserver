@@ -5,10 +5,12 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.Value;
 
 @EqualsAndHashCode(callSuper = true)
 @Value
+@ToString(callSuper = true)
 public class JsonSchemaEnum extends JsonSchemaString {
 
     @Getter(AccessLevel.NONE)

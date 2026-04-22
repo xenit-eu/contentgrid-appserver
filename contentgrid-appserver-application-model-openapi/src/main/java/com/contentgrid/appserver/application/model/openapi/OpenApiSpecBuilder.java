@@ -69,7 +69,9 @@ public class OpenApiSpecBuilder {
     private static final RequestParameterResolver PARAMETER_RESOLVER;
     private static final ResponseHeaderResolver RESPONSE_HEADER_RESOLVER;
 
-    public static final OpenApiParameter ENTITY_ID_PARAM = new OpenApiParameter("id", In.PATH);
+    public static final OpenApiParameter ENTITY_ID_PARAM = new OpenApiParameter("id", In.PATH)
+            .setRequired(true)
+            .setSchema(new JsonSchemaString());
 
     static {
         List<RequestParameterResolver> parameterResolvers = new ArrayList<>();
@@ -109,6 +111,7 @@ public class OpenApiSpecBuilder {
                 .method(HttpMethod.GET, op -> {
                     var collectionType = new CollectionType(semanticType);
                     op.setTags(List.of(tag.getName()))
+                            .setSummary("Retrieve %s list".formatted(entityName.getValue()))
                             .response(200, resp -> {
                                 resp.getContent().addJson(resolveCollectionSchema(entityName, context));
                             });
@@ -117,6 +120,8 @@ public class OpenApiSpecBuilder {
                 })
                 .method(HttpMethod.POST, op -> {
                     op
+                            .setSummary("Create a new %s".formatted(entityName.getValue()))
+                            .setTags(List.of(tag.getName()))
                             .requestBody(body -> {
                                 body.getContent().addMediaType(MediaType.APPLICATION_JSON, resolveItemSchema(entityName, context, BodyType.POST, JSON));
                                 body.getContent().addMediaType(MediaType.APPLICATION_X_WWW_FORM_URLENCODED, resolveItemSchema(entityName, context, BodyType.POST, FORM));
@@ -124,9 +129,20 @@ public class OpenApiSpecBuilder {
                                 body.setRequired(true);
                             })
                             .response(201, resp -> {
+                                resp.setDescription("The %s has been created".formatted(entityName.getValue()));
                                 resp.getHeaders().header("Location", h -> h
+                                        .setDescription("The URL of the created %s".formatted(entityName.getValue()))
                                         .setRequired(true));
-                            });
+                                resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
+                            })
+                            .response(400, resp -> {
+                                resp.setDescription("The %s can not be created due to a problem with the submitted data".formatted(entityName.getValue()));
+                            })
+                            .response(409, resp -> {
+                                resp.setDescription("The %s can not be created due to a unique attribute already existing with that value".formatted(entityName.getValue()));
+                            })
+                    ;
+
                     addResolved(context, HttpMethod.POST, op, semanticType);
                             // TODO: add error responses
                 });
@@ -135,48 +151,63 @@ public class OpenApiSpecBuilder {
         context.spec().getPaths().path("/"+entity.getPathSegment().getValue()+"/{id}")
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
+                    op.setSummary("Retrieve the %s".formatted(entityName.getValue()));
                     op.response(200, resp -> {
                         resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
                     });
                             // TODO: add error responses
                 })
                 .method(HttpMethod.PUT, op -> {
+                    op.setSummary("Update all attributes of the %s".formatted(entityName.getValue()));
                     op.requestBody(body -> {
+                                body.setDescription("All attributes of the %s have to be specified. Missing attributes are treated as null".formatted(entityName.getValue()));
                                 body.getContent().addJson(resolveItemSchema(entityName, context, BodyType.PUT, JSON));
                                 body.getContent().addMediaType(MediaType.APPLICATION_X_WWW_FORM_URLENCODED, resolveItemSchema(entityName, context, BodyType.PUT, FORM));
                                 body.setRequired(true);
                             })
                             .response(204, resp -> {
+                                resp.setDescription("The %s has been updated".formatted(entityName.getValue()));
+                            })
+                            .response(400, resp -> {
+                                resp.setDescription("The %s can not be updated due to a problem with the submitted data".formatted(entityName.getValue()));
+                            })
+                            .response(409, resp -> {
+                                resp.setDescription("The %s can not be updated due to a unique attribute already existing with that value".formatted(entityName.getValue()));
                             });
                     // TODO: add error response
                 })
                 .method(HttpMethod.PATCH, op -> {
+                    op.setSummary("Update some attributes of the %s".formatted(entityName.getValue()));
                     op.requestBody(body -> {
+                                body.setDescription("Only attributes that have to be updated should be specified, other attributes should not be present");
                                 body.getContent().addJson(resolveItemSchema(entityName, context, BodyType.PATCH, JSON));
                                 body.getContent().addMediaType(MediaType.APPLICATION_X_WWW_FORM_URLENCODED, resolveItemSchema(entityName, context, BodyType.PATCH, FORM));
                                 body.setRequired(true);
                             })
                             .response(204, resp -> {
+                                resp.setDescription("The %s has been updated".formatted(entityName.getValue()));
+                            })
+                            .response(400, resp -> {
+                                resp.setDescription("The %s can not be updated due to a problem with the submitted data".formatted(entityName.getValue()));
+                            })
+                            .response(409, resp -> {
+                                resp.setDescription("The %s can not be updated due to a unique attribute already existing with that value".formatted(entityName.getValue()));
                             });
                     // TODO: add error response
                 })
                 .method(HttpMethod.DELETE, op -> {
+                    op.setSummary("Delete the %s".formatted(entityName.getValue()));
                     op.response(204, resp -> {
+                        resp.setDescription("The %s has been deleted".formatted(entityName.getValue()));
                     });
-                            // TODO: add error response
+                    op.response(409, resp -> {
+                        resp.setDescription("The %s can not be deleted because it is linked via a required relation".formatted(entityName.getValue()));
+                    });
                 })
                 .each(((method, openApiOperation) -> {
                     openApiOperation.setTags(List.of(tag.getName()));
                     addResolved(context, method, openApiOperation, semanticType);
                 }));
-
-        for (var contentAttribute : entity.getContentAttributes()) {
-            if(contentAttribute.hasFlag(IgnoredFlag.class)) {
-                continue;
-            }
-
-            addContentAttribute(context, entity, contentAttribute);
-        }
 
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if(relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
@@ -185,52 +216,74 @@ public class OpenApiSpecBuilder {
 
             addRelation(context, entity, relation);
         }
+
+        for (var contentAttribute : entity.getContentAttributes()) {
+            if(contentAttribute.hasFlag(IgnoredFlag.class)) {
+                continue;
+            }
+
+            addContentAttribute(context, entity, contentAttribute);
+        }
     }
 
     private static void addContentAttribute(OpenApiSpecContext context, Entity entity,
             ContentAttribute contentAttribute) {
-        var contentPathItem = context.spec().getComponents().getPathItems().register("content", () -> {
-            var semanticType = AttributeType.of(contentAttribute);
-            return new OpenApiPathItem()
-                    .setParameters(List.of(ENTITY_ID_PARAM))
-                    .method(HttpMethod.GET, op -> {
-                        op.response(200, resp -> {
-                            resp.setDescription("The contents of the stored file");
-                            resp.getContent().addMediaType("*/*", new JsonSchemaString().setFormat(Format.BINARY));
-                            resp.getHeaders()
-                                    .header("Content-Disposition", h -> {
-                                        h.setDescription("Content-Disposition header containing the filename");
-                                        h.setRequired(true);
-                                        h.setExample("attachment;filename=\"my-file.pdf\"");
-                                    })
-                                    .header("ETag", h -> h.setRequired(true));
-                        });
-                        // TODO: add error response
-                    })
-                    .method(HttpMethod.PUT, op -> {
-                        op
-                                .requestBody(body -> {
-                                    body.setDescription("Update the stored file");
-                                    body.getContent().addMediaType("*/*", new JsonSchemaString().setFormat(Format.BINARY));
-                                    body.setRequired(true);
+        var semanticType = AttributeType.of(contentAttribute);
+        var contentPathItem = new OpenApiPathItem()
+                .setParameters(List.of(ENTITY_ID_PARAM))
+                .method(HttpMethod.GET, op -> {
+                    op.setSummary("Retrieve the %s file stored with %s".formatted(
+                            contentAttribute.getName().getValue(),
+                            entity.getName().getValue()
+                    ));
+                    op.response(200, resp -> {
+                        resp.setDescription("Contents of the stored file");
+                        resp.getContent().addMediaType("*/*", new JsonSchemaString().setFormat(Format.BINARY));
+                        resp.getHeaders()
+                                .header("Content-Disposition", h -> {
+                                    h.setDescription("Content-Disposition header containing the filename");
+                                    h.setRequired(true);
+                                    h.setExample("attachment;filename=\"my-file.pdf\"");
                                 })
-                                .response(204, resp -> {
-                                    resp.setDescription("The file has been updated");
-                                });
-                        // TODO: add error response
-                    })
-                    .method(HttpMethod.DELETE, op -> {
-                        op.response(204, resp -> {
-                            resp.setDescription("The file has been deleted");
-                        });
-                        // TODO: add error response
-                    })
-                    .each(((method, op) -> {
-                        op.eachResponse((status, resp) -> {
-                            addResolved(context, method, op, semanticType);
-                        });
-                    }));
-        });
+                                .header("ETag", h -> h.setRequired(true));
+                    });
+                    op.response(404, resp -> {
+                        resp.setDescription("No %s file is stored with %s".formatted(contentAttribute.getName().getValue(), entity.getName().getValue()));
+                    });
+                    // TODO: add error response
+                })
+                .method(HttpMethod.PUT, op -> {
+                    op
+                            .setSummary("Add or update the %s file stored with %s".formatted(
+                                    contentAttribute.getName().getValue(),
+                                    entity.getName().getValue()
+                            ))
+                            .requestBody(body -> {
+                                body.setDescription("File data to store");
+                                body.getContent().addMediaType("*/*", new JsonSchemaString().setFormat(Format.BINARY));
+                                body.setRequired(true);
+                            })
+                            .response(204, resp -> {
+                                resp.setDescription("The file is uploaded");
+                            });
+                    // TODO: add error response
+                })
+                .method(HttpMethod.DELETE, op -> {
+                    op.setSummary("Delete the %s file stored with %s".formatted(
+                            contentAttribute.getName().getValue(),
+                            entity.getName().getValue()
+                    ));
+                    op.response(204, resp -> {
+                        resp.setDescription("The file has been deleted");
+                    });
+                    // TODO: add error response
+                })
+                .each(((method, op) -> {
+                    op.setTags(List.of(entity.getName().getValue()));
+                    op.eachResponse((status, resp) -> {
+                        addResolved(context, method, op, semanticType);
+                    });
+                }));
 
         context.spec().getPaths().getItems().put("/"+entity.getPathSegment().getValue()+"/{id}/"+contentAttribute.getPathSegment().getValue(), contentPathItem);
 
@@ -247,6 +300,19 @@ public class OpenApiSpecBuilder {
         context.spec().getPaths().path(relationPath)
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
+                    if(isCollection) {
+                        op.setSummary("Retrieve the %s list linked with %s as %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    } else {
+                        op.setSummary("Retrieve the %s linked with %s as %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    }
                     op.response(200, resp -> {
                         resp.getContent().addJson(
                                 isCollection?
@@ -255,41 +321,151 @@ public class OpenApiSpecBuilder {
                         );
                     });
                     if(!isCollection) {
-                        op.response(404, resp -> {});
+                        op.response(404, resp -> {
+                            resp.setDescription("The %s relation does not link to any %s".formatted(relation.getSourceEndPoint().getName().getValue(), relation.getTargetEndPoint().getEntity().getValue()));
+                        });
                     }
                     // TODO: add error response
                 })
                 .method(modifyMethod, op -> {
                     op.requestBody(body -> {
+                        if(modifyMethod == HttpMethod.PUT) {
+                            op.setSummary("Set the %s that is linked with %s as %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        } else {
+                            op.setSummary("Add links to %s list that is linked with %s as %s, in addition to the existing %1$s list".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        }
+
                         body.setRequired(true);
                         BodyValue relationValue = new RelationBodyValue(relation.getTargetEndPoint()
                                 .getEntity());
                         if(isCollection) {
                             relationValue = new ArrayBodyValue(relationValue);
+                            body.setDescription("Newline separated list of %s URIs".formatted(relation.getTargetEndPoint().getEntity().getValue()));
+                        } else {
+                            body.setDescription("One %s URI".formatted(relation.getTargetEndPoint().getEntity().getValue()));
                         }
                         body.getContent().addMediaType(MediaType.TEXT_URI_LIST, bodyValueToJsonSchema(context,
                                 relationValue));
                     });
-                    op.response(204, resp -> {});
+                    op.response(204, resp -> {
+                        if(isCollection) {
+                            resp.setDescription("The list of %s is linked with %s as %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        } else {
+                            resp.setDescription("The %s is linked with %s as %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        }
+                    });
+                    if(!isCollection) {
+                        op.response(400, resp -> {
+                            resp.setDescription("Multiple URIs are given, but %s can only refer to one item".formatted(relation.getSourceEndPoint().getName().getValue()));
+                        });
+                    }
+                    op.response(409, resp -> {
+                        resp.setDescription("The URI list contains some %s that is already linked with a different %s as %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    });
                     // TODO: add error response
                 })
                 .method(HttpMethod.DELETE, op -> {
-                    op.response(204, resp -> {});
+                    if(isCollection) {
+                        op.setSummary("Removes all links to %s from %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    } else {
+                        op.setSummary("Removes the link to %s from %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    }
+                    op.response(204, resp -> {
+                        if(isCollection) {
+                            resp.setDescription("All links to %s have been removed from %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        } else {
+                            resp.setDescription("The link to %s has been removed from %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        }
+                    });
+                    if(!isCollection) {
+                        op.response(400, resp -> {
+                            resp.setDescription("You can not remove the %s link, because it is marked as required".formatted(
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        });
+                    }
+                    op.response(409, resp -> {
+                        resp.setDescription("You can not remove the %s link, because the inverse relation is marked as required".formatted(
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    });
                     // TODO: add error response
-                });
+                })
+                .each(((method, op) -> {
+                    op.setTags(List.of(entityName.getValue()));
+                }));
 
         // For to-many relations, also have links to the individual items in the collection
         if (isCollection) {
             context.spec().getPaths().path(relationPath+"/{itemId}")
-                    .setParameters(List.of(ENTITY_ID_PARAM, new OpenApiParameter("itemId", In.PATH)))
+                    .setParameters(List.of(ENTITY_ID_PARAM, new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString())))
                     .method(HttpMethod.GET, op -> {
+                        op.setTags(List.of(entityName.getValue()));
+                        op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
                         op.response(200, resp -> {
                             resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
+                        });
+                        op.response(404, resp -> {
+                            resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
+                                    relation.getSourceEndPoint().getName().getValue(),
+                                    relation.getTargetEndPoint().getEntity().getValue()
+                            ));
                         });
                         // TODO: add error response
                     })
                     .method(HttpMethod.DELETE, op -> {
-                        op.response(204, resp -> {});
+                        op.setTags(List.of(entityName.getValue()));
+                        op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                        op.response(204, resp -> {
+                            resp.setDescription("The link to %s has been removed from %s".formatted(
+                                    relation.getTargetEndPoint().getEntity().getValue(),
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        });
+                        op.response(409, resp -> {
+                            resp.setDescription("You can not remove the %s link, because the inverse relation is marked as required".formatted(
+                                    relation.getSourceEndPoint().getName().getValue()
+                            ));
+                        });
                         // TODO: add error response
                     });
         }
@@ -348,9 +524,13 @@ public class OpenApiSpecBuilder {
                         new JsonSchemaNull()
                 )))
                 .property("next_cursor", new JsonSchemaString()
-                        .setDescription("Cursor to access the next page of results (absent if there is no next page)"))
+                        .setDescription("Cursor to access the next page of results (absent if there is no next page)")
+                        .setExamples(List.of("0msa4pz0"))
+                )
                 .property("prev_cursor", new JsonSchemaString()
-                        .setDescription("Cursor to access the previous page of results (absent if there is no previous page)"))
+                        .setDescription("Cursor to access the previous page of results (absent if there is no previous page)")
+                        .setExamples(List.of("1mlpulv1"))
+                )
                 .setTitle("Page metadata")
         );
     }
@@ -363,19 +543,14 @@ public class OpenApiSpecBuilder {
     }
 
     private static JsonSchema bodyValueToJsonSchema(OpenApiSpecContext context, BodyValue bodyValue) {
-        var jsonSchema = switch (bodyValue) {
+        JsonSchema jsonSchema = switch (bodyValue) {
             case ArrayBodyValue arrayBodyValue -> new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems()));
             case ContentBodyValue contentBodyValue -> new JsonSchemaString().setFormat(Format.BINARY);
             case ObjectBodyValue objectBodyValue -> {
                 var object = new JsonSchemaObject();
                 for (var entry : objectBodyValue.getFields().entrySet()) {
                     var entryBodyValue = bodyValueToJsonSchema(context, entry.getValue());
-                    if(entryBodyValue instanceof AbstractJsonSchemaDataType jsonSchemaDataType) {
-                        // If the title is identical to the JSON key, leave it out as it provides no additional value
-                        if (Objects.equals(jsonSchemaDataType.getTitle(), entry.getKey())) {
-                            jsonSchemaDataType.setTitle(null);
-                        }
-                    }
+                    removeBodyValueTitleIfEqualToKey(entry.getKey(), entryBodyValue);
                     object.property(entry.getKey(), entryBodyValue);
                     if(entry.getValue().isMandatory()) {
                         object.getRequired().add(entry.getKey());
@@ -405,9 +580,6 @@ public class OpenApiSpecBuilder {
                 if (maybeAllowedValues.isPresent()) {
                     baseSchema = new JsonSchemaEnum(maybeAllowedValues.get().getValues());
                 }
-                if (simpleBodyValue.isNullable()) {
-                    yield new JsonSchemaOneOf(List.of(baseSchema, new JsonSchemaNull()));
-                }
                 yield baseSchema;
             }
         };
@@ -418,7 +590,26 @@ public class OpenApiSpecBuilder {
                     .setDescription(bodyValue.getDescription());
         }
 
+        if(bodyValue.isNullable()) {
+            jsonSchema = new JsonSchemaOneOf(List.of(jsonSchema, new JsonSchemaNull()));
+        }
+
         return jsonSchema;
+    }
+
+    private static void removeBodyValueTitleIfEqualToKey(String key, OpenApiPotentialReference<JsonSchema> entryBodyValue) {
+        switch (entryBodyValue) {
+            case AbstractJsonSchemaDataType abstractJsonSchemaDataType -> {
+                // If the title is identical to the JSON key, leave it out as it provides no additional value
+                if (Objects.equals(abstractJsonSchemaDataType.getTitle(), key)) {
+                    abstractJsonSchemaDataType.setTitle(null);
+                }
+            }
+            case JsonSchemaOneOf jsonSchemaOneOf -> {
+                jsonSchemaOneOf.getOneOf().forEach(item -> removeBodyValueTitleIfEqualToKey(key, item));
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + entryBodyValue);
+        }
     }
 
     private static void addResolved(OpenApiSpecContext context, HttpMethod method, OpenApiOperation operation, SemanticType semanticType) {

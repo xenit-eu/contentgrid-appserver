@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -23,6 +24,7 @@ public class OpenApiComponents {
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     public static class OpenApiComponentRegistry<T extends OpenApiPotentialReference<T>> {
         @NonNull
+        @JsonIgnore
         String referencePrefix;
 
         @JsonAnyGetter

@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,15 +21,22 @@ import lombok.experimental.FieldDefaults;
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OpenApiOperation {
+    @JsonInclude(Include.NON_EMPTY)
     List<String> tags;
+    @JsonInclude(Include.NON_EMPTY)
     String summary;
+    @JsonInclude(Include.NON_EMPTY)
     String description;
+    @JsonInclude(Include.NON_EMPTY)
     String operationId;
 
+    @JsonInclude(Include.NON_EMPTY)
     List<OpenApiParameter> parameters;
 
+    @JsonInclude(Include.NON_EMPTY)
     OpenApiRequestBody requestBody;
 
+    @JsonInclude(Include.NON_EMPTY)
     Map<HttpStatusCode, OpenApiResponse> responses = new LinkedHashMap<>();
 
     public OpenApiOperation requestBody(Consumer<OpenApiRequestBody> requestBodyConsumer) {
