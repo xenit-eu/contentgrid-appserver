@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -45,11 +46,15 @@ public class OpenApiOperation {
         return this;
     }
 
-    public OpenApiOperation response(int statusCode, Consumer<OpenApiResponse> responseConsumer) {
+    public OpenApiOperation response(HttpStatusCode statusCode, Consumer<OpenApiResponse> responseConsumer) {
         var resp = new OpenApiResponse();
         responseConsumer.accept(resp);
-        responses.put(HttpStatusCode.of(statusCode), resp);
+        responses.put(statusCode, resp);
         return this;
+    }
+
+    public OpenApiOperation response(int statusCode, Consumer<OpenApiResponse> responseConsumer) {
+        return response(HttpStatusCode.of(statusCode), responseConsumer);
     }
 
     public OpenApiResponse getResponse(int statusCode) {
@@ -73,6 +78,13 @@ public class OpenApiOperation {
 
         public static HttpStatusCode of(int statusCode) {
             return new HttpStatusCode(Integer.toString(statusCode));
+        }
+
+        public Optional<Integer> getStatusCode() {
+            if (this == DEFAULT) {
+                return Optional.empty();
+            }
+            return Optional.of(Integer.parseInt(code));
         }
 
         public boolean isSuccess() {

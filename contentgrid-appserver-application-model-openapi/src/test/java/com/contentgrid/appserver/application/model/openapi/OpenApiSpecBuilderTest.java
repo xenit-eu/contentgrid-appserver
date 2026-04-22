@@ -185,7 +185,26 @@ class OpenApiSpecBuilderTest {
                 "test-entityPatchBody",
                 "test-entityPatchFormBody",
                 "test-entityPutBody",
-                "test-entityPutFormBody"
+                "test-entityPutFormBody",
+                "problemDetail",
+                "inputValidationProblemDetail",
+                "genericInputValidationProblemDetail",
+                "inputValidationTypeProblemDetail",
+                "inputValidationTypeFormatProblemDetail",
+                "inputValidationSimpleProblemDetail",
+                "inputValidationDuplicateProblemDetail",
+                "inputValidationAllowedValuesProblemDetail",
+                "inputValidationPatternProblemDetail",
+                "inputValidationMissingRelationTargetProblemDetail",
+                "genericInvalidQueryParameterProblemDetail",
+                "invalidQueryParameterFilterFormatProblemDetail",
+                "invalidQueryParameterSortFormatProblemDetail",
+                "invalidQueryParameterSortTargetProblemDetail",
+                "invalidQueryParameterPaginationProblemDetail",
+                "invalidRequestBodyProblemDetail",
+                "invalidRequestHeaderProblemDetail",
+                "integrityBlindRelationOverwriteProblemDetail",
+                "integrityRequiredRelationProblemDetail"
         );
     }
 

@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NonNull;
@@ -39,10 +40,15 @@ public class OpenApiComponents {
         }
 
         public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Supplier<T> factory) {
+            return register(name, self -> factory.get());
+        }
+
+        public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Function<OpenApiPotentialReference<T>, T> factory) {
+            var reference = new OpenApiReference<T>(referencePrefix + name);
             if(!items.containsKey(name)) {
-                items.put(name, factory.get());
+                items.put(name, factory.apply(reference));
             }
-            return new OpenApiReference<T>(referencePrefix + name);
+            return reference;
         }
 
         public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull T schema) {
