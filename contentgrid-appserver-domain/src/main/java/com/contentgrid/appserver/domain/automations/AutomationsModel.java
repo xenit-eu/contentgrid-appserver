@@ -11,7 +11,6 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
-import org.springframework.core.io.Resource;
 
 @Value
 @Builder
@@ -43,16 +42,12 @@ public class AutomationsModel {
     }
 
     public static AutomationsModel fromConfig(ArtifactEntry artifactEntry) {
-        if (artifactEntry != null) {
-            try {
-                @NonNull ObjectMapper objectMapper = new ObjectMapper()
-                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-                return objectMapper.readValue(artifactEntry.getInputStream(), AutomationsModel.class);
-            } catch (IOException | ArtifactEntryUnreadableException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            return AutomationsModel.builder().automations(List.of()).build();
+        try {
+            @NonNull ObjectMapper objectMapper = new ObjectMapper()
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            return objectMapper.readValue(artifactEntry.getInputStream(), AutomationsModel.class);
+        } catch (IOException | ArtifactEntryUnreadableException e) {
+            throw new IllegalStateException(e);
         }
     }
 }

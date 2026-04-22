@@ -1,14 +1,18 @@
 package com.contentgrid.appserver.domain.automations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
 import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class AutomationsModelTest {
 
@@ -46,11 +50,12 @@ class AutomationsModelTest {
             .build();
 
     @Test
-    void loadConfigNotFound() {
-        assertThat(AutomationsModel.fromConfig(null))
-                .isEqualTo(AutomationsModel.builder()
-                        .automations(List.of())
-                        .build());
+    void loadConfigUnreadable() throws Exception {
+        var artifactEntry = Mockito.mock(ArtifactEntry.class);
+        Mockito.doThrow(ArtifactEntryUnreadableException.class)
+                .when(artifactEntry).getInputStream();
+        assertThatThrownBy(() -> AutomationsModel.fromConfig(artifactEntry))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
