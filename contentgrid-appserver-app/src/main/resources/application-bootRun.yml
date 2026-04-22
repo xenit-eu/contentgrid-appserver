@@ -6,7 +6,6 @@ contentgrid:
     csrf.disabled: true
     unauthenticated.allow: true
   appserver:
-    query-engine.bootstrap-tables: create
     content-store.type: ephemeral
   system:
     application-id: dece6818-fab2-11f0-aa04-17747aaadf5e
