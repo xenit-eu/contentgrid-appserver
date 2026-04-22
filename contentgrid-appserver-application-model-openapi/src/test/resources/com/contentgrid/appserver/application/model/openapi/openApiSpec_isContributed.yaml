@@ -43,7 +43,8 @@ paths:
           \ in the page metadata)"
         schema:
           type: "string"
-          example: "1mlpulv1"
+          examples:
+          - "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
@@ -58,7 +59,8 @@ paths:
             enum:
             - "name,asc"
             - "name,desc"
-            example: "name,asc"
+            examples:
+            - "name,asc"
       responses:
         "200":
           description: "OK"
@@ -258,7 +260,8 @@ paths:
           text/uri-list:
             schema:
               type: "string"
-              example: "/parties/00000000-0000-0000-0000-000000000000"
+              examples:
+              - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The party is linked with party as subsidiary"
@@ -318,7 +321,8 @@ paths:
           \ in the page metadata)"
         schema:
           type: "string"
-          example: "1mlpulv1"
+          examples:
+          - "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
@@ -523,7 +527,8 @@ paths:
           text/uri-list:
             schema:
               type: "string"
-              example: "/parties/00000000-0000-0000-0000-000000000000"
+              examples:
+              - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The party is linked with insurance-case as owning_party"
@@ -599,7 +604,8 @@ paths:
           text/uri-list:
             schema:
               type: "string"
-              example: "/insurance-cases/00000000-0000-0000-0000-000000000000"
+              examples:
+              - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of insurance-case is linked with insurance-case as\
@@ -994,12 +1000,14 @@ components:
           type: "string"
           description: "Cursor to access the next page of results (absent if there\
             \ is no next page)"
-          example: "0msa4pz0"
+          examples:
+          - "0msa4pz0"
         prev_cursor:
           type: "string"
           description: "Cursor to access the previous page of results (absent if there\
             \ is no previous page)"
-          example: "1mlpulv1"
+          examples:
+          - "1mlpulv1"
       required:
       - "size"
       - "total_items_estimate"
@@ -1198,11 +1206,13 @@ components:
           format: "int64"
         mimetype:
           type: "string"
-          example: "application/pdf"
+          examples:
+          - "application/pdf"
         filename:
           type: "string"
           nullable: true
-          example: "example.pdf"
+          examples:
+          - "example.pdf"
       required:
       - "length"
       - "mimetype"
@@ -1212,11 +1222,13 @@ components:
       properties:
         mimetype:
           type: "string"
-          example: "application/pdf"
+          examples:
+          - "application/pdf"
         filename:
           type: "string"
           nullable: true
-          example: "example.pdf"
+          examples:
+          - "example.pdf"
       required:
       - "mimetype"
     ContentInfoPATCH:
@@ -1224,8 +1236,10 @@ components:
       properties:
         mimetype:
           type: "string"
-          example: "application/pdf"
+          examples:
+          - "application/pdf"
         filename:
           type: "string"
           nullable: true
-          example: "example.pdf"
+          examples:
+          - "example.pdf"
