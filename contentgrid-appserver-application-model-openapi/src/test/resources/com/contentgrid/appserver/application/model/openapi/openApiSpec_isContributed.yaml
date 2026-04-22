@@ -102,17 +102,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /parties/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "party"
       operationId: "get-party"
       summary: "Retrieve the party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -125,12 +125,6 @@ paths:
       - "party"
       operationId: "update-party"
       summary: "Update all attributes of the party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         required: true
         content:
@@ -163,12 +157,6 @@ paths:
       - "party"
       operationId: "patch-party"
       summary: "Update some attributes of the party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -203,12 +191,6 @@ paths:
       - "party"
       operationId: "delete-party"
       summary: "Delete the party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The party has been deleted"
@@ -220,17 +202,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /parties/{id}/subsidiary:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "party"
       operationId: "get-party-subsidiary"
       summary: "Retrieve the party linked with party as subsidiary"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -245,12 +227,6 @@ paths:
       - "party"
       operationId: "update-party-subsidiary"
       summary: "Set the party that is linked with party as subsidiary"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One party URI"
         required: true
@@ -281,12 +257,6 @@ paths:
       - "party"
       operationId: "delete-party-subsidiary"
       summary: "Removes the link to party from subsidiary"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to party has been removed from subsidiary"
@@ -297,17 +267,17 @@ paths:
           description: "You can not remove the subsidiary link, because the inverse\
             \ relation is marked as required"
   /parties/{id}/summary:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "party"
       operationId: "get-party-summary"
       summary: "Retrieve the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -323,12 +293,6 @@ paths:
       - "party"
       operationId: "put-party-summary"
       summary: "Add or update the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -345,12 +309,6 @@ paths:
       - "party"
       operationId: "post-party-summary"
       summary: "Add or update the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -367,12 +325,6 @@ paths:
       - "party"
       operationId: "delete-party-summary"
       summary: "Delete the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The file has been deleted"
@@ -449,17 +401,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /insurance-cases/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case"
       summary: "Retrieve the insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -472,12 +424,6 @@ paths:
       - "insurance-case"
       operationId: "update-insurance-case"
       summary: "Update all attributes of the insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         required: true
         content:
@@ -510,12 +456,6 @@ paths:
       - "insurance-case"
       operationId: "patch-insurance-case"
       summary: "Update some attributes of the insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -550,12 +490,6 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case"
       summary: "Delete the insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The insurance-case has been deleted"
@@ -567,17 +501,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /insurance-cases/{id}/owning-party:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case-owning_party"
       summary: "Retrieve the party linked with insurance-case as owning_party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -592,12 +526,6 @@ paths:
       - "insurance-case"
       operationId: "update-insurance-case-owning_party"
       summary: "Set the party that is linked with insurance-case as owning_party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One party URI"
         required: true
@@ -629,12 +557,6 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case-owning_party"
       summary: "Removes the link to party from owning_party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to party has been removed from owning_party"
@@ -645,17 +567,17 @@ paths:
           description: "You can not remove the owning_party link, because the inverse\
             \ relation is marked as required"
   /insurance-cases/{id}/followups:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case-followups"
       summary: "Retrieve the insurance-case list linked with insurance-case as followups"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -669,12 +591,6 @@ paths:
       operationId: "add-insurance-case-followups"
       summary: "Add links to insurance-case list that is linked with insurance-case\
         \ as followups, in addition to existing insurance-case list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of insurance-case URIs"
         required: true
@@ -700,12 +616,6 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case-followups"
       summary: "Removes all links to insurance-case from followups"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to insurance-case have been removed from followups"
@@ -713,23 +623,23 @@ paths:
           description: "You can not remove the followups link, because the inverse\
             \ relation is marked as required"
   /insurance-cases/{id}/followups/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case-followups-item"
       summary: "Retrieve the insurance-case identified by 'itemId' linked with insurance-case\
         \ as followups"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -745,17 +655,6 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case-followups-item"
       summary: "Removes the link to insurance-case identified by 'itemId' from followups"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to insurance-case has been removed from followups"
@@ -763,17 +662,17 @@ paths:
           description: "You can not remove the followups link, because the inverse\
             \ relation is marked as required"
   /insurance-cases/{id}/pdf:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case-pdf"
       summary: "Retrieve the pdf file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -789,12 +688,6 @@ paths:
       - "insurance-case"
       operationId: "put-insurance-case-pdf"
       summary: "Add or update the pdf file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -811,12 +704,6 @@ paths:
       - "insurance-case"
       operationId: "post-insurance-case-pdf"
       summary: "Add or update the pdf file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -833,27 +720,21 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case-pdf"
       summary: "Delete the pdf file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The file has been deleted"
   /insurance-cases/{id}/thumb-nail:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "insurance-case"
       operationId: "get-insurance-case-thumb_nail"
       summary: "Retrieve the thumb_nail file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -869,12 +750,6 @@ paths:
       - "insurance-case"
       operationId: "put-insurance-case-thumb_nail"
       summary: "Add or update the thumb_nail file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -891,12 +766,6 @@ paths:
       - "insurance-case"
       operationId: "post-insurance-case-thumb_nail"
       summary: "Add or update the thumb_nail file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -913,12 +782,6 @@ paths:
       - "insurance-case"
       operationId: "delete-insurance-case-thumb_nail"
       summary: "Delete the thumb_nail file stored with insurance-case"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The file has been deleted"
