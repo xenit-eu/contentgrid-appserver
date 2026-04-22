@@ -56,6 +56,7 @@ import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionPaginationQueryParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionSearchQueryParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.type.RelationType;
 import com.contentgrid.appserver.application.model.openapi.type.ResponseHeaderResolver;
 import com.contentgrid.appserver.application.model.openapi.type.VersioningHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.RequestParameterResolver;
@@ -301,6 +302,12 @@ public class OpenApiSpecBuilder {
 
         var relationPath = "/"+entity.getPathSegment().getValue()+"/{id}/"+relation.getSourceEndPoint().getPathSegment().getValue();
 
+        SemanticType targetType = new EntityType(entityName);
+        if(isCollection) {
+            targetType = new CollectionType(targetType);
+        }
+        var semanticType = new RelationType(targetType);
+
         context.spec().getPaths().path(relationPath)
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
@@ -428,7 +435,8 @@ public class OpenApiSpecBuilder {
                     // TODO: add error response
                 })
                 .each(((method, op) -> {
-                    op.setTags(List.of(entityName.getValue()));
+                    op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
+                    addResolved(context, method, op, semanticType);
                 }));
 
         // For to-many relations, also have links to the individual items in the collection
@@ -436,7 +444,6 @@ public class OpenApiSpecBuilder {
             context.spec().getPaths().path(relationPath+"/{itemId}")
                     .setParameters(List.of(ENTITY_ID_PARAM, new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString())))
                     .method(HttpMethod.GET, op -> {
-                        op.setTags(List.of(entityName.getValue()));
                         op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
                                 relation.getSourceEndPoint().getEntity().getValue(),
@@ -454,7 +461,6 @@ public class OpenApiSpecBuilder {
                         // TODO: add error response
                     })
                     .method(HttpMethod.DELETE, op -> {
-                        op.setTags(List.of(entityName.getValue()));
                         op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
                                 relation.getSourceEndPoint().getName().getValue()
@@ -471,7 +477,11 @@ public class OpenApiSpecBuilder {
                             ));
                         });
                         // TODO: add error response
-                    });
+                    })
+                    .each(((method, op) -> {
+                        op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
+                        addResolved(context, method, op, semanticType);
+                    }));
         }
     }
 
