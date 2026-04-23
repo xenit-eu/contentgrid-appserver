@@ -27,7 +27,6 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
@@ -56,8 +55,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
-        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
 class ContentRestControllerTest {

@@ -49,8 +49,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "contentgrid.thunx.abac.source=header",
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
-        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
 @WithMockJwt(subject = "user-id-123", name = "John Smith", issuer = "https://test-realm.contentgrid.test")

@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 
 @SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
+        "contentgrid.events.rabbitmq.enabled=true",
         "spring.rabbitmq.host=foo",
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
         "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,

@@ -42,10 +42,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
-        "contentgrid.events.rabbitmq.enabled=false",
-})
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
 @AutoConfigureMockMvc
 // Reproduction case for ACC-2394
 class InternalInverseRelationBlindOverwriteTest {

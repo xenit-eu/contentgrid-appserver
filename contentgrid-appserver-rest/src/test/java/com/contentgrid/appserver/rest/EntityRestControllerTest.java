@@ -72,10 +72,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.LinkedMultiValueMap;
 
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
-        "contentgrid.events.rabbitmq.enabled=false",
-})
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
 @AutoConfigureMockMvc
 @WithMockJwt
 class EntityRestControllerTest {

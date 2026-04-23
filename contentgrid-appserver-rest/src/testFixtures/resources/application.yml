@@ -15,6 +15,9 @@ contentgrid:
   appserver:
     content-store:
       type: ephemeral
+  events:
+    rabbitmq:
+      enabled: false
   security:
     csrf:
       disabled: true

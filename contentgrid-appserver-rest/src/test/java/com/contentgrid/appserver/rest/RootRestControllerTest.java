@@ -22,10 +22,7 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = TestApplication.class, properties = {
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
-        "contentgrid.events.rabbitmq.enabled=false",
-})
+@SpringBootTest(classes = TestApplication.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RootRestControllerTest {
 
