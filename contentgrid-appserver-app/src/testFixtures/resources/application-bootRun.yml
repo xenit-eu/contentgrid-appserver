@@ -6,6 +6,8 @@ contentgrid:
     csrf.disabled: true
     unauthenticated.allow: true
   appserver:
+    query-engine:
+      bootstrap-tables: create
     content-store.type: ephemeral
     application-model: classpath:application-model.json
   system:
@@ -18,12 +20,7 @@ contentgrid:
 
 spring:
   datasource:
-    hikari:
-      schema: V1
     url: jdbc:tc:postgresql:15:///
-  flyway:
-    schemas: public
-    default-schema: public
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
