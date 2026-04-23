@@ -309,22 +309,6 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
-    post:
-      tags:
-      - "party"
-      operationId: "post-party-summary"
-      summary: "Add or update the summary file stored with party"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
     delete:
       tags:
       - "party"
@@ -711,22 +695,6 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
-    post:
-      tags:
-      - "insurance-case"
-      operationId: "post-insurance-case-pdf"
-      summary: "Add or update the pdf file stored with insurance-case"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
     delete:
       tags:
       - "insurance-case"
@@ -761,22 +729,6 @@ paths:
       tags:
       - "insurance-case"
       operationId: "put-insurance-case-thumb_nail"
-      summary: "Add or update the thumb_nail file stored with insurance-case"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
-    post:
-      tags:
-      - "insurance-case"
-      operationId: "post-insurance-case-thumb_nail"
       summary: "Add or update the thumb_nail file stored with insurance-case"
       requestBody:
         description: "File data to store"
