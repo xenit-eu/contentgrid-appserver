@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiHttpHead
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
@@ -39,7 +40,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
     }
 
     @Override
-    public Stream<OpenApiParameter> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
+    public Stream<OpenApiPotentialReference<OpenApiParameter>> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
         if (!hasETag(requestType.getType(), context) || requestType.getMethod() == HttpMethod.POST) {
             return Stream.empty();
         }
@@ -52,7 +53,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
     }
 
     @Override
-    public Stream<Entry<String, OpenApiHeaderDescription>> resolveResponseHeaders(HttpResponseType responseType,
+    public Stream<Entry<String, OpenApiPotentialReference<OpenApiHeaderDescription>>> resolveResponseHeaders(HttpResponseType responseType,
             OpenApiSpecContext context) {
         if(!hasETag(responseType.getType(), context) || responseType.getMethod() == HttpMethod.DELETE || responseType.getStatusCode().isError()) {
             return Stream.empty();

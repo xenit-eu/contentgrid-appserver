@@ -32,7 +32,7 @@ public class OpenApiOperation {
     String operationId;
 
     @JsonInclude(Include.NON_EMPTY)
-    List<OpenApiParameter> parameters;
+    List<OpenApiPotentialReference<OpenApiParameter>> parameters;
 
     @JsonInclude(Include.NON_EMPTY)
     OpenApiRequestBody requestBody;

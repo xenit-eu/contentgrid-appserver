@@ -17,7 +17,12 @@ import lombok.experimental.FieldDefaults;
 @Value
 public class OpenApiHttpHeaders {
     @JsonValue
-    Map<String, OpenApiHeaderDescription> items = new LinkedHashMap<>();
+    Map<String, OpenApiPotentialReference<OpenApiHeaderDescription>> items = new LinkedHashMap<>();
+
+    public OpenApiHttpHeaders header(String name, OpenApiPotentialReference<OpenApiHeaderDescription> header) {
+        items.put(name, header);
+        return this;
+    }
 
     public OpenApiHttpHeaders header(String name, Consumer<OpenApiHeaderDescription> consumer) {
         var description = new OpenApiHeaderDescription();
@@ -29,7 +34,7 @@ public class OpenApiHttpHeaders {
     @Data
     @Accessors(chain = true)
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class OpenApiHeaderDescription {
+    public static class OpenApiHeaderDescription implements OpenApiPotentialReference<OpenApiHeaderDescription> {
         @JsonInclude(Include.NON_NULL)
         String description;
         @JsonInclude(Include.NON_DEFAULT)

@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiParamete
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiSpec;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNull;
@@ -60,6 +61,7 @@ class OpenApiProjectContributorTest {
 
     private static List<OpenApiParameter> queryParameters(OpenApiOperation operation) {
         return operation.getParameters().stream()
+                .map(OpenApiPotentialReference::getOriginalObject)
                 .filter(p -> p.getIn() == In.QUERY)
                 .toList();
     }

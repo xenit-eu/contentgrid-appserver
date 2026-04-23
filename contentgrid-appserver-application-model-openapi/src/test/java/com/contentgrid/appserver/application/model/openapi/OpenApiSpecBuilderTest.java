@@ -61,7 +61,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class OpenApiSpecBuilderTest {
 
     public static final OpenApiReference<JsonSchema> LINK_REFERENCE =
-            new OpenApiReference<>("#/components/schemas/Link");
+            new OpenApiReference<>("#/components/schemas/Link", null);
 
     private OpenApiSpec createSpec(Entity entity) {
         return OpenApiSpecBuilder.convert(Application.builder()
@@ -92,6 +92,7 @@ class OpenApiSpecBuilderTest {
             assertThat(collectionOperation.getRequestBody()).isNull();
 
             assertThat(collectionOperation.getParameters())
+                    .map(OpenApiPotentialReference::getOriginalObject)
                     .filteredOn(p -> p.getIn() == In.QUERY)
                     .allSatisfy(parameter -> assertThat(parameter.isRequired()).isFalse())
                     .map(OpenApiParameter::getName)
@@ -99,7 +100,7 @@ class OpenApiSpecBuilderTest {
 
             assertThat(collectionOperation.getResponse(200)).satisfies(collectionResponse -> {
                 assertThat(collectionResponse.getContent().getJson().getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityCollection"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityCollection", null));
             });
         });
 
@@ -107,11 +108,11 @@ class OpenApiSpecBuilderTest {
             assertThat(postOperation.getRequestBody()).satisfies(body -> {
                 assertThat(body.isRequired()).isTrue();
                 assertThat(body.getContent().getJson().getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostBody"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostBody", null));
                 assertThat(body.getContent().getMediaType(MediaType.APPLICATION_X_WWW_FORM_URLENCODED).getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostFormBody"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostFormBody", null));
                 assertThat(body.getContent().getMediaType(MediaType.MULTIPART_FORM_DATA).getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostMultipartFormDataBody"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPostMultipartFormDataBody", null));
             });
 
             assertThat(postOperation.getResponse(200)).isNull();
@@ -124,7 +125,7 @@ class OpenApiSpecBuilderTest {
             assertThat(itemOperation.getRequestBody()).isNull();
             assertThat(itemOperation.getResponse(200)).satisfies(itemResponse -> {
                 assertThat(itemResponse.getContent().getJson().getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityResponse"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityResponse", null));
             });
         });
 
@@ -132,7 +133,7 @@ class OpenApiSpecBuilderTest {
             assertThat(putOperation.getRequestBody()).satisfies(body -> {
                 assertThat(body.isRequired()).isTrue();
                 assertThat(body.getContent().getJson().getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPutBody"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPutBody", null));
             });
             assertThat(putOperation.getResponses())
                     .containsKey(HttpStatusCode.of(204))
@@ -143,7 +144,7 @@ class OpenApiSpecBuilderTest {
             assertThat(patchOperation.getRequestBody()).satisfies(body -> {
                 assertThat(body.isRequired()).isTrue();
                 assertThat(body.getContent().getJson().getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPatchBody"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/test-entityPatchBody", null));
             });
             assertThat(patchOperation.getResponses())
                     .containsKey(HttpStatusCode.of(204))
@@ -160,9 +161,9 @@ class OpenApiSpecBuilderTest {
                 .isEqualTo(new JsonSchemaObject()
                         .property("_embedded", new JsonSchemaObject()
                                 .property("item", new JsonSchemaArray(
-                                        new OpenApiReference<>("#/components/schemas/test-entityResponse"))))
+                                        new OpenApiReference<>("#/components/schemas/test-entityResponse", null))))
                         .requiredProperty("page",
-                                new OpenApiReference<>("#/components/schemas/page")));
+                                new OpenApiReference<>("#/components/schemas/page", null)));
 
         assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse"))
                 .isEqualTo(new JsonSchemaObject()
@@ -279,13 +280,13 @@ class OpenApiSpecBuilderTest {
         )).allSatisfy(operation -> {
             assertThat(operation.getResponse(200)).satisfies(response -> {
                 assertThat(response.getContent().getMediatypes().get("application/json").getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/relation-targetResponse"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/relation-targetResponse", null));
             });
         });
         assertThat(path(spec, "get", "/test-entity/{id}/one-to-many")).satisfies(operation -> {
             assertThat(operation.getResponse(200)).satisfies(response -> {
                 assertThat(response.getContent().getMediatypes().get("application/json").getSchema())
-                        .isEqualTo(new OpenApiReference<>("#/components/schemas/relation-targetCollection"));
+                        .isEqualTo(new OpenApiReference<>("#/components/schemas/relation-targetCollection", null));
             });
         });
 
@@ -369,6 +370,7 @@ class OpenApiSpecBuilderTest {
 
         assertThat(path(spec, "get", "/test-entities")).satisfies(collectionOperation -> {
             assertThat(collectionOperation.getParameters())
+                    .map(OpenApiPotentialReference::getOriginalObject)
                     .filteredOn(p -> p.getIn() == In.QUERY)
                     .allSatisfy(parameter -> assertThat(parameter.isRequired()).isFalse())
                     .map(OpenApiParameter::getName)
@@ -376,6 +378,7 @@ class OpenApiSpecBuilderTest {
                     .doesNotContain("plain", "required", "read_only");
 
             assertThat(collectionOperation.getParameters())
+                    .map(OpenApiPotentialReference::getOriginalObject)
                     .filteredOn(p -> p.getIn() == In.QUERY && p.getName().equals("_sort"))
                     .singleElement()
                     .satisfies(parameter -> {
@@ -496,6 +499,7 @@ class OpenApiSpecBuilderTest {
 
         assertThat(path(spec, "get", "/test-entities")).satisfies(collectionOperation -> {
             assertThat(collectionOperation.getParameters())
+                    .map(OpenApiPotentialReference::getOriginalObject)
                     .allSatisfy(parameter -> assertThat(parameter.isRequired()).isFalse())
                     .filteredOn(p -> p.getIn() == In.QUERY)
                     .extracting("name")

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
@@ -31,7 +32,7 @@ public class CollectionSearchQueryParameterResolver implements RequestParameterR
     }
 
     @Override
-    public Stream<OpenApiParameter> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
+    public Stream<OpenApiPotentialReference<OpenApiParameter>> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
         if(!supports(requestType)) {
             return Stream.empty();
         }

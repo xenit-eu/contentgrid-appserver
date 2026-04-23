@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.Op
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +18,8 @@ import lombok.experimental.FieldDefaults;
 @Value
 public class OpenApiComponents {
     OpenApiComponentRegistry<JsonSchema> schemas = new OpenApiComponentRegistry<>("#/components/schemas/");
+    OpenApiComponentRegistry<OpenApiParameter> parameters = new OpenApiComponentRegistry<>("#/components/parameters/");
+    OpenApiComponentRegistry<OpenApiHttpHeaders.OpenApiHeaderDescription> headers =  new OpenApiComponentRegistry<>("#/components/headers/");
     OpenApiComponentRegistry<OpenApiPathItem> pathItems = new OpenApiComponentRegistry<>("#/components/pathItems/");
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -29,7 +30,7 @@ public class OpenApiComponents {
         String referencePrefix;
 
         @JsonAnyGetter
-        final Map<String, T> items = new LinkedHashMap<>();
+        Map<String, T> items = new LinkedHashMap<>();
 
         public Map<String, T> getItems() {
             return Collections.unmodifiableMap(items);
@@ -44,7 +45,7 @@ public class OpenApiComponents {
         }
 
         public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Function<OpenApiPotentialReference<T>, T> factory) {
-            var reference = new OpenApiReference<T>(referencePrefix + name);
+            var reference = new OpenApiReference<T>(referencePrefix + name, () -> items.get(name));
             if(!items.containsKey(name)) {
                 items.put(name, factory.apply(reference));
             }

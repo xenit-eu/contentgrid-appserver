@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.openapi.type;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaInteger;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
 import java.util.List;
@@ -15,7 +16,7 @@ public class CollectionPaginationQueryParameterResolver implements RequestParame
     }
 
     @Override
-    public Stream<OpenApiParameter> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
+    public Stream<OpenApiPotentialReference<OpenApiParameter>> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
         if (!supports(requestType)) {
             return Stream.empty();
         }

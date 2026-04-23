@@ -45,7 +45,7 @@ public class OpenApiPaths {
         final Map<HttpMethod, OpenApiOperation> operations = new LinkedHashMap<>();
 
         @JsonInclude(Include.NON_EMPTY)
-        List<OpenApiParameter> parameters;
+        List<OpenApiPotentialReference<OpenApiParameter>> parameters;
 
         public OpenApiOperation method(@NonNull HttpMethod method) {
             return operations.computeIfAbsent(method, (_unused) -> new OpenApiOperation());

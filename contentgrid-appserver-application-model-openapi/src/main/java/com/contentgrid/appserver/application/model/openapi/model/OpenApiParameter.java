@@ -13,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OpenApiParameter {
+public class OpenApiParameter implements OpenApiPotentialReference<OpenApiParameter> {
     @NonNull
     String name;
     @NonNull

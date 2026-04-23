@@ -16,7 +16,7 @@ class OpenApiComponentRegistryTest {
 
         var ref = schemas.register("test", () -> new JsonSchemaString());
 
-        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/schemas/test"));
+        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/schemas/test", null));
         assertThat(schemas.getItems()).containsEntry("test", new JsonSchemaString());
     }
 
@@ -26,7 +26,7 @@ class OpenApiComponentRegistryTest {
 
         var ref = schemas.register("test", new JsonSchemaString());
 
-        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/schemas/test"));
+        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/schemas/test", null));
         assertThat(schemas.getItems()).containsEntry("test", new JsonSchemaString());
     }
 
@@ -60,6 +60,6 @@ class OpenApiComponentRegistryTest {
 
         var ref = pathItems.register("content", () -> new OpenApiPaths.OpenApiPathItem());
 
-        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/pathItems/content"));
+        assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/pathItems/content", null));
     }
 }
