@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.application.model.openapi.type;
+package com.contentgrid.appserver.application.model.openapi.resolver;
 
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiHttpHeaders.OpenApiHeaderDescription;
@@ -8,6 +8,10 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.Ht
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
+import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
+import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
+import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
+import com.contentgrid.appserver.application.model.openapi.type.SemanticType;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;

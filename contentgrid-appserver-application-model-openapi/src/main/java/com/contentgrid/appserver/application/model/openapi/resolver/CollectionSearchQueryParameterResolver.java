@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.application.model.openapi.type;
+package com.contentgrid.appserver.application.model.openapi.resolver;
 
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
@@ -13,6 +13,9 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyO
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType;
+import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
+import com.contentgrid.appserver.application.model.openapi.type.EntityType;
+import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import lombok.NonNull;

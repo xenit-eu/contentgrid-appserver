@@ -49,20 +49,19 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.Objec
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.RelationBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SimpleBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
+import com.contentgrid.appserver.application.model.openapi.resolver.CompositeParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.ContentDispositionHeadersResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.VersioningHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
-import com.contentgrid.appserver.application.model.openapi.type.CompositeRequestParameterResolver;
-import com.contentgrid.appserver.application.model.openapi.type.CompositeResponseHeaderResolver;
-import com.contentgrid.appserver.application.model.openapi.type.ContentDispositionHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
-import com.contentgrid.appserver.application.model.openapi.type.CollectionPaginationQueryParameterResolver;
-import com.contentgrid.appserver.application.model.openapi.type.CollectionSearchQueryParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.CollectionPaginationQueryParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.CollectionSearchQueryParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.type.RelationType;
-import com.contentgrid.appserver.application.model.openapi.type.ResponseHeaderResolver;
-import com.contentgrid.appserver.application.model.openapi.type.VersioningHeadersResolver;
-import com.contentgrid.appserver.application.model.openapi.type.RequestParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.ResponseHeaderResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.RequestParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.type.SemanticType;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -84,19 +83,15 @@ public class OpenApiSpecBuilder {
             .setSchema(new JsonSchemaString());
 
     static {
-        List<RequestParameterResolver> parameterResolvers = new ArrayList<>();
-        List<ResponseHeaderResolver> responseHeaderResolvers = new ArrayList<>();
+        List<Object> resolvers = new ArrayList<>();
+        var compositeResolver = new CompositeParameterResolver(resolvers);
+        PARAMETER_RESOLVER = compositeResolver;
+        RESPONSE_HEADER_RESOLVER = compositeResolver;
 
-        PARAMETER_RESOLVER = new CompositeRequestParameterResolver(parameterResolvers);
-        RESPONSE_HEADER_RESOLVER = new CompositeResponseHeaderResolver(responseHeaderResolvers);
-
-        parameterResolvers.add(new CollectionSearchQueryParameterResolver((bv, c) -> bodyValueToJsonSchema(c, bv)));
-        parameterResolvers.add(new CollectionPaginationQueryParameterResolver());
-        parameterResolvers.add(new VersioningHeadersResolver());
-        parameterResolvers.add(new ContentDispositionHeadersResolver());
-
-        responseHeaderResolvers.add(new VersioningHeadersResolver());
-        responseHeaderResolvers.add(new ContentDispositionHeadersResolver());
+        resolvers.add(new CollectionSearchQueryParameterResolver((bv, c) -> bodyValueToJsonSchema(c, bv)));
+        resolvers.add(new CollectionPaginationQueryParameterResolver());
+        resolvers.add(new VersioningHeadersResolver());
+        resolvers.add(new ContentDispositionHeadersResolver());
     }
 
 
