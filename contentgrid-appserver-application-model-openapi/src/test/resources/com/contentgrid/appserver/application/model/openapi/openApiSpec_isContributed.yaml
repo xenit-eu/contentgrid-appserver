@@ -828,6 +828,7 @@ components:
       properties:
         id:
           type: "string"
+          format: "uuid"
         vat:
           type: "string"
           description: "Vat number"
@@ -1051,6 +1052,7 @@ components:
       properties:
         id:
           type: "string"
+          format: "uuid"
         case_number:
           type: "integer"
           format: "int64"

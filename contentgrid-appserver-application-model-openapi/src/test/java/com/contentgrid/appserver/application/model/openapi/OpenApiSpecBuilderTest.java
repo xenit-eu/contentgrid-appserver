@@ -167,7 +167,7 @@ class OpenApiSpecBuilderTest {
 
         assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse"))
                 .isEqualTo(new JsonSchemaObject()
-                        .requiredProperty("id", new JsonSchemaString())
+                        .requiredProperty("id", new JsonSchemaString().setFormat(Format.UUID))
                         .requiredProperty("_links", new JsonSchemaObject()
                                 .requiredProperty("self", LINK_REFERENCE)
                         )
@@ -334,7 +334,7 @@ class OpenApiSpecBuilderTest {
 
         assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse"))
                 .isEqualTo(new JsonSchemaObject()
-                        .requiredProperty("id", new JsonSchemaString())
+                        .requiredProperty("id", new JsonSchemaString().setFormat(Format.UUID))
                         .requiredProperty("_links", new JsonSchemaObject()
                                 .requiredProperty("self", LINK_REFERENCE))
                         .setTitle("test-entity")
@@ -397,7 +397,7 @@ class OpenApiSpecBuilderTest {
         assertThat(spec.getComponents().getSchemas().getItems())
                 .extractingByKey("test-entityResponse")
                 .isEqualTo(new JsonSchemaObject()
-                        .requiredProperty("id", new JsonSchemaString())
+                        .requiredProperty("id", new JsonSchemaString().setFormat(Format.UUID))
                         .requiredProperty("plain",
                                 new JsonSchemaOneOf(List.of(new JsonSchemaString(), new JsonSchemaNull())))
                         .requiredProperty("required", new JsonSchemaString())
@@ -467,7 +467,7 @@ class OpenApiSpecBuilderTest {
         assertThat(spec.getComponents().getSchemas().getItems())
                 .extractingByKey("test-entityResponse")
                 .isInstanceOfSatisfying(JsonSchemaObject.class, response -> {
-                    assertThat(response.getProperties().get("id")).isEqualTo(new JsonSchemaString());
+                    assertThat(response.getProperties().get("id")).isEqualTo(new JsonSchemaString().setFormat(Format.UUID));
                     assertThat(response.getProperties().get("required_attr")).isEqualTo(jsonSchemaObject);
                     assertThat(response.getProperties().get("optional_attr")).isEqualTo(new JsonSchemaOneOf(
                             List.<OpenApiPotentialReference<JsonSchema>>of(jsonSchemaObject, new JsonSchemaNull())));
@@ -529,7 +529,7 @@ class OpenApiSpecBuilderTest {
 
         // GET response
         assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse")).isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
-            assertThat(jsonSchemaObject.getProperties().get("id")).isEqualTo(new JsonSchemaString());
+            assertThat(jsonSchemaObject.getProperties().get("id")).isEqualTo(new JsonSchemaString().setFormat(Format.UUID));
             assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaOneOf.class, oneOf -> {
                 assertThat(oneOf.getOneOf())
                         .satisfiesExactlyInAnyOrder(
