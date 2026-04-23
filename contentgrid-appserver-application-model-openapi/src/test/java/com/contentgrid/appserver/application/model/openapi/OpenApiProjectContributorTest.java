@@ -313,14 +313,24 @@ class OpenApiProjectContributorTest {
                     schema -> assertThat(schema.getEnum()).containsExactly("female", "male"));
         });
 
-        var schemas = List.of("partyResponse", "partyPostBody", "partyPostFormBody", "partyPostMultipartFormDataBody", "partyPutBody", "partyPutFormBody", "partyPatchBody", "partyPatchFormBody");
+        var plainSchemas = List.of("partyResponse", "partyPostBody", "partyPutBody",  "partyPatchBody");
+        var formSchemas = List.of("partyPostFormBody", "partyPostMultipartFormDataBody", "partyPutFormBody", "partyPatchFormBody");
 
-        assertThat(schemas).allSatisfy(schema -> {
+        assertThat(plainSchemas).allSatisfy(schema -> {
             assertThat(spec.getComponents().getSchemas().getItem(schema))
                     .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
                         assertThat(object.getProperties()).containsKey("gender")
                                 .extracting("gender")
                                 .isEqualTo(new JsonSchemaOneOf(new JsonSchemaEnum(List.of("female", "male")), new JsonSchemaNull()));
+                    });
+        });
+        assertThat(formSchemas).allSatisfy(schema -> {
+            assertThat(spec.getComponents().getSchemas().getItem(schema))
+                    .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                        assertThat(object.getProperties()).containsKey("gender")
+                                .extracting("gender")
+                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")));
+                        assertThat(object.getRequired()).doesNotContain("gender");
                     });
         });
     }

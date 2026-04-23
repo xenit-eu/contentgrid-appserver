@@ -908,9 +908,7 @@ components:
           type: "string"
           format: "binary"
         subsidiary:
-          oneOf:
-          - type: "string"
-          - type: "null"
+          type: "string"
       required:
       - "vat"
       - "name"
@@ -1082,10 +1080,8 @@ components:
           type: "integer"
           format: "int64"
         created:
-          oneOf:
-          - type: "string"
-            format: "date-time"
-          - type: "null"
+          type: "string"
+          format: "date-time"
         pdf:
           type: "string"
           format: "binary"

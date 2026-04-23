@@ -557,17 +557,8 @@ class OpenApiSpecBuilderTest {
         assertThat(spec.getComponents().getSchemas().getItem("test-entityPostMultipartFormDataBody"))
                 .isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
                     assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(
-                            JsonSchemaOneOf.class, oneOf -> {
-                                assertThat(oneOf.getOneOf())
-                                        .satisfiesExactlyInAnyOrder(
-                                                content -> assertThat(content).isInstanceOfSatisfying(
-                                                        JsonSchemaString.class, string -> {
-                                                            assertThat(string.getFormat()).isEqualTo(Format.BINARY);
-                                                        }),
-
-                                                nullObject -> assertThat(nullObject).isInstanceOf(JsonSchemaNull.class)
-                                        );
-
+                            JsonSchemaString.class, string -> {
+                                assertThat(string.getFormat()).isEqualTo(Format.BINARY);
                             });
                 });
 
