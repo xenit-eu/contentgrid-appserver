@@ -23,6 +23,8 @@ spring:
     url: jdbc:tc:postgresql:15:///
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+server:
+  port: ${PORT:8080}
 
 management:
   endpoints:
