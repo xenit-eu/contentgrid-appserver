@@ -3,8 +3,9 @@ package com.contentgrid.appserver.application.model.openapi.model.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.Locale;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,13 +32,16 @@ public sealed class JsonSchemaString extends AbstractJsonSchemaDataType permits 
     }
 
     public enum Format {
-        @JsonProperty("date")
         DATE,
-        @JsonProperty("date-time")
         DATE_TIME,
-        @JsonProperty("binary")
         BINARY,
-        @JsonProperty("uri")
-        URI
+        URI,
+        DECIMAL,
+        UUID;
+
+        @JsonValue
+        String jsonValue() {
+            return name().replace('_', '-').toLowerCase(Locale.ROOT);
+        }
     }
 }

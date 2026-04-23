@@ -588,8 +588,8 @@ public class OpenApiSpecBuilder {
             }
             case SimpleBodyValue simpleBodyValue -> {
                 AbstractJsonSchemaDataType baseSchema = switch (simpleBodyValue.getType()) {
-                    case LONG -> new JsonSchemaInteger();
-                    case DOUBLE -> new JsonSchemaNumber();
+                    case LONG -> new JsonSchemaInteger().setFormat(JsonSchemaNumber.Format.INT64);
+                    case DOUBLE -> new JsonSchemaNumber().setFormat(JsonSchemaNumber.Format.DOUBLE);
                     case BOOLEAN -> new JsonSchemaBoolean();
                     case TEXT, UUID -> new JsonSchemaString();
                     case DATE -> new JsonSchemaString().setFormat(Format.DATE);

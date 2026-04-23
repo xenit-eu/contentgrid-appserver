@@ -443,8 +443,8 @@ class OpenApiSpecBuilderTest {
                 Arguments.of(Type.DATE, new JsonSchemaString().setFormat(Format.DATE)),
                 Arguments.of(Type.DATETIME, new JsonSchemaString().setFormat(Format.DATE_TIME)),
                 Arguments.of(Type.BOOLEAN, new JsonSchemaBoolean()),
-                Arguments.of(Type.DOUBLE, new JsonSchemaNumber()),
-                Arguments.of(Type.LONG, new JsonSchemaInteger())
+                Arguments.of(Type.DOUBLE, new JsonSchemaNumber().setFormat(JsonSchemaNumber.Format.DOUBLE)),
+                Arguments.of(Type.LONG, new JsonSchemaInteger().setFormat(JsonSchemaNumber.Format.INT64))
         );
     }
 

@@ -806,9 +806,9 @@ components:
           description: "Technical indicator of the type of the file"
         length:
           type: "integer"
+          format: "int64"
           title: "Size"
           description: "File size in bytes"
-          format: "int64"
       required:
       - "filename"
       - "mimetype"
