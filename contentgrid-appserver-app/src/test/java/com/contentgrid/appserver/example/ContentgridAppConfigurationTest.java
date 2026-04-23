@@ -2,8 +2,10 @@ package com.contentgrid.appserver.example;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = "contentgrid.appserver.content-store.type=ephemeral")
+@SpringBootTest
+@ActiveProfiles("bootRun")
 class ContentgridAppConfigurationTest {
     @Test
     void contextLoads() {}

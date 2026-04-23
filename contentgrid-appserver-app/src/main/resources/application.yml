@@ -1,11 +1,4 @@
 spring:
-  datasource:
-    hikari:
-      schema: V1
-    url: jdbc:tc:postgresql:15:///
-  flyway:
-    schemas: public
-    default-schema: public
   mvc:
     problemdetails:
       enabled: true
@@ -17,13 +10,3 @@ server:
   port: ${PORT:8080}
   tomcat:
     max-part-count: 200
-contentgrid:
-  appserver:
-    application-model: classpath:application-model.json
-management:
-  endpoints:
-    web:
-      exposure:
-        include: '*'
-  server:
-    port: '8081'

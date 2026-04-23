@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
     id 'io.freefair.lombok'
     id 'org.springframework.boot'
 }
@@ -16,4 +17,6 @@ dependencies {
 
 bootRun {
     systemProperty('spring.profiles.active', 'bootRun')
+    classpath += sourceSets.testFixtures.output
+    classpath += configurations.testFixturesRuntimeClasspath
 }
