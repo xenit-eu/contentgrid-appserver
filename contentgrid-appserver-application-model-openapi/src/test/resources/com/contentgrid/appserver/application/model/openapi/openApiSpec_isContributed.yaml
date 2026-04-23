@@ -793,15 +793,16 @@ components:
         filename:
           oneOf:
           - type: "string"
-            examples:
-            - "example.pdf"
+            title: "Filename"
           - type: "null"
         mimetype:
           type: "string"
-          examples:
-          - "application/pdf"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
         length:
           type: "integer"
+          title: "Size"
+          description: "File size in bytes"
           format: "int64"
       required:
       - "filename"
@@ -816,13 +817,17 @@ components:
       - "href"
     partyResponse:
       type: "object"
+      title: "party"
+      description: "An individual or organization"
       properties:
         id:
           type: "string"
         vat:
           type: "string"
+          description: "Vat number"
         name:
           type: "string"
+          description: "Name of the party"
         summary:
           oneOf:
           - $ref: "#/components/schemas/ContentInfo"
@@ -885,14 +890,22 @@ components:
       - "page"
     partyPostBody:
       type: "object"
+      title: "party"
+      description: "An individual or organization"
       properties:
         vat:
           type: "string"
+          description: "Vat number"
         name:
           type: "string"
+          description: "Name of the party"
         subsidiary:
           oneOf:
           - type: "string"
+            format: "uri"
+            description: "Subsidiary of the party"
+            examples:
+            - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
           - type: "null"
       required:
       - "vat"
@@ -902,13 +915,20 @@ components:
       properties:
         vat:
           type: "string"
+          description: "Vat number"
         name:
           type: "string"
+          description: "Name of the party"
         summary:
           type: "string"
           format: "binary"
+          description: "Pdf file containing a summary of the party"
         subsidiary:
           type: "string"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       required:
       - "vat"
       - "name"
@@ -918,25 +938,31 @@ components:
         filename:
           oneOf:
           - type: "string"
-            examples:
-            - "example.pdf"
+            title: "Filename"
           - type: "null"
         mimetype:
           type: "string"
-          examples:
-          - "application/pdf"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
       required:
       - "mimetype"
     partyPutBody:
       type: "object"
+      title: "party"
+      description: "An individual or organization"
       properties:
+        vat:
+          type: "string"
+          description: "Vat number"
         name:
           type: "string"
+          description: "Name of the party"
         summary:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPUT"
           - type: "null"
       required:
+      - "vat"
       - "name"
     ContentInfoPATCH:
       type: "object"
@@ -944,18 +970,23 @@ components:
         filename:
           oneOf:
           - type: "string"
-            examples:
-            - "example.pdf"
+            title: "Filename"
           - type: "null"
         mimetype:
           type: "string"
-          examples:
-          - "application/pdf"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
     partyPatchBody:
       type: "object"
+      title: "party"
+      description: "An individual or organization"
       properties:
+        vat:
+          type: "string"
+          description: "Vat number"
         name:
           type: "string"
+          description: "Name of the party"
         summary:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPATCH"
@@ -1010,6 +1041,7 @@ components:
           https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
     insurance-caseResponse:
       type: "object"
+      title: "insurance-case"
       properties:
         id:
           type: "string"
@@ -1059,6 +1091,7 @@ components:
       - "page"
     insurance-casePostBody:
       type: "object"
+      title: "insurance-case"
       properties:
         case_number:
           type: "integer"
@@ -1070,6 +1103,16 @@ components:
           - type: "null"
         owning_party:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
       required:
       - "case_number"
       - "owning_party"
@@ -1090,12 +1133,26 @@ components:
           format: "binary"
         owning_party:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
       required:
       - "case_number"
       - "owning_party"
     insurance-casePutBody:
       type: "object"
+      title: "insurance-case"
       properties:
+        case_number:
+          type: "integer"
+          format: "int64"
         created:
           oneOf:
           - type: "string"
@@ -1109,9 +1166,15 @@ components:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPUT"
           - type: "null"
+      required:
+      - "case_number"
     insurance-casePatchBody:
       type: "object"
+      title: "insurance-case"
       properties:
+        case_number:
+          type: "integer"
+          format: "int64"
         created:
           oneOf:
           - type: "string"
