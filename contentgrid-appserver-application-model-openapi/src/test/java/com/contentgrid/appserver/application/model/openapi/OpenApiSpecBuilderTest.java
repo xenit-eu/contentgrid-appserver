@@ -533,7 +533,7 @@ class OpenApiSpecBuilderTest {
             assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaOneOf.class, oneOf -> {
                 assertThat(oneOf.getOneOf())
                         .satisfiesExactlyInAnyOrder(
-                                content -> assertThat(content).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                                content -> assertThat(content.getOriginalObject()).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
                                     assertThat(object.getProperties())
                                             .containsOnlyKeys("length", "mimetype", "filename");
                                 }),
@@ -580,7 +580,7 @@ class OpenApiSpecBuilderTest {
                 assertThat(jsonSchemaObject.getProperties().get("content")).isInstanceOfSatisfying(JsonSchemaOneOf.class, oneOf -> {
                     assertThat(oneOf.getOneOf())
                             .satisfiesExactlyInAnyOrder(
-                                    content -> assertThat(content).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                                    content -> assertThat(content.getOriginalObject()).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
                                         assertThat(object.getProperties())
                                                 .containsOnlyKeys("mimetype", "filename");
                                     }),

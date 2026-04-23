@@ -23,6 +23,7 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiParamete
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiReference;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiSpec;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiTag;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.AbstractJsonSchemaDataType;
@@ -47,6 +48,7 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.Conte
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.ObjectBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.RelationBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SimpleBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
 import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
 import com.contentgrid.appserver.application.model.openapi.type.CompositeRequestParameterResolver;
@@ -515,7 +517,7 @@ public class OpenApiSpecBuilder {
         var schemaName = entityName.getValue() + suffixName;
         return context.spec().getComponents().getSchemas().register(schemaName, () -> {
             var body = BodyObjectMapper.forBody(new Context(context.application(), bodyType, mediaType, UserLocales.defaults()), entityName);
-            var jsonSchema = (JsonSchemaObject) bodyValueToJsonSchema(context, body);
+            var jsonSchema = (JsonSchemaObject) bodyValueToJsonSchema(context, body, bodyType);
             if(bodyType == BodyType.RESPONSE) {
                 jsonSchema
                         .requiredProperty("_links", new JsonSchemaObject().requiredProperty("self", createLink(context)));
@@ -557,13 +559,17 @@ public class OpenApiSpecBuilder {
     }
 
     private static JsonSchema bodyValueToJsonSchema(OpenApiSpecContext context, BodyValue bodyValue) {
-        JsonSchema jsonSchema = switch (bodyValue) {
-            case ArrayBodyValue arrayBodyValue -> new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems()));
+        return (JsonSchema) bodyValueToJsonSchema(context, bodyValue, null);
+    }
+
+    private static OpenApiPotentialReference<JsonSchema> bodyValueToJsonSchema(OpenApiSpecContext context, BodyValue bodyValue, BodyType bodyType) {
+        OpenApiPotentialReference<JsonSchema> jsonSchema = switch (bodyValue) {
+            case ArrayBodyValue arrayBodyValue -> new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems(), bodyType));
             case ContentBodyValue contentBodyValue -> new JsonSchemaString().setFormat(Format.BINARY);
             case ObjectBodyValue objectBodyValue -> {
                 var object = new JsonSchemaObject();
                 for (var entry : objectBodyValue.getFields().entrySet()) {
-                    var entryBodyValue = bodyValueToJsonSchema(context, entry.getValue());
+                    var entryBodyValue = bodyValueToJsonSchema(context, entry.getValue(), bodyType);
                     removeBodyValueTitleIfEqualToKey(entry.getKey(), entryBodyValue);
                     object.property(entry.getKey(), entryBodyValue);
                     if(entry.getValue().isMandatory()) {
@@ -598,6 +604,20 @@ public class OpenApiSpecBuilder {
             }
         };
 
+        if(bodyType != null && jsonSchema instanceof JsonSchemaObject jsonSchemaObject && bodyValue.getSourceType() instanceof AttributeSourceType attributeSourceType) {
+            var entity = context.application().getRequiredEntityByName(attributeSourceType.getEntityName());
+            var attribute = entity.getNestedAttribute(attributeSourceType.getAttributePath()).orElseThrow();
+            if (attribute instanceof ContentAttribute) {
+                var name = switch (bodyType) {
+                    case RESPONSE -> "ContentInfo";
+                    case POST -> "ContentInfoPOST";
+                    case PUT -> "ContentInfoPUT";
+                    case PATCH ->  "ContentInfoPATCH";
+                };
+                jsonSchema = context.spec().getComponents().getSchemas().register(name, jsonSchemaObject);
+            }
+        }
+
         if(jsonSchema instanceof AbstractJsonSchemaDataType schemaDataType) {
             schemaDataType
                     .setTitle(bodyValue.getTitle())
@@ -622,6 +642,7 @@ public class OpenApiSpecBuilder {
             case JsonSchemaOneOf jsonSchemaOneOf -> {
                 jsonSchemaOneOf.getOneOf().forEach(item -> removeBodyValueTitleIfEqualToKey(key, item));
             }
+            case OpenApiReference<?> openApiReference -> {}
             default -> throw new IllegalStateException("Unexpected value: " + entryBodyValue);
         }
     }

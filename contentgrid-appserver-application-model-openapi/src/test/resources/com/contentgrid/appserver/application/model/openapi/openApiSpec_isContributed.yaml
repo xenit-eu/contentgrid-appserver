@@ -787,6 +787,26 @@ paths:
           description: "The file has been deleted"
 components:
   schemas:
+    ContentInfo:
+      type: "object"
+      nullable: true
+      properties:
+        filename:
+          type: "string"
+          nullable: true
+          examples:
+          - "example.pdf"
+        mimetype:
+          type: "string"
+          examples:
+          - "application/pdf"
+        length:
+          type: "integer"
+          format: "int64"
+      required:
+      - "filename"
+      - "mimetype"
+      - "length"
     Link:
       type: "object"
       properties:
@@ -892,6 +912,20 @@ components:
       required:
       - "vat"
       - "name"
+    ContentInfoPUT:
+      type: "object"
+      properties:
+        filename:
+          type: "string"
+          nullable: true
+          examples:
+          - "example.pdf"
+        mimetype:
+          type: "string"
+          examples:
+          - "application/pdf"
+      required:
+      - "mimetype"
     partyPutBody:
       type: "object"
       properties:
@@ -901,6 +935,18 @@ components:
           $ref: "#/components/schemas/ContentInfoPUT"
       required:
       - "name"
+    ContentInfoPATCH:
+      type: "object"
+      properties:
+        filename:
+          type: "string"
+          nullable: true
+          examples:
+          - "example.pdf"
+        mimetype:
+          type: "string"
+          examples:
+          - "application/pdf"
     partyPatchBody:
       type: "object"
       properties:
@@ -1058,49 +1104,3 @@ components:
           $ref: "#/components/schemas/ContentInfoPATCH"
         thumb_nail:
           $ref: "#/components/schemas/ContentInfoPATCH"
-    ContentInfo:
-      type: "object"
-      nullable: true
-      properties:
-        length:
-          type: "integer"
-          format: "int64"
-        mimetype:
-          type: "string"
-          examples:
-          - "application/pdf"
-        filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
-      required:
-      - "length"
-      - "mimetype"
-      - "filename"
-    ContentInfoPUT:
-      type: "object"
-      properties:
-        mimetype:
-          type: "string"
-          examples:
-          - "application/pdf"
-        filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
-      required:
-      - "mimetype"
-    ContentInfoPATCH:
-      type: "object"
-      properties:
-        mimetype:
-          type: "string"
-          examples:
-          - "application/pdf"
-        filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
