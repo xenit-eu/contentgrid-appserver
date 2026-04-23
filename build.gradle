@@ -55,4 +55,13 @@ allprojects {
     pluginManager.withPlugin('maven-publish') {
         apply from: "${rootDir}/gradle/publish.gradle"
     }
+
+    pluginManager.withPlugin("java-test-fixtures") {
+        sonar {
+            properties {
+                properties["sonar.tests"] += sourceSets.testFixtures.allJava.srcDirs
+                properties["sonar.java.test.binaries"] += sourceSets.testFixtures.output.classesDirs.files
+            }
+        }
+    }
 }
