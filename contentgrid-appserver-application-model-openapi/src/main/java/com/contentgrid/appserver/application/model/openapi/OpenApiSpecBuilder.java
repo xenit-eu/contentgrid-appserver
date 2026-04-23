@@ -141,7 +141,13 @@ public class OpenApiSpecBuilder {
                                 resp.setDescription("The %s has been created".formatted(entityName.getValue()));
                                 resp.getHeaders().header("Location", h -> h
                                         .setDescription("The URL of the created %s".formatted(entityName.getValue()))
-                                        .setRequired(true));
+                                        .setRequired(true)
+                                        .setSchema(new JsonSchemaString().setFormat(Format.URI)
+                                                .setExamples(List.of(
+                                                        "https://contentgrid-app.example/%s/00000000-0000-0000-0000-000000000000".formatted(entity.getPathSegment().getValue())
+                                                ))
+                                        )
+                                );
                                 resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
                             })
                             .response(400, resp -> {
@@ -252,7 +258,11 @@ public class OpenApiSpecBuilder {
                                 .header("Content-Disposition", h -> {
                                     h.setDescription("Content-Disposition header containing the filename");
                                     h.setRequired(true);
-                                    h.setExample("attachment;filename=\"my-file.pdf\"");
+                                    h.setSchema(new JsonSchemaString()
+                                            .setExamples(List.of(
+                                                    "attachment;filename=\"my-file.pdf\""
+                                            ))
+                                    );
                                 })
                                 .header("ETag", h -> h.setRequired(true));
                     });

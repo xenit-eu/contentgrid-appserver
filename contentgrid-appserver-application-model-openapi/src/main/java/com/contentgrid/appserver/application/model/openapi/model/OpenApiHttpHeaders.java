@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
+import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -43,6 +44,6 @@ public class OpenApiHttpHeaders {
         boolean deprecated;
 
         @JsonInclude(Include.NON_NULL)
-        Object example;
+        OpenApiPotentialReference<JsonSchema> schema;
     }
 }

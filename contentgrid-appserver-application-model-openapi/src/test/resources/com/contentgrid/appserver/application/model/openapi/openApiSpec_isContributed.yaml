@@ -83,6 +83,15 @@ paths:
       responses:
         "201":
           description: "The party has been created"
+          headers:
+            Location:
+              description: "The URL of the created party"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
           content:
             application/json:
               schema:
@@ -383,6 +392,15 @@ paths:
       responses:
         "201":
           description: "The insurance-case has been created"
+          headers:
+            Location:
+              description: "The URL of the created insurance-case"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
           content:
             application/json:
               schema:
