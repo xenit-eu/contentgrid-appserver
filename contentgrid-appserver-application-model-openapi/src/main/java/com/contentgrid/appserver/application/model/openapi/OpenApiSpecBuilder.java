@@ -125,6 +125,7 @@ public class OpenApiSpecBuilder {
                     op.setTags(List.of(tag.getName()))
                             .setSummary("Retrieve %s list".formatted(entityName.getValue()))
                             .response(200, resp -> {
+                                resp.setDescription("OK");
                                 resp.getContent().addJson(resolveCollectionSchema(entityName, context));
                             });
                     // TODO add error responses
@@ -171,6 +172,7 @@ public class OpenApiSpecBuilder {
                 .method(HttpMethod.GET, op -> {
                     op.setSummary("Retrieve the %s".formatted(entityName.getValue()));
                     op.response(200, resp -> {
+                        resp.setDescription("OK");
                         resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
                     });
                             // TODO: add error responses
@@ -329,6 +331,7 @@ public class OpenApiSpecBuilder {
                         ));
                     }
                     op.response(200, resp -> {
+                        resp.setDescription("OK");
                         resp.getContent().addJson(
                                 isCollection?
                                         resolveCollectionSchema(entityName, context):
@@ -454,6 +457,7 @@ public class OpenApiSpecBuilder {
                                 relation.getSourceEndPoint().getName().getValue()
                         ));
                         op.response(200, resp -> {
+                            resp.setDescription("OK");
                             resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
                         });
                         op.response(404, resp -> {
