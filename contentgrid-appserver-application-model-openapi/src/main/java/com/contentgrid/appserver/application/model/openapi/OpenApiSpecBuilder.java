@@ -535,10 +535,9 @@ public class OpenApiSpecBuilder {
                         .setDescription("Number of items shown on a single page"))
                 .requiredProperty("total_items_estimate", new JsonSchemaInteger()
                         .setDescription("Estimated total number of items across all pages"))
-                .requiredProperty("total_items_exact", new JsonSchemaOneOf(List.<OpenApiPotentialReference<JsonSchema>>of(new JsonSchemaInteger()
-                                .setDescription("Exact total number of items across all pages (may be null if no exact number could be calculated"),
-                        new JsonSchemaNull()
-                )))
+                .property("total_items_exact", new JsonSchemaInteger()
+                                .setDescription("Exact total number of items across all pages (may be absent if no exact number could be calculated)")
+                )
                 .property("next_cursor", new JsonSchemaString()
                         .setDescription("Cursor to access the next page of results (absent if there is no next page)")
                         .setExamples(List.of("0msa4pz0"))
@@ -642,7 +641,9 @@ public class OpenApiSpecBuilder {
             case JsonSchemaOneOf jsonSchemaOneOf -> {
                 jsonSchemaOneOf.getOneOf().forEach(item -> removeBodyValueTitleIfEqualToKey(key, item));
             }
-            case OpenApiReference<?> openApiReference -> {}
+            case OpenApiReference<?> reference -> {
+                // This is a reference; there is nothing to do here
+            }
             default -> throw new IllegalStateException("Unexpected value: " + entryBodyValue);
         }
     }

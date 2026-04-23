@@ -20,10 +20,10 @@ public abstract sealed class AbstractJsonSchemaDataType implements JsonSchema pe
     @NonNull
     String type;
 
-    @JsonInclude(Include.NON_NULL)
+    @JsonInclude(Include.NON_EMPTY)
     String title;
 
-    @JsonInclude(Include.NON_NULL)
+    @JsonInclude(Include.NON_EMPTY)
     String description;
 
     @JsonInclude(Include.NON_DEFAULT)
