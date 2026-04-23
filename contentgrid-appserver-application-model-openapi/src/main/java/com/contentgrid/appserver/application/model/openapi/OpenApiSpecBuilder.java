@@ -53,6 +53,7 @@ import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
 import com.contentgrid.appserver.application.model.openapi.type.CompositeRequestParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.type.CompositeResponseHeaderResolver;
+import com.contentgrid.appserver.application.model.openapi.type.ContentDispositionHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
@@ -92,8 +93,10 @@ public class OpenApiSpecBuilder {
         parameterResolvers.add(new CollectionSearchQueryParameterResolver((bv, c) -> bodyValueToJsonSchema(c, bv)));
         parameterResolvers.add(new CollectionPaginationQueryParameterResolver());
         parameterResolvers.add(new VersioningHeadersResolver());
+        parameterResolvers.add(new ContentDispositionHeadersResolver());
 
         responseHeaderResolvers.add(new VersioningHeadersResolver());
+        responseHeaderResolvers.add(new ContentDispositionHeadersResolver());
     }
 
 
@@ -254,17 +257,6 @@ public class OpenApiSpecBuilder {
                     op.response(200, resp -> {
                         resp.setDescription("Contents of the stored file");
                         resp.getContent().addMediaType("*/*", new JsonSchemaString().setFormat(Format.BINARY));
-                        resp.getHeaders()
-                                .header("Content-Disposition", h -> {
-                                    h.setDescription("Content-Disposition header containing the filename");
-                                    h.setRequired(true);
-                                    h.setSchema(new JsonSchemaString()
-                                            .setExamples(List.of(
-                                                    "attachment;filename=\"my-file.pdf\""
-                                            ))
-                                    );
-                                })
-                                .header("ETag", h -> h.setRequired(true));
                     });
                     op.response(404, resp -> {
                         resp.setDescription("No %s file is stored with %s".formatted(contentAttribute.getName().getValue(), entity.getName().getValue()));

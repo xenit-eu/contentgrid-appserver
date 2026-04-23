@@ -106,5 +106,13 @@ public class OpenApiOperation {
         public boolean isError() {
             return isClientError() || isServerError();
         }
+
+        public boolean is(int statusCode) {
+            try {
+                return Integer.parseInt(code) == statusCode;
+            }  catch (NumberFormatException e) {
+                return false;
+            }
+        }
     }
 }
