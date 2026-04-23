@@ -789,13 +789,13 @@ components:
   schemas:
     ContentInfo:
       type: "object"
-      nullable: true
       properties:
         filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
+          oneOf:
+          - type: "string"
+            examples:
+            - "example.pdf"
+          - type: "null"
         mimetype:
           type: "string"
           examples:
@@ -889,8 +889,9 @@ components:
         name:
           type: "string"
         subsidiary:
-          type: "string"
-          nullable: true
+          oneOf:
+          - type: "string"
+          - type: "null"
       required:
       - "vat"
       - "name"
@@ -905,8 +906,9 @@ components:
           type: "string"
           format: "binary"
         subsidiary:
-          type: "string"
-          nullable: true
+          oneOf:
+          - type: "string"
+          - type: "null"
       required:
       - "vat"
       - "name"
@@ -914,10 +916,11 @@ components:
       type: "object"
       properties:
         filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
+          oneOf:
+          - type: "string"
+            examples:
+            - "example.pdf"
+          - type: "null"
         mimetype:
           type: "string"
           examples:
@@ -937,10 +940,11 @@ components:
       type: "object"
       properties:
         filename:
-          type: "string"
-          nullable: true
-          examples:
-          - "example.pdf"
+          oneOf:
+          - type: "string"
+            examples:
+            - "example.pdf"
+          - type: "null"
         mimetype:
           type: "string"
           examples:
@@ -1009,9 +1013,10 @@ components:
           type: "integer"
           format: "int64"
         created:
-          type: "string"
-          nullable: true
-          format: "date-time"
+          oneOf:
+          - type: "string"
+            format: "date-time"
+          - type: "null"
         pdf:
           $ref: "#/components/schemas/ContentInfo"
         thumb_nail:
@@ -1051,9 +1056,10 @@ components:
           type: "integer"
           format: "int64"
         created:
-          type: "string"
-          nullable: true
-          format: "date-time"
+          oneOf:
+          - type: "string"
+            format: "date-time"
+          - type: "null"
         owning_party:
           type: "string"
       required:
@@ -1066,9 +1072,10 @@ components:
           type: "integer"
           format: "int64"
         created:
-          type: "string"
-          nullable: true
-          format: "date-time"
+          oneOf:
+          - type: "string"
+            format: "date-time"
+          - type: "null"
         pdf:
           type: "string"
           format: "binary"
@@ -1084,9 +1091,10 @@ components:
       type: "object"
       properties:
         created:
-          type: "string"
-          nullable: true
-          format: "date-time"
+          oneOf:
+          - type: "string"
+            format: "date-time"
+          - type: "null"
         pdf:
           $ref: "#/components/schemas/ContentInfoPUT"
         thumb_nail:
@@ -1095,9 +1103,10 @@ components:
       type: "object"
       properties:
         created:
-          type: "string"
-          nullable: true
-          format: "date-time"
+          oneOf:
+          - type: "string"
+            format: "date-time"
+          - type: "null"
         pdf:
           $ref: "#/components/schemas/ContentInfoPATCH"
         thumb_nail:
