@@ -135,6 +135,8 @@ paths:
       operationId: "update-party"
       summary: "Update all attributes of the party"
       requestBody:
+        description: "All attributes of the party have to be specified. Missing attributes\
+          \ are treated as null"
         required: true
         content:
           application/json:
@@ -257,7 +259,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
         "409":
-          description: "The party is already linked with a different party as subsidiary"
+          description: "The URI list contains some party that is already linked with\
+            \ a different party as subsidiary"
           content:
             application/problem+json:
               schema:
@@ -444,6 +447,8 @@ paths:
       operationId: "update-insurance-case"
       summary: "Update all attributes of the insurance-case"
       requestBody:
+        description: "All attributes of the insurance-case have to be specified. Missing\
+          \ attributes are treated as null"
         required: true
         content:
           application/json:
@@ -566,8 +571,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
         "409":
-          description: "The party is already linked with a different insurance-case\
-            \ as owning_party"
+          description: "The URI list contains some party that is already linked with\
+            \ a different insurance-case as owning_party"
           content:
             application/problem+json:
               schema:
