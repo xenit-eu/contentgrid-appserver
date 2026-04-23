@@ -12,7 +12,7 @@ import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.events.RabbitMqEventHandlersTest.TestConfig;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,11 +33,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
-        "csrf.disabled=true",
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.appserver.content-store.type=ephemeral",
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "spring.rabbitmq.host=foo",
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
         "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,

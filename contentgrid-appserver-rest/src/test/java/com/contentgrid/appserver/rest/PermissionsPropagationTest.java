@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
@@ -47,8 +47,9 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
-        "contentgrid.appserver.content-store.type=ephemeral",
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
+        "contentgrid.thunx.abac.source=header",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
         "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc

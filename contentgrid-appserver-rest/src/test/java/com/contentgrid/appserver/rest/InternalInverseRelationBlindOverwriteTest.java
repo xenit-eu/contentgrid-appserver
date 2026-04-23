@@ -22,12 +22,11 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.InternalInverseRelationBlindOverwriteTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import com.contentgrid.appserver.rest.test.WithMockJwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,13 +42,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.events.rabbitmq.enabled=false"
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
+        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
-@WithMockJwt
 // Reproduction case for ACC-2394
 class InternalInverseRelationBlindOverwriteTest {
 

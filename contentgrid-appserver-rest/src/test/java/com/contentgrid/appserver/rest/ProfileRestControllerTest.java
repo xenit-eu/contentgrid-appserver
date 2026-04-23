@@ -13,7 +13,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
@@ -29,10 +29,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = ContentgridApp.class, properties = {
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.appserver.content-store.type=ephemeral",
+@SpringBootTest(classes = TestApplication.class, properties = {
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
+        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class ProfileRestControllerTest {

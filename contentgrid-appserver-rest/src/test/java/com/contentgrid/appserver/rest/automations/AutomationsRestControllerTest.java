@@ -12,9 +12,8 @@ import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationA
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
 import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.rest.automations.AutomationsRestControllerTest.TestConfig;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.test.WithMockJwt;
 import com.contentgrid.thunx.encoding.json.JsonThunkExpressionCoder;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -34,13 +33,12 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "contentgrid.thunx.abac.source=header",
-        "contentgrid.appserver.content-store.type=ephemeral",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration",
         "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
-@WithMockJwt
 class AutomationsRestControllerTest {
 
     private static final String AUTOMATION_1_ID = UUID.randomUUID().toString();
