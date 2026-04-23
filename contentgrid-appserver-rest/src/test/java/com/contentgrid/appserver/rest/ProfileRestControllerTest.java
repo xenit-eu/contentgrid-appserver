@@ -13,7 +13,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
@@ -29,11 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = ContentgridApp.class, properties = {
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.appserver.content-store.type=ephemeral",
-})
+@SpringBootTest(classes = TestApplication.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class ProfileRestControllerTest {
 
@@ -59,9 +55,9 @@ class ProfileRestControllerTest {
         mockMvc.perform(get("/profile").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/profile"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='persons')].href").value("http://localhost/profile/persons"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoices')].href").value("http://localhost/profile/invoices"))
-                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='products')].href").value("http://localhost/profile/products"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='person')].href").value("http://localhost/profile/persons"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='invoice')].href").value("http://localhost/profile/invoices"))
+                .andExpect(jsonPath("$._links.cg:entity[?(@.name=='product')].href").value("http://localhost/profile/products"))
                 .andExpect(jsonPath("$._links.automation:registrations").doesNotExist());
     }
 

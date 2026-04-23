@@ -1,0 +1,28 @@
+spring:
+  mvc:
+    problemdetails:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+  datasource:
+    url: jdbc:tc:postgresql:15:///
+server:
+  tomcat:
+    max-part-count: 200
+contentgrid:
+  appserver:
+    content-store:
+      type: ephemeral
+  events:
+    rabbitmq:
+      enabled: false
+  security:
+    csrf:
+      disabled: true
+    unauthenticated:
+      allow: true
+  thunx:
+    abac:
+      source: none

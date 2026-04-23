@@ -27,7 +27,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -69,13 +69,7 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.security.csrf.disabled=true",
-        "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.events.rabbitmq.enabled=false",
-})
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
 

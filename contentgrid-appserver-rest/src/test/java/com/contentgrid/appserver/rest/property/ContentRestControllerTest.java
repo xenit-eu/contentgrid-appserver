@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.property.ContentRestControllerTest.TestConfig;
@@ -27,7 +27,6 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.tomcat.util.http.parser.ContentRange;
 import org.junit.jupiter.api.AfterEach;
@@ -54,13 +53,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
-        "contentgrid.thunx.abac.source=none",
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.security.csrf.disabled=true",
-        "contentgrid.appserver.content-store.type=ephemeral",
-        "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc
 class ContentRestControllerTest {

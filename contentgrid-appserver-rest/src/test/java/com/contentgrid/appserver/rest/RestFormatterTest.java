@@ -10,7 +10,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
-import com.contentgrid.appserver.example.ContentgridApp;
+import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,11 +30,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-@SpringBootTest(classes = {ContentgridApp.class, TestConfig.class}, properties = {
-        "contentgrid.security.unauthenticated.allow=true",
-        "contentgrid.security.csrf.disabled=true",
-        "contentgrid.appserver.content-store.type=ephemeral",
-})
+@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
 @AutoConfigureMockMvc
 class RestFormatterTest {
 

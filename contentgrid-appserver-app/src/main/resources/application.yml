@@ -1,6 +1,7 @@
 spring:
-  datasource.url: jdbc:tc:postgresql:15:///
-  mvc.problemdetails.enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
   servlet:
     multipart:
       max-file-size: -1
@@ -9,10 +10,3 @@ server:
   port: ${PORT:8080}
   tomcat:
     max-part-count: 200
-management:
-  endpoints:
-    web:
-      exposure:
-        include: '*'
-  server:
-    port: '8081'
