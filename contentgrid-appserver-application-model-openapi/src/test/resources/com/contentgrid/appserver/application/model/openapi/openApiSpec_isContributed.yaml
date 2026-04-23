@@ -143,12 +143,8 @@ paths:
             schema:
               $ref: "#/components/schemas/partyPutBody"
       responses:
-        "200":
+        "204":
           description: "The party has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/partyResponse"
         "400":
           description: "The party can not be updated due to a problem with the submitted\
             \ data"
@@ -177,12 +173,8 @@ paths:
             schema:
               $ref: "#/components/schemas/partyPatchBody"
       responses:
-        "200":
+        "204":
           description: "The party has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/partyResponse"
         "400":
           description: "The party can not be updated due to a problem with the submitted\
             \ data"
@@ -455,12 +447,8 @@ paths:
             schema:
               $ref: "#/components/schemas/insurance-casePutBody"
       responses:
-        "200":
+        "204":
           description: "The insurance-case has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/insurance-caseResponse"
         "400":
           description: "The insurance-case can not be updated due to a problem with\
             \ the submitted data"
@@ -489,12 +477,8 @@ paths:
             schema:
               $ref: "#/components/schemas/insurance-casePatchBody"
       responses:
-        "200":
+        "204":
           description: "The insurance-case has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/insurance-caseResponse"
         "400":
           description: "The insurance-case can not be updated due to a problem with\
             \ the submitted data"
