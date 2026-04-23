@@ -824,7 +824,9 @@ components:
         name:
           type: "string"
         summary:
-          $ref: "#/components/schemas/ContentInfo"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfo"
+          - type: "null"
         _links:
           type: "object"
           properties:
@@ -933,7 +935,9 @@ components:
         name:
           type: "string"
         summary:
-          $ref: "#/components/schemas/ContentInfoPUT"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPUT"
+          - type: "null"
       required:
       - "name"
     ContentInfoPATCH:
@@ -955,7 +959,9 @@ components:
         name:
           type: "string"
         summary:
-          $ref: "#/components/schemas/ContentInfoPATCH"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPATCH"
+          - type: "null"
     problemDetail:
       type: "object"
       properties:
@@ -1018,9 +1024,13 @@ components:
             format: "date-time"
           - type: "null"
         pdf:
-          $ref: "#/components/schemas/ContentInfo"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfo"
+          - type: "null"
         thumb_nail:
-          $ref: "#/components/schemas/ContentInfo"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfo"
+          - type: "null"
         _links:
           type: "object"
           properties:
@@ -1096,9 +1106,13 @@ components:
             format: "date-time"
           - type: "null"
         pdf:
-          $ref: "#/components/schemas/ContentInfoPUT"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPUT"
+          - type: "null"
         thumb_nail:
-          $ref: "#/components/schemas/ContentInfoPUT"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPUT"
+          - type: "null"
     insurance-casePatchBody:
       type: "object"
       properties:
@@ -1108,6 +1122,10 @@ components:
             format: "date-time"
           - type: "null"
         pdf:
-          $ref: "#/components/schemas/ContentInfoPATCH"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPATCH"
+          - type: "null"
         thumb_nail:
-          $ref: "#/components/schemas/ContentInfoPATCH"
+          oneOf:
+          - $ref: "#/components/schemas/ContentInfoPATCH"
+          - type: "null"
