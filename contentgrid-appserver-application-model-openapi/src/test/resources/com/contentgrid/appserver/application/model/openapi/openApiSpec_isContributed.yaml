@@ -234,6 +234,7 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
               - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       responses:
@@ -533,6 +534,7 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
               - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       responses:
@@ -590,16 +592,19 @@ paths:
       - "insurance-case"
       operationId: "add-insurance-case-followups"
       summary: "Add links to insurance-case list that is linked with insurance-case\
-        \ as followups, in addition to existing insurance-case list"
+        \ as followups, in addition to the existing insurance-case list"
       requestBody:
         description: "Newline separated list of insurance-case URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of insurance-case is linked with insurance-case as\
@@ -813,6 +818,7 @@ components:
       properties:
         href:
           type: "string"
+          format: "uri"
       required:
       - "href"
     partyResponse:
