@@ -1,12 +1,19 @@
 package com.contentgrid.appserver.application.model.openapi.resolver;
 
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.requiredProperty;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.status;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.type;
+
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
+import com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiHttpHeaders.OpenApiHeaderDescription;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiResponse;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaConst;
@@ -38,7 +45,7 @@ import java.util.stream.Stream;
  * </ul>
  *
  */
-public class VersioningHeadersResolver implements RequestParameterResolver, ResponseHeaderResolver {
+public class VersioningHeadersResolver implements RequestParameterResolver, ResponseHeaderResolver, ResponseResolver {
 
     private boolean hasETag(SemanticType targetType, OpenApiSpecContext context) {
         return switch (targetType) {
@@ -50,9 +57,13 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
         };
     }
 
+    private boolean hasMatchHeaders(HttpRequestType requestType, OpenApiSpecContext context) {
+        return hasETag(requestType.getType(), context) && requestType.getMethod() != HttpMethod.POST;
+    }
+
     @Override
     public Stream<OpenApiPotentialReference<OpenApiParameter>> resolveRequestParameters(HttpRequestType requestType, OpenApiSpecContext context) {
-        if (!hasETag(requestType.getType(), context) || requestType.getMethod() == HttpMethod.POST) {
+        if (!hasMatchHeaders(requestType, context)) {
             return Stream.empty();
         }
 
@@ -62,11 +73,11 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
         );
 
         return Stream.of(
-                context.spec().getComponents().getParameters().register("header-If-Match", () -> new OpenApiParameter("If-Match", In.HEADER)
+                context.spec().getComponents().getParameters().register("header.If-Match", () -> new OpenApiParameter("If-Match", In.HEADER)
                         .setDescription("See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)")
                         .setSchema(matchSchema)
                 ),
-                context.spec().getComponents().getParameters().register("header-If-None-Match", () -> new OpenApiParameter("If-None-Match", In.HEADER)
+                context.spec().getComponents().getParameters().register("header.If-None-Match", () -> new OpenApiParameter("If-None-Match", In.HEADER)
                         .setDescription("See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-none-match)")
                         .setSchema(matchSchema)
                 )
@@ -91,12 +102,35 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
     }
 
     private OpenApiPotentialReference<JsonSchema> createEntityTagSchema(OpenApiSpecContext context) {
-        return context.spec().getComponents().getSchemas().register("RFC9110:entity-tag", () -> new JsonSchemaString()
+        return context.spec().getComponents().getSchemas().register("RFC9110.entity-tag", () -> new JsonSchemaString()
                 .setPattern("^\"[a-z0-9]+\"$")
                 .setDescription("A strong ETag value")
                 .setExamples(List.of(
                         "\"1mktvx6\"",
                         "\"25borvrzr9thvwuua39m3c2a3\""
                 )));
+    }
+
+    @Override
+    public Stream<Entry<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>>> resolveResponse(
+            HttpRequestType requestType, OpenApiSpecContext context) {
+        if (!hasMatchHeaders(requestType, context)) {
+            return Stream.empty();
+        }
+
+        var problemBuilder = new ProblemDetailsJsonSchemaBuilder(context);
+
+        var unsatisfiedVersionProblem = problemBuilder.createGeneric("unsatisfiedVersion",
+                type("https://contentgrid.cloud/problems/unsatisfied-version"),
+                status(412),
+                requiredProperty("actual_version", new JsonSchemaString())
+        );
+
+        return Stream.of(Map.entry(
+                HttpStatusCode.of(412),
+                context.spec().getComponents().getResponses().register("preconditionFailed", () -> new OpenApiResponse()
+                        .setDescription("If-Match or If-None-Match precondition failed")
+                        .content(body -> body.addMediaType("application/problem+json", unsatisfiedVersionProblem)))
+        ));
     }
 }

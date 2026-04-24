@@ -51,6 +51,7 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.Simpl
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
 import com.contentgrid.appserver.application.model.openapi.resolver.CompositeParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.ContentDispositionHeadersResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.ResponseResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.VersioningHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
@@ -77,6 +78,7 @@ public class OpenApiSpecBuilder {
 
     private static final RequestParameterResolver PARAMETER_RESOLVER;
     private static final ResponseHeaderResolver RESPONSE_HEADER_RESOLVER;
+    private static final ResponseResolver RESPONSE_RESOLVER;
 
     public static final OpenApiParameter ENTITY_ID_PARAM = new OpenApiParameter("id", In.PATH)
             .setRequired(true)
@@ -87,6 +89,7 @@ public class OpenApiSpecBuilder {
         var compositeResolver = new CompositeParameterResolver(resolvers);
         PARAMETER_RESOLVER = compositeResolver;
         RESPONSE_HEADER_RESOLVER = compositeResolver;
+        RESPONSE_RESOLVER = compositeResolver;
 
         resolvers.add(new CollectionSearchQueryParameterResolver((bv, c) -> bodyValueToJsonSchema(c, bv)));
         resolvers.add(new CollectionPaginationQueryParameterResolver());
@@ -651,6 +654,8 @@ public class OpenApiSpecBuilder {
     }
 
     private static void addResolved(OpenApiSpecContext context, HttpMethod method, OpenApiOperation operation, SemanticType semanticType) {
+        RESPONSE_RESOLVER.resolveResponse(new HttpRequestType(method, semanticType), context)
+                .forEachOrdered(entry -> operation.getResponses().put(entry.getKey(), entry.getValue()));
         operation.setParameters(PARAMETER_RESOLVER.resolveRequestParameters(new HttpRequestType(method, semanticType), context).toList())
                 .response(HttpStatusCode.DEFAULT, resp -> {
                     resp.setDescription("An unknown error occurred while processing the request");

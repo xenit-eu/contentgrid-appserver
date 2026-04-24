@@ -283,9 +283,15 @@ paths:
       - "party"
       operationId: "get-party-summary"
       summary: "Retrieve the summary file stored with party"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             '*/*':
               schema:
@@ -293,11 +299,16 @@ paths:
                 format: "binary"
         "404":
           description: "No summary file is stored with party"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "party"
       operationId: "put-party-summary"
       summary: "Add or update the summary file stored with party"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       requestBody:
         description: "File data to store"
         required: true
@@ -309,14 +320,24 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "party"
       operationId: "delete-party-summary"
       summary: "Delete the summary file stored with party"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /insurance-cases:
     get:
       tags:
@@ -669,9 +690,15 @@ paths:
       - "insurance-case"
       operationId: "get-insurance-case-pdf"
       summary: "Retrieve the pdf file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             '*/*':
               schema:
@@ -679,11 +706,16 @@ paths:
                 format: "binary"
         "404":
           description: "No pdf file is stored with insurance-case"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "insurance-case"
       operationId: "put-insurance-case-pdf"
       summary: "Add or update the pdf file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       requestBody:
         description: "File data to store"
         required: true
@@ -695,14 +727,24 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "insurance-case"
       operationId: "delete-insurance-case-pdf"
       summary: "Delete the pdf file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /insurance-cases/{id}/thumb-nail:
     parameters:
     - name: "id"
@@ -715,9 +757,15 @@ paths:
       - "insurance-case"
       operationId: "get-insurance-case-thumb_nail"
       summary: "Retrieve the thumb_nail file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             '*/*':
               schema:
@@ -725,6 +773,8 @@ paths:
                 format: "binary"
         "404":
           description: "No thumb_nail file is stored with insurance-case"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "insurance-case"
@@ -741,14 +791,24 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "insurance-case"
       operationId: "delete-insurance-case-thumb_nail"
       summary: "Delete the thumb_nail file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
 components:
   schemas:
     ContentInfo:
@@ -970,6 +1030,28 @@ components:
           type: "string"
         instance:
           type: "string"
+    unsatisfiedVersionProblemDetail:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          type:
+            const: "https://contentgrid.cloud/problems/unsatisfied-version"
+          status:
+            const: 412
+          actual_version:
+            type: "string"
+        required:
+        - "type"
+        - "status"
+        - "actual_version"
+    RFC9110.entity-tag:
+      type: "string"
+      description: "A strong ETag value"
+      examples:
+      - "\"1mktvx6\""
+      - "\"25borvrzr9thvwuua39m3c2a3\""
+      pattern: "^\"[a-z0-9]+\"$"
     problemDetailWithProperty:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -1155,3 +1237,37 @@ components:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPATCH"
           - type: "null"
+  responses:
+    preconditionFailed:
+      description: "If-Match or If-None-Match precondition failed"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/unsatisfiedVersionProblemDetail"
+  parameters:
+    header.If-Match:
+      name: "If-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+    header.If-None-Match:
+      name: "If-None-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-none-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+  headers:
+    ETag:
+      description: "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-etag)"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC9110.entity-tag"

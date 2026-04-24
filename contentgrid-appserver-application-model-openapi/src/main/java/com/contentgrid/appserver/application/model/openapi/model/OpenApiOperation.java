@@ -38,7 +38,7 @@ public class OpenApiOperation {
     OpenApiRequestBody requestBody;
 
     @JsonInclude(Include.NON_EMPTY)
-    Map<HttpStatusCode, OpenApiResponse> responses = new LinkedHashMap<>();
+    Map<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>> responses = new LinkedHashMap<>();
 
     public OpenApiOperation requestBody(Consumer<OpenApiRequestBody> requestBodyConsumer) {
         requestBody = new OpenApiRequestBody();
@@ -58,11 +58,15 @@ public class OpenApiOperation {
     }
 
     public OpenApiResponse getResponse(int statusCode) {
-        return responses.get(HttpStatusCode.of(statusCode));
+        var resp = responses.get(HttpStatusCode.of(statusCode));
+        if (resp == null) {
+            return null;
+        }
+        return resp.getOriginalObject();
     }
 
     public OpenApiOperation eachResponse(BiConsumer<HttpStatusCode, OpenApiResponse> responseConsumer) {
-        responses.forEach(responseConsumer);
+        responses.forEach((code, resp) -> responseConsumer.accept(code, resp.getOriginalObject()));
         return this;
     }
 

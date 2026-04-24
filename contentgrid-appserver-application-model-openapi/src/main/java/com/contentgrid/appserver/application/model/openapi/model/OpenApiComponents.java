@@ -18,6 +18,7 @@ import lombok.experimental.FieldDefaults;
 @Value
 public class OpenApiComponents {
     OpenApiComponentRegistry<JsonSchema> schemas = new OpenApiComponentRegistry<>("#/components/schemas/");
+    OpenApiComponentRegistry<OpenApiResponse> responses = new OpenApiComponentRegistry<>("#/components/responses/");
     OpenApiComponentRegistry<OpenApiParameter> parameters = new OpenApiComponentRegistry<>("#/components/parameters/");
     OpenApiComponentRegistry<OpenApiHttpHeaders.OpenApiHeaderDescription> headers =  new OpenApiComponentRegistry<>("#/components/headers/");
     OpenApiComponentRegistry<OpenApiPathItem> pathItems = new OpenApiComponentRegistry<>("#/components/pathItems/");

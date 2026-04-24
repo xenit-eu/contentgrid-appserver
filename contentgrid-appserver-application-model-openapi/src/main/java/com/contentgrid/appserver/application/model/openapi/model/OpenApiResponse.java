@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OpenApiResponse {
+public class OpenApiResponse implements OpenApiPotentialReference<OpenApiResponse> {
     @JsonInclude(Include.NON_EMPTY)
     String summary;
     @JsonInclude(Include.NON_EMPTY)
