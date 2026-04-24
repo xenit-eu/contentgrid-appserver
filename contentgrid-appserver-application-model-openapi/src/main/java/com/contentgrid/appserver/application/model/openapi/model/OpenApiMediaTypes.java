@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.LinkedHashMap;
@@ -42,6 +41,18 @@ public class OpenApiMediaTypes {
 
     public OpenApiMediaTypes addMediaType(MediaType mediatype, @NonNull OpenApiPotentialReference<JsonSchema> jsonSchema) {
         return addMediaType(mediatype, new OpenApiBodyDescription().setSchema(jsonSchema));
+    }
+
+    public OpenApiMediaTypes combinedWith(OpenApiMediaTypes content) {
+        content.mediatypes.forEach((name, description) -> {
+            mediatypes.compute(name, (n, existing) -> {
+                if(existing == null) {
+                    return description;
+                }
+                return existing.combinedWith(description);
+            });
+        });
+        return this;
     }
 
     @RequiredArgsConstructor

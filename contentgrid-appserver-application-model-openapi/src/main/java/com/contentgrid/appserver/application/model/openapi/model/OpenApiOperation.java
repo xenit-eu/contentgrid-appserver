@@ -3,10 +3,11 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -38,7 +39,7 @@ public class OpenApiOperation {
     OpenApiRequestBody requestBody;
 
     @JsonInclude(Include.NON_EMPTY)
-    Map<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>> responses = new LinkedHashMap<>();
+    Map<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>> responses = new TreeMap<>(Comparator.comparing(HttpStatusCode::toString));
 
     public OpenApiOperation requestBody(Consumer<OpenApiRequestBody> requestBodyConsumer) {
         requestBody = new OpenApiRequestBody();

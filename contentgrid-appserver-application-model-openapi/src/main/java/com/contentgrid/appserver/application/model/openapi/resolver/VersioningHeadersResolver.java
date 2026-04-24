@@ -1,12 +1,12 @@
 package com.contentgrid.appserver.application.model.openapi.resolver;
 
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.requiredProperty;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.status;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.type;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.requiredProperty;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.status;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.type;
 
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
-import com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder;
+import com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiHttpHeaders.OpenApiHeaderDescription;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
@@ -118,13 +118,13 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
             return Stream.empty();
         }
 
-        var problemBuilder = new ProblemDetailsJsonSchemaBuilder(context);
-
-        var unsatisfiedVersionProblem = problemBuilder.createGeneric("unsatisfiedVersion",
-                type("https://contentgrid.cloud/problems/unsatisfied-version"),
-                status(412),
-                requiredProperty("actual_version", new JsonSchemaString())
-        );
+        var unsatisfiedVersionProblem = ProblemDetailsJsonSchema.base(context)
+                .subType(
+                        "unsatisfied-version",
+                        type("https://contentgrid.cloud/problems/unsatisfied-version"),
+                        status(412),
+                        requiredProperty("actual_version", new JsonSchemaString())
+                );
 
         return Stream.of(Map.entry(
                 HttpStatusCode.of(412),

@@ -12,7 +12,7 @@ import lombok.Value;
 @RequiredArgsConstructor
 public class JsonSchemaOneOf implements JsonSchema {
     @NonNull
-    List<OpenApiPotentialReference<JsonSchema>> oneOf;
+    List<? extends OpenApiPotentialReference<JsonSchema>> oneOf;
 
     public JsonSchemaOneOf(OpenApiPotentialReference<JsonSchema>... oneOf) {
         this(List.of(oneOf));

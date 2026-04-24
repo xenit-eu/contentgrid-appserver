@@ -1,10 +1,9 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaOneOf;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,6 +31,14 @@ public class OpenApiHttpHeaders {
         return this;
     }
 
+    public OpenApiHttpHeaders combinedWith(OpenApiHttpHeaders headers) {
+        headers.items.forEach((name, header) -> {
+            items.putIfAbsent(name, header);
+            items.computeIfPresent(name, (n, existing) -> existing.getOriginalObject().combinedWith(existing.getOriginalObject()));
+        });
+        return this;
+    }
+
     @Data
     @Accessors(chain = true)
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -45,5 +52,19 @@ public class OpenApiHttpHeaders {
 
         @JsonInclude(Include.NON_NULL)
         OpenApiPotentialReference<JsonSchema> schema;
+
+        public OpenApiHeaderDescription combinedWith(OpenApiHeaderDescription header) {
+            if(header.description != null) {
+                description = header.description;
+            }
+            required = header.required || required;
+            deprecated = header.deprecated || deprecated;
+            if(schema != null && header.schema != null) {
+                schema = new JsonSchemaOneOf(schema, header.schema);
+            } else if(header.schema != null) {
+                schema = header.schema;
+            }
+            return this;
+        }
     }
 }

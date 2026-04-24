@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -28,6 +29,18 @@ public class OpenApiResponse implements OpenApiPotentialReference<OpenApiRespons
 
     public OpenApiResponse content(Consumer<OpenApiMediaTypes> contentConsumer) {
         contentConsumer.accept(content);
+        return this;
+    }
+
+    public OpenApiResponse combinedWith(OpenApiResponse response) {
+        if(response.summary != null) {
+            summary = response.summary;
+        }
+        if(response.description != null) {
+            description = response.description;
+        }
+        this.headers.combinedWith(response.headers);
+        this.content.combinedWith(response.content);
         return this;
     }
 }

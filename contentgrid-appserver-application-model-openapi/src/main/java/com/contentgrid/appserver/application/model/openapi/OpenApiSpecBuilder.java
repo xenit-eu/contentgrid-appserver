@@ -1,9 +1,5 @@
 package com.contentgrid.appserver.application.model.openapi;
 
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.property;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.requiredProperty;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.status;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchemaBuilder.ProblemDetailsCustomizer.type;
 import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.FORM;
 import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.JSON;
 import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.MULTIPART_FORM;
@@ -17,7 +13,6 @@ import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiInfo;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiMediaTypes.MediaType;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation;
-import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
@@ -30,7 +25,6 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Abst
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaBoolean;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaConst;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaInteger;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNull;
@@ -51,6 +45,7 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.Simpl
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
 import com.contentgrid.appserver.application.model.openapi.resolver.CompositeParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.ContentDispositionHeadersResolver;
+import com.contentgrid.appserver.application.model.openapi.resolver.ProblemsResponseResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.ResponseResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.VersioningHeadersResolver;
 import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
@@ -60,6 +55,7 @@ import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
 import com.contentgrid.appserver.application.model.openapi.resolver.CollectionPaginationQueryParameterResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.CollectionSearchQueryParameterResolver;
+import com.contentgrid.appserver.application.model.openapi.type.RelationItemType;
 import com.contentgrid.appserver.application.model.openapi.type.RelationType;
 import com.contentgrid.appserver.application.model.openapi.resolver.ResponseHeaderResolver;
 import com.contentgrid.appserver.application.model.openapi.resolver.RequestParameterResolver;
@@ -94,6 +90,7 @@ public class OpenApiSpecBuilder {
         resolvers.add(new CollectionSearchQueryParameterResolver((bv, c) -> bodyValueToJsonSchema(c, bv)));
         resolvers.add(new CollectionPaginationQueryParameterResolver());
         resolvers.add(new VersioningHeadersResolver());
+        resolvers.add(new ProblemsResponseResolver());
         resolvers.add(new ContentDispositionHeadersResolver());
     }
 
@@ -126,7 +123,6 @@ public class OpenApiSpecBuilder {
                                 resp.setDescription("OK");
                                 resp.getContent().addJson(resolveCollectionSchema(entityName, context));
                             });
-                    // TODO add error responses
                     addResolved(context, HttpMethod.GET, op, collectionType);
                 })
                 .method(HttpMethod.POST, op -> {
@@ -155,13 +151,9 @@ public class OpenApiSpecBuilder {
                             .response(400, resp -> {
                                 resp.setDescription("The %s can not be created due to a problem with the submitted data".formatted(entityName.getValue()));
                             })
-                            .response(409, resp -> {
-                                resp.setDescription("The %s can not be created due to a unique attribute already existing with that value".formatted(entityName.getValue()));
-                            })
                     ;
 
                     addResolved(context, HttpMethod.POST, op, semanticType);
-                            // TODO: add error responses
                 });
 
         // item
@@ -173,7 +165,6 @@ public class OpenApiSpecBuilder {
                         resp.setDescription("OK");
                         resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
                     });
-                            // TODO: add error responses
                 })
                 .method(HttpMethod.PUT, op -> {
                     op.setSummary("Update all attributes of the %s".formatted(entityName.getValue()));
@@ -188,11 +179,7 @@ public class OpenApiSpecBuilder {
                             })
                             .response(400, resp -> {
                                 resp.setDescription("The %s can not be updated due to a problem with the submitted data".formatted(entityName.getValue()));
-                            })
-                            .response(409, resp -> {
-                                resp.setDescription("The %s can not be updated due to a unique attribute already existing with that value".formatted(entityName.getValue()));
                             });
-                    // TODO: add error response
                 })
                 .method(HttpMethod.PATCH, op -> {
                     op.setSummary("Update some attributes of the %s".formatted(entityName.getValue()));
@@ -207,11 +194,7 @@ public class OpenApiSpecBuilder {
                             })
                             .response(400, resp -> {
                                 resp.setDescription("The %s can not be updated due to a problem with the submitted data".formatted(entityName.getValue()));
-                            })
-                            .response(409, resp -> {
-                                resp.setDescription("The %s can not be updated due to a unique attribute already existing with that value".formatted(entityName.getValue()));
                             });
-                    // TODO: add error response
                 })
                 .method(HttpMethod.DELETE, op -> {
                     op.setSummary("Delete the %s".formatted(entityName.getValue()));
@@ -261,7 +244,6 @@ public class OpenApiSpecBuilder {
                     op.response(404, resp -> {
                         resp.setDescription("No %s file is stored with %s".formatted(contentAttribute.getName().getValue(), entity.getName().getValue()));
                     });
-                    // TODO: add error response
                 })
                 .method(HttpMethod.PUT, op -> {
                     op
@@ -277,7 +259,6 @@ public class OpenApiSpecBuilder {
                             .response(204, resp -> {
                                 resp.setDescription("The file is uploaded");
                             });
-                    // TODO: add error response
                 })
                 .method(HttpMethod.DELETE, op -> {
                     op.setSummary("Delete the %s file stored with %s".formatted(
@@ -287,7 +268,6 @@ public class OpenApiSpecBuilder {
                     op.response(204, resp -> {
                         resp.setDescription("The file has been deleted");
                     });
-                    // TODO: add error response
                 })
                 .each(((method, op) -> {
                     op.setTags(List.of(entity.getName().getValue()));
@@ -341,7 +321,6 @@ public class OpenApiSpecBuilder {
                             resp.setDescription("The %s relation does not link to any %s".formatted(relation.getSourceEndPoint().getName().getValue(), relation.getTargetEndPoint().getEntity().getValue()));
                         });
                     }
-                    // TODO: add error response
                 })
                 .method(modifyMethod, op -> {
                     op.requestBody(body -> {
@@ -398,7 +377,6 @@ public class OpenApiSpecBuilder {
                                 relation.getSourceEndPoint().getName().getValue()
                         ));
                     });
-                    // TODO: add error response
                 })
                 .method(HttpMethod.DELETE, op -> {
                     if(isCollection) {
@@ -437,7 +415,6 @@ public class OpenApiSpecBuilder {
                                 relation.getSourceEndPoint().getName().getValue()
                         ));
                     });
-                    // TODO: add error response
                 })
                 .each(((method, op) -> {
                     op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
@@ -464,7 +441,6 @@ public class OpenApiSpecBuilder {
                                     relation.getTargetEndPoint().getEntity().getValue()
                             ));
                         });
-                        // TODO: add error response
                     })
                     .method(HttpMethod.DELETE, op -> {
                         op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
@@ -482,11 +458,10 @@ public class OpenApiSpecBuilder {
                                     relation.getSourceEndPoint().getName().getValue()
                             ));
                         });
-                        // TODO: add error response
                     })
                     .each(((method, op) -> {
                         op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
-                        addResolved(context, method, op, semanticType);
+                        addResolved(context, method, op, new RelationItemType(relation.getSourceEndPoint().getEntity()));
                     }));
         }
     }
@@ -655,167 +630,24 @@ public class OpenApiSpecBuilder {
 
     private static void addResolved(OpenApiSpecContext context, HttpMethod method, OpenApiOperation operation, SemanticType semanticType) {
         RESPONSE_RESOLVER.resolveResponse(new HttpRequestType(method, semanticType), context)
-                .forEachOrdered(entry -> operation.getResponses().put(entry.getKey(), entry.getValue()));
+                .forEachOrdered(entry ->
+                        operation.getResponses().compute(entry.getKey(), (k, existing) -> {
+                            if(existing == null) {
+                                return entry.getValue();
+                            } else {
+                                return existing.getOriginalObject().combinedWith(entry.getValue().getOriginalObject());
+                            }
+                        })
+                );
         operation.setParameters(PARAMETER_RESOLVER.resolveRequestParameters(new HttpRequestType(method, semanticType), context).toList())
-                .response(HttpStatusCode.DEFAULT, resp -> {
+                /*.response(HttpStatusCode.DEFAULT, resp -> {
                     resp.setDescription("An unknown error occurred while processing the request");
                 })
+                 */
                 .eachResponse((statusCode, resp) -> {
                     RESPONSE_HEADER_RESOLVER.resolveResponseHeaders(new HttpResponseType(method, statusCode, semanticType), context)
                             .forEachOrdered(e -> resp.getHeaders().getItems().putIfAbsent(e.getKey(), e.getValue()));
-                    if(statusCode.isError()) {
-                        resp.getContent().addMediaType("application/problem+json", getProblemDetails(context, statusCode));
-                    }
                 });
-    }
-
-    private static OpenApiPotentialReference<JsonSchema> getProblemDetails(OpenApiSpecContext context, HttpStatusCode httpStatusCode) {
-        var builder = new ProblemDetailsJsonSchemaBuilder(context);
-
-        List<OpenApiPotentialReference<JsonSchema>> potentialProblems = switch (httpStatusCode.getStatusCode().orElse(null)) {
-            case 400 -> { // Bad request
-                List<OpenApiPotentialReference<JsonSchema>> allProblems = new ArrayList<>(); // The top-level problem details
-                List<OpenApiPotentialReference<JsonSchema>> inputValidationProblems = new ArrayList<>(); // The nested input validation problem details
-
-                // Input validation
-                allProblems.add(builder.createGeneric("inputValidation",
-                        type("https://contentgrid.cloud/problems/input/validation"),
-                        status(400),
-                        requiredProperty("errors", new JsonSchemaArray(new JsonSchemaOneOf(inputValidationProblems)))
-                ));
-                var inputValidationGeneric = builder.createGeneric("genericInputValidation",
-                        requiredProperty("field", new JsonSchemaString())
-                );
-                inputValidationProblems.add(inputValidationGeneric);
-                inputValidationProblems.add(builder.createGeneric("inputValidationType", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/type"),
-                        requiredProperty("expected_type", new JsonSchemaString()),
-                        requiredProperty("actual_type", new JsonSchemaString())
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationTypeFormat", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/type/format"),
-                        requiredProperty("expected_type", new JsonSchemaString()),
-                        requiredProperty("format_error", new JsonSchemaString())
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationSimple", inputValidationGeneric,
-                        type(
-                                "https://contentgrid.cloud/problems/input/validation/no-content",
-                                "https://contentgrid.cloud/problems/input/validation/required"
-                        )
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationDuplicate", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/duplicate"),
-                        requiredProperty("conflicting_item", new JsonSchemaString().setFormat(Format.URI))
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationAllowedValues", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/allowed-values"),
-                        requiredProperty("allowed_values", new JsonSchemaArray(new JsonSchemaString()))
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationPattern", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/pattern"),
-                        requiredProperty("pattern", new JsonSchemaString())
-                ));
-                inputValidationProblems.add(builder.createGeneric("inputValidationMissingRelationTarget", inputValidationGeneric,
-                        type("https://contentgrid.cloud/problems/input/validation/missing-relation-target"),
-                        requiredProperty("missing_item", new JsonSchemaString().setFormat(Format.URI))
-                ));
-
-                // Query parameters
-                var queryParameterGeneric = builder.createGeneric("genericInvalidQueryParameter",
-                        status(400),
-                        requiredProperty("query_parameter", new JsonSchemaString())
-                );
-                allProblems.add(builder.createGeneric("invalidQueryParameterFilterFormat", queryParameterGeneric,
-                        type("https://contentgrid.cloud/problems/invalid-query-parameter/filter/format"),
-                        requiredProperty("expected_type", new JsonSchemaString()),
-                        requiredProperty("format_error", new JsonSchemaString()),
-                        requiredProperty("additional_errors", JsonSchemaArray::new)
-                ));
-                allProblems.add(builder.createGeneric("invalidQueryParameterSortFormat", queryParameterGeneric,
-                        type("https://contentgrid.cloud/problems/invalid-query-parameter/sort/format"),
-                        requiredProperty("query_parameter", new JsonSchemaConst("_sort")),
-                        requiredProperty("format_error", new JsonSchemaString())
-                ));
-                allProblems.add(builder.createGeneric("invalidQueryParameterSortTarget", queryParameterGeneric,
-                        type("https://contentgrid.cloud/problems/invalid-query-parameter/sort/target"),
-                        requiredProperty("query_parameter", new JsonSchemaConst("_sort")),
-                        requiredProperty("target_name", new JsonSchemaString())
-                ));
-                allProblems.add(builder.createGeneric("invalidQueryParameterPagination", queryParameterGeneric,
-                        type("https://contentgrid.cloud/problems/invalid-query-parameter/pagination"),
-                        requiredProperty("query_parameter", new JsonSchemaEnum(List.of("_limit", "_cursor"))),
-                        requiredProperty("format_error", new JsonSchemaString())
-                ));
-
-                // Request
-                allProblems.add(builder.createGeneric("invalidRequestBody",
-                        type(
-                                "https://contentgrid.cloud/problems/invalid-request/body",
-                                "https://contentgrid.cloud/problems/invalid-request/body/json",
-                                "https://contentgrid.cloud/problems/invalid-request/body/uri-list",
-                                "https://contentgrid.cloud/problems/invalid-request/body/single-link"
-                        ),
-                        status(400)
-                ));
-                allProblems.add(builder.createGeneric("invalidRequestHeader",
-                        type(
-                                "https://contentgrid.cloud/problems/invalid-request/required-header",
-                                "https://contentgrid.cloud/problems/invalid-request/forbidden-header",
-                                "https://contentgrid.cloud/problems/invalid-request/invalid-header"
-                        ),
-                        status(400),
-                        requiredProperty("header", new JsonSchemaString())
-                ));
-
-                yield allProblems;
-            }
-            case 404 -> List.of( // Not found
-                    builder.createGeneric("notFound",
-                            type(
-                                    "https://contentgrid.cloud/problems/not-found/endpoint",
-                                    "https://contentgrid.cloud/problems/not-found/entity-item",
-                                    "https://contentgrid.cloud/problems/not-found/relation-item"
-                            ),
-                            status(404)
-                    )
-            );
-            case 409 -> List.of( // Conflict/integrity problems
-                    builder.createGeneric("integrityBlindRelationOverwrite",
-                            type("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"),
-                            status(409),
-                            requiredProperty("new_item", new JsonSchemaString().setFormat(Format.URI)),
-                            requiredProperty("new_relation", new JsonSchemaString().setFormat(Format.URI)),
-                            requiredProperty("existing_item", new JsonSchemaString().setFormat(Format.URI)),
-                            requiredProperty("existing_relation", new JsonSchemaString().setFormat(Format.URI)),
-                            requiredProperty("target_item", new JsonSchemaString().setFormat(Format.URI)),
-                            property("target_relation", new JsonSchemaString().setFormat(Format.URI)),
-                            requiredProperty("additional_errors", JsonSchemaArray::new)
-                    ),
-                    builder.createGeneric("integrityRequiredRelation",
-                            type("https://contentgrid.cloud/problems/integrity/required-relation"),
-                            status(409),
-                            requiredProperty("affected_relation", new JsonSchemaString().setFormat(Format.URI))
-                    )
-            );
-            case 412 -> List.of( // Precondition failed/version conflict
-                    builder.createGeneric("unsatisfiedVersion",
-                            type("https://contentgrid.cloud/problems/unsatisfied-version"),
-                            status(412),
-                            requiredProperty("actual_version", new JsonSchemaString())
-                    )
-            );
-
-            case null, default -> List.of();
-        };
-
-        var potentialProblemsWithGeneric = new ArrayList<>(potentialProblems);
-        // Always add generic problem detail at the end, so we can add additional problem details in the future
-        // without breaking the API contract
-        potentialProblemsWithGeneric.add(builder.createGeneric());
-
-        return new JsonSchemaOneOf(
-                potentialProblemsWithGeneric
-        );
     }
 
 }
