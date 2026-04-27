@@ -190,6 +190,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
 
         for (var statusCode : statusCodes) {
             responses.put(statusCode, new OpenApiResponse()
+                            .setDescription(createResponseDescription(statusCode, problemSets))
                     .content(mt -> mt.addMediaType(
                             "application/problem+json",
                             createResponseBody(context, statusCode, problemSets)
@@ -198,6 +199,31 @@ public class ProblemsResponseResolver implements ResponseResolver{
         }
 
         return responses.entrySet().stream();
+    }
+
+    private String createResponseDescription(HttpStatusCode statusCode, Set<ProblemSet> problemSets) {
+        var applicableProblems = problemSets.stream()
+                .filter(ps -> Objects.equals(statusCode, ps.getStatusCode()))
+                .map(ps -> switch (ps) {
+                    case INPUT_VALIDATION -> "Invalid property data";
+                    case QUERY_PARAMETER -> "Invalid query parameter";
+                    case REQUEST_PROBLEM_HEADER -> "Invalid header";
+                    case REQUEST_PROBLEM_BODY -> "Invalid body";
+                    case NOT_FOUND_ENTITY_ITEM -> "Item not found";
+                    case NOT_FOUND_RELATION_ITEM -> "Item not found in the relation";
+                    case INTEGRITY_BLIND_RELATION_OVERWRITE -> "Would overwrite a relation of another item";
+                    case INTEGRITY_REQUIRED_RELATION -> "Would clear a required relation";
+                })
+                .collect(Collectors.joining(", "));
+
+        var baseDescription = switch (statusCode.getStatusCode().orElse(null)) {
+            case 400 -> "Bad request";
+            case 404 -> "Resource not found";
+            case 409 -> "Conflict with other data";
+            case null, default -> "Error";
+        };
+
+        return baseDescription+": "+applicableProblems;
     }
 
     private OpenApiPotentialReference<JsonSchema> createResponseBody(OpenApiSpecContext context, HttpStatusCode statusCode, Set<ProblemSet> problemSets) {

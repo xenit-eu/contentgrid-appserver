@@ -468,6 +468,12 @@ public class OpenApiSpecBuilder {
                                     relation.getSourceEndPoint().getName().getValue()
                             ));
                         });
+                        op.response(404, resp -> {
+                            resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
+                                    relation.getSourceEndPoint().getName().getValue(),
+                                    relation.getTargetEndPoint().getEntity().getValue()
+                            ));
+                        });
                         op.response(409, resp -> {
                             resp.setDescription("You can not remove the %s link, because the inverse relation is marked as required".formatted(
                                     relation.getSourceEndPoint().getName().getValue()
@@ -650,7 +656,17 @@ public class OpenApiSpecBuilder {
                             if(existing == null) {
                                 return entry.getValue();
                             } else {
-                                return existing.getOriginalObject().combinedWith(entry.getValue().getOriginalObject());
+                                var existingDescription = existing.getOriginalObject().getDescription();
+                                var existingSummary = existing.getOriginalObject().getSummary();
+                                var updated = existing.getOriginalObject().combinedWith(entry.getValue().getOriginalObject());
+                                // Restore existing description & summary, because they are more tailored to the situation than the generic generated description
+                                if (existingDescription != null) {
+                                    updated.setDescription(existingDescription);
+                                }
+                                if (existingSummary != null) {
+                                    updated.setSummary(existingSummary);
+                                }
+                                return updated;
                             }
                         })
                 );

@@ -67,6 +67,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/partyCollection"
         "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
           content:
             application/problem+json:
               schema:
@@ -117,6 +118,8 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "409":
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
           content:
             application/problem+json:
               schema:
@@ -141,11 +144,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/partyResponse"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -180,6 +185,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -214,6 +220,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -227,11 +234,13 @@ paths:
         "204":
           description: "The party has been deleted"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -263,6 +272,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/partyResponse"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -304,6 +314,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -331,6 +342,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
           content:
             application/problem+json:
               schema:
@@ -371,6 +384,7 @@ paths:
                 type: "string"
                 format: "binary"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -406,6 +420,7 @@ paths:
             ETag:
               $ref: "#/components/headers/ETag"
         "400":
+          description: "Bad request: Invalid header, Invalid body"
           content:
             application/problem+json:
               schema:
@@ -413,6 +428,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -431,11 +447,13 @@ paths:
         "204":
           description: "The file has been deleted"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -480,6 +498,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/insurance-caseCollection"
         "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
           content:
             application/problem+json:
               schema:
@@ -530,6 +549,8 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "409":
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
           content:
             application/problem+json:
               schema:
@@ -554,11 +575,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/insurance-caseResponse"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -593,6 +616,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -627,6 +651,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -640,11 +665,13 @@ paths:
         "204":
           description: "The insurance-case has been deleted"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -676,6 +703,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/partyResponse"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -717,6 +745,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -744,6 +773,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
           content:
             application/problem+json:
               schema:
@@ -777,11 +808,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/insurance-caseCollection"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -809,6 +842,8 @@ paths:
           description: "The list of insurance-case is linked with insurance-case as\
             \ followups"
         "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
           content:
             application/problem+json:
               schema:
@@ -817,6 +852,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -837,11 +873,13 @@ paths:
         "204":
           description: "All links to insurance-case have been removed from followups"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -879,6 +917,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/insurance-caseResponse"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -901,6 +940,7 @@ paths:
         "204":
           description: "The link to insurance-case has been removed from followups"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -948,6 +988,7 @@ paths:
                 type: "string"
                 format: "binary"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -983,6 +1024,7 @@ paths:
             ETag:
               $ref: "#/components/headers/ETag"
         "400":
+          description: "Bad request: Invalid header, Invalid body"
           content:
             application/problem+json:
               schema:
@@ -990,6 +1032,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -1008,11 +1051,13 @@ paths:
         "204":
           description: "The file has been deleted"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -1046,6 +1091,7 @@ paths:
                 type: "string"
                 format: "binary"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
@@ -1078,6 +1124,7 @@ paths:
             ETag:
               $ref: "#/components/headers/ETag"
         "400":
+          description: "Bad request: Invalid header, Invalid body"
           content:
             application/problem+json:
               schema:
@@ -1085,6 +1132,7 @@ paths:
                 - $ref: "#/components/schemas/problemDetail.invalid-request-header"
                 - $ref: "#/components/schemas/problemDetail.invalid-request-body"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
@@ -1103,11 +1151,13 @@ paths:
         "204":
           description: "The file has been deleted"
         "400":
+          description: "Bad request: Invalid header"
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
