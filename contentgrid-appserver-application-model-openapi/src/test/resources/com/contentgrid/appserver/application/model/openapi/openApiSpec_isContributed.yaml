@@ -378,6 +378,8 @@ paths:
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
           content:
             '*/*':
               schema:
@@ -405,6 +407,7 @@ paths:
       parameters:
       - $ref: "#/components/parameters/header.If-Match"
       - $ref: "#/components/parameters/header.If-None-Match"
+      - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
         required: true
@@ -982,6 +985,8 @@ paths:
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
           content:
             '*/*':
               schema:
@@ -1009,6 +1014,7 @@ paths:
       parameters:
       - $ref: "#/components/parameters/header.If-Match"
       - $ref: "#/components/parameters/header.If-None-Match"
+      - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
         required: true
@@ -1085,6 +1091,8 @@ paths:
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
           content:
             '*/*':
               schema:
@@ -1109,6 +1117,10 @@ paths:
       - "insurance-case"
       operationId: "set.insurance-case.thumb_nail"
       summary: "Add or update the thumb_nail file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.If-Match"
+      - $ref: "#/components/parameters/header.If-None-Match"
+      - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
         required: true
@@ -1862,6 +1874,13 @@ components:
       - "\"1mktvx6\""
       - "\"25borvrzr9thvwuua39m3c2a3\""
       pattern: "^\"[a-z0-9]+\"$"
+    RFC6266.Content-Disposition:
+      type: "string"
+      description: "See [RFC 6266](https://datatracker.ietf.org/doc/html/rfc6266)"
+      examples:
+      - "attachment"
+      - "attachment; filename=\"my-file.pdf\""
+      - "attachment; filename=\"=?UTF-8?Q?my-file.pdf?=\"; filename*=UTF-8''my-file.pdf"
     insurance-caseResponse:
       type: "object"
       title: "insurance-case"
@@ -2116,10 +2135,23 @@ components:
         - type: "array"
           items:
             $ref: "#/components/schemas/RFC9110.entity-tag"
+    header.Content-Disposition:
+      name: "Content-Disposition"
+      in: "header"
+      description: "The disposition type is ignored, only the optional filename parameter\
+        \ is used to optionally set a filename"
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
   headers:
     ETag:
       description: "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-etag)"
       required: true
       schema:
         $ref: "#/components/schemas/RFC9110.entity-tag"
+    Content-Disposition:
+      description: "Content-Disposition is always set to attachment, with optionally\
+        \ a filename"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
   pathItems: {}

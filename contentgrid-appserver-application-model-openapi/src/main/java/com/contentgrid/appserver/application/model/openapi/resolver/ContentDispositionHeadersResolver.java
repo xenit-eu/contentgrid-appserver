@@ -54,7 +54,7 @@ public class ContentDispositionHeadersResolver implements ResponseHeaderResolver
             return Stream.empty();
         }
         return Stream.of(
-                context.spec().getComponents().getParameters().register("header-Content-Disposition", () -> new OpenApiParameter("Content-Disposition", In.HEADER)
+                context.spec().getComponents().getParameters().register("header.Content-Disposition", () -> new OpenApiParameter("Content-Disposition", In.HEADER)
                         .setDescription("The disposition type is ignored, only the optional filename parameter is used to optionally set a filename")
                         .setSchema(createContentDispositionSchema(context))
                 )
@@ -62,7 +62,7 @@ public class ContentDispositionHeadersResolver implements ResponseHeaderResolver
     }
 
     private OpenApiPotentialReference<JsonSchema> createContentDispositionSchema(OpenApiSpecContext context) {
-        return context.spec().getComponents().getSchemas().register("RFC6266:Content-Disposition", () -> new JsonSchemaString()
+        return context.spec().getComponents().getSchemas().register("RFC6266.Content-Disposition", () -> new JsonSchemaString()
                 .setDescription("See [RFC 6266](https://datatracker.ietf.org/doc/html/rfc6266)")
                 .setExamples(List.of(
                         "attachment",
