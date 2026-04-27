@@ -26,11 +26,11 @@ public class OpenApiOperation {
     @JsonInclude(Include.NON_EMPTY)
     List<String> tags;
     @JsonInclude(Include.NON_EMPTY)
+    String operationId;
+    @JsonInclude(Include.NON_EMPTY)
     String summary;
     @JsonInclude(Include.NON_EMPTY)
     String description;
-    @JsonInclude(Include.NON_EMPTY)
-    String operationId;
 
     @JsonInclude(Include.NON_EMPTY)
     List<OpenApiPotentialReference<OpenApiParameter>> parameters;

@@ -116,6 +116,7 @@ public class OpenApiSpecBuilder {
         // collection
         context.spec().getPaths().path("/"+entity.getPathSegment().getValue())
                 .method(HttpMethod.GET, op -> {
+                    op.setOperationId("list."+entityName.getValue());
                     var collectionType = new CollectionType(semanticType);
                     op.setTags(List.of(tag.getName()))
                             .setSummary("Retrieve %s list".formatted(entityName.getValue()))
@@ -127,6 +128,7 @@ public class OpenApiSpecBuilder {
                 })
                 .method(HttpMethod.POST, op -> {
                     op
+                            .setOperationId("create."+entityName.getValue())
                             .setSummary("Create a new %s".formatted(entityName.getValue()))
                             .setTags(List.of(tag.getName()))
                             .requestBody(body -> {
@@ -160,6 +162,7 @@ public class OpenApiSpecBuilder {
         context.spec().getPaths().path("/"+entity.getPathSegment().getValue()+"/{id}")
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
+                    op.setOperationId("get."+entityName.getValue());
                     op.setSummary("Retrieve the %s".formatted(entityName.getValue()));
                     op.response(200, resp -> {
                         resp.setDescription("OK");
@@ -167,6 +170,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .method(HttpMethod.PUT, op -> {
+                    op.setOperationId("update."+entityName.getValue());
                     op.setSummary("Update all attributes of the %s".formatted(entityName.getValue()));
                     op.requestBody(body -> {
                                 body.setDescription("All attributes of the %s have to be specified. Missing attributes are treated as null".formatted(entityName.getValue()));
@@ -182,6 +186,7 @@ public class OpenApiSpecBuilder {
                             });
                 })
                 .method(HttpMethod.PATCH, op -> {
+                    op.setOperationId("patch."+entityName.getValue());
                     op.setSummary("Update some attributes of the %s".formatted(entityName.getValue()));
                     op.requestBody(body -> {
                                 body.setDescription("Only attributes that have to be updated should be specified, other attributes should not be present");
@@ -197,6 +202,7 @@ public class OpenApiSpecBuilder {
                             });
                 })
                 .method(HttpMethod.DELETE, op -> {
+                    op.setOperationId("delete."+entityName.getValue());
                     op.setSummary("Delete the %s".formatted(entityName.getValue()));
                     op.response(204, resp -> {
                         resp.setDescription("The %s has been deleted".formatted(entityName.getValue()));
@@ -233,6 +239,7 @@ public class OpenApiSpecBuilder {
         var contentPathItem = new OpenApiPathItem()
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
+                    op.setOperationId("get."+entity.getName().getValue()+"."+contentAttribute.getName());
                     op.setSummary("Retrieve the %s file stored with %s".formatted(
                             contentAttribute.getName().getValue(),
                             entity.getName().getValue()
@@ -246,6 +253,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .method(HttpMethod.PUT, op -> {
+                    op.setOperationId("set."+entity.getName().getValue()+"."+contentAttribute.getName());
                     op
                             .setSummary("Add or update the %s file stored with %s".formatted(
                                     contentAttribute.getName().getValue(),
@@ -261,6 +269,7 @@ public class OpenApiSpecBuilder {
                             });
                 })
                 .method(HttpMethod.DELETE, op -> {
+                    op.setOperationId("delete."+entity.getName().getValue()+"."+contentAttribute.getName());
                     op.setSummary("Delete the %s file stored with %s".formatted(
                             contentAttribute.getName().getValue(),
                             entity.getName().getValue()
@@ -295,6 +304,7 @@ public class OpenApiSpecBuilder {
         context.spec().getPaths().path(relationPath)
                 .setParameters(List.of(ENTITY_ID_PARAM))
                 .method(HttpMethod.GET, op -> {
+                    op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
                     if(isCollection) {
                         op.setSummary("Retrieve the %s list linked with %s as %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
@@ -323,20 +333,22 @@ public class OpenApiSpecBuilder {
                     }
                 })
                 .method(modifyMethod, op -> {
+                    if(modifyMethod == HttpMethod.PUT) {
+                        op.setOperationId("set."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
+                        op.setSummary("Set the %s that is linked with %s as %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    } else {
+                        op.setOperationId("add."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
+                        op.setSummary("Add links to %s list that is linked with %s as %s, in addition to the existing %1$s list".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    }
                     op.requestBody(body -> {
-                        if(modifyMethod == HttpMethod.PUT) {
-                            op.setSummary("Set the %s that is linked with %s as %s".formatted(
-                                    relation.getTargetEndPoint().getEntity().getValue(),
-                                    relation.getSourceEndPoint().getEntity().getValue(),
-                                    relation.getSourceEndPoint().getName().getValue()
-                            ));
-                        } else {
-                            op.setSummary("Add links to %s list that is linked with %s as %s, in addition to the existing %1$s list".formatted(
-                                    relation.getTargetEndPoint().getEntity().getValue(),
-                                    relation.getSourceEndPoint().getEntity().getValue(),
-                                    relation.getSourceEndPoint().getName().getValue()
-                            ));
-                        }
 
                         body.setRequired(true);
                         BodyValue relationValue = new RelationBodyValue(relation.getTargetEndPoint()
@@ -379,6 +391,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .method(HttpMethod.DELETE, op -> {
+                    op.setOperationId("clear."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
                     if(isCollection) {
                         op.setSummary("Removes all links to %s from %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
@@ -426,6 +439,7 @@ public class OpenApiSpecBuilder {
             context.spec().getPaths().path(relationPath+"/{itemId}")
                     .setParameters(List.of(ENTITY_ID_PARAM, new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString())))
                     .method(HttpMethod.GET, op -> {
+                        op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue()+".item");
                         op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
                                 relation.getSourceEndPoint().getEntity().getValue(),
@@ -443,6 +457,7 @@ public class OpenApiSpecBuilder {
                         });
                     })
                     .method(HttpMethod.DELETE, op -> {
+                        op.setOperationId("delete."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue()+".item");
                         op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
                                 relation.getTargetEndPoint().getEntity().getValue(),
                                 relation.getSourceEndPoint().getName().getValue()
