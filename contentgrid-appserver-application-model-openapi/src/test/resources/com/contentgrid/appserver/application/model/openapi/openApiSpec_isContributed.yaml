@@ -1380,6 +1380,49 @@ components:
       required:
       - "vat"
       - "name"
+    problemDetail.integrity.blind-relation-overwrite:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Overwrite of an existing relation blocked"
+        description: "In a to-one relation, the target entity is already referenced\
+          \ by another entity"
+        properties:
+          type:
+            const: "https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"
+          status:
+            const: 409
+          new_item:
+            type: "string"
+            format: "uri"
+          new_relation:
+            type: "string"
+            format: "uri"
+          existing_item:
+            type: "string"
+            format: "uri"
+          existing_relation:
+            type: "string"
+            format: "uri"
+          target_item:
+            type: "string"
+            format: "uri"
+          target_relation:
+            type: "string"
+            format: "uri"
+          additional_errors:
+            type: "array"
+            items:
+              $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        required:
+        - "type"
+        - "status"
+        - "new_item"
+        - "new_relation"
+        - "existing_item"
+        - "existing_relation"
+        - "target_item"
+        - "additional_errors"
     problemDetail.input-validation.field.base:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -1568,49 +1611,6 @@ components:
         required:
         - "type"
         - "status"
-    problemDetail.integrity.blind-relation-overwrite:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        title: "Overwrite of an existing relation blocked"
-        description: "In a to-one relation, the target entity is already referenced\
-          \ by another entity"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"
-          status:
-            const: 409
-          new_item:
-            type: "string"
-            format: "uri"
-          new_relation:
-            type: "string"
-            format: "uri"
-          existing_item:
-            type: "string"
-            format: "uri"
-          existing_relation:
-            type: "string"
-            format: "uri"
-          target_item:
-            type: "string"
-            format: "uri"
-          target_relation:
-            type: "string"
-            format: "uri"
-          additional_errors:
-            type: "array"
-            items:
-              $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
-        required:
-        - "type"
-        - "status"
-        - "new_item"
-        - "new_relation"
-        - "existing_item"
-        - "existing_relation"
-        - "target_item"
-        - "additional_errors"
     ContentInfoPUT:
       type: "object"
       properties:
