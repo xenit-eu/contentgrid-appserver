@@ -1339,6 +1339,14 @@ components:
         - "query_parameter"
         - "format_error"
     problemDetail.invalid-query-parameter.composite:
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+        defaultMapping: "#/components/schemas/problemDetail.invalid-query-parameter.base"
       oneOf:
       - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
       - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
@@ -1537,6 +1545,18 @@ components:
         - "type"
         - "missing_item"
     problemDetail.input-validation.field.composite:
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
+          https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
+          https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
+          https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.noContent"
+          https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
+          https://contentgrid.cloud/problems/input/validation/required: "#/components/schemas/problemDetail.input-validation.field.required"
+          https://contentgrid.cloud/problems/input/validation/type: "#/components/schemas/problemDetail.input-validation.field.type"
+          https://contentgrid.cloud/problems/input/validation/type/format: "#/components/schemas/problemDetail.input-validation.field.type-format"
+        defaultMapping: "#/components/schemas/problemDetail.input-validation.field.base"
       oneOf:
       - $ref: "#/components/schemas/problemDetail.input-validation.field.type"
       - $ref: "#/components/schemas/problemDetail.input-validation.field.type-format"

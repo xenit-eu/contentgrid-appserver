@@ -1,6 +1,9 @@
 package com.contentgrid.appserver.application.model.openapi;
 
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiDiscriminator;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiReference;
+import com.contentgrid.appserver.application.model.openapi.model.jsonschema.AbstractJsonSchemaDataType;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaAllOf;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaConst;
@@ -13,6 +16,7 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -133,7 +137,36 @@ public class ProblemDetailsJsonSchema implements OpenApiPotentialReference<JsonS
     }
 
     public OpenApiPotentialReference<JsonSchema> composite() {
-        return composite(s -> {});
+        return composite(oneOf -> {
+            var discriminator = new OpenApiDiscriminator("type");
+
+            for (var subType : subTypes) {
+                var problemDetailTypes = getProblemDetailType(subType.getOriginalObject())
+                        .flatMap(s -> s instanceof JsonSchemaConst schemaConst?Stream.of(schemaConst.getConst()):Stream.empty())
+                        .filter(Objects::nonNull)
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .toList();
+
+                for (var problemDetailType : problemDetailTypes) {
+                    discriminator.mapping(problemDetailType, (OpenApiReference<JsonSchema>) subType.getSchema());
+
+                }
+            }
+            discriminator.setDefaultMapping((OpenApiReference<JsonSchema>) schema);
+
+            oneOf.setDiscriminator(discriminator);
+        });
+    }
+
+    private static Stream<JsonSchema> getProblemDetailType(JsonSchema schema) {
+        return switch (schema) {
+            case JsonSchemaOneOf oneOf -> oneOf.getOneOf().stream().flatMap(s -> getProblemDetailType(s.getOriginalObject())).filter(Objects::nonNull);
+            case JsonSchemaAllOf allOf -> allOf.getAllOf().stream().flatMap(s -> getProblemDetailType(s.getOriginalObject())).filter(Objects::nonNull);
+            case JsonSchemaObject object -> Optional.ofNullable(object.getProperties().get("type")).map(OpenApiPotentialReference::getOriginalObject).stream();
+            case AbstractJsonSchemaDataType abstractJsonSchemaDataType -> Stream.empty();
+            case JsonSchemaConst jsonSchemaConst -> Stream.empty();
+        };
     }
 
     public OpenApiPotentialReference<JsonSchema> composite(Consumer<JsonSchemaOneOf> compositeModifier) {
