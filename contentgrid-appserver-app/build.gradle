@@ -20,3 +20,21 @@ bootRun {
     classpath += sourceSets.testFixtures.output
     classpath += configurations.testFixturesRuntimeClasspath
 }
+
+bootBuildImage {
+    def dockerImageRepo = "ghcr.io/xenit-eu/contentgrid-appserver"
+    imageName = "${dockerImageRepo}:${project.version}"
+    tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${dockerImageRepo}:SNAPSHOT" ] : null
+
+    if (!ci.isCi()) {
+        tags.add("${dockerImageRepo}:local")
+    }
+
+    docker {
+        publishRegistry {
+            url = project.findProperty('DOCKER_PUBLISH_REGISTRY_URL')
+            username = project.findProperty('DOCKER_PUBLISH_REGISTRY_USERNAME')
+            password = project.findProperty('DOCKER_PUBLISH_REGISTRY_PASSWORD')
+        }
+    }
+}
