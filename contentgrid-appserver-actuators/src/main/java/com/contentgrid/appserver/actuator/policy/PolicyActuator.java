@@ -2,6 +2,7 @@ package com.contentgrid.appserver.actuator.policy;
 
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.FileNotFoundException;
@@ -28,13 +29,13 @@ public class PolicyActuator {
     );
 
     @ReadOperation(producesFrom = RegoProducible.class)
-    public String readPolicy() throws IOException, ArtifactEntryUnreadableException {
+    public String readPolicy() throws IOException, ArtifactException, ArtifactEntryUnreadableException {
         try {
             var artifactEntry = artifact.load(PATH);
             String contents = readContents(artifactEntry);
 
             return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, policyVariables);
-        } catch (ArtifactException e) {
+        } catch (ArtifactEntryNotFoundException e) {
             throw new FileNotFoundException("rego file at " + PATH + " in " + artifact.getReference() + " is not present");
         }
     }
