@@ -2,7 +2,6 @@ package com.contentgrid.appserver.autoconfigure.flyway;
 
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;
@@ -21,11 +20,9 @@ public class ArtifactFlywayResourceProvider implements ResourceProvider {
     @Override
     @SneakyThrows
     public LoadableResource getResource(String name) {
-        try {
-            return new ArtifactEntryLoadableResource(artifact.load(Path.of(name)));
-        } catch (ArtifactEntryNotFoundException e) {
-            return null;
-        }
+        return artifact.load(Path.of(name))
+                .map(ArtifactEntryLoadableResource::new)
+                .orElse(null);
     }
 
     @Override

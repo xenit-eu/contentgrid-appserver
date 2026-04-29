@@ -3,6 +3,7 @@ package com.contentgrid.appserver.infrastructure.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,10 +27,14 @@ public abstract class AbstractArtifactTest {
     @Test
     void load_readsFileContents() throws Exception {
         var artifact = getArtifact();
-        var entry = artifact.load(Path.of("file.txt"));
-        try (var stream = entry.getInputStream()) {
-            assertThat(stream).hasContent("hello");
-        }
+        var maybeEntry = artifact.load(Path.of("file.txt"));
+        assertThat(maybeEntry).hasValueSatisfying(entry -> {
+            try (var stream = entry.getInputStream()) {
+                assertThat(stream).hasContent("hello");
+            } catch (ArtifactEntryUnreadableException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test
@@ -65,9 +70,15 @@ public abstract class AbstractArtifactTest {
     }
 
     @Test
-    void load_missingEntry_throwsArtifactEntryNotFoundException() {
+    void load_missingEntry_returnsEmptyOptional() throws ArtifactException {
         var artifact = getArtifact();
-        assertThatThrownBy(() -> artifact.load(Path.of("nonexistent.txt")))
+        assertThat(artifact.load(Path.of("nonexistent.txt"))).isEmpty();
+    }
+
+    @Test
+    void loadRequired_missingEntry_throwsArtifactEntryNotFoundException() {
+        var artifact = getArtifact();
+        assertThatThrownBy(() -> artifact.loadRequired(Path.of("nonexistent.txt")))
                 .isInstanceOf(ArtifactEntryNotFoundException.class);
     }
 

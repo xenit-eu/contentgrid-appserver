@@ -2,6 +2,7 @@ package com.contentgrid.appserver.infrastructure.api;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A collection of named entries backed by a specific storage location (filesystem directory, ZIP archive, classpath, …).
@@ -22,10 +23,23 @@ public interface Artifact {
      * Loads a single entry at the given path within this artifact.
      *
      * @param path the path inside the artifact
-     * @return the entry at that path
+     * @return an {@link Optional} containing the entry at the given path,
+     * or an empty {@link Optional} if the entry does not exist
      * @throws ArtifactException if the artifact cannot be accessed
      */
-    ArtifactEntry load(Path path) throws ArtifactException;
+    Optional<ArtifactEntry> load(Path path) throws ArtifactException;
+
+    /**
+     * Loads a single entry at the given path within this artifact.
+     *
+     * @param path the path inside the artifact
+     * @return the entry at the given path
+     * @throws ArtifactException if the artifact cannot be accessed
+     * @throws ArtifactEntryNotFoundException if the entry does not exist
+     */
+    default ArtifactEntry loadRequired(Path path) throws ArtifactException {
+        return load(path).orElseThrow(() -> new ArtifactEntryNotFoundException(getReference(), path.toString()));
+    }
 
     /**
      * Loads all entries at or under the given path within this artifact, recursively.
@@ -44,7 +58,7 @@ public interface Artifact {
             }
 
             @Override
-            public ArtifactEntry load(Path path) throws ArtifactException {
+            public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
                 return Artifact.this.load(subDir.resolve(path).normalize());
             }
 
