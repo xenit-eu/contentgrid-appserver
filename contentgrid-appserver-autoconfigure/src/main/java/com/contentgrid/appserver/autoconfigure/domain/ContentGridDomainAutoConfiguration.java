@@ -7,19 +7,15 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
-import com.contentgrid.appserver.domain.automations.AutomationsModel;
+import com.contentgrid.appserver.domain.automations.ArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
-import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.util.List;
-import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -72,12 +68,8 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    @SneakyThrows
     @ConditionalOnMissingBean
-    AutomationsModelResolver automationsResolver(Artifact artifact) {
-        var model = artifact.load(Path.of("automation", "automations.json"))
-                .map(AutomationsModel::fromConfig)
-                .orElseGet(() -> AutomationsModel.builder().automations(List.of()).build());
-        return new SingleAutomationsModelResolver(model);
+    AutomationsModelResolver artifactAutomationsResolver(Artifact artifact) {
+        return new ArtifactAutomationsModelResolver(artifact);
     }
 }
