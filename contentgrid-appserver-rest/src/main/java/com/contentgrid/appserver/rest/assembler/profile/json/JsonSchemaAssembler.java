@@ -3,25 +3,30 @@ package com.contentgrid.appserver.rest.assembler.profile.json;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
-import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ArrayBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyType;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ContentBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ObjectBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.RelationBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.SimpleBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
+import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.AbstractJsonSchemaProperty;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.Definitions;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.EnumProperty;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.Item;
 import com.contentgrid.appserver.rest.assembler.profile.json.JsonSchema.JsonSchemaProperty;
-import java.util.ArrayList;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 
 public class JsonSchemaAssembler {
 
@@ -30,152 +35,117 @@ public class JsonSchemaAssembler {
     }
 
     public JsonSchema toModel(Entity entity, Context context) {
-        var definitions = new Definitions();
-        var translation = entity.getTranslations(context.userLocales());
-        var attributes = entity.getAllAttributes().stream()
-                .map(attribute -> toProperty(attribute, context, definitions))
-                .flatMap(Optional::stream);
-        var relations = context.application().getRelationsForSourceEntity(entity).stream()
-                .map(relation -> toProperty(relation, context))
-                .flatMap(Optional::stream);
-        var properties = Stream.concat(attributes, relations).toList();
+        var postBody = BodyObjectMapper.forBody(
+                new BodyObjectMapper.Context(context.application(), BodyType.POST, MediaType.JSON, context.userLocales()), entity.getName());
+        var responseBody = BodyObjectMapper.forBody(
+                new BodyObjectMapper.Context(context.application(), BodyType.RESPONSE, MediaType.JSON, context.userLocales()), entity.getName());
 
-        return new JsonSchema(translation.getSingularName(), translation.getDescription(), properties, definitions);
+        var definitions = new Definitions();
+
+        var properties = createProperties(context, new CreatePropertiesContext(postBody, responseBody), definitions).toList();
+
+        return new JsonSchema(responseBody.getTitle(), responseBody.getDescription(), properties, definitions);
     }
 
-    private Optional<JsonSchemaProperty> toProperty(Attribute attribute, Context context, Definitions definitions) {
-        if (attribute.isIgnored()) {
-            return Optional.empty();
+    @RequiredArgsConstructor
+    private static class CreatePropertiesContext {
+        private final ObjectBodyValue postBody;
+        private final ObjectBodyValue responseBody;
+
+        public boolean isReadonly(String field) {
+            return postBody.getField(field).isEmpty();
         }
 
-        var translation = attribute.getTranslations(context.userLocales());
+        public boolean isRequired(String field) {
+            return postBody.getField(field)
+                    .map(BodyValue::isMandatory)
+                    .orElse(false);
+        }
 
-        var required = isRequired(attribute);
+        public Map<String, BodyValue> getFields() {
+            var fields = LinkedHashMap.<String, BodyValue>newLinkedHashMap(postBody.getFields().size());
+            fields.putAll(responseBody.getFields());
+            fields.putAll(postBody.getFields());
+            return fields;
 
-        var property = new JsonSchemaProperty(attribute.getName().getValue(), translation.getName(), translation.getDescription(), required);
+        }
 
-        if (attribute.isReadOnly()) {
+        public CreatePropertiesContext descend(String field) {
+            return new CreatePropertiesContext(
+                    postBody.getField(field).map(ObjectBodyValue.class::cast).orElse(new ObjectBodyValue(Collections.emptyMap())),
+                    responseBody.getField(field).map(ObjectBodyValue.class::cast).orElse(new ObjectBodyValue(Collections.emptyMap()))
+            );
+        }
+    }
+
+    private Stream<JsonSchemaProperty> createProperties(Context context, CreatePropertiesContext createPropertiesContext, Definitions definitions) {
+        return createPropertiesContext.getFields()
+                .entrySet()
+                .stream()
+                .map(entry -> createProperty(context, entry, createPropertiesContext, definitions));
+    }
+
+    private JsonSchemaProperty createProperty(Context context, Entry<String, BodyValue> entry, CreatePropertiesContext createPropertiesContext, Definitions definitions) {
+        var property = new JsonSchemaProperty(
+                entry.getKey(),
+                entry.getValue().getTitle(),
+                entry.getValue().getDescription(),
+                createPropertiesContext.isRequired(entry.getKey())
+        );
+        if (createPropertiesContext.isReadonly(entry.getKey())) {
             property.withReadOnly();
         }
 
-        property = customizeProperty(property, attribute, context, definitions);
 
-        return Optional.of(property);
-    }
-
-    private static boolean isRequired(Attribute attribute) {
-        return attribute instanceof SimpleAttribute simpleAttribute && simpleAttribute.hasConstraint(RequiredConstraint.class);
-    }
-
-    private JsonSchemaProperty customizeProperty(JsonSchemaProperty property, Attribute attribute, Context context, Definitions definitions) {
-        return switch (attribute) {
-            case SimpleAttribute simpleAttribute -> customizeSimpleProperty(property, simpleAttribute);
-            case UserAttribute ignored -> customizeUserProperty(property);
-            case ContentAttribute contentAttribute -> customizeContentProperty(property, contentAttribute, context, definitions);
-            case CompositeAttribute compositeAttribute -> customizeCompositeProperty(property, compositeAttribute, context, definitions);
-        };
-    }
-
-    private JsonSchemaProperty customizeSimpleProperty(JsonSchemaProperty property, SimpleAttribute simpleAttribute) {
-        property.withType(toJsonSchemaType(simpleAttribute.getType()));
-        var format = toJsonSchemaFormat(simpleAttribute.getType());
-        if (format != null) {
-            property.withFormat(format);
-        }
-
-        // Return enum property when there are allowed values
-        if (simpleAttribute.hasConstraint(AllowedValuesConstraint.class)) {
-            var values = new ArrayList<>(simpleAttribute.getConstraint(AllowedValuesConstraint.class)
-                    .orElseThrow().getValues());
-
-            if (!property.isRequired()) {
-                // add null as enum value if not required
-                values.add(null);
+        return switch (entry.getValue()) {
+            case ArrayBodyValue arrayBodyValue -> {
+                if (arrayBodyValue.getItems() instanceof RelationBodyValue) {
+                    yield property.asAssociationArray();
+                } else {
+                    throw new IllegalArgumentException("Array value with non-relation body is not supported");
+                }
             }
+            case RelationBodyValue relationBodyValue -> property.asAssociation();
+            case ContentBodyValue contentBodyValue -> throw new IllegalArgumentException("Content value is not supported");
+            case ObjectBodyValue objectBodyValue -> {
+                var properties = createProperties(context, createPropertiesContext.descend(entry.getKey()), definitions).toList();
+                if(objectBodyValue.getSourceType() instanceof AttributeSourceType attributeSourceType) {
+                    var isContentAttribute = context.application().getRequiredEntityByName(attributeSourceType.getEntityName())
+                            .getNestedAttribute(attributeSourceType.getAttributePath())
+                            .filter(ContentAttribute.class::isInstance)
+                            .isPresent();
+                    if (isContentAttribute) {
+                        var ref = JsonSchemaReference.named("content");
+                        definitions.addDefinition(ref, new Item(JsonSchemaType.OBJECT, properties));
+                        yield property.withReference(ref);
+                    }
+                }
+                if (properties.stream().allMatch(AbstractJsonSchemaProperty::isReadOnly)) {
+                    property.withReadOnly();
+                }
+                yield property.withProperties(properties);
+            }
+            case SimpleBodyValue simpleBodyValue -> {
+                var maybeAllowedValues = simpleBodyValue.getConstraint(AllowedValuesConstraint.class);
+                if (maybeAllowedValues.isPresent()) {
+                    property = new EnumProperty(property.getName(), property.getTitle(), maybeAllowedValues.get().getValues(), property.getDescription(), property.isRequired());
+                }
+                var maybePattern = simpleBodyValue.getConstraint(RegexPatternConstraint.class);
+                if (maybePattern.isPresent()) {
+                    property = property.withPattern(maybePattern.get().getHtmlPattern());
+                }
 
-            property = new EnumProperty(property.getName(), property.getTitle(), values, property.getDescription(),
-                    property.isRequired());
-        }
-
-        if(simpleAttribute.hasConstraint(RegexPatternConstraint.class)) {
-            var htmlPattern = simpleAttribute.getConstraint(RegexPatternConstraint.class).orElseThrow().getHtmlPattern();
-            property = property.withPattern(htmlPattern);
-        }
-
-        return property;
-    }
-
-    private JsonSchemaProperty customizeUserProperty(JsonSchemaProperty property) {
-        return property.withReadOnly().withType(JsonSchemaType.STRING);
-    }
-
-    private JsonSchemaProperty customizeContentProperty(JsonSchemaProperty property, ContentAttribute contentAttribute, Context context, Definitions definitions) {
-        // Customize JsonSchemaProperty
-        var reference = JsonSchemaReference.named("content");
-        property.withReference(reference);
-
-        if (!definitions.hasDefinitionFor(reference)) {
-            // Add content definition
-            var properties = contentAttribute.getAttributes().stream()
-                    .map(attribute -> toProperty(attribute, context, definitions))
-                    .flatMap(Optional::stream)
-                    .toList();
-
-            definitions.addDefinition(reference, new Item(JsonSchemaType.OBJECT, properties));
-        }
-
-        return property;
-    }
-
-    private JsonSchemaProperty customizeCompositeProperty(JsonSchemaProperty property, CompositeAttribute compositeAttribute, Context context, Definitions definitions) {
-        var properties = compositeAttribute.getAttributes().stream()
-                .map(attribute -> toProperty(attribute, context, definitions))
-                .flatMap(Optional::stream)
-                .toList();
-
-        return property.withProperties(properties);
-    }
-
-    private JsonSchemaType toJsonSchemaType(SimpleAttribute.Type type) {
-        return switch (type) {
-            case TEXT, DATE, DATETIME, UUID -> JsonSchemaType.STRING;
-            case LONG -> JsonSchemaType.INTEGER;
-            case DOUBLE -> JsonSchemaType.NUMBER;
-            case BOOLEAN -> JsonSchemaType.BOOLEAN;
+                yield switch (simpleBodyValue.getType()) {
+                    case LONG -> property.withType(JsonSchemaType.INTEGER);
+                    case DOUBLE -> property.withType(JsonSchemaType.NUMBER);
+                    case BOOLEAN -> property.withType(JsonSchemaType.BOOLEAN);
+                    case TEXT -> property.withType(JsonSchemaType.STRING);
+                    case DATE -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.DATE);
+                    case DATETIME -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.DATE_TIME);
+                    case UUID -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.UUID);
+                };
+            }
         };
-    }
-
-    private JsonSchemaFormat toJsonSchemaFormat(SimpleAttribute.Type type) {
-        return switch (type) {
-            case DATE -> JsonSchemaFormat.DATE;
-            case DATETIME -> JsonSchemaFormat.DATE_TIME;
-            case UUID -> JsonSchemaFormat.UUID;
-            default -> null;
-        };
-    }
-
-    private Optional<JsonSchemaProperty> toProperty(Relation relation, Context context) {
-        var sourceEndPoint = relation.getSourceEndPoint();
-        if (sourceEndPoint.hasFlag(HiddenEndpointFlag.class)) {
-            return Optional.empty();
-        }
-
-        var translations = relation.getSourceEndPoint().getTranslations(context.userLocales());
-
-        var property = new JsonSchemaProperty(
-                sourceEndPoint.getName().getValue(),
-                translations.getName(),
-                translations.getDescription(),
-                sourceEndPoint.isRequired()
-        );
-
-        if (relation instanceof OneToManyRelation || relation instanceof ManyToManyRelation) {
-            property.asAssociationArray();
-        } else {
-            property.asAssociation();
-        }
-
-        return Optional.of(property);
     }
 
 }
