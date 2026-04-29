@@ -37,7 +37,7 @@ public class ApplicationResolverAutoConfiguration {
     @ConditionalOnProperty(name = "contentgrid.appserver.application-model", havingValue = "false", matchIfMissing = true)
     ApplicationResolver artifactApplicationResolver(Artifact artifact) throws ArtifactException, ArtifactEntryUnreadableException, InvalidJsonException {
         var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
-        var artifactEntry = artifact.load(Path.of("application-model.json"));
+        var artifactEntry = artifact.loadRequired(Path.of("application-model.json"));
         var application = applicationSchemaConverter.convert(artifactEntry.getInputStream());
         return new SingleApplicationResolver(application);
     }

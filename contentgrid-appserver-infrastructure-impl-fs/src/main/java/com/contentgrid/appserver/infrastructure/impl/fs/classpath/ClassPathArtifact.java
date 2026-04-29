@@ -2,7 +2,6 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
@@ -14,6 +13,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -30,14 +30,14 @@ public class ClassPathArtifact implements Artifact {
     }
 
     @Override
-    public ArtifactEntry load(Path path) throws ArtifactException {
+    public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var classpathPath = directory.resolve(path).normalize();
         var resourceName = classpathPath.toString().replace('\\', '/');
         if (classLoader.getResource(resourceName) == null) {
-            throw new ArtifactEntryNotFoundException(ref);
+            return Optional.empty();
         }
-        return new ClassPathArtifactEntry(ref, classLoader, classpathPath);
+        return Optional.of(new ClassPathArtifactEntry(ref, classLoader, classpathPath));
     }
 
     @Override

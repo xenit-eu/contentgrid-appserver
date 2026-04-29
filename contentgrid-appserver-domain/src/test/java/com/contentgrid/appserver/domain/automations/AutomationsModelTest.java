@@ -61,7 +61,7 @@ class AutomationsModelTest {
     @Test
     void loadFileConfig() throws Exception {
         var artifact = new ClassPathArtifact(AutomationsModelTest.class.getClassLoader(), Path.of(""));
-        var artifactEntry = artifact.load(Path.of("automations.json"));
+        var artifactEntry = artifact.loadRequired(Path.of("automations.json"));
         assertThat(AutomationsModel.fromConfig(artifactEntry)).isEqualTo(MODEL);
     }
 }

@@ -2,7 +2,6 @@ package com.contentgrid.appserver.actuator.webhooks;
 
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.FileNotFoundException;
@@ -30,11 +29,11 @@ public class WebhookConfigActuator {
 
     @ReadOperation(producesFrom = WebhookConfigProducible.class)
     public String getConfig() throws IOException, ArtifactException, ArtifactEntryUnreadableException {
-        try {
-            var artifactEntry = artifact.load(PATH);
-            String contents = readContents(artifactEntry);
+        var maybeArtifactEntry = artifact.load(PATH);
+        if (maybeArtifactEntry.isPresent()) {
+            String contents = readContents(maybeArtifactEntry.get());
             return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, webhookVariables);
-        } catch (ArtifactEntryNotFoundException e) {
+        } else {
             throw new FileNotFoundException("rego file at " + PATH + " in " + artifact.getReference() + " is not present");
         }
     }

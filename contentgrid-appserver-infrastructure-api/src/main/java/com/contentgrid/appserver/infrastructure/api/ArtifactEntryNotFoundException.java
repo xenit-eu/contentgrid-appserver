@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import lombok.Getter;
 
 /**
- * Thrown by {@link Artifact#load(Path)} when the requested path does not exist within the artifact.
+ * Thrown by {@link Artifact#loadRequired(Path)} when the requested path does not exist within the artifact.
  */
 @Getter
 public class ArtifactEntryNotFoundException extends ArtifactException {

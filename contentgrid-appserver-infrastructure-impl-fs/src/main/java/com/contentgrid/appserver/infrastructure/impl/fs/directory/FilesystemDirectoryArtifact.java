@@ -2,7 +2,6 @@ package com.contentgrid.appserver.infrastructure.impl.fs.directory;
 
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryNotFoundException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
@@ -11,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -26,13 +26,13 @@ public class FilesystemDirectoryArtifact implements Artifact {
     }
 
     @Override
-    public ArtifactEntry load(Path path) throws ArtifactException {
+    public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var file = directory.resolve(path).normalize();
         if (!Files.exists(file)) {
-            throw new ArtifactEntryNotFoundException(ref);
+            return Optional.empty();
         }
-        return new FilesystemDirectoryArtifactEntry(ref, file);
+        return Optional.of(new FilesystemDirectoryArtifactEntry(ref, file));
     }
 
     @Override

@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -90,12 +90,12 @@ class InfrastructureAutoConfigurationTest {
                 }
 
                 @Override
-                public ArtifactEntry load(Path path) throws ArtifactException {
-                    return null;
+                public Optional<ArtifactEntry> load(Path path) {
+                    return Optional.empty();
                 }
 
                 @Override
-                public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
+                public List<ArtifactEntry> loadAll(Path path) {
                     return List.of();
                 }
             };
