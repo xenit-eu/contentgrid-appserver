@@ -1,24 +1,29 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
+import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.FORM;
+import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.MULTIPART_FORM;
+
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
-import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
-import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.i18n.ResourceBundleTranslatable;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ArrayBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper.Context;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyType;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ContentBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ObjectBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.RelationBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.SimpleBodyValue;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
-import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
-import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
@@ -32,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -42,6 +48,7 @@ import lombok.Value;
 import lombok.With;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;
+import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions.AbstractHalFormsOptions;
 import org.springframework.hateoas.mediatype.html.HtmlInputType;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -64,58 +71,22 @@ public class HalFormsTemplateGenerator {
             .build()
             .withPrefix("sort.");
 
-    private record PrefixSettings(
-            String name,
-            String prompt
-    ) {
-        PrefixSettings append(PrefixSettings settings) {
-            return new PrefixSettings(
-                    doAppend(name, ".", settings.name()),
-                    doAppend(prompt, ": ", settings.prompt())
-            );
-        }
-
-        private static String doAppend(String stringA, String separator, String stringB) {
-            if(!stringA.isEmpty() && !stringB.isEmpty()) {
-                return stringA + separator + stringB;
-            }
-            return stringA + stringB;
-        }
-
-        static PrefixSettings empty() {
-            return new PrefixSettings("", "");
-        }
-    }
-
-
     public HalFormsTemplate generateCreateTemplate(EntityName entityName) {
-        var entity = application.getRequiredEntityByName(entityName);
-        List<HalFormsProperty> properties = new ArrayList<>();
-        for (var attribute : entity.getAttributes()) {
-            properties.addAll(attributeToCreateProperties(PrefixSettings.empty(), attribute));
-        }
-        for (var relation : application.getRelationsForSourceEntity(entity)) {
-            relationToProperty(relation).ifPresent(properties::add);
-        }
-
+        var body = BodyObjectMapper.forBody(new Context(application, BodyType.POST, MULTIPART_FORM, userLocales), entityName);
+        var properties = toHalFormsProperties(body);
         var hasFiles = properties.stream().anyMatch(prop -> Objects.equals(HtmlInputType.FILE_VALUE, prop.getType()));
-
         return HalFormsTemplate.builder()
                 .key(IanaLinkRelations.CREATE_FORM_VALUE)
                 .httpMethod(HttpMethod.POST)
-                .contentType(hasFiles? MediaType.MULTIPART_FORM_DATA_VALUE:MediaType.APPLICATION_JSON_VALUE)
+                .contentType(hasFiles ? MediaType.MULTIPART_FORM_DATA_VALUE : MediaType.APPLICATION_JSON_VALUE)
                 .properties(properties)
                 .target(linkFactoryProvider.toCollection(entityName, CollectionParameters.defaults()).toUri().toString())
                 .build();
     }
 
     public HalFormsTemplate generateUpdateTemplate(EntityName entityName) {
-        var entity = application.getRequiredEntityByName(entityName);
-        List<HalFormsProperty> properties = new ArrayList<>();
-        for (var attribute : entity.getAttributes()) {
-            properties.addAll(attributeToUpdateProperty(PrefixSettings.empty(), attribute));
-        }
-
+        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FORM, userLocales), entityName);
+        var properties = toHalFormsProperties(body);
         return HalFormsTemplate.builder()
                 .key(HalFormsTemplate.DEFAULT_KEY)
                 .httpMethod(HttpMethod.PUT)
@@ -126,27 +97,12 @@ public class HalFormsTemplateGenerator {
 
     public HalFormsTemplate generateSearchTemplate(EntityName entityName) {
         var entity = application.getRequiredEntityByName(entityName);
-        List<HalFormsProperty> properties = new ArrayList<>();
-        for (var searchFilter : entity.getSearchFilters()) {
-            if(searchFilter.hasFlag(HiddenSearchFilterFlag.class)) {
-                continue;
-            }
-            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                var property = HalFormsProperty.named(attributeSearchFilter.getName().getValue())
-                        .withPrompt(attributeSearchFilter.getTranslations(userLocales).getName())
-                        .withAttributeType(attribute.getType());
-
-                // Technically, multiple values per search filters are supported,
-                // which would indicate that unbounded = true. But the current display
-                // of multivalued fields in the frontend doesn't make it clear that
-                // the values are searched with an OR. Reconsider setting unbounded = true
-                // when the frontend supports this feature.
-                properties.add(addAllowedValues(property, attribute, false));
-            } else {
-                throw new IllegalStateException("Unexpected value: " + searchFilter);
-            }
-        }
+        var body = BodyObjectMapper.forSearch(new Context(application, BodyType.RESPONSE, FORM, userLocales), entityName);
+        var properties = toHalFormsProperties(body)
+                .stream()
+                // Search forms don't have regex constraints, because searches are looser (e.g. search for prefix or full-text search)
+                .map(p -> p.withRegex(null))
+                .collect(Collectors.toList());
         entityToSortProperty(entity).ifPresent(properties::add);
 
         return HalFormsTemplate.builder()
@@ -201,74 +157,64 @@ public class HalFormsTemplateGenerator {
         return List.of(); // no templates yet
     }
 
-
-    private List<HalFormsProperty> attributeToCreateProperties(PrefixSettings prefix, Attribute attribute) {
-        if (attribute.isIgnored() || attribute.isReadOnly()) {
-            return List.of();
-        }
+    private List<HalFormsProperty> toHalFormsProperties(ObjectBodyValue body) {
         var result = new ArrayList<HalFormsProperty>();
-        switch (attribute) {
-            case SimpleAttribute simpleAttribute -> {
-                result.add(simpleAttributeToProperty(prefix, simpleAttribute));
-            }
-            case UserAttribute userAttribute -> {
-                // how to provide user attributes at creation?
-            }
-            case ContentAttribute contentAttribute -> {
-                result.add(contentToCreateProperty(prefix, contentAttribute));
-            }
-            case CompositeAttribute compositeAttribute -> {
-                var newPrefix = prefix.append(new PrefixSettings(compositeAttribute.getName().getValue(), compositeAttribute.getTranslations(userLocales).getName()));
-                for (var attr : compositeAttribute.getAttributes()) {
-                    result.addAll(attributeToCreateProperties(newPrefix, attr));
-                }
-            }
+        for (var entry : body.getFields().entrySet()) {
+            result.add(toHalFormsProperty(entry.getKey(), entry.getValue()));
         }
         return result;
     }
 
-    private List<HalFormsProperty> attributeToUpdateProperty(PrefixSettings prefix, Attribute attribute) {
-        if (attribute.isIgnored() || attribute.isReadOnly()) {
-            return List.of();
-        }
-        var result = new ArrayList<HalFormsProperty>();
-        switch (attribute) {
-            case SimpleAttribute simpleAttribute -> {
-                result.add(simpleAttributeToProperty(prefix, simpleAttribute));
-            }
-            case UserAttribute userAttribute -> {
-                // how to update user attributes?
-            }
-            // handle ContentAttributes like CompositeAttributes
-            case CompositeAttribute compositeAttribute -> {
-                var newPrefix = prefix.append(new PrefixSettings(compositeAttribute.getName().getValue(), compositeAttribute.getTranslations(userLocales).getName()));
-                for (var attr : compositeAttribute.getAttributes()) {
-                    result.addAll(attributeToUpdateProperty(newPrefix, attr));
+    private HalFormsProperty toHalFormsProperty(String name, BodyValue bodyValue) {
+        var prop =  switch (bodyValue) {
+            case SimpleBodyValue sv -> {
+                var property = HalFormsProperty.named(name)
+                        .withAttributeType(sv.getType());
+                for (var constraint : sv.getConstraints()) {
+                    if (constraint instanceof RegexPatternConstraint rc) {
+                        property = property.withRegex(rc.getHtmlPattern());
+                    } else if (constraint instanceof AllowedValuesConstraint avc) {
+                        var options = HalFormsOptions.inline(avc.getValues())
+                                .withMinItems(sv.isMandatory() ? 1L : 0L)
+                                .withMaxItems(1L);
+                        property = property.withOptions(options);
+                    }
                 }
+                yield property;
             }
+            case ObjectBodyValue ov -> throw new IllegalArgumentException("Cannot use ObjectBodyValue");
+            case RelationBodyValue rv -> {
+                var url = linkFactoryProvider.toCollection(rv.getTargetEntity(), CollectionParameters.defaults())
+                        .withSelfRel();
+                var options = HalFormsOptions.remote(url)
+                        .withMinItems(rv.isMandatory() ? 1L : 0L)
+                        .withMaxItems(1L)
+                        .withValueField("/_links/self/href");
+                yield HalFormsProperty.named(name)
+                        .withType(HtmlInputType.URL_VALUE)
+                        .withOptions(options);
+            }
+            case ContentBodyValue cv -> HalFormsProperty.named(name)
+                    .withType(HtmlInputType.FILE_VALUE);
+            case ArrayBodyValue av -> {
+                var item = toHalFormsProperty(name, av.getItems());
+                var options = item.getOptions();
+                if (options == null) {
+                    options = HalFormsOptions.inline();
+                }
+                if (options instanceof AbstractHalFormsOptions<?> halFormsOptions) {
+                    // Set max items to unlimited when we have an array
+                    options = halFormsOptions.withMaxItems(null);
+                }
+                yield item.withOptions(options);
+            }
+        };
+        if(bodyValue.getTitle() != null) {
+            prop = prop.withPrompt(bodyValue.getTitle());
         }
-        return result;
-    }
 
-    private HalFormsProperty simpleAttributeToProperty(PrefixSettings prefix, SimpleAttribute attribute) {
-        var prefixed = prefix.append(new PrefixSettings(attribute.getName().getValue(), attribute.getTranslations(userLocales).getName()));
-
-        var property = HalFormsProperty.named(prefixed.name())
-                .withPrompt(prefixed.prompt())
-                .withAttributeType(attribute.getType())
-                .withRequired(attribute.hasConstraint(RequiredConstraint.class))
-                .withRegex(attribute.getConstraint(RegexPatternConstraint.class).map(RegexPatternConstraint::getHtmlPattern).orElse(null));
-        return addAllowedValues(property, attribute, false);
-    }
-
-    private HalFormsProperty addAllowedValues(HalFormsProperty property, SimpleAttribute attribute, boolean unbounded) {
-        return attribute.getConstraint(AllowedValuesConstraint.class)
-                .map(AllowedValuesConstraint::getValues)
-                .map(HalFormsOptions::inline)
-                .map(options -> options.withMinItems(property.isRequired() ? 1L : 0L))
-                .map(options -> options.withMaxItems(unbounded ? null : 1L))
-                .map(property::withOptions)
-                .orElse(property);
+        return prop
+                .withRequired(bodyValue.isMandatory() && !bodyValue.isNullable());
     }
 
     private Optional<HalFormsProperty> relationToProperty(Relation relation) {
@@ -287,13 +233,6 @@ public class HalFormsTemplateGenerator {
                 .withPrompt(relation.getSourceEndPoint().getTranslations(userLocales).getName())
                 .withRequired(required)
                 .withOptions(options));
-    }
-
-    private HalFormsProperty contentToCreateProperty(PrefixSettings prefix, ContentAttribute attribute) {
-        var prefixed = prefix.append(new PrefixSettings(attribute.getName().getValue(), attribute.getTranslations(userLocales).getName()));
-        return HalFormsProperty.named(prefixed.name())
-                .withPrompt(prefixed.prompt())
-                .withType(HtmlInputType.FILE_VALUE);
     }
 
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {
