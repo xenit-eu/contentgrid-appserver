@@ -97,7 +97,7 @@ public class HalFormsTemplateGenerator {
 
     public HalFormsTemplate generateSearchTemplate(EntityName entityName) {
         var entity = application.getRequiredEntityByName(entityName);
-        var body = BodyObjectMapper.forSearch(new Context(application, BodyType.RESPONSE, FORM, userLocales), entityName);
+        var body = BodyObjectMapper.forSearch(application, userLocales, entityName);
         var properties = toHalFormsProperties(body)
                 .stream()
                 // Search forms don't have regex constraints, because searches are looser (e.g. search for prefix or full-text search)

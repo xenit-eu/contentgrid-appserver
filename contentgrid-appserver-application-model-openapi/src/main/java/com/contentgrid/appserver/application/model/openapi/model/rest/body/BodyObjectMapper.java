@@ -50,10 +50,12 @@ public final class BodyObjectMapper {
 
     /**
      * Maps an entity's search filters structure to an {@link ObjectBodyValue}
-     * @param context the context for the mapping
+     * @param application the application for the mapping
+     * @param userLocales the user's locales for translations
      * @param entityName      the entity to map
      */
-    public static ObjectBodyValue forSearch(Context context, EntityName entityName) {
+    public static ObjectBodyValue forSearch(Application application, UserLocales userLocales, EntityName entityName) {
+        var context = new Context(application, BodyType.RESPONSE, MediaType.FORM, userLocales);
         var entity = context.application().getRequiredEntityByName(entityName);
         var fields = new LinkedHashMap<String, BodyValue>();
         for (var searchFilter : entity.getSearchFilters()) {
@@ -65,14 +67,18 @@ public final class BodyObjectMapper {
                 case BaseAttributeSearchFilter attributeSearchFilter -> {
                     var attribute = context.application().resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                     yield getBodyValue(
-                            context
-                                    .withBodyType(BodyType.RESPONSE)
-                                    .withMediaType(MediaType.FORM),
+                            context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
                             attribute
                     );
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + searchFilter);
+            };
+
+            bodyValue = switch (bodyValue) {
+                // Remove constraints, as they don't apply to search filters
+                case SimpleBodyValue simpleBodyValue -> simpleBodyValue.toBuilder().clearConstraints().build();
+                default -> bodyValue;
             };
 
             if(bodyValue != null) {
@@ -198,9 +204,9 @@ public final class BodyObjectMapper {
                 flatFields.put(key, value.withTitle(concatTitles(titlePrefix, value.getTitle())));
             }
         }
-        return ObjectBodyValue.builder()
+        return object.toBuilder()
+                .clearFields()
                 .fields(Collections.unmodifiableMap(flatFields))
-                .sourceType(object.getSourceType())
                 .build();
     }
 
@@ -242,7 +248,6 @@ public final class BodyObjectMapper {
         var bodyValue = switch (attribute) {
             case SimpleAttribute sa -> SimpleBodyValue.builder()
                     .sourceType(sourceType)
-                    .mandatory(context.bodyType() != BodyType.PATCH)
                     .nullable(!sa.hasConstraint(RequiredConstraint.class))
                     .type(sa.getType())
                     .constraints(List.copyOf(sa.getConstraints()))
@@ -263,11 +268,8 @@ public final class BodyObjectMapper {
                 // sub-attributes (filename, mimetype) appear as regular fields
                 Map<String, BodyValue> fields = new LinkedHashMap<>();
 
-                fields.put("filename", getBodyValue(context, sourceType.nested(ca.getFilename().getName()), ca.getFilename())
-                        .withNullable(true)
-                        // Field is always present in responses, but can be omitted from requests
-                        .withMandatory(context.bodyType() == BodyType.RESPONSE)
-                );
+                fields.put("filename",
+                        getBodyValue(context, sourceType.nested(ca.getFilename().getName()), ca.getFilename()));
                 // If the content object is present, the mimetype must always be set as well
                 fields.put("mimetype", getBodyValue(context, sourceType.nested(ca.getMimetype().getName()), ca.getMimetype())
                         .withNullable(false)
@@ -311,7 +313,8 @@ public final class BodyObjectMapper {
         if (bodyValue != null) {
             bodyValue = switch (context.bodyType()) {
                 case RESPONSE -> bodyValue.withMandatory(true); // All items are always present in the response
-                case PUT, POST -> bodyValue.withMandatory(!bodyValue.isNullable()); // All non-nullable values are required when POST or PUT (keys that are left out are set to null)
+                case PUT, POST -> bodyValue.isNullable() ? bodyValue : bodyValue.withMandatory(
+                        true); // All non-nullable values are required when POST or PUT (keys that are left out are set to null)
                 case PATCH -> bodyValue.withMandatory(false); // No items are mandatory for PATCH (keys that are left out are kept as-is)
             };
 

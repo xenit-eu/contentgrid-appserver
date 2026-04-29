@@ -7,4 +7,7 @@ plugins {
 dependencies {
     implementation project(':contentgrid-appserver-application-model')
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
+
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
 }
