@@ -24,6 +24,7 @@ dependencies {
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
     testImplementation 'org.springframework.security:spring-security-test'
 
+    testFixturesImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testFixturesImplementation 'org.springframework.boot:spring-boot-autoconfigure'
     testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testFixturesImplementation 'org.springframework:spring-web'

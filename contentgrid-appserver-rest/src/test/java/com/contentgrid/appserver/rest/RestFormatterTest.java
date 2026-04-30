@@ -11,8 +11,6 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.rest.test.TestApplication;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.PermissionsPropagationTest.TestConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,26 +24,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
+@SpringBootTest(classes = TestApplication.class)
 @AutoConfigureMockMvc
 class RestFormatterTest {
 
     @Autowired
     RestEntityFormatter entityFormatter;
-
-    @TestConfiguration
-    static class TestConfig {
-
-        @Bean
-        @Primary
-        public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
-    }
 
     @Test
     void testEntityDataSerialization() throws JsonProcessingException {
