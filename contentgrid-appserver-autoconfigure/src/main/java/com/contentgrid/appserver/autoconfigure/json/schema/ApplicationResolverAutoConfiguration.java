@@ -4,13 +4,11 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.io.IOException;
-import java.nio.file.Path;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -35,10 +33,7 @@ public class ApplicationResolverAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "contentgrid.appserver.application-model", havingValue = "false", matchIfMissing = true)
-    ApplicationResolver artifactApplicationResolver(Artifact artifact) throws ArtifactException, ArtifactEntryUnreadableException, InvalidJsonException {
-        var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
-        var artifactEntry = artifact.loadRequired(Path.of("application-model.json"));
-        var application = applicationSchemaConverter.convert(artifactEntry.getInputStream());
-        return new SingleApplicationResolver(application);
+    ApplicationResolver artifactApplicationResolver(Artifact artifact) {
+        return new ArtifactApplicationResolver(artifact);
     }
 }
