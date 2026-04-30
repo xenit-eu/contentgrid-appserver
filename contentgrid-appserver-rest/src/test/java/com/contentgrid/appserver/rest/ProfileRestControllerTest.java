@@ -25,8 +25,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = TestApplication.class)
@@ -36,10 +36,10 @@ class ProfileRestControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockitoSpyBean
     private ApplicationResolver resolver;
 
-    @MockitoBean
+    @MockitoSpyBean
     private ApplicationNameExtractor nameExtractor;
 
     @BeforeEach

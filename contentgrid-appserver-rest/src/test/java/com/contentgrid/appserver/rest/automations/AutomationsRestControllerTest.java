@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.rest.automations;
 
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -13,7 +12,6 @@ import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationM
 import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.rest.automations.AutomationsRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.TestApplication;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.thunx.encoding.json.JsonThunkExpressionCoder;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -29,7 +27,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -72,12 +69,6 @@ class AutomationsRestControllerTest {
 
     @TestConfiguration
     static class TestConfig {
-
-        @Bean
-        @Primary
-        public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
 
         @Bean
         public SingleAutomationsModelResolver singleAutomationsModelResolver() {

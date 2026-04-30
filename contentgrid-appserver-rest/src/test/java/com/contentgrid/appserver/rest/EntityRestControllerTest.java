@@ -27,7 +27,6 @@ import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
@@ -58,7 +57,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -85,12 +83,6 @@ class EntityRestControllerTest {
 
     @TestConfiguration
     static class TestConfig {
-
-        @Bean
-        @Primary
-        public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
 
         @Bean
         Clock fixedClock() {

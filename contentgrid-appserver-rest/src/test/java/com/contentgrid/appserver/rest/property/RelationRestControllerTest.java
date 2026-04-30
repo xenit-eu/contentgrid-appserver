@@ -29,10 +29,7 @@ import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.VersionValidator;
-import com.contentgrid.appserver.rest.property.RelationRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -56,9 +53,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -69,7 +63,7 @@ import org.springframework.util.LinkedMultiValueMap;
 /**
  * Test class for both {@link XToOneRelationRestController} and {@link XToManyRelationRestController}.
  */
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class})
+@SpringBootTest(classes = TestApplication.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class RelationRestControllerTest {
 
@@ -90,17 +84,6 @@ class RelationRestControllerTest {
 
     @Autowired
     private TableCreator tableCreator;
-
-    @TestConfiguration
-    static class TestConfig {
-
-        @Bean
-        @Primary
-        public ApplicationResolver testApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
-
-    }
 
     @BeforeEach
     void setup() {
