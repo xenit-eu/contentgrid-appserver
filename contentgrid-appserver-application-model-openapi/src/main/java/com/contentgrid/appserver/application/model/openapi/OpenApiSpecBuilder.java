@@ -27,7 +27,6 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaBoolean;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaInteger;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNull;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNumber;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaObject;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaOneOf;
@@ -562,7 +561,7 @@ public class OpenApiSpecBuilder {
     }
 
     private static OpenApiPotentialReference<JsonSchema> bodyValueToJsonSchema(OpenApiSpecContext context, BodyValue bodyValue, BodyType bodyType) {
-        OpenApiPotentialReference<JsonSchema> jsonSchema = switch (bodyValue) {
+        AbstractJsonSchemaDataType jsonSchema = switch (bodyValue) {
             case ArrayBodyValue arrayBodyValue -> new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems(), bodyType));
             case ContentBodyValue contentBodyValue -> new JsonSchemaString().setFormat(Format.BINARY);
             case ObjectBodyValue objectBodyValue -> {
@@ -604,6 +603,10 @@ public class OpenApiSpecBuilder {
             }
         };
 
+        if(bodyValue.isNullable()) {
+            jsonSchema = jsonSchema.orNull();
+        }
+
         if(bodyType != null && jsonSchema instanceof JsonSchemaObject jsonSchemaObject && bodyValue.getSourceType() instanceof AttributeSourceType attributeSourceType) {
             var entity = context.application().getRequiredEntityByName(attributeSourceType.getEntityName());
             var attribute = entity.getNestedAttribute(attributeSourceType.getAttributePath()).orElseThrow();
@@ -614,19 +617,13 @@ public class OpenApiSpecBuilder {
                     case PUT -> "ContentInfoPUT";
                     case PATCH ->  "ContentInfoPATCH";
                 };
-                jsonSchema = context.spec().getComponents().getSchemas().register(name, jsonSchemaObject);
+                return context.spec().getComponents().getSchemas().register(name, jsonSchemaObject);
             }
         }
 
-        if(jsonSchema instanceof AbstractJsonSchemaDataType schemaDataType) {
-            schemaDataType
-                    .setTitle(bodyValue.getTitle())
-                    .setDescription(bodyValue.getDescription());
-        }
-
-        if(bodyValue.isNullable()) {
-            jsonSchema = new JsonSchemaOneOf(List.of(jsonSchema, new JsonSchemaNull()));
-        }
+        jsonSchema
+                .setTitle(bodyValue.getTitle())
+                .setDescription(bodyValue.getDescription());
 
         return jsonSchema;
     }

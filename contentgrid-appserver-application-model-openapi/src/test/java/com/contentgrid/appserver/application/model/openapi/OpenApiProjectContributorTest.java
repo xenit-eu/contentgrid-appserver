@@ -321,7 +321,7 @@ class OpenApiProjectContributorTest {
                     .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
                         assertThat(object.getProperties()).containsKey("gender")
                                 .extracting("gender")
-                                .isEqualTo(new JsonSchemaOneOf(new JsonSchemaEnum(List.of("female", "male")), new JsonSchemaNull()));
+                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")).orNull());
                     });
         });
         assertThat(formSchemas).allSatisfy(schema -> {

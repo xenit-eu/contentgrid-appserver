@@ -1179,13 +1179,15 @@ paths:
 components:
   schemas:
     ContentInfo:
-      type: "object"
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
-          oneOf:
-          - type: "string"
-            title: "Filename"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
         mimetype:
           type: "string"
           title: "Mimetype"
@@ -1222,9 +1224,7 @@ components:
           type: "string"
           description: "Name of the party"
         summary:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfo"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfo"
         _links:
           type: "object"
           properties:
@@ -1428,13 +1428,13 @@ components:
           type: "string"
           description: "Name of the party"
         subsidiary:
-          oneOf:
-          - type: "string"
-            format: "uri"
-            description: "Subsidiary of the party"
-            examples:
-            - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
       required:
       - "vat"
       - "name"
@@ -1714,13 +1714,15 @@ components:
         - "type"
         - "status"
     ContentInfoPUT:
-      type: "object"
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
-          oneOf:
-          - type: "string"
-            title: "Filename"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
         mimetype:
           type: "string"
           title: "Mimetype"
@@ -1739,9 +1741,7 @@ components:
           type: "string"
           description: "Name of the party"
         summary:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPUT"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPUT"
       required:
       - "vat"
       - "name"
@@ -1767,13 +1767,15 @@ components:
       - "vat"
       - "name"
     ContentInfoPATCH:
-      type: "object"
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
-          oneOf:
-          - type: "string"
-            title: "Filename"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
         mimetype:
           type: "string"
           title: "Mimetype"
@@ -1790,9 +1792,7 @@ components:
           type: "string"
           description: "Name of the party"
         summary:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPATCH"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPATCH"
     partyPatchFormBody:
       type: "object"
       title: "party"
@@ -1892,18 +1892,14 @@ components:
           type: "integer"
           format: "int64"
         created:
-          oneOf:
-          - type: "string"
-            format: "date-time"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
         pdf:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfo"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfo"
         thumb_nail:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfo"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfo"
         _links:
           type: "object"
           properties:
@@ -1940,10 +1936,10 @@ components:
           type: "integer"
           format: "int64"
         created:
-          oneOf:
-          - type: "string"
-            format: "date-time"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
         owning_party:
           type: "string"
           format: "uri"
@@ -2023,18 +2019,14 @@ components:
           type: "integer"
           format: "int64"
         created:
-          oneOf:
-          - type: "string"
-            format: "date-time"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
         pdf:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPUT"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPUT"
         thumb_nail:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPUT"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPUT"
       required:
       - "case_number"
     insurance-casePutFormBody:
@@ -2071,18 +2063,14 @@ components:
           type: "integer"
           format: "int64"
         created:
-          oneOf:
-          - type: "string"
-            format: "date-time"
-          - type: "null"
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
         pdf:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPATCH"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPATCH"
         thumb_nail:
-          oneOf:
-          - $ref: "#/components/schemas/ContentInfoPATCH"
-          - type: "null"
+          $ref: "#/components/schemas/ContentInfoPATCH"
     insurance-casePatchFormBody:
       type: "object"
       title: "insurance-case"
