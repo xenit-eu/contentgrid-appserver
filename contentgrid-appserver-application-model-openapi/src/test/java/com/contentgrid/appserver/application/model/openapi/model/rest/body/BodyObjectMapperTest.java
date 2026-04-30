@@ -259,7 +259,8 @@ class BodyObjectMapperTest {
                     });
             assertThat(result.getField("number")).get()
                     .isInstanceOfSatisfying(SimpleBodyValue.class, value -> {
-                        assertThat(value.getConstraint(UniqueConstraint.class)).isPresent();
+                        // irrelevant constraints are not preserved
+                        assertThat(value.getConstraint(UniqueConstraint.class)).isEmpty();
                         assertThat(value.getConstraint(RegexPatternConstraint.class)).isPresent();
                     });
         }
@@ -416,8 +417,10 @@ class BodyObjectMapperTest {
             assertThat(result.getField("number")).hasValueSatisfying(value -> {
                 assertThat(value).isInstanceOfSatisfying(SimpleBodyValue.class, simpleBodyValue -> {
                     assertThat(simpleBodyValue.getType()).isEqualTo(Type.TEXT);
-                    // Constraints are not applied to search forms
-                    assertThat(simpleBodyValue.getConstraints()).isEmpty();
+                    assertThat(simpleBodyValue.getConstraints()).satisfiesExactlyInAnyOrder(constraint -> {
+                        // Constraints are applied to search forms, only for exact matches
+                        assertThat(constraint).isInstanceOf(RegexPatternConstraint.class);
+                    });
                 });
             });
             assertThat(result.getField("amount")).hasValueSatisfying(value -> {
@@ -428,6 +431,15 @@ class BodyObjectMapperTest {
             assertThat(result.getField("customer.name~prefix")).hasValueSatisfying(value -> {
                 assertThat(value).isInstanceOfSatisfying(SimpleBodyValue.class, simpleBodyValue -> {
                     assertThat(simpleBodyValue.getType()).isEqualTo(Type.TEXT);
+                });
+            });
+            assertThat(result.getField("previous_invoice.confidentiality")).hasValueSatisfying(value -> {
+                assertThat(value).isInstanceOfSatisfying(SimpleBodyValue.class, simpleBodyValue -> {
+                    assertThat(simpleBodyValue.getType()).isEqualTo(Type.TEXT);
+                    assertThat(simpleBodyValue.getConstraints()).satisfiesExactlyInAnyOrder(constraint -> {
+                        // Constraints are applied to search forms, only for exact matches
+                        assertThat(constraint).isInstanceOf(AllowedValuesConstraint.class);
+                    });
                 });
             });
 

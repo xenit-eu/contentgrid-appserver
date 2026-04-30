@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.openapi.model.rest.body;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
+import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
@@ -17,12 +18,13 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.Sourc
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.With;
@@ -75,11 +77,15 @@ public final class BodyObjectMapper {
                 default -> throw new IllegalStateException("Unexpected value: " + searchFilter);
             };
 
-            bodyValue = switch (bodyValue) {
-                // Remove constraints, as they don't apply to search filters
-                case SimpleBodyValue simpleBodyValue -> simpleBodyValue.toBuilder().clearConstraints().build();
-                default -> bodyValue;
-            };
+            if (
+                    bodyValue instanceof SimpleBodyValue simpleBodyValue &&
+                            !(searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
+                            attributeSearchFilter.getOperation() == Operation.EXACT)
+            ) {
+                // Constraints don't apply to search filters; except to the 'exact' filter,
+                // where the searched value must match a value exactly
+                bodyValue = simpleBodyValue.toBuilder().clearConstraints().build();
+            }
 
             if(bodyValue != null) {
                 fields.put(
@@ -250,7 +256,12 @@ public final class BodyObjectMapper {
                     .sourceType(sourceType)
                     .nullable(!sa.hasConstraint(RequiredConstraint.class))
                     .type(sa.getType())
-                    .constraints(List.copyOf(sa.getConstraints()))
+                    .constraints(sa.getConstraints().stream()
+                            // Filter out required & unique constraints.
+                            // required is already reflected in 'nullable', and unique has nothing to do with body structure
+                            .filter(c -> !(c instanceof RequiredConstraint || c instanceof UniqueConstraint))
+                            .toList()
+                    )
                     .build();
             case ContentAttribute ca -> {
                 if (context.mediaType() == MediaType.MULTIPART_FORM) {

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,13 @@ public class SimpleBodyValue extends BodyValue {
 
     public SimpleBodyValue withConstraint(Constraint constraint) {
         return toBuilder().constraint(constraint).build();
+    }
+
+    public SimpleBodyValue withoutConstraint(Class<? extends Constraint> type) {
+        return toBuilder()
+                .clearConstraints()
+                .constraints(constraints.stream().filter(Predicate.not(type::isInstance)).toList())
+                .build();
     }
 
 }
