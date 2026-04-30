@@ -37,6 +37,17 @@ paths:
         description: "Subsidiary: Starts with name"
         schema:
           type: "string"
+      - name: "_sort"
+        in: "query"
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "name,asc"
+              - "name,desc"
+            examples:
+              - "name,asc"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
@@ -50,17 +61,6 @@ paths:
         description: "Page size"
         schema:
           type: "integer"
-      - name: "_sort"
-        in: "query"
-        schema:
-          type: "array"
-          items:
-            type: "string"
-            enum:
-            - "name,asc"
-            - "name,desc"
-            examples:
-            - "name,asc"
       responses:
         "200":
           description: "OK"
@@ -298,6 +298,86 @@ paths:
         "409":
           description: "You can not remove the subsidiary link, because the inverse\
             \ relation is marked as required"
+  /parties/{id}/summary:
+    get:
+      tags:
+      - "party"
+      operationId: "get-party-summary"
+      summary: "Retrieve the summary file stored with party"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "404":
+          description: "No summary file is stored with party"
+    put:
+      tags:
+      - "party"
+      operationId: "put-party-summary"
+      summary: "Add or update the summary file stored with party"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    post:
+      tags:
+      - "party"
+      operationId: "post-party-summary"
+      summary: "Add or update the summary file stored with party"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    delete:
+      tags:
+      - "party"
+      operationId: "delete-party-summary"
+      summary: "Delete the summary file stored with party"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The file has been deleted"
   /insurance-cases:
     get:
       tags:
@@ -684,86 +764,6 @@ paths:
         "409":
           description: "You can not remove the followups link, because the inverse\
             \ relation is marked as required"
-  /parties/{id}/summary:
-    get:
-      tags:
-      - "party"
-      operationId: "get-party-summary"
-      summary: "Retrieve the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      responses:
-        "200":
-          description: "Contents of the stored file"
-          content:
-            '*/*':
-              schema:
-                type: "string"
-                format: "binary"
-        "404":
-          description: "No summary file is stored with party"
-    put:
-      tags:
-      - "party"
-      operationId: "put-party-summary"
-      summary: "Add or update the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
-    post:
-      tags:
-      - "party"
-      operationId: "post-party-summary"
-      summary: "Add or update the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
-    delete:
-      tags:
-      - "party"
-      operationId: "delete-party-summary"
-      summary: "Delete the summary file stored with party"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      responses:
-        "204":
-          description: "The file has been deleted"
   /insurance-cases/{id}/pdf:
     get:
       tags:
@@ -933,54 +933,30 @@ components:
           type: "string"
       required:
       - "href"
-    problemDetail:
+    partyResponse:
       type: "object"
       properties:
-        type:
+        id:
           type: "string"
-        title:
+        vat:
           type: "string"
-        status:
-          type: "integer"
-        detail:
+        name:
           type: "string"
-        instance:
-          type: "string"
-    problemDetailWithProperty:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        properties:
-          property:
-            type: "string"
-        required:
-        - "property"
-    problemDetailWithErrors:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        properties:
-          errors:
-            type: "array"
-            items:
-              oneOf:
-              - $ref: "#/components/schemas/problemDetail"
-              - $ref: "#/components/schemas/problemDetailWithProperty"
-        required:
-        - "errors"
-    problemDetailDiscriminator:
-      oneOf:
-      - $ref: "#/components/schemas/problemDetailWithErrors"
-      - $ref: "#/components/schemas/problemDetail"
-      discriminator:
-        propertyName: "type"
-        mapping:
-          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetailWithErrors"
-          https://contentgrid.cloud/problems/input/duplicate-value: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/integrity/constraint-violation: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body/type: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
+        summary:
+          $ref: "#/components/schemas/ContentInfo"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "vat"
+      - "name"
+      - "summary"
+      - "_links"
     page:
       type: "object"
       title: "Page metadata"
@@ -1012,60 +988,6 @@ components:
       - "size"
       - "total_items_estimate"
       - "total_items_exact"
-    partyResponse:
-      type: "object"
-      properties:
-        id:
-          type: "string"
-        vat:
-          type: "string"
-        name:
-          type: "string"
-        summary:
-          $ref: "#/components/schemas/ContentInfo"
-        _links:
-          type: "object"
-          properties:
-            self:
-              $ref: "#/components/schemas/Link"
-          required:
-          - "self"
-      required:
-      - "id"
-      - "vat"
-      - "name"
-      - "summary"
-      - "_links"
-    insurance-caseResponse:
-      type: "object"
-      properties:
-        id:
-          type: "string"
-        case_number:
-          type: "integer"
-          format: "int64"
-        created:
-          type: "string"
-          nullable: true
-          format: "date-time"
-        pdf:
-          $ref: "#/components/schemas/ContentInfo"
-        thumb_nail:
-          $ref: "#/components/schemas/ContentInfo"
-        _links:
-          type: "object"
-          properties:
-            self:
-              $ref: "#/components/schemas/Link"
-          required:
-          - "self"
-      required:
-      - "id"
-      - "case_number"
-      - "created"
-      - "pdf"
-      - "thumb_nail"
-      - "_links"
     partyCollection:
       type: "object"
       properties:
@@ -1076,20 +998,6 @@ components:
               type: "array"
               items:
                 $ref: "#/components/schemas/partyResponse"
-        page:
-          $ref: "#/components/schemas/page"
-      required:
-      - "page"
-    insurance-caseCollection:
-      type: "object"
-      properties:
-        _embedded:
-          type: "object"
-          properties:
-            item:
-              type: "array"
-              items:
-                $ref: "#/components/schemas/insurance-caseResponse"
         page:
           $ref: "#/components/schemas/page"
       required:
@@ -1139,6 +1047,98 @@ components:
           type: "string"
         summary:
           $ref: "#/components/schemas/ContentInfoPATCH"
+    problemDetail:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        title:
+          type: "string"
+        status:
+          type: "integer"
+        detail:
+          type: "string"
+        instance:
+          type: "string"
+    problemDetailWithProperty:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          property:
+            type: "string"
+        required:
+        - "property"
+    problemDetailWithErrors:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          errors:
+            type: "array"
+            items:
+              oneOf:
+              - $ref: "#/components/schemas/problemDetail"
+              - $ref: "#/components/schemas/problemDetailWithProperty"
+        required:
+        - "errors"
+    problemDetailDiscriminator:
+      oneOf:
+      - $ref: "#/components/schemas/problemDetailWithErrors"
+      - $ref: "#/components/schemas/problemDetail"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetailWithErrors"
+          https://contentgrid.cloud/problems/input/duplicate-value: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/integrity/constraint-violation: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/type: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
+    insurance-caseResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        pdf:
+          $ref: "#/components/schemas/ContentInfo"
+        thumb_nail:
+          $ref: "#/components/schemas/ContentInfo"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "case_number"
+      - "created"
+      - "pdf"
+      - "thumb_nail"
+      - "_links"
+    insurance-caseCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/insurance-caseResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
     insurance-casePostBody:
       type: "object"
       properties:
