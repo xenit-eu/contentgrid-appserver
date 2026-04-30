@@ -1,23 +1,17 @@
 package com.contentgrid.appserver.application.model.openapi.resolver;
 
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.description;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.property;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.requiredProperty;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.status;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.title;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.type;
+
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.*;
 
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
-import com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema;
+import com.contentgrid.appserver.application.model.openapi.ProblemDetail;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.HttpMethod;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentialReference;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiResponse;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaConst;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaOneOf;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString.Format;
 import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
@@ -27,11 +21,11 @@ import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.RelationItemType;
 import com.contentgrid.appserver.application.model.openapi.type.RelationType;
 import com.contentgrid.appserver.application.model.openapi.type.SemanticType;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -189,13 +183,14 @@ public class ProblemsResponseResolver implements ResponseResolver{
         var responses = new LinkedHashMap<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>>();
 
         for (var statusCode : statusCodes) {
-            responses.put(statusCode, new OpenApiResponse()
-                            .setDescription(createResponseDescription(statusCode, problemSets))
-                    .content(mt -> mt.addMediaType(
-                            "application/problem+json",
-                            createResponseBody(context, statusCode, problemSets)
-                    ))
-            );
+            var responseBody = createResponseBody(context, statusCode, problemSets);
+
+            if (responseBody != null) {
+                responses.put(statusCode, new OpenApiResponse()
+                        .setDescription(createResponseDescription(statusCode, problemSets))
+                        .content(mt -> mt.addMediaType("application/problem+json", responseBody.getSchema()))
+                );
+            }
         }
 
         return responses.entrySet().stream();
@@ -226,16 +221,17 @@ public class ProblemsResponseResolver implements ResponseResolver{
         return baseDescription+": "+applicableProblems;
     }
 
-    private OpenApiPotentialReference<JsonSchema> createResponseBody(OpenApiSpecContext context, HttpStatusCode statusCode, Set<ProblemSet> problemSets) {
-        var problemTypes = new ArrayList<OpenApiPotentialReference<JsonSchema>>();
+    private ProblemDetail createResponseBody(OpenApiSpecContext context, HttpStatusCode statusCode, Set<ProblemSet> problemSets) {
+        var base = ProblemDetail.base(context);
+        var problems = new LinkedHashSet<ProblemDetail>();
         for(var problemSet: problemSets) {
             if (!Objects.equals(problemSet.getStatusCode(), statusCode)) {
                 continue;
             }
-            problemTypes.add(switch (problemSet) {
-                case INPUT_VALIDATION -> createInputValidationProblem(context);
-                case QUERY_PARAMETER -> createQueryParameterProblem(context);
-                case REQUEST_PROBLEM_BODY -> ProblemDetailsJsonSchema.base(context)
+            problems.add(switch (problemSet) {
+                case INPUT_VALIDATION -> createInputValidationProblem(context, base);
+                case QUERY_PARAMETER -> createQueryParameterProblem(base);
+                case REQUEST_PROBLEM_BODY -> base
                         .subType("invalid-request-body",
                                 type(
                                         "https://contentgrid.cloud/problems/invalid-request/body",
@@ -246,7 +242,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
                                 title("Invalid request body"),
                                 status(400)
                         );
-                case REQUEST_PROBLEM_HEADER -> ProblemDetailsJsonSchema.base(context)
+                case REQUEST_PROBLEM_HEADER -> base
                         .subType("invalid-request-header",
                                 type(
                                         "https://contentgrid.cloud/problems/invalid-request/required-header",
@@ -257,9 +253,9 @@ public class ProblemsResponseResolver implements ResponseResolver{
                                 status(400),
                                 requiredProperty("header", new JsonSchemaString())
                         );
-                case NOT_FOUND_ENTITY_ITEM -> createNotFoundProblem(context, "entity-item");
-                case NOT_FOUND_RELATION_ITEM -> createNotFoundProblem(context, "relation-item");
-                case INTEGRITY_BLIND_RELATION_OVERWRITE -> ProblemDetailsJsonSchema.base(context)
+                case NOT_FOUND_ENTITY_ITEM -> createNotFoundProblem(base, "entity-item");
+                case NOT_FOUND_RELATION_ITEM -> createNotFoundProblem(base, "relation-item");
+                case INTEGRITY_BLIND_RELATION_OVERWRITE -> base
                         .subType("integrity.blind-relation-overwrite",
                                 type("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"),
                                 status(409),
@@ -273,7 +269,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
                                 property("target_relation", new JsonSchemaString().setFormat(Format.URI)),
                                 requiredProperty("additional_errors", JsonSchemaArray::new)
                         );
-                case INTEGRITY_REQUIRED_RELATION -> ProblemDetailsJsonSchema.base(context)
+                case INTEGRITY_REQUIRED_RELATION -> base
                         .subType("required-relation",
                                 type("https://contentgrid.cloud/problems/integrity/required-relation"),
                                 title("Item is still referenced by a required relation"),
@@ -282,16 +278,28 @@ public class ProblemsResponseResolver implements ResponseResolver{
             });
         }
 
-        return switch (problemTypes.size()) {
-            case 0 -> null;
-            case 1 -> problemTypes.getFirst();
-            default-> new JsonSchemaOneOf(problemTypes);
-        };
+        return determineBaseProblem(problems);
     }
 
-    private OpenApiPotentialReference<JsonSchema> createInputValidationProblem(OpenApiSpecContext context) {
-        var inputValidationField = ProblemDetailsJsonSchema.base(context)
-                .baseType("input-validation.field",
+    private ProblemDetail determineBaseProblem(Collection<ProblemDetail> problems) {
+        return switch (problems.size()) {
+            case 0 -> null;
+            case 1 -> problems.iterator().next();
+            default -> determineBaseProblem(problems.stream()
+                    .map(ProblemDetail::getBase)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet()));
+        };
+
+    }
+
+
+    private ProblemDetail createInputValidationProblem(OpenApiSpecContext context,
+            ProblemDetail base) {
+        var inputValidationField = ProblemDetail.base(context, "problemDetail.input-validation.field",
+                        requiredProperty("type", new JsonSchemaString().setFormat(Format.URI)),
+                        property("title", new JsonSchemaString()),
+                        property("detail", new JsonSchemaString()),
                         requiredProperty("field", new JsonSchemaString()
                                 .setDescription("Refers to the specific input field for which validation failed with a property path")
                         )
@@ -344,9 +352,9 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         description("The referenced entity-item does not exist"),
                         requiredProperty("missing_item", new JsonSchemaString().setFormat(Format.URI))
                 )
-                .composite();
+                .getSchema();
 
-        return ProblemDetailsJsonSchema.base(context).subType(
+        return base.subType(
                 "input-validation",
                 type("https://contentgrid.cloud/problems/input/validation"),
                 title("Input validation failed"),
@@ -359,9 +367,9 @@ public class ProblemsResponseResolver implements ResponseResolver{
         );
     }
 
-    private OpenApiPotentialReference<JsonSchema> createQueryParameterProblem(OpenApiSpecContext context) {
-        return ProblemDetailsJsonSchema.base(context)
-                .baseType("invalid-query-parameter",
+    private ProblemDetail createQueryParameterProblem(ProblemDetail base) {
+        return base
+                .subType("invalid-query-parameter",
                         title("A query parameter is not valid"),
                         status(400),
                         requiredProperty("query_parameter", new JsonSchemaString())
@@ -392,17 +400,17 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         title("Invalid pagination parameter"),
                         requiredProperty("query_parameter", new JsonSchemaEnum(List.of("_limit", "_cursor"))),
                         requiredProperty("format_error", new JsonSchemaString())
-                )
-                .composite();
+                );
     }
 
-    private OpenApiPotentialReference<JsonSchema> createNotFoundProblem(OpenApiSpecContext context, String type) {
-        return ProblemDetailsJsonSchema.base(context)
-                .baseType("not-found",
+    private ProblemDetail createNotFoundProblem(ProblemDetail base, String type) {
+        return base
+                .subType("not-found",
                         status(404)
                 )
                 .subType(type,
                         type("https://contentgrid.cloud/problems/not-found/"+type)
                 );
     }
+
 }

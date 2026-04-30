@@ -16,6 +16,7 @@ import lombok.Value;
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
 public class JsonSchemaObject extends AbstractJsonSchemaDataType {
+    @JsonInclude(Include.NON_EMPTY)
     Map<String, OpenApiPotentialReference<JsonSchema>> properties = new LinkedHashMap<>();
     @JsonInclude(Include.NON_EMPTY)
     List<String> required = new ArrayList<>();

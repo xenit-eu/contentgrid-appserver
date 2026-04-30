@@ -1,7 +1,8 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
-import com.fasterxml.jackson.annotation.JsonSerializeAs;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.type.TypeFactory;
@@ -28,10 +29,11 @@ public class OpenApiDiscriminator {
     Map<String, OpenApiReference<JsonSchema>> mapping = new TreeMap<>();
 
     @JsonSerialize(converter =  DiscriminatorConverter.class)
+    @JsonInclude(Include.NON_NULL)
     OpenApiReference<JsonSchema> defaultMapping;
 
-    public OpenApiDiscriminator mapping(String propertyName, OpenApiReference<JsonSchema> mapping) {
-        this.mapping.put(propertyName, mapping);
+    public OpenApiDiscriminator mapping(String mappingKey, OpenApiReference<JsonSchema> mapping) {
+        this.mapping.put(mappingKey, mapping);
         return this;
     }
 
@@ -52,4 +54,5 @@ public class OpenApiDiscriminator {
             return typeFactory.constructType(String.class);
         }
     }
+
 }

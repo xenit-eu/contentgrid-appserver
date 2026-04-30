@@ -71,9 +71,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.composite"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
+                $ref: "#/components/schemas/problemDetail"
     post:
       tags:
       - "party"
@@ -113,10 +111,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "409":
           description: "Conflict with other data: Would overwrite a relation of another\
             \ item"
@@ -180,10 +175,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -215,10 +207,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -282,9 +271,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "party"
@@ -309,10 +296,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -347,9 +331,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the subsidiary link, because the inverse\
             \ relation is marked as required"
@@ -427,9 +409,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -505,9 +485,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.composite"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
+                $ref: "#/components/schemas/problemDetail"
     post:
       tags:
       - "insurance-case"
@@ -547,10 +525,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "409":
           description: "Conflict with other data: Would overwrite a relation of another\
             \ item"
@@ -614,10 +589,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -649,10 +621,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -716,9 +685,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "insurance-case"
@@ -743,10 +710,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -781,9 +745,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the owning_party link, because the inverse\
             \ relation is marked as required"
@@ -850,10 +812,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.input-validation"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -931,9 +890,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "insurance-case"
@@ -954,9 +911,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-                - $ref: "#/components/schemas/problemDetail.not-found.relation-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the followups link, because the inverse\
             \ relation is marked as required"
@@ -1034,9 +989,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -1140,9 +1093,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                oneOf:
-                - $ref: "#/components/schemas/problemDetail.invalid-request-header"
-                - $ref: "#/components/schemas/problemDetail.invalid-request-body"
+                $ref: "#/components/schemas/problemDetail"
         "404":
           description: "Resource not found: Item not found"
           content:
@@ -1294,28 +1245,56 @@ components:
           type: "string"
         instance:
           type: "string"
-    problemDetail.invalid-query-parameter.base:
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetail.input-validation"
+          https://contentgrid.cloud/problems/integrity/blind-relation-overwrite: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+          https://contentgrid.cloud/problems/integrity/required-relation: "#/components/schemas/problemDetail.required-relation"
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+          https://contentgrid.cloud/problems/invalid-request/body: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/json: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/single-link: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/uri-list: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/forbidden-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/invalid-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/required-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+          https://contentgrid.cloud/problems/unsatisfied-version: "#/components/schemas/problemDetail.unsatisfied-version"
+        defaultMapping: "#/components/schemas/problemDetail"
+    problemDetail.invalid-query-parameter:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
       - type: "object"
         title: "A query parameter is not valid"
         properties:
           status:
+            type: "integer"
             const: 400
           query_parameter:
             type: "string"
         required:
         - "status"
         - "query_parameter"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+        defaultMapping: "#/components/schemas/problemDetail.invalid-query-parameter"
     problemDetail.invalid-query-parameter.filter-format:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.base"
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
       - type: "object"
         title: "Filter value is of wrong format"
         description: "The value of a filter does not match the expected format"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/invalid-query-parameter/filter/format"
           expected_type:
             type: "string"
           format_error:
@@ -1325,52 +1304,43 @@ components:
             items:
               $ref: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
         required:
-        - "type"
         - "expected_type"
         - "format_error"
         - "additional_errors"
     problemDetail.invalid-query-parameter.sort-format:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.base"
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
       - type: "object"
         title: "The sort parameter is malformed"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/invalid-query-parameter/sort/format"
           query_parameter:
             const: "_sort"
           format_error:
             type: "string"
         required:
-        - "type"
         - "query_parameter"
         - "format_error"
     problemDetail.invalid-query-parameter.sort-target:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.base"
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
       - type: "object"
         title: "Invalid sort target"
         description: "The sort parameter refers to a target that doesn't exist or\
           \ on which sorting is not possible"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/invalid-query-parameter/sort/target"
           query_parameter:
             const: "_sort"
           target_name:
             type: "string"
         required:
-        - "type"
         - "query_parameter"
         - "target_name"
     problemDetail.invalid-query-parameter.pagination:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.base"
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
       - type: "object"
         title: "Invalid pagination parameter"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/invalid-query-parameter/pagination"
           query_parameter:
             type: "string"
             enum:
@@ -1379,41 +1349,20 @@ components:
           format_error:
             type: "string"
         required:
-        - "type"
         - "query_parameter"
         - "format_error"
-    problemDetail.invalid-query-parameter.composite:
-      discriminator:
-        propertyName: "type"
-        mapping:
-          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
-          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
-          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
-          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
-        defaultMapping: "#/components/schemas/problemDetail.invalid-query-parameter.base"
-      oneOf:
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
-      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
     problemDetail.invalid-request-header:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
       - type: "object"
         title: "Invalid request header"
         properties:
-          type:
-            type: "string"
-            enum:
-            - "https://contentgrid.cloud/problems/invalid-request/required-header"
-            - "https://contentgrid.cloud/problems/invalid-request/forbidden-header"
-            - "https://contentgrid.cloud/problems/invalid-request/invalid-header"
           status:
+            type: "integer"
             const: 400
           header:
             type: "string"
         required:
-        - "type"
         - "status"
         - "header"
     partyPostBody:
@@ -1490,9 +1439,8 @@ components:
         description: "In a to-one relation, the target entity is already referenced\
           \ by another entity"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"
           status:
+            type: "integer"
             const: 409
           new_item:
             type: "string"
@@ -1517,7 +1465,6 @@ components:
             items:
               $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
         required:
-        - "type"
         - "status"
         - "new_item"
         - "new_relation"
@@ -1525,135 +1472,23 @@ components:
         - "existing_relation"
         - "target_item"
         - "additional_errors"
-    problemDetail.input-validation.field.base:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        properties:
-          field:
-            type: "string"
-            description: "Refers to the specific input field for which validation\
-              \ failed with a property path"
-        required:
-        - "field"
-    problemDetail.input-validation.field.type:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Wrong type"
-        description: "Submitted value is of the wrong type"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/type"
-          expected_type:
-            type: "string"
-          actual_type:
-            type: "string"
-        required:
-        - "type"
-        - "expected_type"
-        - "actual_type"
-    problemDetail.input-validation.field.type-format:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Wrong format"
-        description: "Submitted value is of the correct type, but doesn't match the\
-          \ expected format"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/type/format"
-          expected_type:
-            type: "string"
-          format_error:
-            type: "string"
-        required:
-        - "type"
-        - "expected_type"
-        - "format_error"
-    problemDetail.input-validation.field.noContent:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Content attribute is empty"
-        description: "A content attribute can not be set when there is no content"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/no-content"
-        required:
-        - "type"
-    problemDetail.input-validation.field.required:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Required field"
-        description: "This field is required"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/required"
-        required:
-        - "type"
-    problemDetail.input-validation.field.duplicate:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Duplicate value"
-        description: "This field value is already used by another entity item"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/duplicate"
-          conflicting_item:
-            type: "string"
-            format: "uri"
-        required:
-        - "type"
-        - "conflicting_item"
-    problemDetail.input-validation.field.allowed-values:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Value not allowed"
-        description: "This field can only be set to one of the allowed values"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/allowed-values"
-          allowed_values:
-            type: "array"
-            items:
-              type: "string"
-        required:
-        - "type"
-        - "allowed_values"
-    problemDetail.input-validation.field.pattern:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Value does not match pattern"
-        description: "The value does not match the required pattern"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/pattern"
-          pattern:
-            type: "string"
-        required:
-        - "type"
-        - "pattern"
-    problemDetail.input-validation.field.missing-relation-target:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.base"
-      - type: "object"
-        title: "Relation target does not exist"
-        description: "The referenced entity-item does not exist"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation/missing-relation-target"
-          missing_item:
-            type: "string"
-            format: "uri"
-        required:
-        - "type"
-        - "missing_item"
-    problemDetail.input-validation.field.composite:
+    problemDetail.input-validation.field:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+          format: "uri"
+        title:
+          type: "string"
+        detail:
+          type: "string"
+        field:
+          type: "string"
+          description: "Refers to the specific input field for which validation failed\
+            \ with a property path"
+      required:
+      - "type"
+      - "field"
       discriminator:
         propertyName: "type"
         mapping:
@@ -1665,16 +1500,96 @@ components:
           https://contentgrid.cloud/problems/input/validation/required: "#/components/schemas/problemDetail.input-validation.field.required"
           https://contentgrid.cloud/problems/input/validation/type: "#/components/schemas/problemDetail.input-validation.field.type"
           https://contentgrid.cloud/problems/input/validation/type/format: "#/components/schemas/problemDetail.input-validation.field.type-format"
-        defaultMapping: "#/components/schemas/problemDetail.input-validation.field.base"
-      oneOf:
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.type"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.type-format"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.noContent"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.required"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.duplicate"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.pattern"
-      - $ref: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
+        defaultMapping: "#/components/schemas/problemDetail.input-validation.field"
+    problemDetail.input-validation.field.type:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong type"
+        description: "Submitted value is of the wrong type"
+        properties:
+          expected_type:
+            type: "string"
+          actual_type:
+            type: "string"
+        required:
+        - "expected_type"
+        - "actual_type"
+    problemDetail.input-validation.field.type-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong format"
+        description: "Submitted value is of the correct type, but doesn't match the\
+          \ expected format"
+        properties:
+          expected_type:
+            type: "string"
+          format_error:
+            type: "string"
+        required:
+        - "expected_type"
+        - "format_error"
+    problemDetail.input-validation.field.noContent:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Content attribute is empty"
+        description: "A content attribute can not be set when there is no content"
+    problemDetail.input-validation.field.required:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Required field"
+        description: "This field is required"
+    problemDetail.input-validation.field.duplicate:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Duplicate value"
+        description: "This field value is already used by another entity item"
+        properties:
+          conflicting_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "conflicting_item"
+    problemDetail.input-validation.field.allowed-values:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value not allowed"
+        description: "This field can only be set to one of the allowed values"
+        properties:
+          allowed_values:
+            type: "array"
+            items:
+              type: "string"
+        required:
+        - "allowed_values"
+    problemDetail.input-validation.field.pattern:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value does not match pattern"
+        description: "The value does not match the required pattern"
+        properties:
+          pattern:
+            type: "string"
+        required:
+        - "pattern"
+    problemDetail.input-validation.field.missing-relation-target:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Relation target does not exist"
+        description: "The referenced entity-item does not exist"
+        properties:
+          missing_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "missing_item"
     problemDetail.input-validation:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -1682,17 +1597,15 @@ components:
         title: "Input validation failed"
         description: "The submitted data does not meet the requirements"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/input/validation"
           status:
+            type: "integer"
             const: 400
           errors:
             type: "array"
             description: "List of validation errors"
             items:
-              $ref: "#/components/schemas/problemDetail.input-validation.field.composite"
+              $ref: "#/components/schemas/problemDetail.input-validation.field"
         required:
-        - "type"
         - "status"
         - "errors"
     problemDetail.invalid-request-body:
@@ -1701,17 +1614,10 @@ components:
       - type: "object"
         title: "Invalid request body"
         properties:
-          type:
-            type: "string"
-            enum:
-            - "https://contentgrid.cloud/problems/invalid-request/body"
-            - "https://contentgrid.cloud/problems/invalid-request/body/json"
-            - "https://contentgrid.cloud/problems/invalid-request/body/uri-list"
-            - "https://contentgrid.cloud/problems/invalid-request/body/single-link"
           status:
+            type: "integer"
             const: 400
         required:
-        - "type"
         - "status"
     ContentInfoPUT:
       type:
@@ -1811,60 +1717,52 @@ components:
           type: "string"
           title: "summary: Mimetype"
           description: "Technical indicator of the type of the file"
-    problemDetail.not-found.base:
+    problemDetail.not-found:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
       - type: "object"
         properties:
           status:
+            type: "integer"
             const: 404
         required:
         - "status"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+        defaultMapping: "#/components/schemas/problemDetail.not-found"
     problemDetail.not-found.entity-item:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.not-found.base"
+      - $ref: "#/components/schemas/problemDetail.not-found"
       - type: "object"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/not-found/entity-item"
-        required:
-        - "type"
     problemDetail.required-relation:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
       - type: "object"
         title: "Item is still referenced by a required relation"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/integrity/required-relation"
           affected_relation:
             type: "string"
             format: "uri"
         required:
-        - "type"
         - "affected_relation"
     problemDetail.not-found.relation-item:
       allOf:
-      - $ref: "#/components/schemas/problemDetail.not-found.base"
+      - $ref: "#/components/schemas/problemDetail.not-found"
       - type: "object"
-        properties:
-          type:
-            const: "https://contentgrid.cloud/problems/not-found/relation-item"
-        required:
-        - "type"
     problemDetail.unsatisfied-version:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
       - type: "object"
         properties:
-          type:
-            const: "https://contentgrid.cloud/problems/unsatisfied-version"
           status:
+            type: "integer"
             const: 412
           actual_version:
             type: "string"
         required:
-        - "type"
         - "status"
         - "actual_version"
     RFC9110.entity-tag:

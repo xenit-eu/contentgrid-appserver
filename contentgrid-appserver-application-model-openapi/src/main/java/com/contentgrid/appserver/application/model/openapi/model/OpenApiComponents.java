@@ -41,11 +41,11 @@ public class OpenApiComponents {
             return items.get(key);
         }
 
-        public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Supplier<T> factory) {
+        public OpenApiReference<T> register(@NonNull String name, @NonNull Supplier<T> factory) {
             return register(name, self -> factory.get());
         }
 
-        public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull Function<OpenApiPotentialReference<T>, T> factory) {
+        public OpenApiReference<T> register(@NonNull String name, @NonNull Function<OpenApiPotentialReference<T>, T> factory) {
             var reference = new OpenApiReference<T>(referencePrefix + name, () -> items.get(name));
             if(!items.containsKey(name)) {
                 items.put(name, factory.apply(reference));
@@ -53,7 +53,7 @@ public class OpenApiComponents {
             return reference;
         }
 
-        public OpenApiPotentialReference<T> register(@NonNull String name, @NonNull T schema) {
+        public OpenApiReference<T> register(@NonNull String name, @NonNull T schema) {
             return register(name, () -> schema);
         }
     }

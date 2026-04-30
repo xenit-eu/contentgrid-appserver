@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -45,6 +46,14 @@ public abstract sealed class AbstractJsonSchemaDataType implements JsonSchema pe
 
     public AbstractJsonSchemaDataType(String type) {
         this(DataType.of(type));
+    }
+
+    @Override
+    public <T extends JsonSchema> Optional<T> ofType(Class<T> type) {
+        if(type.isInstance(this)) {
+            return Optional.of((T) this);
+        }
+        return Optional.empty();
     }
 
     public AbstractJsonSchemaDataType orNull() {

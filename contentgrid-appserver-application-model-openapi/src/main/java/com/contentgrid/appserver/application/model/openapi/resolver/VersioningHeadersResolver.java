@@ -1,12 +1,12 @@
 package com.contentgrid.appserver.application.model.openapi.resolver;
 
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.requiredProperty;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.status;
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema.ProblemDetailsCustomizer.type;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.requiredProperty;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.status;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.type;
 
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
-import com.contentgrid.appserver.application.model.openapi.ProblemDetailsJsonSchema;
+import com.contentgrid.appserver.application.model.openapi.ProblemDetail;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiHttpHeaders.OpenApiHeaderDescription;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
@@ -118,7 +118,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
             return Stream.empty();
         }
 
-        var unsatisfiedVersionProblem = ProblemDetailsJsonSchema.base(context)
+        var unsatisfiedVersionProblem = ProblemDetail.base(context)
                 .subType(
                         "unsatisfied-version",
                         type("https://contentgrid.cloud/problems/unsatisfied-version"),
@@ -130,7 +130,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
                 HttpStatusCode.of(412),
                 context.spec().getComponents().getResponses().register("preconditionFailed", () -> new OpenApiResponse()
                         .setDescription("If-Match or If-None-Match precondition failed")
-                        .content(body -> body.addMediaType("application/problem+json", unsatisfiedVersionProblem)))
+                        .content(body -> body.addMediaType("application/problem+json", unsatisfiedVersionProblem.getSchema())))
         ));
     }
 }

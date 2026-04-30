@@ -73,9 +73,7 @@ public class OpenApiOperation {
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     @EqualsAndHashCode
-    @ToString(includeFieldNames = false)
     public static class HttpStatusCode {
-        @JsonValue
         @NonNull
         private final String code;
 
@@ -118,6 +116,12 @@ public class OpenApiOperation {
             }  catch (NumberFormatException e) {
                 return false;
             }
+        }
+
+        @Override
+        @JsonValue
+        public String toString() {
+            return code;
         }
     }
 }
