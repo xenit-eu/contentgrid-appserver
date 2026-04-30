@@ -44,10 +44,8 @@ paths:
           items:
             type: "string"
             enum:
-              - "name,asc"
-              - "name,desc"
-            examples:
-              - "name,asc"
+            - "name,asc"
+            - "name,desc"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
