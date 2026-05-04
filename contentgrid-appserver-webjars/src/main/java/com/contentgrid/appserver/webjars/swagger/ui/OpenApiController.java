@@ -1,10 +1,13 @@
 package com.contentgrid.appserver.webjars.swagger.ui;
 
+import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.AbstractResource;
@@ -14,19 +17,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RequiredArgsConstructor
 @RestController
 public class OpenApiController {
 
-    private final ArtifactEntry artifactEntry;
+    private static final Path PATH = Path.of("META-INF", "resources", "openapi.yml");
+
+    private final Resource resource;
+
+    public OpenApiController(Artifact artifact) throws ArtifactException {
+        this.resource = artifact.load(PATH)
+                .map(ArtifactEntryResource::new)
+                .orElse(null);
+    }
 
 
     @GetMapping("/openapi.yml")
     ResponseEntity<Resource> getOpenApiSpec() throws IOException {
-        if (artifactEntry == null) {
+        if (resource == null) {
             throw new FileNotFoundException("openapi.yml is not present");
         }
-        var resource = new ArtifactEntryResource(artifactEntry);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_YAML)
                 .body(resource);
