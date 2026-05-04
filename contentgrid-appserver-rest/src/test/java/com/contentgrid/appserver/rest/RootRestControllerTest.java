@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +35,7 @@ class RootRestControllerTest {
 
     @Test
     void getRoot() throws Exception {
-        Mockito.when(resolver.resolve(Mockito.any()))
-                .thenReturn(Application.builder()
+        Mockito.doReturn(Optional.of(Application.builder()
                         .name(ApplicationName.of("test-application"))
                         .entity(Entity.builder()
                                 .name(EntityName.of("person"))
@@ -55,7 +55,8 @@ class RootRestControllerTest {
                                 .pathSegment(PathSegmentName.of("invoice-items"))
                                 .linkName(LinkName.of("invoice-item"))
                                 .build())
-                        .build());
+                        .build()))
+                .when(resolver).resolve(Mockito.any());
         mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/"))
@@ -69,10 +70,10 @@ class RootRestControllerTest {
 
     @Test
     void getRootNoEntities() throws Exception {
-        Mockito.when(resolver.resolve(Mockito.any()))
-                .thenReturn(Application.builder()
+        Mockito.doReturn(Optional.of(Application.builder()
                         .name(ApplicationName.of("test-application"))
-                        .build());
+                        .build()))
+                .when(resolver).resolve(Mockito.any());
         mockMvc.perform(get("/").accept(MediaTypes.HAL_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.self.href").value("http://localhost/"))

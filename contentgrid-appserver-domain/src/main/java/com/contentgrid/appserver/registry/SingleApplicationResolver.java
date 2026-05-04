@@ -2,6 +2,7 @@ package com.contentgrid.appserver.registry;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,8 +13,12 @@ public class SingleApplicationResolver implements ApplicationResolver {
     private final Application application;
 
     @Override
-    public Application resolve(ApplicationName name) {
+    public Optional<Application> resolve(ApplicationName name) {
         // Apps are single-tenant for now
-        return application;
+        if (name.equals(application.getName())) {
+            return Optional.of(application);
+        } else {
+            return Optional.empty();
+        }
     }
 }
