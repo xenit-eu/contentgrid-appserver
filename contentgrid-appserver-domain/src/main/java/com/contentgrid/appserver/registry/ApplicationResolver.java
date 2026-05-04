@@ -2,7 +2,8 @@ package com.contentgrid.appserver.registry;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import java.util.Optional;
 
 public interface ApplicationResolver {
-    Application resolve(ApplicationName name);
+    Optional<Application> resolve(ApplicationName name);
 }

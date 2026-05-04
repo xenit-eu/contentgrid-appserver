@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -133,7 +134,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
 
         @Bean
         ApplicationResolver applicationResolver() {
-            return name -> APPLICATION;
+            return name -> Optional.of(APPLICATION);
         }
 
         @Bean

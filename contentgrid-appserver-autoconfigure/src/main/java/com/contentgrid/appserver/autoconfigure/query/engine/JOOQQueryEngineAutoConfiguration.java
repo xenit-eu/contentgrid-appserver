@@ -81,14 +81,14 @@ public class JOOQQueryEngineAutoConfiguration {
         @Override
         public void afterPropertiesSet() throws Exception {
             if (bootstrap == Bootstrap.CREATE || bootstrap == Bootstrap.CREATE_DROP) {
-                tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME));
+                tableCreator.createTables(applicationResolver.resolve(APPLICATION_NAME).orElseThrow());
             }
         }
 
         @Override
         public void destroy() throws Exception {
             if (bootstrap == Bootstrap.CREATE_DROP) {
-                tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME));
+                tableCreator.dropTables(applicationResolver.resolve(APPLICATION_NAME).orElseThrow());
             }
         }
 

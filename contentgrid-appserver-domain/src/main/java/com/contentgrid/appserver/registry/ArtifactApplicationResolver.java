@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.json.DefaultApplicationSchema
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import java.nio.file.Path;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
@@ -19,8 +20,13 @@ public class ArtifactApplicationResolver implements ApplicationResolver {
 
     @Override
     @SneakyThrows
-    public Application resolve(ApplicationName name) {
+    public Optional<Application> resolve(ApplicationName name) {
         var artifactEntry = artifact.loadRequired(PATH);
-        return converter.convert(artifactEntry.getInputStream());
+        var application = converter.convert(artifactEntry.getInputStream());
+        if (name.equals(application.getName())) {
+            return Optional.of(application);
+        } else {
+            return Optional.empty();
+        }
     }
 }
