@@ -9,7 +9,7 @@ import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfi
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
-import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.AutomationsModelResolverRegistry;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.entity.EntityRestController;
@@ -79,7 +79,7 @@ class ContentGridRestAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(AutomationsRestController.class);
-                    assertThat(context).hasSingleBean(AutomationsModelResolver.class);
+                    assertThat(context).hasSingleBean(AutomationsModelResolverRegistry.class);
                 });
     }
 

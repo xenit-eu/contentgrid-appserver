@@ -80,22 +80,26 @@ class ArtifactAutomationsModelResolverTest {
                     .build())
             .build();
 
+    AutomationsModelResolver getResolver(Artifact artifact) {
+        return new AutomationsModelResolverRegistry(List.of(new ArtifactAutomationsModelResolver(artifact)));
+    }
+
     @Test
     void resolveConfig() {
         var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of(""));
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = getResolver(artifact);
 
-        assertThat(resolver.resolve(APPLICATION_MODEL)).isEqualTo(MODEL);
+        assertThat(resolver.resolve(APPLICATION_MODEL)).hasValue(MODEL);
     }
 
     @Test
     void resolveConfigNotFound() {
         var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("nonexisting"));
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = getResolver(artifact);
 
-        assertThat(resolver.resolve(APPLICATION_MODEL).getAutomations()).isEmpty();
+        assertThat(resolver.resolve(APPLICATION_MODEL).orElseThrow().getAutomations()).isEmpty();
     }
 
     @Test
@@ -106,7 +110,7 @@ class ArtifactAutomationsModelResolverTest {
                 .when(artifactEntry).getInputStream();
         Mockito.doReturn(Optional.of(artifactEntry)).when(artifact).load(Mockito.any());
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = getResolver(artifact);
 
         assertThatThrownBy(() -> resolver.resolve(APPLICATION_MODEL))
                 .isInstanceOf(IllegalStateException.class);

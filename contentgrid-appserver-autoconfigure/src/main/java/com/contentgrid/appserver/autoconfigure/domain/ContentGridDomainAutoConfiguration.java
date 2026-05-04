@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
 import com.contentgrid.appserver.domain.automations.ArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.AutomationsModelResolverRegistry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
@@ -16,12 +17,14 @@ import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
@@ -71,5 +74,11 @@ public class ContentGridDomainAutoConfiguration {
     @ConditionalOnMissingBean
     AutomationsModelResolver artifactAutomationsResolver(Artifact artifact) {
         return new ArtifactAutomationsModelResolver(artifact);
+    }
+
+    @Bean
+    @Primary
+    AutomationsModelResolver automationsResolverRegistry(List<AutomationsModelResolver> resolvers) {
+        return new AutomationsModelResolverRegistry(resolvers);
     }
 }
