@@ -146,7 +146,7 @@ public final class BodyObjectMapper {
                     relationValue = relationValue
                             // For to-one relations that are required, they are required.
                             .withMandatory(sourceEndPoint.isRequired())
-                            .withNullable(!sourceEndPoint.isRequired() && context.mediaType() == MediaType.JSON /* only json can be nullable, forms can't have null fields */);
+                            .withNullable(!sourceEndPoint.isRequired() && context.mediaType().canTransportNulls());
                 }
 
                 fields.put(sourceEndPoint.getName().getValue(),
@@ -166,7 +166,7 @@ public final class BodyObjectMapper {
                 .fields(Collections.unmodifiableMap(fields))
                 .build();
 
-        if(context.mediaType() != MediaType.JSON) {
+        if(!context.mediaType().canTransportNestedObjects()) {
             // Non-JSON request bodies are flattened, because they don't support nested objects
             return flattened(result);
         }
@@ -264,7 +264,7 @@ public final class BodyObjectMapper {
                     )
                     .build();
             case ContentAttribute ca -> {
-                if (context.mediaType() == MediaType.MULTIPART_FORM) {
+                if (context.mediaType().canTransportContent()) {
                     // For multipart forms, use a special type for content upload
                     yield ContentBodyValue.builder()
                             .sourceType(sourceType)
@@ -329,10 +329,9 @@ public final class BodyObjectMapper {
                 case PATCH -> bodyValue.withMandatory(false); // No items are mandatory for PATCH (keys that are left out are kept as-is)
             };
 
-            bodyValue = switch (context.mediaType()) {
-                case JSON -> bodyValue;
-                case FORM, MULTIPART_FORM -> bodyValue.withNullable(false); // Form fields can't convey 'null', they can only leave the field out
-            };
+            if(!context.mediaType().canTransportNulls()) {
+                bodyValue = bodyValue.withNullable(false); // Form fields can't convey 'null', they can only leave the field out
+            }
 
             var translations = attribute.getTranslations(context.userLocales());
             if (translations.getName() != null && !translations.getName().isEmpty()) {

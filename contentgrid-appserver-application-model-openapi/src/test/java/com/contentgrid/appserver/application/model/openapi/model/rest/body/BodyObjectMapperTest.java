@@ -58,11 +58,14 @@ class BodyObjectMapperTest {
         @Accessors(fluent = true)
         enum SupportedCombination {
             POST_JSON(BodyType.POST, MediaType.JSON),
+            POST_JSON_FLAT(BodyType.POST, MediaType.FLAT_JSON),
             POST_FORM(BodyType.POST, MediaType.FORM),
             POST_MULTIPART(BodyType.POST, MediaType.MULTIPART_FORM),
             PUT_JSON(BodyType.PUT, MediaType.JSON),
+            PUT_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
             PUT_FORM(BodyType.PUT, MediaType.FORM),
             PATCH_JSON(BodyType.PUT, MediaType.JSON),
+            PATCH_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
             PATCH_FORM(BodyType.PUT, MediaType.FORM),
             RESPONSE_JSON(BodyType.RESPONSE, MediaType.JSON),
             ;
@@ -70,7 +73,7 @@ class BodyObjectMapperTest {
             MediaType mediaType;
 
             public Condition<BodyValue> jsonNullable() {
-                if (mediaType == MediaType.JSON) {
+                if (mediaType.canTransportNulls()) {
                     return new Condition<>(BodyValue::isNullable, "nullable for the %s mediatype", mediaType);
                 } else {
                     // forms can't have null values, those can only be expressed by the field being absent

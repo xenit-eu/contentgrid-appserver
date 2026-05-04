@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
-import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.FORM;
+import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.FLAT_JSON;
 import static com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType.MULTIPART_FORM;
 
 import com.contentgrid.appserver.application.model.Application;
@@ -35,9 +35,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -72,9 +70,9 @@ public class HalFormsTemplateGenerator {
             .withPrefix("sort.");
 
     public HalFormsTemplate generateCreateTemplate(EntityName entityName) {
-        var body = BodyObjectMapper.forBody(new Context(application, BodyType.POST, MULTIPART_FORM, userLocales), entityName);
+        var hasFiles = !application.getRequiredEntityByName(entityName).getContentAttributes().isEmpty();
+        var body = BodyObjectMapper.forBody(new Context(application, BodyType.POST, hasFiles?MULTIPART_FORM:FLAT_JSON, userLocales), entityName);
         var properties = toHalFormsProperties(body);
-        var hasFiles = properties.stream().anyMatch(prop -> Objects.equals(HtmlInputType.FILE_VALUE, prop.getType()));
         return HalFormsTemplate.builder()
                 .key(IanaLinkRelations.CREATE_FORM_VALUE)
                 .httpMethod(HttpMethod.POST)
@@ -85,7 +83,7 @@ public class HalFormsTemplateGenerator {
     }
 
     public HalFormsTemplate generateUpdateTemplate(EntityName entityName) {
-        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FORM, userLocales), entityName);
+        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FLAT_JSON, userLocales), entityName);
         var properties = toHalFormsProperties(body);
         return HalFormsTemplate.builder()
                 .key(HalFormsTemplate.DEFAULT_KEY)
@@ -98,11 +96,7 @@ public class HalFormsTemplateGenerator {
     public HalFormsTemplate generateSearchTemplate(EntityName entityName) {
         var entity = application.getRequiredEntityByName(entityName);
         var body = BodyObjectMapper.forSearch(application, userLocales, entityName);
-        var properties = toHalFormsProperties(body)
-                .stream()
-                // Search forms don't have regex constraints, because searches are looser (e.g. search for prefix or full-text search)
-                .map(p -> p.withRegex(null))
-                .collect(Collectors.toList());
+        var properties = toHalFormsProperties(body);
         entityToSortProperty(entity).ifPresent(properties::add);
 
         return HalFormsTemplate.builder()
