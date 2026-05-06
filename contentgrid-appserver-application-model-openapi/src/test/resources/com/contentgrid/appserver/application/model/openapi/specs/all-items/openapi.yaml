@@ -1,16 +1,18 @@
-openapi: "3.0.2"
+openapi: "3.2.0"
 info:
-  description: "ContentGrid app for vierbergenlars/acc-2678"
-  version: "0.0.1-SNAPSHOT"
-  title: "Acc2678ApiApplication"
+  title: "default"
+  version: "1.0"
 tags:
 - name: "sample-entity"
   description: "This entity is designed to demonstrate various attribute types, search\
     \ filters, and constraints."
+  kind: "nav"
 - name: "entity-a"
   description: "Represents the first entity for demonstrating various types of relations."
+  kind: "nav"
 - name: "entity-b"
   description: "Represents the second entity for demonstrating various types of relations."
+  kind: "nav"
 paths:
   /sample-entities:
     get:
