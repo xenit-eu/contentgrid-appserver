@@ -23,6 +23,7 @@ import com.contentgrid.appserver.application.model.openapi.type.AttributeType;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
+import com.contentgrid.appserver.application.model.openapi.type.RelationItemType;
 import com.contentgrid.appserver.application.model.openapi.type.SemanticType;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
 
     private boolean hasETag(SemanticType targetType, OpenApiSpecContext context) {
         return switch (targetType) {
+            case RelationItemType relationItemType -> false;
             case EntityType entityType -> context.application().getRequiredEntityByName(entityType.getEntityName()).getAttributes()
                     .stream()
                     .anyMatch(a -> a.hasFlag(ETagFlag.class));

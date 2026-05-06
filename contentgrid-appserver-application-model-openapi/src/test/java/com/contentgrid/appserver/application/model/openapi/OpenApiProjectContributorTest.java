@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiParameter.In;
@@ -134,6 +135,12 @@ class OpenApiProjectContributorTest {
                 .table(TableName.of("insurance_case"))
                 .description("")
                 .translationsBy(Locale.ROOT, t -> t.withSingularName("insurance-case"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("_version")).column(ColumnName.of("_version"))
+                        .type(Type.LONG)
+                        .flag(ETagFlag.INSTANCE)
+                        .build()
+                )
                 .attribute(SimpleAttribute.builder()
                         .name(AttributeName.of("case_number")).column(ColumnName.of("case_number"))
                         .type(Type.LONG)
