@@ -1,0 +1,2270 @@
+{
+  "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+  "applicationName": "default",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "sample-entity",
+      "title": "Sample entity",
+      "collectionTitle": "Sample entities",
+      "description": "This entity is designed to demonstrate various attribute types, search filters, and constraints.",
+      "table": "sample_entity",
+      "pathSegment": "sample-entities",
+      "linkName": "sample-entity",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "created_at",
+          "description": "Tracks when the item was created.",
+          "dataType": "datetime",
+          "columnName": "created_at",
+          "flags": [
+            "createdDate"
+          ],
+          "title": "Created at"
+        },
+        {
+          "type": "user",
+          "name": "created_by",
+          "description": "Tracks who created the item.",
+          "idColumn": "created_by__id",
+          "namespaceColumn": "created_by__ns",
+          "userNameColumn": "created_by__name",
+          "flags": [
+            "creator"
+          ],
+          "title": "Created by"
+        },
+        {
+          "type": "simple",
+          "name": "last_modified_at",
+          "description": "Tracks when the item was last modified.",
+          "dataType": "datetime",
+          "columnName": "last_modified_at",
+          "flags": [
+            "modifiedDate"
+          ],
+          "title": "Last modified at"
+        },
+        {
+          "type": "user",
+          "name": "last_modified_by",
+          "description": "Tracks who last modified the item.",
+          "idColumn": "last_modified_by__id",
+          "namespaceColumn": "last_modified_by__ns",
+          "userNameColumn": "last_modified_by__name",
+          "flags": [
+            "modifier"
+          ],
+          "title": "Last modified by"
+        },
+        {
+          "type": "simple",
+          "name": "string_attribute",
+          "description": "A simple string attribute.",
+          "dataType": "text",
+          "columnName": "string_attribute",
+          "title": "String attribute"
+        },
+        {
+          "type": "simple",
+          "name": "integer_attribute",
+          "description": "A long attribute for numerical values.",
+          "dataType": "long",
+          "columnName": "integer_attribute",
+          "title": "Integer attribute"
+        },
+        {
+          "type": "simple",
+          "name": "decimal_attribute",
+          "description": "A double attribute for precise numerical values.",
+          "dataType": "double",
+          "columnName": "decimal_attribute",
+          "title": "Decimal attribute"
+        },
+        {
+          "type": "simple",
+          "name": "boolean_attribute",
+          "description": "A boolean attribute for true/false values.",
+          "dataType": "boolean",
+          "columnName": "boolean_attribute",
+          "title": "Boolean attribute"
+        },
+        {
+          "type": "simple",
+          "name": "date_attribute",
+          "description": "A date attribute for storing dates.",
+          "dataType": "date",
+          "columnName": "date_attribute",
+          "title": "Date attribute"
+        },
+        {
+          "type": "simple",
+          "name": "datetime_attribute",
+          "description": "A datetime attribute for storing date and time.",
+          "dataType": "datetime",
+          "columnName": "datetime_attribute",
+          "title": "Datetime attribute"
+        },
+        {
+          "type": "content",
+          "name": "content_attribute",
+          "description": "A content attribute for storing files/documents.",
+          "pathSegment": "content-attribute",
+          "linkName": "content_attribute",
+          "idColumn": "content_attribute__id",
+          "fileNameColumn": "content_attribute__filename",
+          "mimeTypeColumn": "content_attribute__mimetype",
+          "lengthColumn": "content_attribute__length",
+          "title": "Content attribute"
+        },
+        {
+          "type": "simple",
+          "name": "unique_string_attribute",
+          "description": "A string attribute with a uniqueness constraint.",
+          "dataType": "text",
+          "columnName": "unique_string_attribute",
+          "constraints": [
+            {
+              "type": "unique"
+            }
+          ],
+          "title": "Unique string attribute"
+        },
+        {
+          "type": "simple",
+          "name": "required_integer_attribute",
+          "description": "A long attribute that is required.",
+          "dataType": "long",
+          "columnName": "required_integer_attribute",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ],
+          "title": "Required integer attribute"
+        },
+        {
+          "type": "simple",
+          "name": "exact_search_decimal_attribute",
+          "description": "A double attribute with exact search enabled.",
+          "dataType": "double",
+          "columnName": "exact_search_decimal_attribute",
+          "title": "Exact search decimal attribute"
+        },
+        {
+          "type": "simple",
+          "name": "prefix_search_string_attribute",
+          "description": "A string attribute with prefix search enabled.",
+          "dataType": "text",
+          "columnName": "prefix_search_string_attribute",
+          "title": "Prefix search string attribute"
+        },
+        {
+          "type": "simple",
+          "name": "allowed_values_string_attribute",
+          "description": "A string attribute with allowed values constraint.",
+          "dataType": "text",
+          "columnName": "allowed_values_string_attribute",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": [
+                "Option1",
+                "Option2"
+              ]
+            }
+          ],
+          "title": "Allowed values string attribute"
+        },
+        {
+          "type": "simple",
+          "name": "full_text_search_string_attribute",
+          "description": "A string attribute with prefix search enabled, simulating full text search.",
+          "dataType": "text",
+          "columnName": "full_text_search_string_attribute",
+          "title": "Full text search string attribute"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at",
+          "type": "exact"
+        },
+        {
+          "name": "created_at~after",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "created_at~before",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "exact_search_decimal_attribute",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Exact search decimal attribute",
+          "type": "exact"
+        },
+        {
+          "name": "exact_search_decimal_attribute~gt",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Exact search decimal attribute: Greater than",
+          "type": "greater"
+        },
+        {
+          "name": "exact_search_decimal_attribute~gte",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Exact search decimal attribute: Min",
+          "type": "greater-or-equal"
+        },
+        {
+          "name": "exact_search_decimal_attribute~lt",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Exact search decimal attribute: Less than",
+          "type": "less"
+        },
+        {
+          "name": "exact_search_decimal_attribute~lte",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Exact search decimal attribute: Max",
+          "type": "less-or-equal"
+        },
+        {
+          "name": "prefix_search_string_attribute~prefix",
+          "attributePath": [
+            {
+              "name": "prefix_search_string_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Prefix search string attribute",
+          "type": "prefix"
+        },
+        {
+          "name": "full_text_search_string_attribute~fts",
+          "attributePath": [
+            {
+              "name": "full_text_search_string_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "Full text search string attribute: Full Text",
+          "type": "full-text",
+          "locale": "en"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "exact_search_decimal_attribute",
+          "attributePath": [
+            {
+              "name": "exact_search_decimal_attribute",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "entity-a",
+      "title": "Entity a",
+      "collectionTitle": "Entity as",
+      "description": "Represents the first entity for demonstrating various types of relations.",
+      "table": "entity_a",
+      "pathSegment": "entity-as",
+      "linkName": "entity-a",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "created_at",
+          "description": "Tracks when the item was created.",
+          "dataType": "datetime",
+          "columnName": "created_at",
+          "flags": [
+            "createdDate"
+          ],
+          "title": "Created at"
+        },
+        {
+          "type": "user",
+          "name": "created_by",
+          "description": "Tracks who created the item.",
+          "idColumn": "created_by__id",
+          "namespaceColumn": "created_by__ns",
+          "userNameColumn": "created_by__name",
+          "flags": [
+            "creator"
+          ],
+          "title": "Created by"
+        },
+        {
+          "type": "simple",
+          "name": "last_modified_at",
+          "description": "Tracks when the item was last modified.",
+          "dataType": "datetime",
+          "columnName": "last_modified_at",
+          "flags": [
+            "modifiedDate"
+          ],
+          "title": "Last modified at"
+        },
+        {
+          "type": "user",
+          "name": "last_modified_by",
+          "description": "Tracks who last modified the item.",
+          "idColumn": "last_modified_by__id",
+          "namespaceColumn": "last_modified_by__ns",
+          "userNameColumn": "last_modified_by__name",
+          "flags": [
+            "modifier"
+          ],
+          "title": "Last modified by"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at",
+          "type": "exact"
+        },
+        {
+          "name": "created_at~after",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "created_at~before",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_required.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_required.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_required.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_required.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_required.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_required.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one required: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_required.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_required.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_required.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_required.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_required.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_required.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_required",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one required: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many_bidirectional.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many_bidirectional.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many_bidirectional.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many_bidirectional.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many_bidirectional.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many_bidirectional.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many bidirectional: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many_bidirectional.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many_bidirectional.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many_bidirectional.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many_bidirectional.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many_bidirectional.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many_bidirectional.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many bidirectional: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_bidirectional.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_bidirectional.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_bidirectional.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_bidirectional.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_bidirectional.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_bidirectional.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one bidirectional: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_bidirectional.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_bidirectional.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_bidirectional.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_bidirectional.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_bidirectional.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_bidirectional.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one bidirectional: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "_internal_entityB__manyToManyInverse",
+          "attributePath": [
+            {
+              "name": "many_to_many_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_entityB__oneToManyInverse",
+          "attributePath": [
+            {
+              "name": "many_to_one_bidirectional",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "entity-b",
+      "title": "Entity b",
+      "collectionTitle": "Entity bs",
+      "description": "Represents the second entity for demonstrating various types of relations.",
+      "table": "entity_b",
+      "pathSegment": "entity-bs",
+      "linkName": "entity-b",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "created_at",
+          "description": "Tracks when the item was created.",
+          "dataType": "datetime",
+          "columnName": "created_at",
+          "flags": [
+            "createdDate"
+          ],
+          "title": "Created at"
+        },
+        {
+          "type": "user",
+          "name": "created_by",
+          "description": "Tracks who created the item.",
+          "idColumn": "created_by__id",
+          "namespaceColumn": "created_by__ns",
+          "userNameColumn": "created_by__name",
+          "flags": [
+            "creator"
+          ],
+          "title": "Created by"
+        },
+        {
+          "type": "simple",
+          "name": "last_modified_at",
+          "description": "Tracks when the item was last modified.",
+          "dataType": "datetime",
+          "columnName": "last_modified_at",
+          "flags": [
+            "modifiedDate"
+          ],
+          "title": "Last modified at"
+        },
+        {
+          "type": "user",
+          "name": "last_modified_by",
+          "description": "Tracks who last modified the item.",
+          "idColumn": "last_modified_by__id",
+          "namespaceColumn": "last_modified_by__ns",
+          "userNameColumn": "last_modified_by__name",
+          "flags": [
+            "modifier"
+          ],
+          "title": "Last modified by"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at",
+          "type": "exact"
+        },
+        {
+          "name": "created_at~after",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "created_at~before",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_inverse.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_inverse.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_inverse.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_one_inverse.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_one_inverse.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_one_inverse.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to one inverse: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many_inverse.created_at",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many_inverse.created_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many_inverse.created_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "many_to_many_inverse.last_modified_at",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "many_to_many_inverse.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "many_to_many_inverse.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "Many to many inverse: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many_inverse.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many_inverse.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many_inverse.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_many_inverse.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_many_inverse.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_many_inverse.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to many inverse: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_inverse.created_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Created at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_inverse.created_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Created at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_inverse.created_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Created at: Before",
+          "type": "less"
+        },
+        {
+          "name": "one_to_one_inverse.last_modified_at",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Last modified at",
+          "type": "exact"
+        },
+        {
+          "name": "one_to_one_inverse.last_modified_at~after",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Last modified at: After",
+          "type": "greater"
+        },
+        {
+          "name": "one_to_one_inverse.last_modified_at~before",
+          "attributePath": [
+            {
+              "name": "one_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ],
+          "title": "One to one inverse: Last modified at: Before",
+          "type": "less"
+        },
+        {
+          "name": "_internal_entityA__oneToMany",
+          "attributePath": [
+            {
+              "name": "_internal_entityA__oneToMany",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_entityA__oneToManyBidirectional",
+          "attributePath": [
+            {
+              "name": "many_to_one_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_entityA__manyToManyBidirectional",
+          "attributePath": [
+            {
+              "name": "many_to_many_inverse",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        },
+        {
+          "name": "_internal_entityA__manyToMany",
+          "attributePath": [
+            {
+              "name": "_internal_entityA__manyToMany",
+              "type": "rel"
+            },
+            {
+              "name": "id",
+              "type": "attr"
+            }
+          ],
+          "type": "exact",
+          "flags": [
+            "hidden"
+          ]
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "created_at",
+          "attributePath": [
+            {
+              "name": "created_at",
+              "type": "attr"
+            }
+          ]
+        },
+        {
+          "name": "last_modified_at",
+          "attributePath": [
+            {
+              "name": "last_modified_at",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "one_to_many",
+        "pathSegment": "one-to-many",
+        "entityName": "entity-a",
+        "title": "One to many",
+        "description": "A one-to-many relation from entity-a to entity-b.",
+        "linkName": "one_to_many"
+      },
+      "targetEndpoint": {
+        "name": "_internal_entityA__oneToMany",
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "sourceReference": "_entity_a_id__one_to_many"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "one_to_one_required",
+        "pathSegment": "one-to-one-required",
+        "entityName": "entity-a",
+        "title": "One to one required",
+        "description": "A one-to-one relation with a required side.",
+        "linkName": "one_to_one_required",
+        "flags": [
+          "required"
+        ]
+      },
+      "targetEndpoint": {
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetReference": "one_to_one_required"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "many_to_one_required",
+        "pathSegment": "many-to-one-required",
+        "entityName": "entity-a",
+        "title": "Many to one required",
+        "description": "A many-to-one relation with a required side.",
+        "linkName": "many_to_one_required",
+        "flags": [
+          "required"
+        ]
+      },
+      "sourceReference": "many_to_one_required"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "one_to_many_bidirectional",
+        "pathSegment": "one-to-many-bidirectional",
+        "entityName": "entity-a",
+        "title": "One to many bidirectional",
+        "description": "A bidirectional one-to-many relation.",
+        "linkName": "one_to_many_bidirectional"
+      },
+      "targetEndpoint": {
+        "name": "many_to_one_inverse",
+        "pathSegment": "many-to-one-inverse",
+        "entityName": "entity-b",
+        "title": "Many to one inverse",
+        "linkName": "many_to_one_inverse"
+      },
+      "sourceReference": "many_to_one_inverse"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "many_to_many_bidirectional",
+        "pathSegment": "many-to-many-bidirectional",
+        "entityName": "entity-a",
+        "title": "Many to many bidirectional",
+        "description": "A bidirectional many-to-many relation.",
+        "linkName": "many_to_many_bidirectional"
+      },
+      "targetEndpoint": {
+        "name": "many_to_many_inverse",
+        "pathSegment": "many-to-many-inverse",
+        "entityName": "entity-b",
+        "title": "Many to many inverse",
+        "linkName": "many_to_many_inverse"
+      },
+      "joinTable": "entity_a__many_to_many_bidirectional",
+      "sourceReference": "entity_a_id",
+      "targetReference": "entity_b_id"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "one_to_one_bidirectional",
+        "pathSegment": "one-to-one-bidirectional",
+        "entityName": "entity-a",
+        "title": "One to one bidirectional",
+        "description": "A bidirectional one-to-one relation.",
+        "linkName": "one_to_one_bidirectional"
+      },
+      "targetEndpoint": {
+        "name": "one_to_one_inverse",
+        "pathSegment": "one-to-one-inverse",
+        "entityName": "entity-b",
+        "title": "One to one inverse",
+        "linkName": "one_to_one_inverse"
+      },
+      "targetReference": "one_to_one_bidirectional"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "one_to_many_inverse",
+        "pathSegment": "one-to-many-inverse",
+        "entityName": "entity-b",
+        "title": "One to many inverse",
+        "linkName": "one_to_many_inverse"
+      },
+      "targetEndpoint": {
+        "name": "many_to_one_bidirectional",
+        "pathSegment": "many-to-one-bidirectional",
+        "entityName": "entity-a",
+        "title": "Many to one bidirectional",
+        "description": "A bidirectional many-to-one relation.",
+        "linkName": "many_to_one_bidirectional"
+      },
+      "sourceReference": "many_to_one_bidirectional"
+    },
+    {
+      "type": "one-to-one",
+      "sourceEndpoint": {
+        "name": "one_to_one",
+        "pathSegment": "one-to-one",
+        "entityName": "entity-a",
+        "title": "One to one",
+        "description": "A one-to-one relation between entity-a and entity-b.",
+        "linkName": "one_to_one"
+      },
+      "targetEndpoint": {
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetReference": "one_to_one"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "many_to_one",
+        "pathSegment": "many-to-one",
+        "entityName": "entity-a",
+        "title": "Many to one",
+        "description": "A many-to-one relation from entity-a to entity-b.",
+        "linkName": "many_to_one"
+      },
+      "sourceReference": "many_to_one"
+    },
+    {
+      "type": "many-to-many",
+      "sourceEndpoint": {
+        "name": "many_to_many",
+        "pathSegment": "many-to-many",
+        "entityName": "entity-a",
+        "title": "Many to many",
+        "description": "A many-to-many relation between entity-a and entity-b.",
+        "linkName": "many_to_many"
+      },
+      "targetEndpoint": {
+        "name": "_internal_entityA__manyToMany",
+        "entityName": "entity-b",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "joinTable": "entity_a__many_to_many",
+      "sourceReference": "entity_a_id",
+      "targetReference": "entity_b_id"
+    }
+  ]
+}

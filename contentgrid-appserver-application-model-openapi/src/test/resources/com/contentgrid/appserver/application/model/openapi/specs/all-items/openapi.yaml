@@ -1,0 +1,3460 @@
+openapi: "3.0.2"
+info:
+  description: "ContentGrid app for vierbergenlars/acc-2678"
+  version: "0.0.1-SNAPSHOT"
+  title: "Acc2678ApiApplication"
+tags:
+- name: "sample-entity"
+  description: "This entity is designed to demonstrate various attribute types, search\
+    \ filters, and constraints."
+- name: "entity-a"
+  description: "Represents the first entity for demonstrating various types of relations."
+- name: "entity-b"
+  description: "Represents the second entity for demonstrating various types of relations."
+paths:
+  /sample-entities:
+    get:
+      tags:
+      - "sample-entity"
+      operationId: "get-sample-entities"
+      summary: "Retrieve sample-entity list"
+      parameters:
+      - name: "created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "exact_search_decimal_attribute"
+        in: "query"
+        description: "A double attribute with exact search enabled."
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "exact_search_decimal_attribute~lt"
+        in: "query"
+        description: "Less than exact_search_decimal_attribute"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "exact_search_decimal_attribute~lte"
+        in: "query"
+        description: "Less than or equal to exact_search_decimal_attribute"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "exact_search_decimal_attribute~gt"
+        in: "query"
+        description: "Greater than exact_search_decimal_attribute"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "exact_search_decimal_attribute~gte"
+        in: "query"
+        description: "Greater than or equal to exact_search_decimal_attribute"
+        required: false
+        schema:
+          type: "number"
+          format: "double"
+      - name: "prefix_search_string_attribute~prefix"
+        in: "query"
+        description: "Starts with prefix_search_string_attribute"
+        required: false
+        schema:
+          type: "string"
+      - name: "full_text_search_string_attribute~fts"
+        in: "query"
+        description: "Full text search full_text_search_string_attribute"
+        required: false
+        schema:
+          type: "string"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "created_at,asc"
+            - "created_at,desc"
+            - "last_modified_at,asc"
+            - "last_modified_at,desc"
+            - "exact_search_decimal_attribute,asc"
+            - "exact_search_decimal_attribute,desc"
+            example: "created_at,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/sample-entityCollection"
+    post:
+      tags:
+      - "sample-entity"
+      operationId: "create-sample-entity"
+      summary: "Create a new sample-entity"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/sample-entityPostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/sample-entityPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The sample-entity has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/sample-entityResponse"
+        "400":
+          description: "The sample-entity can not be created due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The sample-entity can not be created due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /sample-entities/{id}:
+    get:
+      tags:
+      - "sample-entity"
+      operationId: "get-sample-entity"
+      summary: "Retrieve the sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/sample-entityResponse"
+    put:
+      tags:
+      - "sample-entity"
+      operationId: "update-sample-entity"
+      summary: "Update all attributes of the sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/sample-entityPutBody"
+      responses:
+        "200":
+          description: "The sample-entity has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/sample-entityResponse"
+        "400":
+          description: "The sample-entity can not be updated due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The sample-entity can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "sample-entity"
+      operationId: "patch-sample-entity"
+      summary: "Update some attributes of the sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/sample-entityPatchBody"
+      responses:
+        "200":
+          description: "The sample-entity has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/sample-entityResponse"
+        "400":
+          description: "The sample-entity can not be updated due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The sample-entity can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "sample-entity"
+      operationId: "delete-sample-entity"
+      summary: "Delete the sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The sample-entity has been deleted"
+        "409":
+          description: "The sample-entity can not be deleted because it is linked\
+            \ via a required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /entity-as:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-as"
+      summary: "Retrieve entity-a list"
+      parameters:
+      - name: "created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_required.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_required.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_bidirectional.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_bidirectional.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_bidirectional.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_bidirectional.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "created_at,asc"
+            - "created_at,desc"
+            - "last_modified_at,asc"
+            - "last_modified_at,desc"
+            example: "created_at,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aCollection"
+    post:
+      tags:
+      - "entity-a"
+      operationId: "create-entity-a"
+      summary: "Create a new entity-a"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-aPostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/entity-aPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The entity-a has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "The entity-a can not be created due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-a can not be created due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /entity-as/{id}:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a"
+      summary: "Retrieve the entity-a"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a"
+      summary: "Update all attributes of the entity-a"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-aPutBody"
+      responses:
+        "200":
+          description: "The entity-a has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "The entity-a can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-a can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "entity-a"
+      operationId: "patch-entity-a"
+      summary: "Update some attributes of the entity-a"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-aPatchBody"
+      responses:
+        "200":
+          description: "The entity-a has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "The entity-a can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-a can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a"
+      summary: "Delete the entity-a"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The entity-a has been deleted"
+        "409":
+          description: "The entity-a can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /entity-as/{id}/one-to-many:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_many"
+      summary: "Retrieve the entity-b list linked with entity-a as one_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bCollection"
+    post:
+      tags:
+      - "entity-a"
+      operationId: "add-entity-a-one_to_many"
+      summary: "Add links to entity-b list that is linked with entity-a as one_to_many,\
+        \ in addition to existing entity-b list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-b URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-b is linked with entity-a as one_to_many"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as one_to_many"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_many"
+      summary: "Removes all links to entity-b from one_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-b have been removed from one_to_many"
+        "409":
+          description: "You can not remove the one_to_many link, because the inverse\
+            \ relation is marked as required"
+  /entity-as/{id}/one-to-many/{itemId}:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_many-item"
+      summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
+        \ as one_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The one_to_many relation does not link to the entity-b identified\
+            \ by 'itemId'"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_many-item"
+      summary: "Removes the link to entity-b identified by 'itemId' from one_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from one_to_many"
+        "409":
+          description: "You can not remove the one_to_many link, because the inverse\
+            \ relation is marked as required"
+  /entity-as/{id}/one-to-one-required:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_one_required"
+      summary: "Retrieve the entity-b linked with entity-a as one_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The one_to_one_required relation does not link to any entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-one_to_one_required"
+      summary: "Set the entity-b that is linked with entity-a as one_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as one_to_one_required"
+        "400":
+          description: "Multiple URIs are given, but one_to_one_required can only\
+            \ refer to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ one_to_one_required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_one_required"
+      summary: "Removes the link to entity-b from one_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from one_to_one_required"
+        "400":
+          description: "You can not remove the one_to_one_required link, because it\
+            \ is marked as required"
+        "409":
+          description: "You can not remove the one_to_one_required link, because the\
+            \ inverse relation is marked as required"
+  /entity-as/{id}/many-to-one-required:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_one_required"
+      summary: "Retrieve the entity-b linked with entity-a as many_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The many_to_one_required relation does not link to any entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-many_to_one_required"
+      summary: "Set the entity-b that is linked with entity-a as many_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as many_to_one_required"
+        "400":
+          description: "Multiple URIs are given, but many_to_one_required can only\
+            \ refer to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ many_to_one_required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_one_required"
+      summary: "Removes the link to entity-b from many_to_one_required"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from many_to_one_required"
+        "400":
+          description: "You can not remove the many_to_one_required link, because\
+            \ it is marked as required"
+        "409":
+          description: "You can not remove the many_to_one_required link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/one-to-many-bidirectional:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_many_bidirectional"
+      summary: "Retrieve the entity-b list linked with entity-a as one_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bCollection"
+    post:
+      tags:
+      - "entity-a"
+      operationId: "add-entity-a-one_to_many_bidirectional"
+      summary: "Add links to entity-b list that is linked with entity-a as one_to_many_bidirectional,\
+        \ in addition to existing entity-b list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-b URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-b is linked with entity-a as one_to_many_bidirectional"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as one_to_many_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_many_bidirectional"
+      summary: "Removes all links to entity-b from one_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-b have been removed from one_to_many_bidirectional"
+        "409":
+          description: "You can not remove the one_to_many_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/one-to-many-bidirectional/{itemId}:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_many_bidirectional-item"
+      summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
+        \ as one_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The one_to_many_bidirectional relation does not link to the\
+            \ entity-b identified by 'itemId'"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_many_bidirectional-item"
+      summary: "Removes the link to entity-b identified by 'itemId' from one_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from one_to_many_bidirectional"
+        "409":
+          description: "You can not remove the one_to_many_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/many-to-many-bidirectional:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_many_bidirectional"
+      summary: "Retrieve the entity-b list linked with entity-a as many_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bCollection"
+    post:
+      tags:
+      - "entity-a"
+      operationId: "add-entity-a-many_to_many_bidirectional"
+      summary: "Add links to entity-b list that is linked with entity-a as many_to_many_bidirectional,\
+        \ in addition to existing entity-b list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-b URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-b is linked with entity-a as many_to_many_bidirectional"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as many_to_many_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_many_bidirectional"
+      summary: "Removes all links to entity-b from many_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-b have been removed from many_to_many_bidirectional"
+        "409":
+          description: "You can not remove the many_to_many_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/many-to-many-bidirectional/{itemId}:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_many_bidirectional-item"
+      summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
+        \ as many_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The many_to_many_bidirectional relation does not link to the\
+            \ entity-b identified by 'itemId'"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_many_bidirectional-item"
+      summary: "Removes the link to entity-b identified by 'itemId' from many_to_many_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from many_to_many_bidirectional"
+        "409":
+          description: "You can not remove the many_to_many_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/one-to-one-bidirectional:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_one_bidirectional"
+      summary: "Retrieve the entity-b linked with entity-a as one_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The one_to_one_bidirectional relation does not link to any\
+            \ entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-one_to_one_bidirectional"
+      summary: "Set the entity-b that is linked with entity-a as one_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as one_to_one_bidirectional"
+        "400":
+          description: "Multiple URIs are given, but one_to_one_bidirectional can\
+            \ only refer to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ one_to_one_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_one_bidirectional"
+      summary: "Removes the link to entity-b from one_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from one_to_one_bidirectional"
+        "400":
+          description: "You can not remove the one_to_one_bidirectional link, because\
+            \ it is marked as required"
+        "409":
+          description: "You can not remove the one_to_one_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/many-to-one-bidirectional:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_one_bidirectional"
+      summary: "Retrieve the entity-b linked with entity-a as many_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The many_to_one_bidirectional relation does not link to any\
+            \ entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-many_to_one_bidirectional"
+      summary: "Set the entity-b that is linked with entity-a as many_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as many_to_one_bidirectional"
+        "400":
+          description: "Multiple URIs are given, but many_to_one_bidirectional can\
+            \ only refer to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ many_to_one_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_one_bidirectional"
+      summary: "Removes the link to entity-b from many_to_one_bidirectional"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from many_to_one_bidirectional"
+        "400":
+          description: "You can not remove the many_to_one_bidirectional link, because\
+            \ it is marked as required"
+        "409":
+          description: "You can not remove the many_to_one_bidirectional link, because\
+            \ the inverse relation is marked as required"
+  /entity-as/{id}/one-to-one:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-one_to_one"
+      summary: "Retrieve the entity-b linked with entity-a as one_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The one_to_one relation does not link to any entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-one_to_one"
+      summary: "Set the entity-b that is linked with entity-a as one_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as one_to_one"
+        "400":
+          description: "Multiple URIs are given, but one_to_one can only refer to\
+            \ one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ one_to_one"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-one_to_one"
+      summary: "Removes the link to entity-b from one_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from one_to_one"
+        "400":
+          description: "You can not remove the one_to_one link, because it is marked\
+            \ as required"
+        "409":
+          description: "You can not remove the one_to_one link, because the inverse\
+            \ relation is marked as required"
+  /entity-as/{id}/many-to-one:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_one"
+      summary: "Retrieve the entity-b linked with entity-a as many_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The many_to_one relation does not link to any entity-b"
+    put:
+      tags:
+      - "entity-a"
+      operationId: "update-entity-a-many_to_one"
+      summary: "Set the entity-b that is linked with entity-a as many_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-b URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-b is linked with entity-a as many_to_one"
+        "400":
+          description: "Multiple URIs are given, but many_to_one can only refer to\
+            \ one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b is already linked with a different entity-a as\
+            \ many_to_one"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_one"
+      summary: "Removes the link to entity-b from many_to_one"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from many_to_one"
+        "400":
+          description: "You can not remove the many_to_one link, because it is marked\
+            \ as required"
+        "409":
+          description: "You can not remove the many_to_one link, because the inverse\
+            \ relation is marked as required"
+  /entity-as/{id}/many-to-many:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_many"
+      summary: "Retrieve the entity-b list linked with entity-a as many_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bCollection"
+    post:
+      tags:
+      - "entity-a"
+      operationId: "add-entity-a-many_to_many"
+      summary: "Add links to entity-b list that is linked with entity-a as many_to_many,\
+        \ in addition to existing entity-b list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-b URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-bs/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-b is linked with entity-a as many_to_many"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as many_to_many"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_many"
+      summary: "Removes all links to entity-b from many_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-b have been removed from many_to_many"
+        "409":
+          description: "You can not remove the many_to_many link, because the inverse\
+            \ relation is marked as required"
+  /entity-as/{id}/many-to-many/{itemId}:
+    get:
+      tags:
+      - "entity-a"
+      operationId: "get-entity-a-many_to_many-item"
+      summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
+        \ as many_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "404":
+          description: "The many_to_many relation does not link to the entity-b identified\
+            \ by 'itemId'"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete-entity-a-many_to_many-item"
+      summary: "Removes the link to entity-b identified by 'itemId' from many_to_many"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-b has been removed from many_to_many"
+        "409":
+          description: "You can not remove the many_to_many link, because the inverse\
+            \ relation is marked as required"
+  /entity-bs:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-bs"
+      summary: "Retrieve entity-b list"
+      parameters:
+      - name: "created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_one_inverse.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "many_to_many_inverse.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_many_inverse.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.created_at"
+        in: "query"
+        description: "Tracks when the item was created."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.created_at~before"
+        in: "query"
+        description: "Before created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.created_at~after"
+        in: "query"
+        description: "After created_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.last_modified_at"
+        in: "query"
+        description: "Tracks when the item was last modified."
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.last_modified_at~before"
+        in: "query"
+        description: "Before last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "one_to_one_inverse.last_modified_at~after"
+        in: "query"
+        description: "After last_modified_at"
+        required: false
+        schema:
+          type: "string"
+          format: "date-time"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        required: false
+        schema:
+          type: "string"
+          example: "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        required: false
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        required: false
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "created_at,asc"
+            - "created_at,desc"
+            - "last_modified_at,asc"
+            - "last_modified_at,desc"
+            example: "created_at,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bCollection"
+    post:
+      tags:
+      - "entity-b"
+      operationId: "create-entity-b"
+      summary: "Create a new entity-b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-bPostBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/entity-bPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The entity-b has been created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "The entity-b can not be created due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b can not be created due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /entity-bs/{id}:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b"
+      summary: "Retrieve the entity-b"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+    put:
+      tags:
+      - "entity-b"
+      operationId: "update-entity-b"
+      summary: "Update all attributes of the entity-b"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-bPutBody"
+      responses:
+        "200":
+          description: "The entity-b has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "The entity-b can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    patch:
+      tags:
+      - "entity-b"
+      operationId: "patch-entity-b"
+      summary: "Update some attributes of the entity-b"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity-bPatchBody"
+      responses:
+        "200":
+          description: "The entity-b has been updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "The entity-b can not be updated due to a problem with the\
+            \ submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-b can not be updated due to a unique attribute\
+            \ already existing with that value"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b"
+      summary: "Delete the entity-b"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The entity-b has been deleted"
+        "409":
+          description: "The entity-b can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+  /entity-bs/{id}/many-to-one-inverse:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-many_to_one_inverse"
+      summary: "Retrieve the entity-a linked with entity-b as many_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "404":
+          description: "The many_to_one_inverse relation does not link to any entity-a"
+    put:
+      tags:
+      - "entity-b"
+      operationId: "update-entity-b-many_to_one_inverse"
+      summary: "Set the entity-a that is linked with entity-b as many_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-a URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-as/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-a is linked with entity-b as many_to_one_inverse"
+        "400":
+          description: "Multiple URIs are given, but many_to_one_inverse can only\
+            \ refer to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-a is already linked with a different entity-b as\
+            \ many_to_one_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-many_to_one_inverse"
+      summary: "Removes the link to entity-a from many_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-a has been removed from many_to_one_inverse"
+        "400":
+          description: "You can not remove the many_to_one_inverse link, because it\
+            \ is marked as required"
+        "409":
+          description: "You can not remove the many_to_one_inverse link, because the\
+            \ inverse relation is marked as required"
+  /entity-bs/{id}/many-to-many-inverse:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-many_to_many_inverse"
+      summary: "Retrieve the entity-a list linked with entity-b as many_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aCollection"
+    post:
+      tags:
+      - "entity-b"
+      operationId: "add-entity-b-many_to_many_inverse"
+      summary: "Add links to entity-a list that is linked with entity-b as many_to_many_inverse,\
+        \ in addition to existing entity-a list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-a URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-as/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-a is linked with entity-b as many_to_many_inverse"
+        "409":
+          description: "The URI list contains some entity-a that is already linked\
+            \ with a different entity-b as many_to_many_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-many_to_many_inverse"
+      summary: "Removes all links to entity-a from many_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-a have been removed from many_to_many_inverse"
+        "409":
+          description: "You can not remove the many_to_many_inverse link, because\
+            \ the inverse relation is marked as required"
+  /entity-bs/{id}/many-to-many-inverse/{itemId}:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-many_to_many_inverse-item"
+      summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
+        \ as many_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "404":
+          description: "The many_to_many_inverse relation does not link to the entity-a\
+            \ identified by 'itemId'"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-many_to_many_inverse-item"
+      summary: "Removes the link to entity-a identified by 'itemId' from many_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-a has been removed from many_to_many_inverse"
+        "409":
+          description: "You can not remove the many_to_many_inverse link, because\
+            \ the inverse relation is marked as required"
+  /entity-bs/{id}/one-to-many-inverse:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-one_to_many_inverse"
+      summary: "Retrieve the entity-a list linked with entity-b as one_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aCollection"
+    post:
+      tags:
+      - "entity-b"
+      operationId: "add-entity-b-one_to_many_inverse"
+      summary: "Add links to entity-a list that is linked with entity-b as one_to_many_inverse,\
+        \ in addition to existing entity-a list"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "Newline separated list of entity-a URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-as/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of entity-a is linked with entity-b as one_to_many_inverse"
+        "409":
+          description: "The URI list contains some entity-a that is already linked\
+            \ with a different entity-b as one_to_many_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-one_to_many_inverse"
+      summary: "Removes all links to entity-a from one_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "All links to entity-a have been removed from one_to_many_inverse"
+        "409":
+          description: "You can not remove the one_to_many_inverse link, because the\
+            \ inverse relation is marked as required"
+  /entity-bs/{id}/one-to-many-inverse/{itemId}:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-one_to_many_inverse-item"
+      summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
+        \ as one_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "404":
+          description: "The one_to_many_inverse relation does not link to the entity-a\
+            \ identified by 'itemId'"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-one_to_many_inverse-item"
+      summary: "Removes the link to entity-a identified by 'itemId' from one_to_many_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "itemId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-a has been removed from one_to_many_inverse"
+        "409":
+          description: "You can not remove the one_to_many_inverse link, because the\
+            \ inverse relation is marked as required"
+  /entity-bs/{id}/one-to-one-inverse:
+    get:
+      tags:
+      - "entity-b"
+      operationId: "get-entity-b-one_to_one_inverse"
+      summary: "Retrieve the entity-a linked with entity-b as one_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/entity-aResponse"
+        "404":
+          description: "The one_to_one_inverse relation does not link to any entity-a"
+    put:
+      tags:
+      - "entity-b"
+      operationId: "update-entity-b-one_to_one_inverse"
+      summary: "Set the entity-a that is linked with entity-b as one_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "One entity-a URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              example: "/entity-as/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The entity-a is linked with entity-b as one_to_one_inverse"
+        "400":
+          description: "Multiple URIs are given, but one_to_one_inverse can only refer\
+            \ to one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+        "409":
+          description: "The entity-a is already linked with a different entity-b as\
+            \ one_to_one_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetailDiscriminator"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete-entity-b-one_to_one_inverse"
+      summary: "Removes the link to entity-a from one_to_one_inverse"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The link to entity-a has been removed from one_to_one_inverse"
+        "400":
+          description: "You can not remove the one_to_one_inverse link, because it\
+            \ is marked as required"
+        "409":
+          description: "You can not remove the one_to_one_inverse link, because the\
+            \ inverse relation is marked as required"
+  /sample-entities/{id}/content-attribute:
+    get:
+      tags:
+      - "sample-entity"
+      operationId: "get-sample-entity-content_attribute"
+      summary: "Retrieve the content_attribute file stored with sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "404":
+          description: "No content_attribute file is stored with sample-entity"
+    put:
+      tags:
+      - "sample-entity"
+      operationId: "put-sample-entity-content_attribute"
+      summary: "Add or update the content_attribute file stored with sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    post:
+      tags:
+      - "sample-entity"
+      operationId: "post-sample-entity-content_attribute"
+      summary: "Add or update the content_attribute file stored with sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+    delete:
+      tags:
+      - "sample-entity"
+      operationId: "delete-sample-entity-content_attribute"
+      summary: "Delete the content_attribute file stored with sample-entity"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "The file has been deleted"
+components:
+  schemas:
+    Link:
+      type: "object"
+      properties:
+        href:
+          type: "string"
+      required:
+      - "href"
+    problemDetail:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        title:
+          type: "string"
+        status:
+          type: "integer"
+        detail:
+          type: "string"
+        instance:
+          type: "string"
+    problemDetailWithProperty:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          property:
+            type: "string"
+        required:
+        - "property"
+    problemDetailWithErrors:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          errors:
+            type: "array"
+            items:
+              oneOf:
+              - $ref: "#/components/schemas/problemDetail"
+              - $ref: "#/components/schemas/problemDetailWithProperty"
+        required:
+        - "errors"
+    problemDetailDiscriminator:
+      oneOf:
+      - $ref: "#/components/schemas/problemDetailWithErrors"
+      - $ref: "#/components/schemas/problemDetail"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetailWithErrors"
+          https://contentgrid.cloud/problems/input/duplicate-value: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/integrity/constraint-violation: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/type: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
+    page:
+      type: "object"
+      title: "Page metadata"
+      properties:
+        size:
+          type: "integer"
+          description: "Number of items shown on a single page"
+        total_items_estimate:
+          type: "integer"
+          description: "Estimated total number of items across all pages"
+        total_items_exact:
+          type: "integer"
+          description: "Exact total number of items across all pages (may be null\
+            \ if no exact number could be calculated)"
+          nullable: true
+        next_cursor:
+          type: "string"
+          description: "Cursor to access the next page of results (absent if there\
+            \ is no next page)"
+          example: "0msa4pz0"
+        prev_cursor:
+          type: "string"
+          description: "Cursor to access the previous page of results (absent if there\
+            \ is no previous page)"
+          example: "1mlpulv1"
+      required:
+      - "size"
+      - "total_items_estimate"
+      - "total_items_exact"
+    sample-entityResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        created_by:
+          type: "string"
+          nullable: true
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_by:
+          type: "string"
+          nullable: true
+        string_attribute:
+          type: "string"
+          nullable: true
+        integer_attribute:
+          type: "integer"
+          nullable: true
+          format: "int64"
+        decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        boolean_attribute:
+          type: "boolean"
+          nullable: true
+        date_attribute:
+          type: "string"
+          nullable: true
+          format: "date"
+        datetime_attribute:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        content_attribute:
+          $ref: "#/components/schemas/ContentInfo"
+        unique_string_attribute:
+          type: "string"
+          nullable: true
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+        exact_search_decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        prefix_search_string_attribute:
+          type: "string"
+          nullable: true
+        allowed_values_string_attribute:
+          type: "string"
+          nullable: true
+          enum:
+          - null
+          - "Option1"
+          - "Option2"
+          example: "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          nullable: true
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "created_at"
+      - "created_by"
+      - "last_modified_at"
+      - "last_modified_by"
+      - "string_attribute"
+      - "integer_attribute"
+      - "decimal_attribute"
+      - "boolean_attribute"
+      - "date_attribute"
+      - "datetime_attribute"
+      - "content_attribute"
+      - "unique_string_attribute"
+      - "required_integer_attribute"
+      - "exact_search_decimal_attribute"
+      - "prefix_search_string_attribute"
+      - "allowed_values_string_attribute"
+      - "full_text_search_string_attribute"
+      - "_links"
+    entity-aResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        created_by:
+          type: "string"
+          nullable: true
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_by:
+          type: "string"
+          nullable: true
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "created_at"
+      - "created_by"
+      - "last_modified_at"
+      - "last_modified_by"
+      - "_links"
+    entity-bResponse:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        created_by:
+          type: "string"
+          nullable: true
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_by:
+          type: "string"
+          nullable: true
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "created_at"
+      - "created_by"
+      - "last_modified_at"
+      - "last_modified_by"
+      - "_links"
+    sample-entityCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/sample-entityResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    entity-aCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/entity-aResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    entity-bCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/entity-bResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    sample-entityPostBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        string_attribute:
+          type: "string"
+          nullable: true
+        integer_attribute:
+          type: "integer"
+          nullable: true
+          format: "int64"
+        decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        boolean_attribute:
+          type: "boolean"
+          nullable: true
+        date_attribute:
+          type: "string"
+          nullable: true
+          format: "date"
+        datetime_attribute:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        unique_string_attribute:
+          type: "string"
+          nullable: true
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+        exact_search_decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        prefix_search_string_attribute:
+          type: "string"
+          nullable: true
+        allowed_values_string_attribute:
+          type: "string"
+          nullable: true
+          enum:
+          - null
+          - "Option1"
+          - "Option2"
+          example: "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          nullable: true
+      required:
+      - "required_integer_attribute"
+    sample-entityPostMultipartFormDataBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        string_attribute:
+          type: "string"
+          nullable: true
+        integer_attribute:
+          type: "integer"
+          nullable: true
+          format: "int64"
+        decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        boolean_attribute:
+          type: "boolean"
+          nullable: true
+        date_attribute:
+          type: "string"
+          nullable: true
+          format: "date"
+        datetime_attribute:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        content_attribute:
+          type: "string"
+          format: "binary"
+        unique_string_attribute:
+          type: "string"
+          nullable: true
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+        exact_search_decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        prefix_search_string_attribute:
+          type: "string"
+          nullable: true
+        allowed_values_string_attribute:
+          type: "string"
+          nullable: true
+          enum:
+          - null
+          - "Option1"
+          - "Option2"
+          example: "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          nullable: true
+      required:
+      - "required_integer_attribute"
+    sample-entityPutBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        string_attribute:
+          type: "string"
+          nullable: true
+        integer_attribute:
+          type: "integer"
+          nullable: true
+          format: "int64"
+        decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        boolean_attribute:
+          type: "boolean"
+          nullable: true
+        date_attribute:
+          type: "string"
+          nullable: true
+          format: "date"
+        datetime_attribute:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        content_attribute:
+          $ref: "#/components/schemas/ContentInfoPUT"
+        unique_string_attribute:
+          type: "string"
+          nullable: true
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+        exact_search_decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        prefix_search_string_attribute:
+          type: "string"
+          nullable: true
+        allowed_values_string_attribute:
+          type: "string"
+          nullable: true
+          enum:
+          - null
+          - "Option1"
+          - "Option2"
+          example: "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          nullable: true
+      required:
+      - "required_integer_attribute"
+    sample-entityPatchBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        string_attribute:
+          type: "string"
+          nullable: true
+        integer_attribute:
+          type: "integer"
+          nullable: true
+          format: "int64"
+        decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        boolean_attribute:
+          type: "boolean"
+          nullable: true
+        date_attribute:
+          type: "string"
+          nullable: true
+          format: "date"
+        datetime_attribute:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        content_attribute:
+          $ref: "#/components/schemas/ContentInfoPATCH"
+        unique_string_attribute:
+          type: "string"
+          nullable: true
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+        exact_search_decimal_attribute:
+          type: "number"
+          nullable: true
+          format: "double"
+        prefix_search_string_attribute:
+          type: "string"
+          nullable: true
+        allowed_values_string_attribute:
+          type: "string"
+          nullable: true
+          enum:
+          - null
+          - "Option1"
+          - "Option2"
+          example: "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          nullable: true
+    entity-aPostBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        one_to_one_required:
+          type: "string"
+        many_to_one_required:
+          type: "string"
+        one_to_one_bidirectional:
+          type: "string"
+          nullable: true
+        many_to_one_bidirectional:
+          type: "string"
+          nullable: true
+        one_to_one:
+          type: "string"
+          nullable: true
+        many_to_one:
+          type: "string"
+          nullable: true
+      required:
+      - "one_to_one_required"
+      - "many_to_one_required"
+    entity-aPostMultipartFormDataBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        one_to_one_required:
+          type: "string"
+        many_to_one_required:
+          type: "string"
+        one_to_one_bidirectional:
+          type: "string"
+          nullable: true
+        many_to_one_bidirectional:
+          type: "string"
+          nullable: true
+        one_to_one:
+          type: "string"
+          nullable: true
+        many_to_one:
+          type: "string"
+          nullable: true
+      required:
+      - "one_to_one_required"
+      - "many_to_one_required"
+    entity-aPutBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+    entity-aPatchBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+    entity-bPostBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        many_to_one_inverse:
+          type: "string"
+          nullable: true
+        one_to_one_inverse:
+          type: "string"
+          nullable: true
+    entity-bPostMultipartFormDataBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        many_to_one_inverse:
+          type: "string"
+          nullable: true
+        one_to_one_inverse:
+          type: "string"
+          nullable: true
+    entity-bPutBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+    entity-bPatchBody:
+      type: "object"
+      properties:
+        created_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+        last_modified_at:
+          type: "string"
+          nullable: true
+          format: "date-time"
+    ContentInfo:
+      type: "object"
+      nullable: true
+      properties:
+        length:
+          type: "integer"
+          format: "int64"
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
+      required:
+      - "length"
+      - "mimetype"
+      - "filename"
+    ContentInfoPUT:
+      type: "object"
+      properties:
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
+      required:
+      - "mimetype"
+    ContentInfoPATCH:
+      type: "object"
+      properties:
+        mimetype:
+          type: "string"
+          example: "application/pdf"
+        filename:
+          type: "string"
+          nullable: true
+          example: "example.pdf"
