@@ -9,6 +9,8 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiMediaTypes.MediaType;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation;
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiOperation.HttpStatusCode;
@@ -26,13 +28,12 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaBoolean;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaInteger;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNull;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaNumber;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaObject;
-import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaOneOf;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString.Format;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
@@ -53,11 +54,20 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class OpenApiSpecBuilderTest {
@@ -79,6 +89,13 @@ class OpenApiSpecBuilderTest {
         var op = ((OpenApiPathItem) item).getOperations().get(HttpMethod.valueOf(method.toUpperCase()));
         assertThat(op).as("%s %s should exist", method, path).isNotNull();
         return op;
+    }
+
+    private static List<OpenApiParameter> queryParameters(OpenApiOperation operation) {
+        return operation.getParameters().stream()
+                .map(OpenApiPotentialReference::getOriginalObject)
+                .filter(p -> p.getIn() == In.QUERY)
+                .toList();
     }
 
     @Test
@@ -579,5 +596,134 @@ class OpenApiSpecBuilderTest {
                         .containsKeys("content.mimetype", "content.filename");
             });
         });
+    }
+
+    private static AttributeSearchFilter exactFilter(String attributeName) {
+        return AttributeSearchFilter.builder()
+                .name(FilterName.of(attributeName))
+                .attributePath(PropertyPath.of(AttributeName.of(attributeName)))
+                .operation(Operation.EXACT)
+                .build();
+    }
+
+    @Test
+    void allowedValuesAttribute() {
+        var spec = OpenApiSpecBuilder.convert(Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(Entity.builder()
+                        .name(EntityName.of("party"))
+                        .pathSegment(PathSegmentName.of("parties"))
+                        .linkName(LinkName.of("parties"))
+                        .table(TableName.of("party"))
+                        .attribute(SimpleAttribute.builder()
+                                .name(AttributeName.of("name")).column(ColumnName.of("name"))
+                                .type(Type.TEXT).constraint(Constraint.required()).build())
+                        .attribute(SimpleAttribute.builder()
+                                .name(AttributeName.of("gender")).column(ColumnName.of("gender"))
+                                .type(Type.TEXT)
+                                .constraint(Constraint.allowedValues(List.of("female", "male")))
+                                .build())
+                        .searchFilter(exactFilter("name"))
+                        .searchFilter(exactFilter("gender"))
+                        .build())
+                .build());
+
+        var collectionParams = queryParameters(path(spec, "get", "/parties"));
+
+        assertThat(collectionParams).anySatisfy(collectionParam -> {
+            assertThat(collectionParam.getName()).isEqualTo("gender");
+            assertThat(collectionParam.getSchema()).isInstanceOfSatisfying(JsonSchemaEnum.class,
+                    schema -> assertThat(schema.getEnum()).containsExactly("female", "male"));
+        });
+
+        var plainSchemas = List.of("partyResponse", "partyPostBody", "partyPutBody",  "partyPatchBody");
+        var formSchemas = List.of("partyPostFormBody", "partyPostMultipartFormDataBody", "partyPutFormBody", "partyPatchFormBody");
+
+        assertThat(plainSchemas).allSatisfy(schema -> {
+            assertThat(spec.getComponents().getSchemas().getItem(schema))
+                    .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                        assertThat(object.getProperties()).containsKey("gender")
+                                .extracting("gender")
+                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")).orNull());
+                    });
+        });
+        assertThat(formSchemas).allSatisfy(schema -> {
+            assertThat(spec.getComponents().getSchemas().getItem(schema))
+                    .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
+                        assertThat(object.getProperties()).containsKey("gender")
+                                .extracting("gender")
+                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")));
+                        assertThat(object.getRequired()).doesNotContain("gender");
+                    });
+        });
+    }
+
+    @Test
+    void biDirectionalRelation() {
+        var spec = OpenApiSpecBuilder.convert(Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(Entity.builder()
+                        .name(EntityName.of("invoice"))
+                        .pathSegment(PathSegmentName.of("invoices"))
+                        .linkName(LinkName.of("invoices"))
+                        .table(TableName.of("invoice"))
+                        .build())
+                .entity(Entity.builder()
+                        .name(EntityName.of("supplier"))
+                        .pathSegment(PathSegmentName.of("suppliers"))
+                        .linkName(LinkName.of("suppliers"))
+                        .table(TableName.of("supplier"))
+                        .build())
+                .relation(ManyToOneRelation.builder()
+                        .sourceEndPoint(RelationEndPoint.builder()
+                                .entity(EntityName.of("invoice"))
+                                .name(RelationName.of("supplier"))
+                                .pathSegment(PathSegmentName.of("supplier"))
+                                .linkName(LinkName.of("supplier"))
+                                .build())
+                        .targetEndPoint(RelationEndPoint.builder()
+                                .entity(EntityName.of("supplier"))
+                                .name(RelationName.of("invoices"))
+                                .pathSegment(PathSegmentName.of("invoices"))
+                                .linkName(LinkName.of("invoices"))
+                                .build())
+                        .targetReference(ColumnName.of("supplier_id"))
+                        .build())
+                .build());
+
+        assertThat(path(spec, "get", "/invoices/{id}/supplier")).isNotNull();
+        assertThat(path(spec, "get", "/suppliers/{id}/invoices")).isNotNull();
+    }
+
+    private static final YAMLMapper YAML_MAPPER = new YAMLMapper()
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
+
+
+    public static Stream<ArgumentSet> fullSpec() throws IOException, URISyntaxException {
+        var base = Path.of(OpenApiSpecBuilderTest.class.getResource("specs").toURI());
+        try (var dirs = Files.list(base)) {
+            return dirs
+                    .filter(Files::isDirectory)
+                    .map(path -> Arguments.argumentSet(base.relativize(path).toString(), path))
+                    .toList()
+                    .stream();
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void fullSpec(Path basePath) throws InvalidJsonException, IOException {
+        Application application;
+        try (var appIs = new FileInputStream(basePath.resolve("application.json").toFile())) {
+            application = new DefaultApplicationSchemaConverter().convert(appIs);
+        }
+        var spec = OpenApiSpecBuilder.convert(application);
+        var yaml = YAML_MAPPER.writeValueAsString(spec);
+
+        String expectedOpenApi;
+        try (var is = new FileInputStream(basePath.resolve("openapi.yaml").toFile())) {
+            expectedOpenApi = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        assertThat(yaml).isEqualTo(expectedOpenApi);
     }
 }

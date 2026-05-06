@@ -1,0 +1,282 @@
+{
+  "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+  "applicationName": "DemoApplication",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "party",
+      "description": "An individual or organization",
+      "table": "party",
+      "pathSegment": "parties",
+      "linkName": "parties",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "vat",
+          "description": "Vat number",
+          "dataType": "text",
+          "columnName": "vat",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "name",
+          "description": "Name of the party",
+          "dataType": "text",
+          "columnName": "name",
+          "constraints": [
+            {
+              "type": "required"
+            }
+          ]
+        },
+        {
+          "type": "content",
+          "name": "summary",
+          "description": "Pdf file containing a summary of the party",
+          "pathSegment": "summary",
+          "linkName": "summary",
+          "idColumn": "summary_id",
+          "fileNameColumn": "summary_filename",
+          "mimeTypeColumn": "summary_mimetype",
+          "lengthColumn": "summary_length"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "name",
+          "attributePath": [
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Name of the party",
+          "type": "exact"
+        },
+        {
+          "name": "name~prefix",
+          "attributePath": [
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Starts with name",
+          "type": "prefix"
+        },
+        {
+          "name": "subsidiary.name",
+          "attributePath": [
+            {
+              "name": "subsidiary",
+              "type": "rel"
+            },
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Subsidiary: Name of the party",
+          "type": "exact"
+        },
+        {
+          "name": "subsidiary.name~prefix",
+          "attributePath": [
+            {
+              "name": "subsidiary",
+              "type": "rel"
+            },
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Subsidiary: Starts with name",
+          "type": "prefix"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "name",
+          "attributePath": [
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "insurance-case",
+      "description": "",
+      "table": "insurance_case",
+      "pathSegment": "insurance-cases",
+      "linkName": "insurance-cases",
+      "primaryKey": {
+        "type": "simple",
+        "name": "id",
+        "dataType": "uuid",
+        "columnName": "id",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "type": "simple",
+          "name": "_version",
+          "dataType": "long",
+          "columnName": "_version",
+          "flags": [
+            "eTag"
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "case_number",
+          "dataType": "long",
+          "columnName": "case_number",
+          "constraints": [
+            {
+              "type": "required"
+            },
+            {
+              "type": "unique"
+            }
+          ]
+        },
+        {
+          "type": "simple",
+          "name": "created",
+          "dataType": "datetime",
+          "columnName": "created"
+        },
+        {
+          "type": "content",
+          "name": "pdf",
+          "pathSegment": "pdf",
+          "linkName": "pdf",
+          "idColumn": "pdf_id",
+          "fileNameColumn": "pdf_filename",
+          "mimeTypeColumn": "pdf_mimetype",
+          "lengthColumn": "pdf_length"
+        },
+        {
+          "type": "content",
+          "name": "thumb_nail",
+          "pathSegment": "thumb-nail",
+          "linkName": "thumb_nail",
+          "idColumn": "thumb_nail_id",
+          "fileNameColumn": "thumb_nail_filename",
+          "mimeTypeColumn": "thumb_nail_mimetype",
+          "lengthColumn": "thumb_nail_length"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "owning_party.name",
+          "attributePath": [
+            {
+              "name": "owning_party",
+              "type": "rel"
+            },
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Owning party: Name of the party",
+          "type": "exact"
+        },
+        {
+          "name": "owning_party.name~prefix",
+          "attributePath": [
+            {
+              "name": "owning_party",
+              "type": "rel"
+            },
+            {
+              "name": "name",
+              "type": "attr"
+            }
+          ],
+          "description": "Owning party: Starts with name",
+          "type": "prefix"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "party",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "subsidiary",
+        "pathSegment": "subsidiary",
+        "entityName": "party",
+        "description": "Subsidiary of the party",
+        "linkName": "subsidiary"
+      },
+      "sourceReference": "subsidiary_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "party",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "owning_party",
+        "pathSegment": "owning-party",
+        "entityName": "insurance-case",
+        "linkName": "owning_party",
+        "flags": [
+          "required"
+        ]
+      },
+      "sourceReference": "owning_party_id"
+    },
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "name": "followups",
+        "pathSegment": "followups",
+        "entityName": "insurance-case",
+        "linkName": "followups"
+      },
+      "targetEndpoint": {
+        "name": "parent_case",
+        "entityName": "insurance-case",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "sourceReference": "parent_case_id"
+    }
+  ]
+}
