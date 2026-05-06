@@ -84,6 +84,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/partyPostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPostFormBody"
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/partyPostMultipartFormDataBody"
@@ -160,6 +163,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/partyPutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPutFormBody"
       responses:
         "204":
           description: "The party has been updated"
@@ -191,6 +197,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/partyPatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPatchFormBody"
       responses:
         "204":
           description: "The party has been updated"
@@ -488,6 +497,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/insurance-casePostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePostFormBody"
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/insurance-casePostMultipartFormDataBody"
@@ -564,6 +576,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/insurance-casePutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePutFormBody"
       responses:
         "204":
           description: "The insurance-case has been updated"
@@ -595,6 +610,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/insurance-casePatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePatchFormBody"
       responses:
         "204":
           description: "The insurance-case has been updated"
@@ -1358,8 +1376,30 @@ components:
       required:
       - "vat"
       - "name"
+    partyPostFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        subsidiary:
+          type: "string"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      required:
+      - "vat"
+      - "name"
     partyPostMultipartFormDataBody:
       type: "object"
+      title: "party"
+      description: "An individual or organization"
       properties:
         vat:
           type: "string"
@@ -1643,6 +1683,27 @@ components:
       required:
       - "vat"
       - "name"
+    partyPutFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary.filename:
+          type: "string"
+          title: "summary: Filename"
+        summary.mimetype:
+          type: "string"
+          title: "summary: Mimetype"
+          description: "Technical indicator of the type of the file"
+      required:
+      - "vat"
+      - "name"
     ContentInfoPATCH:
       type: "object"
       properties:
@@ -1670,6 +1731,24 @@ components:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPATCH"
           - type: "null"
+    partyPatchFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary.filename:
+          type: "string"
+          title: "summary: Filename"
+        summary.mimetype:
+          type: "string"
+          title: "summary: Mimetype"
+          description: "Technical indicator of the type of the file"
     problemDetail.not-found.base:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -1811,8 +1890,34 @@ components:
       required:
       - "case_number"
       - "owning_party"
+    insurance-casePostFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        owning_party:
+          type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+      required:
+      - "case_number"
+      - "owning_party"
     insurance-casePostMultipartFormDataBody:
       type: "object"
+      title: "insurance-case"
       properties:
         case_number:
           type: "integer"
@@ -1863,6 +1968,32 @@ components:
           - type: "null"
       required:
       - "case_number"
+    insurance-casePutFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        pdf.filename:
+          type: "string"
+          title: "pdf: Filename"
+        pdf.mimetype:
+          type: "string"
+          title: "pdf: Mimetype"
+          description: "Technical indicator of the type of the file"
+        thumb_nail.filename:
+          type: "string"
+          title: "thumb_nail: Filename"
+        thumb_nail.mimetype:
+          type: "string"
+          title: "thumb_nail: Mimetype"
+          description: "Technical indicator of the type of the file"
+      required:
+      - "case_number"
     insurance-casePatchBody:
       type: "object"
       title: "insurance-case"
@@ -1883,6 +2014,30 @@ components:
           oneOf:
           - $ref: "#/components/schemas/ContentInfoPATCH"
           - type: "null"
+    insurance-casePatchFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        pdf.filename:
+          type: "string"
+          title: "pdf: Filename"
+        pdf.mimetype:
+          type: "string"
+          title: "pdf: Mimetype"
+          description: "Technical indicator of the type of the file"
+        thumb_nail.filename:
+          type: "string"
+          title: "thumb_nail: Filename"
+        thumb_nail.mimetype:
+          type: "string"
+          title: "thumb_nail: Mimetype"
+          description: "Technical indicator of the type of the file"
   responses:
     preconditionFailed:
       description: "If-Match or If-None-Match precondition failed"
