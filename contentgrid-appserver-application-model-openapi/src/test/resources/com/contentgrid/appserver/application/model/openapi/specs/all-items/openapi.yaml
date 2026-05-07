@@ -3770,7 +3770,9 @@ components:
         required:
         - "status"
     ContentInfoPUT:
-      type: "object"
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
           type:
@@ -3849,7 +3851,9 @@ components:
       required:
       - "required_integer_attribute"
     ContentInfoPATCH:
-      type: "object"
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
           type:
