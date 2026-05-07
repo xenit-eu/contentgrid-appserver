@@ -219,6 +219,8 @@ paths:
       operationId: "update.sample-entity"
       summary: "Update all attributes of the sample-entity"
       requestBody:
+        description: "All attributes of the sample-entity have to be specified. Missing\
+          \ attributes are treated as null"
         required: true
         content:
           application/json:
@@ -899,6 +901,8 @@ paths:
       operationId: "update.entity-a"
       summary: "Update all attributes of the entity-a"
       requestBody:
+        description: "All attributes of the entity-a have to be specified. Missing\
+          \ attributes are treated as null"
         required: true
         content:
           application/json:
@@ -2533,6 +2537,8 @@ paths:
       operationId: "update.entity-b"
       summary: "Update all attributes of the entity-b"
       requestBody:
+        description: "All attributes of the entity-b have to be specified. Missing\
+          \ attributes are treated as null"
         required: true
         content:
           application/json:
