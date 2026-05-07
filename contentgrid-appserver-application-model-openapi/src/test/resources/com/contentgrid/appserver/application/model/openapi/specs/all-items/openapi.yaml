@@ -2312,12 +2312,14 @@ paths:
 components:
   schemas:
     ContentInfo:
-      type: "object"
-      nullable: true
+      type:
+      - "object"
+      - "null"
       properties:
         filename:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           examples:
           - "example.pdf"
         mimetype:
@@ -2344,68 +2346,82 @@ components:
         id:
           type: "string"
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         created_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         integer_attribute:
-          type: "integer"
-          nullable: true
+          type:
+          - "integer"
+          - "null"
           format: "int64"
         decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         boolean_attribute:
-          type: "boolean"
-          nullable: true
+          type:
+          - "boolean"
+          - "null"
         date_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date"
         datetime_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         content_attribute:
           $ref: "#/components/schemas/ContentInfo"
         unique_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         required_integer_attribute:
           type: "integer"
           format: "int64"
         exact_search_decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         prefix_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         allowed_values_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           enum:
-          - null
           - "Option1"
           - "Option2"
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         _links:
           type: "object"
           properties:
@@ -2530,131 +2546,156 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         integer_attribute:
-          type: "integer"
-          nullable: true
+          type:
+          - "integer"
+          - "null"
           format: "int64"
         decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         boolean_attribute:
-          type: "boolean"
-          nullable: true
+          type:
+          - "boolean"
+          - "null"
         date_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date"
         datetime_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         unique_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         required_integer_attribute:
           type: "integer"
           format: "int64"
         exact_search_decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         prefix_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         allowed_values_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           enum:
-          - null
           - "Option1"
           - "Option2"
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
       required:
       - "required_integer_attribute"
     sample-entityPostMultipartFormDataBody:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         integer_attribute:
-          type: "integer"
-          nullable: true
+          type:
+          - "integer"
+          - "null"
           format: "int64"
         decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         boolean_attribute:
-          type: "boolean"
-          nullable: true
+          type:
+          - "boolean"
+          - "null"
         date_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date"
         datetime_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         content_attribute:
           type: "string"
           format: "binary"
         unique_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         required_integer_attribute:
           type: "integer"
           format: "int64"
         exact_search_decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         prefix_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         allowed_values_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           enum:
-          - null
           - "Option1"
           - "Option2"
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
       required:
       - "required_integer_attribute"
     ContentInfoPUT:
       type: "object"
       properties:
         filename:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           examples:
           - "example.pdf"
         mimetype:
@@ -2667,70 +2708,83 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         integer_attribute:
-          type: "integer"
-          nullable: true
+          type:
+          - "integer"
+          - "null"
           format: "int64"
         decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         boolean_attribute:
-          type: "boolean"
-          nullable: true
+          type:
+          - "boolean"
+          - "null"
         date_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date"
         datetime_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         content_attribute:
           $ref: "#/components/schemas/ContentInfoPUT"
         unique_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         required_integer_attribute:
           type: "integer"
           format: "int64"
         exact_search_decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         prefix_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         allowed_values_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           enum:
-          - null
           - "Option1"
           - "Option2"
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
       required:
       - "required_integer_attribute"
     ContentInfoPATCH:
       type: "object"
       properties:
         filename:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           examples:
           - "example.pdf"
         mimetype:
@@ -2741,81 +2795,97 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         integer_attribute:
-          type: "integer"
-          nullable: true
+          type:
+          - "integer"
+          - "null"
           format: "int64"
         decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         boolean_attribute:
-          type: "boolean"
-          nullable: true
+          type:
+          - "boolean"
+          - "null"
         date_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date"
         datetime_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         content_attribute:
           $ref: "#/components/schemas/ContentInfoPATCH"
         unique_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         required_integer_attribute:
           type: "integer"
           format: "int64"
         exact_search_decimal_attribute:
-          type: "number"
-          nullable: true
+          type:
+          - "number"
+          - "null"
           format: "double"
         prefix_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         allowed_values_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           enum:
-          - null
           - "Option1"
           - "Option2"
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
     entity-aResponse:
       type: "object"
       properties:
         id:
           type: "string"
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         created_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         _links:
           type: "object"
           properties:
@@ -2848,29 +2918,35 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         one_to_one_required:
           type: "string"
         many_to_one_required:
           type: "string"
         one_to_one_bidirectional:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         many_to_one_bidirectional:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         one_to_one:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         many_to_one:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -2878,29 +2954,35 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         one_to_one_required:
           type: "string"
         many_to_one_required:
           type: "string"
         one_to_one_bidirectional:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         many_to_one_bidirectional:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         one_to_one:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         many_to_one:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -2908,23 +2990,27 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
     entity-aPatchBody:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
     entity-bResponse:
       type: "object"
@@ -2932,19 +3018,23 @@ components:
         id:
           type: "string"
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         created_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_by:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         _links:
           type: "object"
           properties:
@@ -2977,55 +3067,67 @@ components:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         many_to_one_inverse:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         one_to_one_inverse:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
     entity-bPostMultipartFormDataBody:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         many_to_one_inverse:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
         one_to_one_inverse:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
     entity-bPutBody:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
     entity-bPatchBody:
       type: "object"
       properties:
         created_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
         last_modified_at:
-          type: "string"
-          nullable: true
+          type:
+          - "string"
+          - "null"
           format: "date-time"
