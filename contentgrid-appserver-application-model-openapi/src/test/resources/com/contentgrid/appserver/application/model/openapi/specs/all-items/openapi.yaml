@@ -168,17 +168,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /sample-entities/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "sample-entity"
       operationId: "get.sample-entity"
       summary: "Retrieve the sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -191,12 +191,6 @@ paths:
       - "sample-entity"
       operationId: "update.sample-entity"
       summary: "Update all attributes of the sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         required: true
         content:
@@ -229,12 +223,6 @@ paths:
       - "sample-entity"
       operationId: "patch.sample-entity"
       summary: "Update some attributes of the sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -269,12 +257,6 @@ paths:
       - "sample-entity"
       operationId: "delete.sample-entity"
       summary: "Delete the sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The sample-entity has been deleted"
@@ -286,17 +268,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /sample-entities/{id}/content-attribute:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "sample-entity"
       operationId: "get.sample-entity.content_attribute"
       summary: "Retrieve the content_attribute file stored with sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -312,12 +294,6 @@ paths:
       - "sample-entity"
       operationId: "set.sample-entity.content_attribute"
       summary: "Add or update the content_attribute file stored with sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -334,12 +310,6 @@ paths:
       - "sample-entity"
       operationId: "post-sample-entity-content_attribute"
       summary: "Add or update the content_attribute file stored with sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "File data to store"
         required: true
@@ -356,12 +326,6 @@ paths:
       - "sample-entity"
       operationId: "delete.sample-entity.content_attribute"
       summary: "Delete the content_attribute file stored with sample-entity"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The file has been deleted"
@@ -837,17 +801,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /entity-as/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a"
       summary: "Retrieve the entity-a"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -860,12 +824,6 @@ paths:
       - "entity-a"
       operationId: "update.entity-a"
       summary: "Update all attributes of the entity-a"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         required: true
         content:
@@ -898,12 +856,6 @@ paths:
       - "entity-a"
       operationId: "patch.entity-a"
       summary: "Update some attributes of the entity-a"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -938,12 +890,6 @@ paths:
       - "entity-a"
       operationId: "delete.entity-a"
       summary: "Delete the entity-a"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The entity-a has been deleted"
@@ -955,17 +901,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /entity-as/{id}/one-to-many:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_many"
       summary: "Retrieve the entity-b list linked with entity-a as one_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -979,12 +925,6 @@ paths:
       operationId: "add.entity-a.one_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many,\
         \ in addition to existing entity-b list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
@@ -1009,12 +949,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.one_to_many"
       summary: "Removes all links to entity-b from one_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-b have been removed from one_to_many"
@@ -1022,23 +956,23 @@ paths:
           description: "You can not remove the one_to_many link, because the inverse\
             \ relation is marked as required"
   /entity-as/{id}/one-to-many/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_many.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as one_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1054,17 +988,6 @@ paths:
       - "entity-a"
       operationId: "delete.entity-a.one_to_many.item"
       summary: "Removes the link to entity-b identified by 'itemId' from one_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_many"
@@ -1072,17 +995,17 @@ paths:
           description: "You can not remove the one_to_many link, because the inverse\
             \ relation is marked as required"
   /entity-as/{id}/one-to-one-required:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_one_required"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1097,12 +1020,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.one_to_one_required"
       summary: "Set the entity-b that is linked with entity-a as one_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1134,12 +1051,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.one_to_one_required"
       summary: "Removes the link to entity-b from one_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_one_required"
@@ -1150,17 +1061,17 @@ paths:
           description: "You can not remove the one_to_one_required link, because the\
             \ inverse relation is marked as required"
   /entity-as/{id}/many-to-one-required:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_one_required"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1175,12 +1086,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.many_to_one_required"
       summary: "Set the entity-b that is linked with entity-a as many_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1212,12 +1117,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.many_to_one_required"
       summary: "Removes the link to entity-b from many_to_one_required"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_one_required"
@@ -1228,17 +1127,17 @@ paths:
           description: "You can not remove the many_to_one_required link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/one-to-many-bidirectional:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_many_bidirectional"
       summary: "Retrieve the entity-b list linked with entity-a as one_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1252,12 +1151,6 @@ paths:
       operationId: "add.entity-a.one_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many_bidirectional,\
         \ in addition to existing entity-b list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
@@ -1282,12 +1175,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.one_to_many_bidirectional"
       summary: "Removes all links to entity-b from one_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-b have been removed from one_to_many_bidirectional"
@@ -1295,23 +1182,23 @@ paths:
           description: "You can not remove the one_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/one-to-many-bidirectional/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_many_bidirectional.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as one_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1327,17 +1214,6 @@ paths:
       - "entity-a"
       operationId: "delete.entity-a.one_to_many_bidirectional.item"
       summary: "Removes the link to entity-b identified by 'itemId' from one_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_many_bidirectional"
@@ -1345,17 +1221,17 @@ paths:
           description: "You can not remove the one_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/many-to-many-bidirectional:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_many_bidirectional"
       summary: "Retrieve the entity-b list linked with entity-a as many_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1369,12 +1245,6 @@ paths:
       operationId: "add.entity-a.many_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many_bidirectional,\
         \ in addition to existing entity-b list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
@@ -1399,12 +1269,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.many_to_many_bidirectional"
       summary: "Removes all links to entity-b from many_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-b have been removed from many_to_many_bidirectional"
@@ -1412,23 +1276,23 @@ paths:
           description: "You can not remove the many_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/many-to-many-bidirectional/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_many_bidirectional.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as many_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1444,17 +1308,6 @@ paths:
       - "entity-a"
       operationId: "delete.entity-a.many_to_many_bidirectional.item"
       summary: "Removes the link to entity-b identified by 'itemId' from many_to_many_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_many_bidirectional"
@@ -1462,17 +1315,17 @@ paths:
           description: "You can not remove the many_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/one-to-one-bidirectional:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_one_bidirectional"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1488,12 +1341,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.one_to_one_bidirectional"
       summary: "Set the entity-b that is linked with entity-a as one_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1525,12 +1372,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.one_to_one_bidirectional"
       summary: "Removes the link to entity-b from one_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_one_bidirectional"
@@ -1541,17 +1382,17 @@ paths:
           description: "You can not remove the one_to_one_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/many-to-one-bidirectional:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_one_bidirectional"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1567,12 +1408,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.many_to_one_bidirectional"
       summary: "Set the entity-b that is linked with entity-a as many_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1604,12 +1439,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.many_to_one_bidirectional"
       summary: "Removes the link to entity-b from many_to_one_bidirectional"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_one_bidirectional"
@@ -1620,17 +1449,17 @@ paths:
           description: "You can not remove the many_to_one_bidirectional link, because\
             \ the inverse relation is marked as required"
   /entity-as/{id}/one-to-one:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.one_to_one"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1645,12 +1474,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.one_to_one"
       summary: "Set the entity-b that is linked with entity-a as one_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1682,12 +1505,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.one_to_one"
       summary: "Removes the link to entity-b from one_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_one"
@@ -1698,17 +1515,17 @@ paths:
           description: "You can not remove the one_to_one link, because the inverse\
             \ relation is marked as required"
   /entity-as/{id}/many-to-one:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_one"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1723,12 +1540,6 @@ paths:
       - "entity-a"
       operationId: "set.entity-a.many_to_one"
       summary: "Set the entity-b that is linked with entity-a as many_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-b URI"
         required: true
@@ -1760,12 +1571,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.many_to_one"
       summary: "Removes the link to entity-b from many_to_one"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_one"
@@ -1776,17 +1581,17 @@ paths:
           description: "You can not remove the many_to_one link, because the inverse\
             \ relation is marked as required"
   /entity-as/{id}/many-to-many:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_many"
       summary: "Retrieve the entity-b list linked with entity-a as many_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1800,12 +1605,6 @@ paths:
       operationId: "add.entity-a.many_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many,\
         \ in addition to existing entity-b list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
@@ -1830,12 +1629,6 @@ paths:
       - "entity-a"
       operationId: "clear.entity-a.many_to_many"
       summary: "Removes all links to entity-b from many_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-b have been removed from many_to_many"
@@ -1843,23 +1636,23 @@ paths:
           description: "You can not remove the many_to_many link, because the inverse\
             \ relation is marked as required"
   /entity-as/{id}/many-to-many/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-a"
       operationId: "get.entity-a.many_to_many.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as many_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -1875,17 +1668,6 @@ paths:
       - "entity-a"
       operationId: "delete.entity-a.many_to_many.item"
       summary: "Removes the link to entity-b identified by 'itemId' from many_to_many"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_many"
@@ -2148,17 +1930,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /entity-bs/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b"
       summary: "Retrieve the entity-b"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2171,12 +1953,6 @@ paths:
       - "entity-b"
       operationId: "update.entity-b"
       summary: "Update all attributes of the entity-b"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         required: true
         content:
@@ -2209,12 +1985,6 @@ paths:
       - "entity-b"
       operationId: "patch.entity-b"
       summary: "Update some attributes of the entity-b"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -2249,12 +2019,6 @@ paths:
       - "entity-b"
       operationId: "delete.entity-b"
       summary: "Delete the entity-b"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The entity-b has been deleted"
@@ -2266,17 +2030,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/problemDetailDiscriminator"
   /entity-bs/{id}/many-to-one-inverse:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.many_to_one_inverse"
       summary: "Retrieve the entity-a linked with entity-b as many_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2291,12 +2055,6 @@ paths:
       - "entity-b"
       operationId: "set.entity-b.many_to_one_inverse"
       summary: "Set the entity-a that is linked with entity-b as many_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-a URI"
         required: true
@@ -2328,12 +2086,6 @@ paths:
       - "entity-b"
       operationId: "clear.entity-b.many_to_one_inverse"
       summary: "Removes the link to entity-a from many_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-a has been removed from many_to_one_inverse"
@@ -2344,17 +2096,17 @@ paths:
           description: "You can not remove the many_to_one_inverse link, because the\
             \ inverse relation is marked as required"
   /entity-bs/{id}/many-to-many-inverse:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.many_to_many_inverse"
       summary: "Retrieve the entity-a list linked with entity-b as many_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2368,12 +2120,6 @@ paths:
       operationId: "add.entity-b.many_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as many_to_many_inverse,\
         \ in addition to existing entity-a list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-a URIs"
         required: true
@@ -2398,12 +2144,6 @@ paths:
       - "entity-b"
       operationId: "clear.entity-b.many_to_many_inverse"
       summary: "Removes all links to entity-a from many_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-a have been removed from many_to_many_inverse"
@@ -2411,23 +2151,23 @@ paths:
           description: "You can not remove the many_to_many_inverse link, because\
             \ the inverse relation is marked as required"
   /entity-bs/{id}/many-to-many-inverse/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.many_to_many_inverse.item"
       summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
         \ as many_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2443,17 +2183,6 @@ paths:
       - "entity-b"
       operationId: "delete.entity-b.many_to_many_inverse.item"
       summary: "Removes the link to entity-a identified by 'itemId' from many_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-a has been removed from many_to_many_inverse"
@@ -2461,17 +2190,17 @@ paths:
           description: "You can not remove the many_to_many_inverse link, because\
             \ the inverse relation is marked as required"
   /entity-bs/{id}/one-to-one-inverse:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.one_to_one_inverse"
       summary: "Retrieve the entity-a linked with entity-b as one_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2486,12 +2215,6 @@ paths:
       - "entity-b"
       operationId: "set.entity-b.one_to_one_inverse"
       summary: "Set the entity-a that is linked with entity-b as one_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "One entity-a URI"
         required: true
@@ -2523,12 +2246,6 @@ paths:
       - "entity-b"
       operationId: "clear.entity-b.one_to_one_inverse"
       summary: "Removes the link to entity-a from one_to_one_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-a has been removed from one_to_one_inverse"
@@ -2539,17 +2256,17 @@ paths:
           description: "You can not remove the one_to_one_inverse link, because the\
             \ inverse relation is marked as required"
   /entity-bs/{id}/one-to-many-inverse:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.one_to_many_inverse"
       summary: "Retrieve the entity-a list linked with entity-b as one_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2563,12 +2280,6 @@ paths:
       operationId: "add.entity-b.one_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as one_to_many_inverse,\
         \ in addition to existing entity-a list"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       requestBody:
         description: "Newline separated list of entity-a URIs"
         required: true
@@ -2593,12 +2304,6 @@ paths:
       - "entity-b"
       operationId: "clear.entity-b.one_to_many_inverse"
       summary: "Removes all links to entity-a from one_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "All links to entity-a have been removed from one_to_many_inverse"
@@ -2606,23 +2311,23 @@ paths:
           description: "You can not remove the one_to_many_inverse link, because the\
             \ inverse relation is marked as required"
   /entity-bs/{id}/one-to-many-inverse/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
     get:
       tags:
       - "entity-b"
       operationId: "get.entity-b.one_to_many_inverse.item"
       summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
         \ as one_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "200":
           description: "OK"
@@ -2638,17 +2343,6 @@ paths:
       - "entity-b"
       operationId: "delete.entity-b.one_to_many_inverse.item"
       summary: "Removes the link to entity-a identified by 'itemId' from one_to_many_inverse"
-      parameters:
-      - name: "id"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      - name: "itemId"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
       responses:
         "204":
           description: "The link to entity-a has been removed from one_to_many_inverse"
