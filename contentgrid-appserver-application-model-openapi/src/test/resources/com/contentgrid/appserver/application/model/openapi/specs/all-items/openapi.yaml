@@ -3176,6 +3176,7 @@ components:
       properties:
         href:
           type: "string"
+          format: "uri"
       required:
       - "href"
     sample-entityResponse:
@@ -3186,6 +3187,7 @@ components:
       properties:
         id:
           type: "string"
+          format: "uuid"
         created_at:
           type:
           - "string"
@@ -4124,6 +4126,7 @@ components:
       properties:
         id:
           type: "string"
+          format: "uuid"
         created_at:
           type:
           - "string"
@@ -4378,6 +4381,7 @@ components:
       properties:
         id:
           type: "string"
+          format: "uuid"
         created_at:
           type:
           - "string"
