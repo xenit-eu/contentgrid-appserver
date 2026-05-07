@@ -19,24 +19,28 @@ paths:
       parameters:
       - name: "name"
         in: "query"
-        description: "Name of the party"
+        description: "name"
         schema:
           type: "string"
+          description: "Name of the party"
       - name: "name~prefix"
         in: "query"
-        description: "Starts with name"
+        description: "name~prefix"
         schema:
           type: "string"
+          description: "Starts with name"
       - name: "subsidiary.name"
         in: "query"
-        description: "Subsidiary: Name of the party"
+        description: "subsidiary.name"
         schema:
           type: "string"
+          description: "Subsidiary: Name of the party"
       - name: "subsidiary.name~prefix"
         in: "query"
-        description: "Subsidiary: Starts with name"
+        description: "subsidiary.name~prefix"
         schema:
           type: "string"
+          description: "Subsidiary: Starts with name"
       - name: "_sort"
         in: "query"
         schema:
@@ -454,14 +458,16 @@ paths:
       parameters:
       - name: "owning_party.name"
         in: "query"
-        description: "Owning party: Name of the party"
+        description: "owning_party.name"
         schema:
           type: "string"
+          description: "Owning party: Name of the party"
       - name: "owning_party.name~prefix"
         in: "query"
-        description: "Owning party: Starts with name"
+        description: "owning_party.name~prefix"
         schema:
           type: "string"
+          description: "Owning party: Starts with name"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\

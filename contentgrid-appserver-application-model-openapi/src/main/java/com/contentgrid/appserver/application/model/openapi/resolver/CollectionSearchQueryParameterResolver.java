@@ -71,12 +71,10 @@ public class CollectionSearchQueryParameterResolver implements RequestParameterR
                         .stream()
                 .map(field -> {
                     var param = new OpenApiParameter(field.getKey(), In.QUERY);
-                    param.setDescription(field.getValue().getDescription());
+                    param.setDescription(field.getValue().getTitle());
                     param.setSchema(bodyValueMapper.apply(
                             field.getValue()
-                                    // Remove description, because it is already set on the param itself
-                                    .withDescription(null)
-                                    // Remove title, because it is the same as the param name
+                                    // Remove title, because it is already in the description field above
                                     .withTitle(null),
                             context
                     ));
