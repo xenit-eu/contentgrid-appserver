@@ -18,7 +18,7 @@ paths:
     get:
       tags:
       - "sample-entity"
-      operationId: "get-sample-entities"
+      operationId: "list.sample-entity"
       summary: "Retrieve sample-entity list"
       parameters:
       - name: "created_at"
@@ -149,7 +149,7 @@ paths:
     post:
       tags:
       - "sample-entity"
-      operationId: "create-sample-entity"
+      operationId: "create.sample-entity"
       summary: "Create a new sample-entity"
       requestBody:
         required: true
@@ -185,7 +185,7 @@ paths:
     get:
       tags:
       - "sample-entity"
-      operationId: "get-sample-entity"
+      operationId: "get.sample-entity"
       summary: "Retrieve the sample-entity"
       parameters:
       - name: "id"
@@ -203,7 +203,7 @@ paths:
     put:
       tags:
       - "sample-entity"
-      operationId: "update-sample-entity"
+      operationId: "update.sample-entity"
       summary: "Update all attributes of the sample-entity"
       parameters:
       - name: "id"
@@ -241,7 +241,7 @@ paths:
     patch:
       tags:
       - "sample-entity"
-      operationId: "patch-sample-entity"
+      operationId: "patch.sample-entity"
       summary: "Update some attributes of the sample-entity"
       parameters:
       - name: "id"
@@ -281,7 +281,7 @@ paths:
     delete:
       tags:
       - "sample-entity"
-      operationId: "delete-sample-entity"
+      operationId: "delete.sample-entity"
       summary: "Delete the sample-entity"
       parameters:
       - name: "id"
@@ -303,7 +303,7 @@ paths:
     get:
       tags:
       - "sample-entity"
-      operationId: "get-sample-entity-content_attribute"
+      operationId: "get.sample-entity.content_attribute"
       summary: "Retrieve the content_attribute file stored with sample-entity"
       parameters:
       - name: "id"
@@ -324,7 +324,7 @@ paths:
     put:
       tags:
       - "sample-entity"
-      operationId: "put-sample-entity-content_attribute"
+      operationId: "set.sample-entity.content_attribute"
       summary: "Add or update the content_attribute file stored with sample-entity"
       parameters:
       - name: "id"
@@ -368,7 +368,7 @@ paths:
     delete:
       tags:
       - "sample-entity"
-      operationId: "delete-sample-entity-content_attribute"
+      operationId: "delete.sample-entity.content_attribute"
       summary: "Delete the content_attribute file stored with sample-entity"
       parameters:
       - name: "id"
@@ -383,7 +383,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-as"
+      operationId: "list.entity-a"
       summary: "Retrieve entity-a list"
       parameters:
       - name: "created_at"
@@ -885,7 +885,7 @@ paths:
     post:
       tags:
       - "entity-a"
-      operationId: "create-entity-a"
+      operationId: "create.entity-a"
       summary: "Create a new entity-a"
       requestBody:
         required: true
@@ -921,7 +921,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a"
+      operationId: "get.entity-a"
       summary: "Retrieve the entity-a"
       parameters:
       - name: "id"
@@ -939,7 +939,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a"
+      operationId: "update.entity-a"
       summary: "Update all attributes of the entity-a"
       parameters:
       - name: "id"
@@ -977,7 +977,7 @@ paths:
     patch:
       tags:
       - "entity-a"
-      operationId: "patch-entity-a"
+      operationId: "patch.entity-a"
       summary: "Update some attributes of the entity-a"
       parameters:
       - name: "id"
@@ -1017,7 +1017,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a"
+      operationId: "delete.entity-a"
       summary: "Delete the entity-a"
       parameters:
       - name: "id"
@@ -1039,7 +1039,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_many"
+      operationId: "get.entity-a.one_to_many"
       summary: "Retrieve the entity-b list linked with entity-a as one_to_many"
       parameters:
       - name: "id"
@@ -1057,7 +1057,7 @@ paths:
     post:
       tags:
       - "entity-a"
-      operationId: "add-entity-a-one_to_many"
+      operationId: "add.entity-a.one_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many,\
         \ in addition to existing entity-b list"
       parameters:
@@ -1087,7 +1087,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_many"
+      operationId: "clear.entity-a.one_to_many"
       summary: "Removes all links to entity-b from one_to_many"
       parameters:
       - name: "id"
@@ -1105,7 +1105,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_many-item"
+      operationId: "get.entity-a.one_to_many.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as one_to_many"
       parameters:
@@ -1132,7 +1132,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_many-item"
+      operationId: "delete.entity-a.one_to_many.item"
       summary: "Removes the link to entity-b identified by 'itemId' from one_to_many"
       parameters:
       - name: "id"
@@ -1155,7 +1155,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_one_required"
+      operationId: "get.entity-a.one_to_one_required"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one_required"
       parameters:
       - name: "id"
@@ -1175,7 +1175,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-one_to_one_required"
+      operationId: "set.entity-a.one_to_one_required"
       summary: "Set the entity-b that is linked with entity-a as one_to_one_required"
       parameters:
       - name: "id"
@@ -1211,7 +1211,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_one_required"
+      operationId: "clear.entity-a.one_to_one_required"
       summary: "Removes the link to entity-b from one_to_one_required"
       parameters:
       - name: "id"
@@ -1232,7 +1232,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_one_required"
+      operationId: "get.entity-a.many_to_one_required"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one_required"
       parameters:
       - name: "id"
@@ -1252,7 +1252,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-many_to_one_required"
+      operationId: "set.entity-a.many_to_one_required"
       summary: "Set the entity-b that is linked with entity-a as many_to_one_required"
       parameters:
       - name: "id"
@@ -1288,7 +1288,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_one_required"
+      operationId: "clear.entity-a.many_to_one_required"
       summary: "Removes the link to entity-b from many_to_one_required"
       parameters:
       - name: "id"
@@ -1309,7 +1309,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_many_bidirectional"
+      operationId: "get.entity-a.one_to_many_bidirectional"
       summary: "Retrieve the entity-b list linked with entity-a as one_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1327,7 +1327,7 @@ paths:
     post:
       tags:
       - "entity-a"
-      operationId: "add-entity-a-one_to_many_bidirectional"
+      operationId: "add.entity-a.one_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many_bidirectional,\
         \ in addition to existing entity-b list"
       parameters:
@@ -1357,7 +1357,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_many_bidirectional"
+      operationId: "clear.entity-a.one_to_many_bidirectional"
       summary: "Removes all links to entity-b from one_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1375,7 +1375,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_many_bidirectional-item"
+      operationId: "get.entity-a.one_to_many_bidirectional.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as one_to_many_bidirectional"
       parameters:
@@ -1402,7 +1402,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_many_bidirectional-item"
+      operationId: "delete.entity-a.one_to_many_bidirectional.item"
       summary: "Removes the link to entity-b identified by 'itemId' from one_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1425,7 +1425,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_many_bidirectional"
+      operationId: "get.entity-a.many_to_many_bidirectional"
       summary: "Retrieve the entity-b list linked with entity-a as many_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1443,7 +1443,7 @@ paths:
     post:
       tags:
       - "entity-a"
-      operationId: "add-entity-a-many_to_many_bidirectional"
+      operationId: "add.entity-a.many_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many_bidirectional,\
         \ in addition to existing entity-b list"
       parameters:
@@ -1473,7 +1473,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_many_bidirectional"
+      operationId: "clear.entity-a.many_to_many_bidirectional"
       summary: "Removes all links to entity-b from many_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1491,7 +1491,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_many_bidirectional-item"
+      operationId: "get.entity-a.many_to_many_bidirectional.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as many_to_many_bidirectional"
       parameters:
@@ -1518,7 +1518,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_many_bidirectional-item"
+      operationId: "delete.entity-a.many_to_many_bidirectional.item"
       summary: "Removes the link to entity-b identified by 'itemId' from many_to_many_bidirectional"
       parameters:
       - name: "id"
@@ -1541,7 +1541,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_one_bidirectional"
+      operationId: "get.entity-a.one_to_one_bidirectional"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1562,7 +1562,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-one_to_one_bidirectional"
+      operationId: "set.entity-a.one_to_one_bidirectional"
       summary: "Set the entity-b that is linked with entity-a as one_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1598,7 +1598,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_one_bidirectional"
+      operationId: "clear.entity-a.one_to_one_bidirectional"
       summary: "Removes the link to entity-b from one_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1619,7 +1619,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_one_bidirectional"
+      operationId: "get.entity-a.many_to_one_bidirectional"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1640,7 +1640,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-many_to_one_bidirectional"
+      operationId: "set.entity-a.many_to_one_bidirectional"
       summary: "Set the entity-b that is linked with entity-a as many_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1676,7 +1676,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_one_bidirectional"
+      operationId: "clear.entity-a.many_to_one_bidirectional"
       summary: "Removes the link to entity-b from many_to_one_bidirectional"
       parameters:
       - name: "id"
@@ -1697,7 +1697,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-one_to_one"
+      operationId: "get.entity-a.one_to_one"
       summary: "Retrieve the entity-b linked with entity-a as one_to_one"
       parameters:
       - name: "id"
@@ -1717,7 +1717,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-one_to_one"
+      operationId: "set.entity-a.one_to_one"
       summary: "Set the entity-b that is linked with entity-a as one_to_one"
       parameters:
       - name: "id"
@@ -1753,7 +1753,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-one_to_one"
+      operationId: "clear.entity-a.one_to_one"
       summary: "Removes the link to entity-b from one_to_one"
       parameters:
       - name: "id"
@@ -1774,7 +1774,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_one"
+      operationId: "get.entity-a.many_to_one"
       summary: "Retrieve the entity-b linked with entity-a as many_to_one"
       parameters:
       - name: "id"
@@ -1794,7 +1794,7 @@ paths:
     put:
       tags:
       - "entity-a"
-      operationId: "update-entity-a-many_to_one"
+      operationId: "set.entity-a.many_to_one"
       summary: "Set the entity-b that is linked with entity-a as many_to_one"
       parameters:
       - name: "id"
@@ -1830,7 +1830,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_one"
+      operationId: "clear.entity-a.many_to_one"
       summary: "Removes the link to entity-b from many_to_one"
       parameters:
       - name: "id"
@@ -1851,7 +1851,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_many"
+      operationId: "get.entity-a.many_to_many"
       summary: "Retrieve the entity-b list linked with entity-a as many_to_many"
       parameters:
       - name: "id"
@@ -1869,7 +1869,7 @@ paths:
     post:
       tags:
       - "entity-a"
-      operationId: "add-entity-a-many_to_many"
+      operationId: "add.entity-a.many_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many,\
         \ in addition to existing entity-b list"
       parameters:
@@ -1899,7 +1899,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_many"
+      operationId: "clear.entity-a.many_to_many"
       summary: "Removes all links to entity-b from many_to_many"
       parameters:
       - name: "id"
@@ -1917,7 +1917,7 @@ paths:
     get:
       tags:
       - "entity-a"
-      operationId: "get-entity-a-many_to_many-item"
+      operationId: "get.entity-a.many_to_many.item"
       summary: "Retrieve the entity-b identified by 'itemId' linked with entity-a\
         \ as many_to_many"
       parameters:
@@ -1944,7 +1944,7 @@ paths:
     delete:
       tags:
       - "entity-a"
-      operationId: "delete-entity-a-many_to_many-item"
+      operationId: "delete.entity-a.many_to_many.item"
       summary: "Removes the link to entity-b identified by 'itemId' from many_to_many"
       parameters:
       - name: "id"
@@ -1967,7 +1967,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-bs"
+      operationId: "list.entity-b"
       summary: "Retrieve entity-b list"
       parameters:
       - name: "created_at"
@@ -2217,7 +2217,7 @@ paths:
     post:
       tags:
       - "entity-b"
-      operationId: "create-entity-b"
+      operationId: "create.entity-b"
       summary: "Create a new entity-b"
       requestBody:
         required: true
@@ -2253,7 +2253,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b"
+      operationId: "get.entity-b"
       summary: "Retrieve the entity-b"
       parameters:
       - name: "id"
@@ -2271,7 +2271,7 @@ paths:
     put:
       tags:
       - "entity-b"
-      operationId: "update-entity-b"
+      operationId: "update.entity-b"
       summary: "Update all attributes of the entity-b"
       parameters:
       - name: "id"
@@ -2309,7 +2309,7 @@ paths:
     patch:
       tags:
       - "entity-b"
-      operationId: "patch-entity-b"
+      operationId: "patch.entity-b"
       summary: "Update some attributes of the entity-b"
       parameters:
       - name: "id"
@@ -2349,7 +2349,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b"
+      operationId: "delete.entity-b"
       summary: "Delete the entity-b"
       parameters:
       - name: "id"
@@ -2371,7 +2371,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-many_to_one_inverse"
+      operationId: "get.entity-b.many_to_one_inverse"
       summary: "Retrieve the entity-a linked with entity-b as many_to_one_inverse"
       parameters:
       - name: "id"
@@ -2391,7 +2391,7 @@ paths:
     put:
       tags:
       - "entity-b"
-      operationId: "update-entity-b-many_to_one_inverse"
+      operationId: "set.entity-b.many_to_one_inverse"
       summary: "Set the entity-a that is linked with entity-b as many_to_one_inverse"
       parameters:
       - name: "id"
@@ -2427,7 +2427,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-many_to_one_inverse"
+      operationId: "clear.entity-b.many_to_one_inverse"
       summary: "Removes the link to entity-a from many_to_one_inverse"
       parameters:
       - name: "id"
@@ -2448,7 +2448,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-many_to_many_inverse"
+      operationId: "get.entity-b.many_to_many_inverse"
       summary: "Retrieve the entity-a list linked with entity-b as many_to_many_inverse"
       parameters:
       - name: "id"
@@ -2466,7 +2466,7 @@ paths:
     post:
       tags:
       - "entity-b"
-      operationId: "add-entity-b-many_to_many_inverse"
+      operationId: "add.entity-b.many_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as many_to_many_inverse,\
         \ in addition to existing entity-a list"
       parameters:
@@ -2496,7 +2496,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-many_to_many_inverse"
+      operationId: "clear.entity-b.many_to_many_inverse"
       summary: "Removes all links to entity-a from many_to_many_inverse"
       parameters:
       - name: "id"
@@ -2514,7 +2514,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-many_to_many_inverse-item"
+      operationId: "get.entity-b.many_to_many_inverse.item"
       summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
         \ as many_to_many_inverse"
       parameters:
@@ -2541,7 +2541,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-many_to_many_inverse-item"
+      operationId: "delete.entity-b.many_to_many_inverse.item"
       summary: "Removes the link to entity-a identified by 'itemId' from many_to_many_inverse"
       parameters:
       - name: "id"
@@ -2564,7 +2564,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-one_to_one_inverse"
+      operationId: "get.entity-b.one_to_one_inverse"
       summary: "Retrieve the entity-a linked with entity-b as one_to_one_inverse"
       parameters:
       - name: "id"
@@ -2584,7 +2584,7 @@ paths:
     put:
       tags:
       - "entity-b"
-      operationId: "update-entity-b-one_to_one_inverse"
+      operationId: "set.entity-b.one_to_one_inverse"
       summary: "Set the entity-a that is linked with entity-b as one_to_one_inverse"
       parameters:
       - name: "id"
@@ -2620,7 +2620,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-one_to_one_inverse"
+      operationId: "clear.entity-b.one_to_one_inverse"
       summary: "Removes the link to entity-a from one_to_one_inverse"
       parameters:
       - name: "id"
@@ -2641,7 +2641,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-one_to_many_inverse"
+      operationId: "get.entity-b.one_to_many_inverse"
       summary: "Retrieve the entity-a list linked with entity-b as one_to_many_inverse"
       parameters:
       - name: "id"
@@ -2659,7 +2659,7 @@ paths:
     post:
       tags:
       - "entity-b"
-      operationId: "add-entity-b-one_to_many_inverse"
+      operationId: "add.entity-b.one_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as one_to_many_inverse,\
         \ in addition to existing entity-a list"
       parameters:
@@ -2689,7 +2689,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-one_to_many_inverse"
+      operationId: "clear.entity-b.one_to_many_inverse"
       summary: "Removes all links to entity-a from one_to_many_inverse"
       parameters:
       - name: "id"
@@ -2707,7 +2707,7 @@ paths:
     get:
       tags:
       - "entity-b"
-      operationId: "get-entity-b-one_to_many_inverse-item"
+      operationId: "get.entity-b.one_to_many_inverse.item"
       summary: "Retrieve the entity-a identified by 'itemId' linked with entity-b\
         \ as one_to_many_inverse"
       parameters:
@@ -2734,7 +2734,7 @@ paths:
     delete:
       tags:
       - "entity-b"
-      operationId: "delete-entity-b-one_to_many_inverse-item"
+      operationId: "delete.entity-b.one_to_many_inverse.item"
       summary: "Removes the link to entity-a identified by 'itemId' from one_to_many_inverse"
       parameters:
       - name: "id"
