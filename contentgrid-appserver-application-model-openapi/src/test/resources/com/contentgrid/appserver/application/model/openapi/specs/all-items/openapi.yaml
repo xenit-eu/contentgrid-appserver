@@ -3598,42 +3598,30 @@ components:
         \ search filters, and constraints."
       properties:
         string_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           title: "String attribute"
           description: "A simple string attribute."
         integer_attribute:
-          type:
-          - "integer"
-          - "null"
+          type: "integer"
           format: "int64"
           title: "Integer attribute"
           description: "A long attribute for numerical values."
         decimal_attribute:
-          type:
-          - "number"
-          - "null"
+          type: "number"
           format: "double"
           title: "Decimal attribute"
           description: "A double attribute for precise numerical values."
         boolean_attribute:
-          type:
-          - "boolean"
-          - "null"
+          type: "boolean"
           title: "Boolean attribute"
           description: "A boolean attribute for true/false values."
         date_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "date"
           title: "Date attribute"
           description: "A date attribute for storing dates."
         datetime_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "date-time"
           title: "Datetime attribute"
           description: "A datetime attribute for storing date and time."
@@ -3643,9 +3631,7 @@ components:
           title: "Content attribute"
           description: "A content attribute for storing files/documents."
         unique_string_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           title: "Unique string attribute"
           description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
@@ -3654,22 +3640,16 @@ components:
           title: "Required integer attribute"
           description: "A long attribute that is required."
         exact_search_decimal_attribute:
-          type:
-          - "number"
-          - "null"
+          type: "number"
           format: "double"
           title: "Exact search decimal attribute"
           description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           title: "Prefix search string attribute"
           description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           title: "Allowed values string attribute"
           description: "A string attribute with allowed values constraint."
           enum:
@@ -3678,9 +3658,7 @@ components:
           examples:
           - "Option1"
         full_text_search_string_attribute:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           title: "Full text search string attribute"
           description: "A string attribute with prefix search enabled, simulating\
             \ full text search."
@@ -4280,36 +4258,28 @@ components:
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "One to one bidirectional"
           description: "A bidirectional one-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_bidirectional:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "Many to one bidirectional"
           description: "A bidirectional many-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "One to one"
           description: "A one-to-one relation between entity-a and entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "Many to one"
           description: "A many-to-one relation from entity-a to entity-b."
@@ -4423,17 +4393,13 @@ components:
         \ relations."
       properties:
         many_to_one_inverse:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "Many to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
-          type:
-          - "string"
-          - "null"
+          type: "string"
           format: "uri"
           title: "One to one inverse"
           examples:
