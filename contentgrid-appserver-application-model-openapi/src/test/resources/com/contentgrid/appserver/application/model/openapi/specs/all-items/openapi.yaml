@@ -198,12 +198,8 @@ paths:
             schema:
               $ref: "#/components/schemas/sample-entityPutBody"
       responses:
-        "200":
+        "204":
           description: "The sample-entity has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/sample-entityResponse"
         "400":
           description: "The sample-entity can not be updated due to a problem with\
             \ the submitted data"
@@ -232,12 +228,8 @@ paths:
             schema:
               $ref: "#/components/schemas/sample-entityPatchBody"
       responses:
-        "200":
+        "204":
           description: "The sample-entity has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/sample-entityResponse"
         "400":
           description: "The sample-entity can not be updated due to a problem with\
             \ the submitted data"
@@ -815,12 +807,8 @@ paths:
             schema:
               $ref: "#/components/schemas/entity-aPutBody"
       responses:
-        "200":
+        "204":
           description: "The entity-a has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/entity-aResponse"
         "400":
           description: "The entity-a can not be updated due to a problem with the\
             \ submitted data"
@@ -849,12 +837,8 @@ paths:
             schema:
               $ref: "#/components/schemas/entity-aPatchBody"
       responses:
-        "200":
+        "204":
           description: "The entity-a has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/entity-aResponse"
         "400":
           description: "The entity-a can not be updated due to a problem with the\
             \ submitted data"
@@ -1944,12 +1928,8 @@ paths:
             schema:
               $ref: "#/components/schemas/entity-bPutBody"
       responses:
-        "200":
+        "204":
           description: "The entity-b has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/entity-bResponse"
         "400":
           description: "The entity-b can not be updated due to a problem with the\
             \ submitted data"
@@ -1978,12 +1958,8 @@ paths:
             schema:
               $ref: "#/components/schemas/entity-bPatchBody"
       responses:
-        "200":
+        "204":
           description: "The entity-b has been updated"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/entity-bResponse"
         "400":
           description: "The entity-b can not be updated due to a problem with the\
             \ submitted data"
