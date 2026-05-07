@@ -24,95 +24,81 @@ paths:
       - name: "created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "exact_search_decimal_attribute"
         in: "query"
         description: "A double attribute with exact search enabled."
-        required: false
         schema:
           type: "number"
           format: "double"
       - name: "exact_search_decimal_attribute~gt"
         in: "query"
         description: "Greater than exact_search_decimal_attribute"
-        required: false
         schema:
           type: "number"
           format: "double"
       - name: "exact_search_decimal_attribute~gte"
         in: "query"
         description: "Greater than or equal to exact_search_decimal_attribute"
-        required: false
         schema:
           type: "number"
           format: "double"
       - name: "exact_search_decimal_attribute~lt"
         in: "query"
         description: "Less than exact_search_decimal_attribute"
-        required: false
         schema:
           type: "number"
           format: "double"
       - name: "exact_search_decimal_attribute~lte"
         in: "query"
         description: "Less than or equal to exact_search_decimal_attribute"
-        required: false
         schema:
           type: "number"
           format: "double"
       - name: "prefix_search_string_attribute~prefix"
         in: "query"
         description: "Starts with prefix_search_string_attribute"
-        required: false
         schema:
           type: "string"
       - name: "full_text_search_string_attribute~fts"
         in: "query"
         description: "Full text search full_text_search_string_attribute"
-        required: false
         schema:
           type: "string"
       - name: "_sort"
         in: "query"
-        required: false
         schema:
           type: "array"
           items:
@@ -129,14 +115,12 @@ paths:
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
           \ in the page metadata)"
-        required: false
         schema:
           type: "string"
           example: "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
-        required: false
         schema:
           type: "integer"
       responses:
@@ -389,468 +373,401 @@ paths:
       - name: "created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_required.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_required.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_bidirectional.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_bidirectional.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_bidirectional.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_bidirectional.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "_sort"
         in: "query"
-        required: false
         schema:
           type: "array"
           items:
@@ -865,14 +782,12 @@ paths:
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
           \ in the page metadata)"
-        required: false
         schema:
           type: "string"
           example: "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
-        required: false
         schema:
           type: "integer"
       responses:
@@ -1973,216 +1888,185 @@ paths:
       - name: "created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_one_inverse.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "many_to_many_inverse.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_many_inverse.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.created_at"
         in: "query"
         description: "Tracks when the item was created."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.created_at~after"
         in: "query"
         description: "After created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.created_at~before"
         in: "query"
         description: "Before created_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.last_modified_at"
         in: "query"
         description: "Tracks when the item was last modified."
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.last_modified_at~after"
         in: "query"
         description: "After last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "one_to_one_inverse.last_modified_at~before"
         in: "query"
         description: "Before last_modified_at"
-        required: false
         schema:
           type: "string"
           format: "date-time"
       - name: "_sort"
         in: "query"
-        required: false
         schema:
           type: "array"
           items:
@@ -2197,14 +2081,12 @@ paths:
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
           \ in the page metadata)"
-        required: false
         schema:
           type: "string"
           example: "1mlpulv1"
       - name: "_size"
         in: "query"
         description: "Page size"
-        required: false
         schema:
           type: "integer"
       responses:
