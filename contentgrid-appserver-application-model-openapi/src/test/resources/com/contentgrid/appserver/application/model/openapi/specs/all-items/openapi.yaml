@@ -149,6 +149,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/sample-entityPostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/sample-entityPostFormBody"
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/sample-entityPostMultipartFormDataBody"
@@ -226,6 +229,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/sample-entityPutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/sample-entityPutFormBody"
       responses:
         "204":
           description: "The sample-entity has been updated"
@@ -255,6 +261,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/sample-entityPatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/sample-entityPatchFormBody"
       responses:
         "204":
           description: "The sample-entity has been updated"
@@ -831,6 +840,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-aPostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-aPostFormBody"
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/entity-aPostMultipartFormDataBody"
@@ -908,6 +920,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-aPutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-aPutFormBody"
       responses:
         "204":
           description: "The entity-a has been updated"
@@ -937,6 +952,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-aPatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-aPatchFormBody"
       responses:
         "204":
           description: "The entity-a has been updated"
@@ -2467,6 +2485,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-bPostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-bPostFormBody"
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/entity-bPostMultipartFormDataBody"
@@ -2544,6 +2565,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-bPutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-bPutFormBody"
       responses:
         "204":
           description: "The entity-b has been updated"
@@ -2573,6 +2597,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/entity-bPatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/entity-bPatchFormBody"
       responses:
         "204":
           description: "The entity-b has been updated"
@@ -3593,6 +3620,74 @@ components:
             \ full text search."
       required:
       - "required_integer_attribute"
+    sample-entityPostFormBody:
+      type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
+      properties:
+        string_attribute:
+          type: "string"
+          title: "String attribute"
+          description: "A simple string attribute."
+        integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
+        decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
+        boolean_attribute:
+          type: "boolean"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
+        date_attribute:
+          type: "string"
+          format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
+        datetime_attribute:
+          type: "string"
+          format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
+        unique_string_attribute:
+          type: "string"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
+        exact_search_decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
+        prefix_search_string_attribute:
+          type: "string"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
+        allowed_values_string_attribute:
+          type: "string"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
+          enum:
+          - "Option1"
+          - "Option2"
+          examples:
+          - "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
+      required:
+      - "required_integer_attribute"
     sample-entityPostMultipartFormDataBody:
       type: "object"
       title: "Sample entity"
@@ -3966,6 +4061,81 @@ components:
             \ full text search."
       required:
       - "required_integer_attribute"
+    sample-entityPutFormBody:
+      type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
+      properties:
+        string_attribute:
+          type: "string"
+          title: "String attribute"
+          description: "A simple string attribute."
+        integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
+        decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
+        boolean_attribute:
+          type: "boolean"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
+        date_attribute:
+          type: "string"
+          format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
+        datetime_attribute:
+          type: "string"
+          format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
+        content_attribute.filename:
+          type: "string"
+          title: "Content attribute: Filename"
+        content_attribute.mimetype:
+          type: "string"
+          title: "Content attribute: Mimetype"
+          description: "Technical indicator of the type of the file"
+        unique_string_attribute:
+          type: "string"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
+        exact_search_decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
+        prefix_search_string_attribute:
+          type: "string"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
+        allowed_values_string_attribute:
+          type: "string"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
+          enum:
+          - "Option1"
+          - "Option2"
+          examples:
+          - "Option1"
+        full_text_search_string_attribute:
+          type: "string"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
+      required:
+      - "required_integer_attribute"
     ContentInfoPATCH:
       type:
       - "object"
@@ -4071,6 +4241,79 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
+    sample-entityPatchFormBody:
+      type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
+      properties:
+        string_attribute:
+          type: "string"
+          title: "String attribute"
+          description: "A simple string attribute."
+        integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
+        decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
+        boolean_attribute:
+          type: "boolean"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
+        date_attribute:
+          type: "string"
+          format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
+        datetime_attribute:
+          type: "string"
+          format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
+        content_attribute.filename:
+          type: "string"
+          title: "Content attribute: Filename"
+        content_attribute.mimetype:
+          type: "string"
+          title: "Content attribute: Mimetype"
+          description: "Technical indicator of the type of the file"
+        unique_string_attribute:
+          type: "string"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
+        required_integer_attribute:
+          type: "integer"
+          format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
+        exact_search_decimal_attribute:
+          type: "number"
+          format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
+        prefix_search_string_attribute:
+          type: "string"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
+        allowed_values_string_attribute:
+          type: "string"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
+          enum:
+          - "Option1"
+          - "Option2"
+          examples:
+          - "Option1"
+        full_text_search_string_attribute:
+          type: "string"
           title: "Full text search string attribute"
           description: "A string attribute with prefix search enabled, simulating\
             \ full text search."
@@ -4276,6 +4519,93 @@ components:
       required:
       - "one_to_one_required"
       - "many_to_one_required"
+    entity-aPostFormBody:
+      type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
+      properties:
+        one_to_many:
+          type: "array"
+          title: "One to many"
+          description: "A one-to-many relation from entity-a to entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_one_required:
+          type: "string"
+          format: "uri"
+          title: "One to one required"
+          description: "A one-to-one relation with a required side."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_one_required:
+          type: "string"
+          format: "uri"
+          title: "Many to one required"
+          description: "A many-to-one relation with a required side."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_many_bidirectional:
+          type: "array"
+          title: "One to many bidirectional"
+          description: "A bidirectional one-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many_bidirectional:
+          type: "array"
+          title: "Many to many bidirectional"
+          description: "A bidirectional many-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_one_bidirectional:
+          type: "string"
+          format: "uri"
+          title: "One to one bidirectional"
+          description: "A bidirectional one-to-one relation."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_one_bidirectional:
+          type: "string"
+          format: "uri"
+          title: "Many to one bidirectional"
+          description: "A bidirectional many-to-one relation."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_one:
+          type: "string"
+          format: "uri"
+          title: "One to one"
+          description: "A one-to-one relation between entity-a and entity-b."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_one:
+          type: "string"
+          format: "uri"
+          title: "Many to one"
+          description: "A many-to-one relation from entity-a to entity-b."
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many:
+          type: "array"
+          title: "Many to many"
+          description: "A many-to-many relation between entity-a and entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+      required:
+      - "one_to_one_required"
+      - "many_to_one_required"
     entity-aPostMultipartFormDataBody:
       type: "object"
       title: "Entity a"
@@ -4368,7 +4698,17 @@ components:
       title: "Entity a"
       description: "Represents the first entity for demonstrating various types of\
         \ relations."
+    entity-aPutFormBody:
+      type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
     entity-aPatchBody:
+      type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
+    entity-aPatchFormBody:
       type: "object"
       title: "Entity a"
       description: "Represents the first entity for demonstrating various types of\
@@ -4478,6 +4818,40 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+    entity-bPostFormBody:
+      type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
+      properties:
+        many_to_one_inverse:
+          type: "string"
+          format: "uri"
+          title: "Many to one inverse"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        many_to_many_inverse:
+          type: "array"
+          title: "Many to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        one_to_one_inverse:
+          type: "string"
+          format: "uri"
+          title: "One to one inverse"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        one_to_many_inverse:
+          type: "array"
+          title: "One to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPostMultipartFormDataBody:
       type: "object"
       title: "Entity b"
@@ -4517,7 +4891,17 @@ components:
       title: "Entity b"
       description: "Represents the second entity for demonstrating various types of\
         \ relations."
+    entity-bPutFormBody:
+      type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
     entity-bPatchBody:
+      type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
+    entity-bPatchFormBody:
       type: "object"
       title: "Entity b"
       description: "Represents the second entity for demonstrating various types of\
