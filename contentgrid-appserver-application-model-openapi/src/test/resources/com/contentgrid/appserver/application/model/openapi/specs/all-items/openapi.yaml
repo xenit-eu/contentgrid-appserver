@@ -4184,6 +4184,15 @@ components:
       description: "Represents the first entity for demonstrating various types of\
         \ relations."
       properties:
+        one_to_many:
+          type: "array"
+          title: "One to many"
+          description: "A one-to-many relation from entity-a to entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -4198,6 +4207,24 @@ components:
           description: "A many-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_many_bidirectional:
+          type: "array"
+          title: "One to many bidirectional"
+          description: "A bidirectional one-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many_bidirectional:
+          type: "array"
+          title: "Many to many bidirectional"
+          description: "A bidirectional many-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
           type:
           - "string"
@@ -4234,6 +4261,15 @@ components:
           description: "A many-to-one relation from entity-a to entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many:
+          type: "array"
+          title: "Many to many"
+          description: "A many-to-many relation between entity-a and entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -4243,6 +4279,15 @@ components:
       description: "Represents the first entity for demonstrating various types of\
         \ relations."
       properties:
+        one_to_many:
+          type: "array"
+          title: "One to many"
+          description: "A one-to-many relation from entity-a to entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -4257,6 +4302,24 @@ components:
           description: "A many-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        one_to_many_bidirectional:
+          type: "array"
+          title: "One to many bidirectional"
+          description: "A bidirectional one-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many_bidirectional:
+          type: "array"
+          title: "Many to many bidirectional"
+          description: "A bidirectional many-to-many relation."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
           type: "string"
           format: "uri"
@@ -4285,6 +4348,15 @@ components:
           description: "A many-to-one relation from entity-a to entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+        many_to_many:
+          type: "array"
+          title: "Many to many"
+          description: "A many-to-many relation between entity-a and entity-b."
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -4378,6 +4450,14 @@ components:
           title: "Many to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        many_to_many_inverse:
+          type: "array"
+          title: "Many to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
           type:
           - "string"
@@ -4386,6 +4466,14 @@ components:
           title: "One to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        one_to_many_inverse:
+          type: "array"
+          title: "One to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPostMultipartFormDataBody:
       type: "object"
       title: "Entity b"
@@ -4398,12 +4486,28 @@ components:
           title: "Many to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        many_to_many_inverse:
+          type: "array"
+          title: "Many to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
           type: "string"
           format: "uri"
           title: "One to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+        one_to_many_inverse:
+          type: "array"
+          title: "One to many inverse"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPutBody:
       type: "object"
       title: "Entity b"
