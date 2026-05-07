@@ -2545,16 +2545,6 @@ components:
     sample-entityPostBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         string_attribute:
           type:
           - "string"
@@ -2617,16 +2607,6 @@ components:
     sample-entityPostMultipartFormDataBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         string_attribute:
           type:
           - "string"
@@ -2707,16 +2687,6 @@ components:
     sample-entityPutBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         string_attribute:
           type:
           - "string"
@@ -2794,16 +2764,6 @@ components:
     sample-entityPatchBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         string_attribute:
           type:
           - "string"
@@ -2917,16 +2877,6 @@ components:
     entity-aPostBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         one_to_one_required:
           type: "string"
         many_to_one_required:
@@ -2953,16 +2903,6 @@ components:
     entity-aPostMultipartFormDataBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         one_to_one_required:
           type: "string"
         many_to_one_required:
@@ -2988,30 +2928,8 @@ components:
       - "many_to_one_required"
     entity-aPutBody:
       type: "object"
-      properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
     entity-aPatchBody:
       type: "object"
-      properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
     entity-bResponse:
       type: "object"
       properties:
@@ -3066,16 +2984,6 @@ components:
     entity-bPostBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         many_to_one_inverse:
           type:
           - "string"
@@ -3087,16 +2995,6 @@ components:
     entity-bPostMultipartFormDataBody:
       type: "object"
       properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
         many_to_one_inverse:
           type:
           - "string"
@@ -3107,27 +3005,5 @@ components:
           - "null"
     entity-bPutBody:
       type: "object"
-      properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
     entity-bPatchBody:
       type: "object"
-      properties:
-        created_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
-        last_modified_at:
-          type:
-          - "string"
-          - "null"
-          format: "date-time"
