@@ -3288,9 +3288,8 @@ components:
           description: "Estimated total number of items across all pages"
         total_items_exact:
           type: "integer"
-          description: "Exact total number of items across all pages (may be null\
+          description: "Exact total number of items across all pages (may be absent\
             \ if no exact number could be calculated)"
-          nullable: true
         next_cursor:
           type: "string"
           description: "Cursor to access the next page of results (absent if there\
@@ -3306,7 +3305,6 @@ components:
       required:
       - "size"
       - "total_items_estimate"
-      - "total_items_exact"
     sample-entityCollection:
       type: "object"
       properties:
