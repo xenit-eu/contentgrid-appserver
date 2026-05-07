@@ -305,22 +305,6 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
-    post:
-      tags:
-      - "sample-entity"
-      operationId: "post-sample-entity-content_attribute"
-      summary: "Add or update the content_attribute file stored with sample-entity"
-      requestBody:
-        description: "File data to store"
-        required: true
-        content:
-          '*/*':
-            schema:
-              type: "string"
-              format: "binary"
-      responses:
-        "204":
-          description: "The file is uploaded"
     delete:
       tags:
       - "sample-entity"
