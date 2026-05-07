@@ -132,6 +132,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/sample-entityCollection"
+        "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
     post:
       tags:
       - "sample-entity"
@@ -159,14 +165,14 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail"
         "409":
-          description: "The sample-entity can not be created due to a unique attribute\
-            \ already existing with that value"
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
   /sample-entities/{id}:
     parameters:
     - name: "id"
@@ -186,6 +192,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/sample-entityResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     put:
       tags:
       - "sample-entity"
@@ -206,14 +224,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The sample-entity can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     patch:
       tags:
       - "sample-entity"
@@ -236,14 +253,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The sample-entity can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     delete:
       tags:
       - "sample-entity"
@@ -252,13 +268,25 @@ paths:
       responses:
         "204":
           description: "The sample-entity has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The sample-entity can not be deleted because it is linked\
             \ via a required relation"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /sample-entities/{id}/content-attribute:
     parameters:
     - name: "id"
@@ -279,8 +307,18 @@ paths:
               schema:
                 type: "string"
                 format: "binary"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "No content_attribute file is stored with sample-entity"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     put:
       tags:
       - "sample-entity"
@@ -297,6 +335,18 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
+        "400":
+          description: "Bad request: Invalid header, Invalid body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     delete:
       tags:
       - "sample-entity"
@@ -305,6 +355,18 @@ paths:
       responses:
         "204":
           description: "The file has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
   /entity-as:
     get:
       tags:
@@ -741,6 +803,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aCollection"
+        "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
     post:
       tags:
       - "entity-a"
@@ -768,14 +836,14 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail"
         "409":
-          description: "The entity-a can not be created due to a unique attribute\
-            \ already existing with that value"
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
   /entity-as/{id}:
     parameters:
     - name: "id"
@@ -795,6 +863,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     put:
       tags:
       - "entity-a"
@@ -815,14 +895,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-a can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     patch:
       tags:
       - "entity-a"
@@ -845,14 +924,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-a can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     delete:
       tags:
       - "entity-a"
@@ -861,13 +939,25 @@ paths:
       responses:
         "204":
           description: "The entity-a has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The entity-a can not be deleted because it is linked via a\
             \ required relation"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-many:
     parameters:
     - name: "id"
@@ -887,6 +977,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-a"
@@ -905,13 +1007,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-b that is already linked\
             \ with a different entity-a as one_to_many"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -920,9 +1035,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-b have been removed from one_to_many"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the one_to_many link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-many/{itemId}:
     parameters:
     - name: "id"
@@ -948,9 +1079,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_many relation does not link to the entity-b identified\
             \ by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-a"
@@ -959,9 +1100,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_many"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The one_to_many relation does not link to the entity-b identified\
+            \ by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_many link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-one-required:
     parameters:
     - name: "id"
@@ -981,8 +1139,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_one_required relation does not link to any entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1006,14 +1174,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ one_to_one_required"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as one_to_one_required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1025,9 +1199,24 @@ paths:
         "400":
           description: "You can not remove the one_to_one_required link, because it\
             \ is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_one_required link, because the\
             \ inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-one-required:
     parameters:
     - name: "id"
@@ -1047,8 +1236,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_one_required relation does not link to any entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1072,14 +1271,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ many_to_one_required"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as many_to_one_required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1091,9 +1296,24 @@ paths:
         "400":
           description: "You can not remove the many_to_one_required link, because\
             \ it is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_one_required link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-many-bidirectional:
     parameters:
     - name: "id"
@@ -1113,6 +1333,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-a"
@@ -1131,13 +1363,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-b that is already linked\
             \ with a different entity-a as one_to_many_bidirectional"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1146,9 +1391,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-b have been removed from one_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the one_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-many-bidirectional/{itemId}:
     parameters:
     - name: "id"
@@ -1174,9 +1435,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_many_bidirectional relation does not link to the\
             \ entity-b identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-a"
@@ -1185,9 +1456,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-b has been removed from one_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The one_to_many_bidirectional relation does not link to the\
+            \ entity-b identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-many-bidirectional:
     parameters:
     - name: "id"
@@ -1207,6 +1495,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-a"
@@ -1225,13 +1525,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-b that is already linked\
             \ with a different entity-a as many_to_many_bidirectional"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1240,9 +1553,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-b have been removed from many_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the many_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-many-bidirectional/{itemId}:
     parameters:
     - name: "id"
@@ -1268,9 +1597,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_many_bidirectional relation does not link to the\
             \ entity-b identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-a"
@@ -1279,9 +1618,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_many_bidirectional"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The many_to_many_bidirectional relation does not link to the\
+            \ entity-b identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_many_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-one-bidirectional:
     parameters:
     - name: "id"
@@ -1301,9 +1657,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_one_bidirectional relation does not link to any\
             \ entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1327,14 +1693,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ one_to_one_bidirectional"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as one_to_one_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1346,9 +1718,24 @@ paths:
         "400":
           description: "You can not remove the one_to_one_bidirectional link, because\
             \ it is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_one_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-one-bidirectional:
     parameters:
     - name: "id"
@@ -1368,9 +1755,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_one_bidirectional relation does not link to any\
             \ entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1394,14 +1791,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ many_to_one_bidirectional"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as many_to_one_bidirectional"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1413,9 +1816,24 @@ paths:
         "400":
           description: "You can not remove the many_to_one_bidirectional link, because\
             \ it is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_one_bidirectional link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/one-to-one:
     parameters:
     - name: "id"
@@ -1435,8 +1853,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_one relation does not link to any entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1460,14 +1888,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ one_to_one"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as one_to_one"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1479,9 +1913,24 @@ paths:
         "400":
           description: "You can not remove the one_to_one link, because it is marked\
             \ as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_one link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-one:
     parameters:
     - name: "id"
@@ -1501,8 +1950,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_one relation does not link to any entity-b"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-a"
@@ -1526,14 +1985,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b is already linked with a different entity-a as\
-            \ many_to_one"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-b that is already linked\
+            \ with a different entity-a as many_to_one"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1545,9 +2010,24 @@ paths:
         "400":
           description: "You can not remove the many_to_one link, because it is marked\
             \ as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_one link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-many:
     parameters:
     - name: "id"
@@ -1567,6 +2047,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-a"
@@ -1585,13 +2077,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-b that is already linked\
             \ with a different entity-a as many_to_many"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-a"
@@ -1600,9 +2105,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-b have been removed from many_to_many"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the many_to_many link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-as/{id}/many-to-many/{itemId}:
     parameters:
     - name: "id"
@@ -1628,9 +2149,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_many relation does not link to the entity-b identified\
             \ by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-a"
@@ -1639,9 +2170,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-b has been removed from many_to_many"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The many_to_many relation does not link to the entity-b identified\
+            \ by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_many link, because the inverse\
             \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs:
     get:
       tags:
@@ -1862,6 +2410,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bCollection"
+        "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
     post:
       tags:
       - "entity-b"
@@ -1889,14 +2443,14 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail"
         "409":
-          description: "The entity-b can not be created due to a unique attribute\
-            \ already existing with that value"
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
   /entity-bs/{id}:
     parameters:
     - name: "id"
@@ -1916,6 +2470,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     put:
       tags:
       - "entity-b"
@@ -1936,14 +2502,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     patch:
       tags:
       - "entity-b"
@@ -1966,14 +2531,13 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-b can not be updated due to a unique attribute\
-            \ already existing with that value"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     delete:
       tags:
       - "entity-b"
@@ -1982,13 +2546,25 @@ paths:
       responses:
         "204":
           description: "The entity-b has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The entity-b can not be deleted because it is linked via a\
             \ required relation"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/many-to-one-inverse:
     parameters:
     - name: "id"
@@ -2008,8 +2584,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_one_inverse relation does not link to any entity-a"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-b"
@@ -2033,14 +2619,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-a is already linked with a different entity-b as\
-            \ many_to_one_inverse"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-a that is already linked\
+            \ with a different entity-b as many_to_one_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-b"
@@ -2052,9 +2644,24 @@ paths:
         "400":
           description: "You can not remove the many_to_one_inverse link, because it\
             \ is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_one_inverse link, because the\
             \ inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/many-to-many-inverse:
     parameters:
     - name: "id"
@@ -2074,6 +2681,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-b"
@@ -2092,13 +2711,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as many_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-a that is already linked\
             \ with a different entity-b as many_to_many_inverse"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-b"
@@ -2107,9 +2739,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-a have been removed from many_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the many_to_many_inverse link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/many-to-many-inverse/{itemId}:
     parameters:
     - name: "id"
@@ -2135,9 +2783,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The many_to_many_inverse relation does not link to the entity-a\
             \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-b"
@@ -2146,9 +2804,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-a has been removed from many_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The many_to_many_inverse relation does not link to the entity-a\
+            \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the many_to_many_inverse link, because\
             \ the inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/one-to-one-inverse:
     parameters:
     - name: "id"
@@ -2168,8 +2843,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_one_inverse relation does not link to any entity-a"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     put:
       tags:
       - "entity-b"
@@ -2193,14 +2878,20 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
-        "409":
-          description: "The entity-a is already linked with a different entity-b as\
-            \ one_to_one_inverse"
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some entity-a that is already linked\
+            \ with a different entity-b as one_to_one_inverse"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-b"
@@ -2212,9 +2903,24 @@ paths:
         "400":
           description: "You can not remove the one_to_one_inverse link, because it\
             \ is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_one_inverse link, because the\
             \ inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/one-to-many-inverse:
     parameters:
     - name: "id"
@@ -2234,6 +2940,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
     post:
       tags:
       - "entity-b"
@@ -2252,13 +2970,26 @@ paths:
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as one_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "The URI list contains some entity-a that is already linked\
             \ with a different entity-b as one_to_many_inverse"
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetailDiscriminator"
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
     delete:
       tags:
       - "entity-b"
@@ -2267,9 +2998,25 @@ paths:
       responses:
         "204":
           description: "All links to entity-a have been removed from one_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "409":
           description: "You can not remove the one_to_many_inverse link, because the\
             \ inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /entity-bs/{id}/one-to-many-inverse/{itemId}:
     parameters:
     - name: "id"
@@ -2295,9 +3042,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
         "404":
           description: "The one_to_many_inverse relation does not link to the entity-a\
             \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
     delete:
       tags:
       - "entity-b"
@@ -2306,9 +3063,26 @@ paths:
       responses:
         "204":
           description: "The link to entity-a has been removed from one_to_many_inverse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The one_to_many_inverse relation does not link to the entity-a\
+            \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
         "409":
           description: "You can not remove the one_to_many_inverse link, because the\
             \ inverse relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
 components:
   schemas:
     ContentInfo:
@@ -2507,41 +3281,128 @@ components:
           type: "string"
         instance:
           type: "string"
-    problemDetailWithProperty:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        properties:
-          property:
-            type: "string"
-        required:
-        - "property"
-    problemDetailWithErrors:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail"
-      - type: "object"
-        properties:
-          errors:
-            type: "array"
-            items:
-              oneOf:
-              - $ref: "#/components/schemas/problemDetail"
-              - $ref: "#/components/schemas/problemDetailWithProperty"
-        required:
-        - "errors"
-    problemDetailDiscriminator:
-      oneOf:
-      - $ref: "#/components/schemas/problemDetailWithErrors"
-      - $ref: "#/components/schemas/problemDetail"
       discriminator:
         propertyName: "type"
         mapping:
-          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetailWithErrors"
-          https://contentgrid.cloud/problems/input/duplicate-value: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/integrity/constraint-violation: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body/type: "#/components/schemas/problemDetail"
-          https://contentgrid.cloud/problems/invalid-request-body/json: "#/components/schemas/problemDetail"
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetail.input-validation"
+          https://contentgrid.cloud/problems/integrity/blind-relation-overwrite: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+          https://contentgrid.cloud/problems/integrity/required-relation: "#/components/schemas/problemDetail.required-relation"
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+          https://contentgrid.cloud/problems/invalid-request/body: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/json: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/single-link: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/uri-list: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/forbidden-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/invalid-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/required-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+          https://contentgrid.cloud/problems/unsatisfied-version: "#/components/schemas/problemDetail.unsatisfied-version"
+        defaultMapping: "#/components/schemas/problemDetail"
+    problemDetail.invalid-query-parameter:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "A query parameter is not valid"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          query_parameter:
+            type: "string"
+        required:
+        - "status"
+        - "query_parameter"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+        defaultMapping: "#/components/schemas/problemDetail.invalid-query-parameter"
+    problemDetail.invalid-query-parameter.filter-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Filter value is of wrong format"
+        description: "The value of a filter does not match the expected format"
+        properties:
+          expected_type:
+            type: "string"
+          format_error:
+            type: "string"
+          additional_errors:
+            type: "array"
+            items:
+              $ref: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+        required:
+        - "expected_type"
+        - "format_error"
+        - "additional_errors"
+    problemDetail.invalid-query-parameter.sort-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "The sort parameter is malformed"
+        properties:
+          query_parameter:
+            const: "_sort"
+          format_error:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "format_error"
+    problemDetail.invalid-query-parameter.sort-target:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Invalid sort target"
+        description: "The sort parameter refers to a target that doesn't exist or\
+          \ on which sorting is not possible"
+        properties:
+          query_parameter:
+            const: "_sort"
+          target_name:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "target_name"
+    problemDetail.invalid-query-parameter.pagination:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Invalid pagination parameter"
+        properties:
+          query_parameter:
+            type: "string"
+            enum:
+            - "_limit"
+            - "_cursor"
+            examples:
+            - "_limit"
+          format_error:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "format_error"
+    problemDetail.invalid-request-header:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Invalid request header"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          header:
+            type: "string"
+        required:
+        - "status"
+        - "header"
     sample-entityPostBody:
       type: "object"
       properties:
@@ -2669,6 +3530,194 @@ components:
           - "null"
       required:
       - "required_integer_attribute"
+    problemDetail.integrity.blind-relation-overwrite:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Overwrite of an existing relation blocked"
+        description: "In a to-one relation, the target entity is already referenced\
+          \ by another entity"
+        properties:
+          status:
+            type: "integer"
+            const: 409
+          new_item:
+            type: "string"
+            format: "uri"
+          new_relation:
+            type: "string"
+            format: "uri"
+          existing_item:
+            type: "string"
+            format: "uri"
+          existing_relation:
+            type: "string"
+            format: "uri"
+          target_item:
+            type: "string"
+            format: "uri"
+          target_relation:
+            type: "string"
+            format: "uri"
+          additional_errors:
+            type: "array"
+            items:
+              $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        required:
+        - "status"
+        - "new_item"
+        - "new_relation"
+        - "existing_item"
+        - "existing_relation"
+        - "target_item"
+        - "additional_errors"
+    problemDetail.input-validation.field:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+          format: "uri"
+        title:
+          type: "string"
+        detail:
+          type: "string"
+        field:
+          type: "string"
+          description: "Refers to the specific input field for which validation failed\
+            \ with a property path"
+      required:
+      - "type"
+      - "field"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
+          https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
+          https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
+          https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.noContent"
+          https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
+          https://contentgrid.cloud/problems/input/validation/required: "#/components/schemas/problemDetail.input-validation.field.required"
+          https://contentgrid.cloud/problems/input/validation/type: "#/components/schemas/problemDetail.input-validation.field.type"
+          https://contentgrid.cloud/problems/input/validation/type/format: "#/components/schemas/problemDetail.input-validation.field.type-format"
+        defaultMapping: "#/components/schemas/problemDetail.input-validation.field"
+    problemDetail.input-validation.field.type:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong type"
+        description: "Submitted value is of the wrong type"
+        properties:
+          expected_type:
+            type: "string"
+          actual_type:
+            type: "string"
+        required:
+        - "expected_type"
+        - "actual_type"
+    problemDetail.input-validation.field.type-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong format"
+        description: "Submitted value is of the correct type, but doesn't match the\
+          \ expected format"
+        properties:
+          expected_type:
+            type: "string"
+          format_error:
+            type: "string"
+        required:
+        - "expected_type"
+        - "format_error"
+    problemDetail.input-validation.field.noContent:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Content attribute is empty"
+        description: "A content attribute can not be set when there is no content"
+    problemDetail.input-validation.field.required:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Required field"
+        description: "This field is required"
+    problemDetail.input-validation.field.duplicate:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Duplicate value"
+        description: "This field value is already used by another entity item"
+        properties:
+          conflicting_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "conflicting_item"
+    problemDetail.input-validation.field.allowed-values:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value not allowed"
+        description: "This field can only be set to one of the allowed values"
+        properties:
+          allowed_values:
+            type: "array"
+            items:
+              type: "string"
+        required:
+        - "allowed_values"
+    problemDetail.input-validation.field.pattern:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value does not match pattern"
+        description: "The value does not match the required pattern"
+        properties:
+          pattern:
+            type: "string"
+        required:
+        - "pattern"
+    problemDetail.input-validation.field.missing-relation-target:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Relation target does not exist"
+        description: "The referenced entity-item does not exist"
+        properties:
+          missing_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "missing_item"
+    problemDetail.input-validation:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Input validation failed"
+        description: "The submitted data does not meet the requirements"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          errors:
+            type: "array"
+            description: "List of validation errors"
+            items:
+              $ref: "#/components/schemas/problemDetail.input-validation.field"
+        required:
+        - "status"
+        - "errors"
+    problemDetail.invalid-request-body:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Invalid request body"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+        required:
+        - "status"
     ContentInfoPUT:
       type: "object"
       properties:
@@ -2823,6 +3872,50 @@ components:
           type:
           - "string"
           - "null"
+    problemDetail.unsatisfied-version:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          status:
+            type: "integer"
+            const: 412
+          actual_version:
+            type: "string"
+        required:
+        - "status"
+        - "actual_version"
+    problemDetail.not-found:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          status:
+            type: "integer"
+            const: 404
+        required:
+        - "status"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+        defaultMapping: "#/components/schemas/problemDetail.not-found"
+    problemDetail.not-found.entity-item:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
+    problemDetail.required-relation:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Item is still referenced by a required relation"
+        properties:
+          affected_relation:
+            type: "string"
+            format: "uri"
+        required:
+        - "affected_relation"
     entity-aResponse:
       type: "object"
       properties:
@@ -2981,6 +4074,10 @@ components:
           $ref: "#/components/schemas/page"
       required:
       - "page"
+    problemDetail.not-found.relation-item:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
     entity-bPostBody:
       type: "object"
       properties:
