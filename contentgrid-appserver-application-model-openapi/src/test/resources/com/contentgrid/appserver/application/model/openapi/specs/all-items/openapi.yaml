@@ -994,16 +994,19 @@ paths:
       - "entity-a"
       operationId: "add.entity-a.one_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many,\
-        \ in addition to existing entity-b list"
+        \ in addition to the existing entity-b list"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many"
@@ -1163,8 +1166,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one_required"
@@ -1260,8 +1264,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one_required"
@@ -1350,16 +1355,19 @@ paths:
       - "entity-a"
       operationId: "add.entity-a.one_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as one_to_many_bidirectional,\
-        \ in addition to existing entity-b list"
+        \ in addition to the existing entity-b list"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many_bidirectional"
@@ -1512,16 +1520,19 @@ paths:
       - "entity-a"
       operationId: "add.entity-a.many_to_many_bidirectional"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many_bidirectional,\
-        \ in addition to existing entity-b list"
+        \ in addition to the existing entity-b list"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many_bidirectional"
@@ -1682,8 +1693,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one_bidirectional"
@@ -1780,8 +1792,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one_bidirectional"
@@ -1877,8 +1890,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one"
@@ -1974,8 +1988,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one"
@@ -2064,16 +2079,19 @@ paths:
       - "entity-a"
       operationId: "add.entity-a.many_to_many"
       summary: "Add links to entity-b list that is linked with entity-a as many_to_many,\
-        \ in addition to existing entity-b list"
+        \ in addition to the existing entity-b list"
       requestBody:
         description: "Newline separated list of entity-b URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-bs/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many"
@@ -2608,8 +2626,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-as/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-a is linked with entity-b as many_to_one_inverse"
@@ -2698,16 +2717,19 @@ paths:
       - "entity-b"
       operationId: "add.entity-b.many_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as many_to_many_inverse,\
-        \ in addition to existing entity-a list"
+        \ in addition to the existing entity-a list"
       requestBody:
         description: "Newline separated list of entity-a URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-as/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as many_to_many_inverse"
@@ -2867,8 +2889,9 @@ paths:
           text/uri-list:
             schema:
               type: "string"
+              format: "uri"
               examples:
-              - "/entity-as/00000000-0000-0000-0000-000000000000"
+              - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The entity-a is linked with entity-b as one_to_one_inverse"
@@ -2957,16 +2980,19 @@ paths:
       - "entity-b"
       operationId: "add.entity-b.one_to_many_inverse"
       summary: "Add links to entity-a list that is linked with entity-b as one_to_many_inverse,\
-        \ in addition to existing entity-a list"
+        \ in addition to the existing entity-a list"
       requestBody:
         description: "Newline separated list of entity-a URIs"
         required: true
         content:
           text/uri-list:
             schema:
-              type: "string"
-              examples:
-              - "/entity-as/00000000-0000-0000-0000-000000000000"
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as one_to_many_inverse"
@@ -3972,24 +3998,42 @@ components:
       properties:
         one_to_one_required:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_required:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_bidirectional:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3998,24 +4042,42 @@ components:
       properties:
         one_to_one_required:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_required:
           type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_bidirectional:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -4085,10 +4147,16 @@ components:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPostMultipartFormDataBody:
       type: "object"
       properties:
@@ -4096,10 +4164,16 @@ components:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
           type:
           - "string"
           - "null"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPutBody:
       type: "object"
     entity-bPatchBody:
