@@ -3153,15 +3153,20 @@ components:
           type:
           - "string"
           - "null"
+          title: "Filename"
           examples:
           - "example.pdf"
         mimetype:
           type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
           examples:
           - "application/pdf"
         length:
           type: "integer"
           format: "int64"
+          title: "Size"
+          description: "File size in bytes"
       required:
       - "filename"
       - "mimetype"
@@ -3175,6 +3180,9 @@ components:
       - "href"
     sample-entityResponse:
       type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
       properties:
         id:
           type: "string"
@@ -3183,69 +3191,99 @@ components:
           - "string"
           - "null"
           format: "date-time"
+          title: "Created at"
+          description: "Tracks when the item was created."
         created_by:
           type:
           - "string"
           - "null"
+          title: "Created by"
+          description: "Tracks who created the item."
         last_modified_at:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Last modified at"
+          description: "Tracks when the item was last modified."
         last_modified_by:
           type:
           - "string"
           - "null"
+          title: "Last modified by"
+          description: "Tracks who last modified the item."
         string_attribute:
           type:
           - "string"
           - "null"
+          title: "String attribute"
+          description: "A simple string attribute."
         integer_attribute:
           type:
           - "integer"
           - "null"
           format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
         decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
         boolean_attribute:
           type:
           - "boolean"
           - "null"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
         date_attribute:
           type:
           - "string"
           - "null"
           format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
         datetime_attribute:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
         content_attribute:
           $ref: "#/components/schemas/ContentInfo"
         unique_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
           type: "integer"
           format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
         exact_search_decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
           enum:
           - "Option1"
           - "Option2"
@@ -3255,6 +3293,9 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
         _links:
           type: "object"
           properties:
@@ -3462,55 +3503,80 @@ components:
         - "header"
     sample-entityPostBody:
       type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
       properties:
         string_attribute:
           type:
           - "string"
           - "null"
+          title: "String attribute"
+          description: "A simple string attribute."
         integer_attribute:
           type:
           - "integer"
           - "null"
           format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
         decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
         boolean_attribute:
           type:
           - "boolean"
           - "null"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
         date_attribute:
           type:
           - "string"
           - "null"
           format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
         datetime_attribute:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
         unique_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
           type: "integer"
           format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
         exact_search_decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
           enum:
           - "Option1"
           - "Option2"
@@ -3520,62 +3586,92 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
       required:
       - "required_integer_attribute"
     sample-entityPostMultipartFormDataBody:
       type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
       properties:
         string_attribute:
           type:
           - "string"
           - "null"
+          title: "String attribute"
+          description: "A simple string attribute."
         integer_attribute:
           type:
           - "integer"
           - "null"
           format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
         decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
         boolean_attribute:
           type:
           - "boolean"
           - "null"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
         date_attribute:
           type:
           - "string"
           - "null"
           format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
         datetime_attribute:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
         content_attribute:
           type: "string"
           format: "binary"
+          title: "Content attribute"
+          description: "A content attribute for storing files/documents."
         unique_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
           type: "integer"
           format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
         exact_search_decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
           enum:
           - "Option1"
           - "Option2"
@@ -3585,6 +3681,9 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
       required:
       - "required_integer_attribute"
     problemDetail.integrity.blind-relation-overwrite:
@@ -3784,67 +3883,95 @@ components:
           type:
           - "string"
           - "null"
+          title: "Filename"
           examples:
           - "example.pdf"
         mimetype:
           type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
           examples:
           - "application/pdf"
       required:
       - "mimetype"
     sample-entityPutBody:
       type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
       properties:
         string_attribute:
           type:
           - "string"
           - "null"
+          title: "String attribute"
+          description: "A simple string attribute."
         integer_attribute:
           type:
           - "integer"
           - "null"
           format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
         decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
         boolean_attribute:
           type:
           - "boolean"
           - "null"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
         date_attribute:
           type:
           - "string"
           - "null"
           format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
         datetime_attribute:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
         content_attribute:
           $ref: "#/components/schemas/ContentInfoPUT"
         unique_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
           type: "integer"
           format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
         exact_search_decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
           enum:
           - "Option1"
           - "Option2"
@@ -3854,6 +3981,9 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
       required:
       - "required_integer_attribute"
     ContentInfoPATCH:
@@ -3865,65 +3995,93 @@ components:
           type:
           - "string"
           - "null"
+          title: "Filename"
           examples:
           - "example.pdf"
         mimetype:
           type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
           examples:
           - "application/pdf"
     sample-entityPatchBody:
       type: "object"
+      title: "Sample entity"
+      description: "This entity is designed to demonstrate various attribute types,\
+        \ search filters, and constraints."
       properties:
         string_attribute:
           type:
           - "string"
           - "null"
+          title: "String attribute"
+          description: "A simple string attribute."
         integer_attribute:
           type:
           - "integer"
           - "null"
           format: "int64"
+          title: "Integer attribute"
+          description: "A long attribute for numerical values."
         decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Decimal attribute"
+          description: "A double attribute for precise numerical values."
         boolean_attribute:
           type:
           - "boolean"
           - "null"
+          title: "Boolean attribute"
+          description: "A boolean attribute for true/false values."
         date_attribute:
           type:
           - "string"
           - "null"
           format: "date"
+          title: "Date attribute"
+          description: "A date attribute for storing dates."
         datetime_attribute:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Datetime attribute"
+          description: "A datetime attribute for storing date and time."
         content_attribute:
           $ref: "#/components/schemas/ContentInfoPATCH"
         unique_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Unique string attribute"
+          description: "A string attribute with a uniqueness constraint."
         required_integer_attribute:
           type: "integer"
           format: "int64"
+          title: "Required integer attribute"
+          description: "A long attribute that is required."
         exact_search_decimal_attribute:
           type:
           - "number"
           - "null"
           format: "double"
+          title: "Exact search decimal attribute"
+          description: "A double attribute with exact search enabled."
         prefix_search_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Prefix search string attribute"
+          description: "A string attribute with prefix search enabled."
         allowed_values_string_attribute:
           type:
           - "string"
           - "null"
+          title: "Allowed values string attribute"
+          description: "A string attribute with allowed values constraint."
           enum:
           - "Option1"
           - "Option2"
@@ -3933,6 +4091,9 @@ components:
           type:
           - "string"
           - "null"
+          title: "Full text search string attribute"
+          description: "A string attribute with prefix search enabled, simulating\
+            \ full text search."
     problemDetail.unsatisfied-version:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -3979,6 +4140,9 @@ components:
         - "affected_relation"
     entity-aResponse:
       type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
       properties:
         id:
           type: "string"
@@ -3987,19 +4151,27 @@ components:
           - "string"
           - "null"
           format: "date-time"
+          title: "Created at"
+          description: "Tracks when the item was created."
         created_by:
           type:
           - "string"
           - "null"
+          title: "Created by"
+          description: "Tracks who created the item."
         last_modified_at:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Last modified at"
+          description: "Tracks when the item was last modified."
         last_modified_by:
           type:
           - "string"
           - "null"
+          title: "Last modified by"
+          description: "Tracks who last modified the item."
         _links:
           type: "object"
           properties:
@@ -4030,15 +4202,22 @@ components:
       - "page"
     entity-aPostBody:
       type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
       properties:
         one_to_one_required:
           type: "string"
           format: "uri"
+          title: "One to one required"
+          description: "A one-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_required:
           type: "string"
           format: "uri"
+          title: "Many to one required"
+          description: "A many-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
@@ -4046,6 +4225,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one bidirectional"
+          description: "A bidirectional one-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_bidirectional:
@@ -4053,6 +4234,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one bidirectional"
+          description: "A bidirectional many-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one:
@@ -4060,6 +4243,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one"
+          description: "A one-to-one relation between entity-a and entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one:
@@ -4067,6 +4252,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one"
+          description: "A many-to-one relation from entity-a to entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
@@ -4074,15 +4261,22 @@ components:
       - "many_to_one_required"
     entity-aPostMultipartFormDataBody:
       type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
       properties:
         one_to_one_required:
           type: "string"
           format: "uri"
+          title: "One to one required"
+          description: "A one-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_required:
           type: "string"
           format: "uri"
+          title: "Many to one required"
+          description: "A many-to-one relation with a required side."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one_bidirectional:
@@ -4090,6 +4284,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one bidirectional"
+          description: "A bidirectional one-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one_bidirectional:
@@ -4097,6 +4293,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one bidirectional"
+          description: "A bidirectional many-to-one relation."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         one_to_one:
@@ -4104,6 +4302,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one"
+          description: "A one-to-one relation between entity-a and entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         many_to_one:
@@ -4111,6 +4311,8 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one"
+          description: "A many-to-one relation from entity-a to entity-b."
           examples:
           - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
       required:
@@ -4118,10 +4320,19 @@ components:
       - "many_to_one_required"
     entity-aPutBody:
       type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
     entity-aPatchBody:
       type: "object"
+      title: "Entity a"
+      description: "Represents the first entity for demonstrating various types of\
+        \ relations."
     entity-bResponse:
       type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
       properties:
         id:
           type: "string"
@@ -4130,19 +4341,27 @@ components:
           - "string"
           - "null"
           format: "date-time"
+          title: "Created at"
+          description: "Tracks when the item was created."
         created_by:
           type:
           - "string"
           - "null"
+          title: "Created by"
+          description: "Tracks who created the item."
         last_modified_at:
           type:
           - "string"
           - "null"
           format: "date-time"
+          title: "Last modified at"
+          description: "Tracks when the item was last modified."
         last_modified_by:
           type:
           - "string"
           - "null"
+          title: "Last modified by"
+          description: "Tracks who last modified the item."
         _links:
           type: "object"
           properties:
@@ -4177,12 +4396,16 @@ components:
       - type: "object"
     entity-bPostBody:
       type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
       properties:
         many_to_one_inverse:
           type:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
@@ -4190,16 +4413,21 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPostMultipartFormDataBody:
       type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
       properties:
         many_to_one_inverse:
           type:
           - "string"
           - "null"
           format: "uri"
+          title: "Many to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         one_to_one_inverse:
@@ -4207,9 +4435,16 @@ components:
           - "string"
           - "null"
           format: "uri"
+          title: "One to one inverse"
           examples:
           - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
     entity-bPutBody:
       type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
     entity-bPatchBody:
       type: "object"
+      title: "Entity b"
+      description: "Represents the second entity for demonstrating various types of\
+        \ relations."
