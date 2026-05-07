@@ -779,6 +779,8 @@ paths:
             - "created_at,desc"
             - "last_modified_at,asc"
             - "last_modified_at,desc"
+            examples:
+            - "created_at,asc"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\

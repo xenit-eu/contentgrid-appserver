@@ -46,6 +46,8 @@ paths:
             enum:
             - "name,asc"
             - "name,desc"
+            examples:
+            - "name,asc"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
@@ -1377,6 +1379,8 @@ components:
             enum:
             - "_limit"
             - "_cursor"
+            examples:
+            - "_limit"
           format_error:
             type: "string"
         required:
