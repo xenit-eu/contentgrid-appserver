@@ -155,6 +155,15 @@ paths:
       responses:
         "201":
           description: "The sample-entity has been created"
+          headers:
+            Location:
+              description: "The URL of the created sample-entity"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/sample-entities/00000000-0000-0000-0000-000000000000"
           content:
             application/json:
               schema:
@@ -826,6 +835,15 @@ paths:
       responses:
         "201":
           description: "The entity-a has been created"
+          headers:
+            Location:
+              description: "The URL of the created entity-a"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
           content:
             application/json:
               schema:
@@ -2451,6 +2469,15 @@ paths:
       responses:
         "201":
           description: "The entity-b has been created"
+          headers:
+            Location:
+              description: "The URL of the created entity-b"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
           content:
             application/json:
               schema:
