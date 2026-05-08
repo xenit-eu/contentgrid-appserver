@@ -3484,14 +3484,10 @@ components:
           - "string"
           - "null"
           title: "Filename"
-          examples:
-          - "example.pdf"
         mimetype:
           type: "string"
           title: "Mimetype"
           description: "Technical indicator of the type of the file"
-          examples:
-          - "application/pdf"
         length:
           type: "integer"
           format: "int64"
@@ -4269,14 +4265,10 @@ components:
           - "string"
           - "null"
           title: "Filename"
-          examples:
-          - "example.pdf"
         mimetype:
           type: "string"
           title: "Mimetype"
           description: "Technical indicator of the type of the file"
-          examples:
-          - "application/pdf"
       required:
       - "mimetype"
     sample-entityPutBody:
@@ -4456,14 +4448,10 @@ components:
           - "string"
           - "null"
           title: "Filename"
-          examples:
-          - "example.pdf"
         mimetype:
           type: "string"
           title: "Mimetype"
           description: "Technical indicator of the type of the file"
-          examples:
-          - "application/pdf"
     sample-entityPatchBody:
       type: "object"
       title: "Sample entity"
