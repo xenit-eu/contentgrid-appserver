@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -39,20 +40,19 @@ public class FilesystemDirectoryArtifact implements Artifact {
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
         var ref = getReference();
         var dir = directory.resolve(path).normalize();
-        var result = new ArrayList<ArtifactEntry>();
         if (Files.isDirectory(dir)) {
             try (var stream = Files.walk(dir)) {
-                stream.filter(Files::isRegularFile)
+                return stream.filter(Files::isRegularFile)
                         .map(file -> new FilesystemDirectoryArtifactEntry(
                                 ArtifactEntryReference.of(ref, directory.relativize(file).toString()),
                                 file))
-                        .forEach(result::add);
+                        .collect(Collectors.toList());
             } catch (IOException e) {
                 throw new ArtifactException(ref, e);
             }
         } else if (Files.exists(dir)) {
-            result.add(new FilesystemDirectoryArtifactEntry(ArtifactEntryReference.of(ref, path.toString()), dir));
+            return List.of(new FilesystemDirectoryArtifactEntry(ArtifactEntryReference.of(ref, path.toString()), dir));
         }
-        return result;
+        return List.of();
     }
 }
