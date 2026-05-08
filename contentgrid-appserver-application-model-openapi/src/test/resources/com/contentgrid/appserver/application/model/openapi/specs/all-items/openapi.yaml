@@ -362,6 +362,8 @@ paths:
           headers:
             ETag:
               $ref: "#/components/headers/ETag"
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
           content:
             '*/*':
               schema:
@@ -386,6 +388,8 @@ paths:
       - "sample-entity"
       operationId: "set.sample-entity.content_attribute"
       summary: "Add or update the content_attribute file stored with sample-entity"
+      parameters:
+      - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
         required: true
@@ -4667,6 +4671,13 @@ components:
             format: "uri"
         required:
         - "affected_relation"
+    RFC6266.Content-Disposition:
+      type: "string"
+      description: "See [RFC 6266](https://datatracker.ietf.org/doc/html/rfc6266)"
+      examples:
+      - "attachment"
+      - "attachment; filename=\"my-file.pdf\""
+      - "attachment; filename=\"=?UTF-8?Q?my-file.pdf?=\"; filename*=UTF-8''my-file.pdf"
     entity-aResponse:
       type: "object"
       title: "Entity a"
@@ -5240,9 +5251,22 @@ components:
         - type: "array"
           items:
             $ref: "#/components/schemas/RFC9110.entity-tag"
+    header.Content-Disposition:
+      name: "Content-Disposition"
+      in: "header"
+      description: "The disposition type is ignored, only the optional filename parameter\
+        \ is used to optionally set a filename"
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
   headers:
     ETag:
       description: "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-etag)"
       required: true
       schema:
         $ref: "#/components/schemas/RFC9110.entity-tag"
+    Content-Disposition:
+      description: "Content-Disposition is always set to attachment, with optionally\
+        \ a filename"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
