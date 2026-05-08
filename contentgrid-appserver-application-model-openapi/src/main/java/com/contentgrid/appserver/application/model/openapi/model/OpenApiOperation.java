@@ -3,13 +3,14 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -17,7 +18,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
@@ -26,7 +26,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OpenApiOperation {
     @JsonInclude(Include.NON_EMPTY)
-    List<String> tags;
+    final Set<String> tags = new TreeSet<>();
     @JsonInclude(Include.NON_EMPTY)
     String operationId;
     @JsonInclude(Include.NON_EMPTY)
@@ -35,13 +35,18 @@ public class OpenApiOperation {
     String description;
 
     @JsonInclude(Include.NON_EMPTY)
-    final List<OpenApiPotentialReference<OpenApiParameter>> parameters = new ArrayList<>();
+    final Set<OpenApiPotentialReference<OpenApiParameter>> parameters = new TreeSet<>(Comparator.comparing(OpenApiPotentialReference::getOriginalObject));
 
     @JsonInclude(Include.NON_EMPTY)
     OpenApiRequestBody requestBody;
 
     @JsonInclude(Include.NON_EMPTY)
     Map<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>> responses = new TreeMap<>(Comparator.comparing(HttpStatusCode::toString));
+
+    public OpenApiOperation tag(String tag) {
+        this.tags.add(tag);
+        return this;
+    }
 
     public OpenApiOperation parameters(Collection<OpenApiPotentialReference<OpenApiParameter>> parameters) {
         this.parameters.addAll(parameters);

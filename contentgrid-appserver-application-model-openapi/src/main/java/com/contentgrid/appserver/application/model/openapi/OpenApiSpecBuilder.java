@@ -117,7 +117,7 @@ public class OpenApiSpecBuilder {
                 .method(HttpMethod.GET, op -> {
                     op.setOperationId("list."+entityName.getValue());
                     var collectionType = new CollectionType(semanticType);
-                    op.setTags(List.of(tag.getName()))
+                    op.tag(tag.getName())
                             .setSummary("Retrieve %s list".formatted(entityName.getValue()))
                             .response(200, resp -> {
                                 resp.setDescription("OK");
@@ -129,7 +129,7 @@ public class OpenApiSpecBuilder {
                     op
                             .setOperationId("create."+entityName.getValue())
                             .setSummary("Create a new %s".formatted(entityName.getValue()))
-                            .setTags(List.of(tag.getName()))
+                            .tag(tag.getName())
                             .requestBody(body -> {
                                 body.getContent().addMediaType(MediaType.APPLICATION_JSON, resolveItemSchema(entityName, context, BodyType.POST, JSON));
                                 body.getContent().addMediaType(MediaType.APPLICATION_X_WWW_FORM_URLENCODED, resolveItemSchema(entityName, context, BodyType.POST, FORM));
@@ -212,7 +212,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .each(((method, openApiOperation) -> {
-                    openApiOperation.setTags(List.of(tag.getName()));
+                    openApiOperation.tag(tag.getName());
                     addResolved(context, method, openApiOperation, semanticType);
                 }))
                 .combineParameters();
@@ -281,7 +281,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .each(((method, op) -> {
-                    op.setTags(List.of(entity.getName().getValue()));
+                    op.tag(entity.getName().getValue());
                     addResolved(context, method, op, semanticType);
                 }))
                 .combineParameters();
@@ -433,7 +433,7 @@ public class OpenApiSpecBuilder {
                     });
                 })
                 .each(((method, op) -> {
-                    op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
+                    op.tag(relation.getSourceEndPoint().getEntity().getValue());
                     addResolved(context, method, op, semanticType);
                 }))
                 .combineParameters();
@@ -486,7 +486,7 @@ public class OpenApiSpecBuilder {
                         });
                     })
                     .each(((method, op) -> {
-                        op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
+                        op.tag(relation.getSourceEndPoint().getEntity().getValue());
                         addResolved(context, method, op, new RelationItemType(relation.getSourceEndPoint().getEntity()));
                     }))
                     .combineParameters();

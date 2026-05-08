@@ -5,8 +5,8 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -17,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 @Value
 public class OpenApiHttpHeaders {
     @JsonValue
-    Map<String, OpenApiPotentialReference<OpenApiHeaderDescription>> items = new LinkedHashMap<>();
+    Map<String, OpenApiPotentialReference<OpenApiHeaderDescription>> items = new TreeMap<>();
 
     public OpenApiHttpHeaders header(String name, OpenApiPotentialReference<OpenApiHeaderDescription> header) {
         items.put(name, header);

@@ -5,8 +5,8 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
@@ -31,7 +31,7 @@ public class OpenApiComponents {
         String referencePrefix;
 
         @JsonAnyGetter
-        Map<String, T> items = new LinkedHashMap<>();
+        Map<String, T> items = new TreeMap<>();
 
         public Map<String, T> getItems() {
             return Collections.unmodifiableMap(items);
@@ -56,5 +56,6 @@ public class OpenApiComponents {
         public OpenApiReference<T> register(@NonNull String name, @NonNull T schema) {
             return register(name, () -> schema);
         }
+
     }
 }

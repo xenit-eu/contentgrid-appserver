@@ -3,8 +3,8 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -12,7 +12,7 @@ import lombok.Value;
 @Value
 public class OpenApiMediaTypes {
     @JsonValue
-    Map<String, OpenApiBodyDescription> mediatypes = new LinkedHashMap<>();
+    Map<String, OpenApiBodyDescription> mediatypes = new TreeMap<>();
 
     private static final String JSON = "application/json";
 

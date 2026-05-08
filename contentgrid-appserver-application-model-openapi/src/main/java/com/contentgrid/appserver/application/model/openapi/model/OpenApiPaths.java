@@ -3,13 +3,15 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -22,7 +24,7 @@ import lombok.experimental.FieldDefaults;
 @Value
 public class OpenApiPaths {
     @JsonAnyGetter
-    Map<String, OpenApiPotentialReference<OpenApiPathItem>> items = new LinkedHashMap<>();
+    Map<String, OpenApiPotentialReference<OpenApiPathItem>> items = new TreeMap<>();
 
     public OpenApiPathItem path(@NonNull String path) {
         return (OpenApiPathItem) items.computeIfAbsent(path, _unused -> new OpenApiPathItem());
@@ -43,10 +45,10 @@ public class OpenApiPaths {
         String description;
 
         @JsonAnyGetter
-        final Map<HttpMethod, OpenApiOperation> operations = new LinkedHashMap<>();
+        final Map<HttpMethod, OpenApiOperation> operations = new TreeMap<>();
 
         @JsonInclude(Include.NON_EMPTY)
-        final List<OpenApiPotentialReference<OpenApiParameter>> parameters = new ArrayList<>();
+        final Set<OpenApiPotentialReference<OpenApiParameter>> parameters = new TreeSet<>(Comparator.comparing(OpenApiPotentialReference::getOriginalObject));
 
         public OpenApiOperation method(@NonNull HttpMethod method) {
             return operations.computeIfAbsent(method, (_unused) -> new OpenApiOperation());
