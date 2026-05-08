@@ -254,6 +254,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "party"
@@ -262,6 +264,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -278,6 +283,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "party"
@@ -296,6 +303,9 @@ paths:
       responses:
         "204":
           description: "The party is linked with party as subsidiary"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but subsidiary can only refer to\
             \ one item"
@@ -316,6 +326,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "party"
@@ -345,6 +357,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /parties/{id}/summary:
     parameters:
     - name: "id"
@@ -685,6 +699,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "insurance-case"
@@ -693,6 +709,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -709,6 +728,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "insurance-case"
@@ -727,6 +748,9 @@ paths:
       responses:
         "204":
           description: "The party is linked with insurance-case as owning_party"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but owning_party can only refer to\
             \ one item"
@@ -747,6 +771,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "insurance-case"
@@ -776,6 +802,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /insurance-cases/{id}/followups:
     parameters:
     - name: "id"
@@ -1761,10 +1789,6 @@ components:
             format: "uri"
         required:
         - "affected_relation"
-    problemDetail.not-found.relation-item:
-      allOf:
-      - $ref: "#/components/schemas/problemDetail.not-found"
-      - type: "object"
     problemDetail.unsatisfied-version:
       allOf:
       - $ref: "#/components/schemas/problemDetail"
@@ -1778,6 +1802,10 @@ components:
         required:
         - "status"
         - "actual_version"
+    problemDetail.not-found.relation-item:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
     RFC9110.entity-tag:
       type: "string"
       description: "A strong ETag value"

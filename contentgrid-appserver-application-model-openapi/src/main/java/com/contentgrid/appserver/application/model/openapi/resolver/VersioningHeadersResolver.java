@@ -24,6 +24,7 @@ import com.contentgrid.appserver.application.model.openapi.type.EntityType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpResponseType;
 import com.contentgrid.appserver.application.model.openapi.type.RelationItemType;
+import com.contentgrid.appserver.application.model.openapi.type.RelationType;
 import com.contentgrid.appserver.application.model.openapi.type.SemanticType;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,7 @@ public class VersioningHeadersResolver implements RequestParameterResolver, Resp
                     .stream()
                     .anyMatch(a -> a.hasFlag(ETagFlag.class));
             case AttributeType.ContentAttributeType contentAttributeType -> true;
+            case RelationType relationType -> relationType.getTarget() instanceof EntityType;
             case null, default -> false;
         };
     }
