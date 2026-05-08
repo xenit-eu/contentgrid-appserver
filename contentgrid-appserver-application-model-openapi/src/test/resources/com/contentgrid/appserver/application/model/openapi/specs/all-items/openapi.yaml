@@ -181,6 +181,8 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/sample-entities/00000000-0000-0000-0000-000000000000"
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -206,6 +208,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "sample-entity"
@@ -214,6 +218,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -230,6 +237,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "sample-entity"
@@ -249,6 +258,9 @@ paths:
       responses:
         "204":
           description: "The sample-entity has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The sample-entity can not be updated due to a problem with\
             \ the submitted data"
@@ -262,6 +274,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "sample-entity"
@@ -281,6 +295,9 @@ paths:
       responses:
         "204":
           description: "The sample-entity has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The sample-entity can not be updated due to a problem with\
             \ the submitted data"
@@ -294,6 +311,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "sample-entity"
@@ -321,6 +340,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /sample-entities/{id}/content-attribute:
     parameters:
     - name: "id"
@@ -328,6 +349,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "sample-entity"
@@ -336,6 +359,9 @@ paths:
       responses:
         "200":
           description: "Contents of the stored file"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             '*/*':
               schema:
@@ -353,6 +379,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "sample-entity"
@@ -369,6 +397,9 @@ paths:
       responses:
         "204":
           description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Bad request: Invalid header, Invalid body"
           content:
@@ -381,6 +412,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "sample-entity"
@@ -401,6 +434,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as:
     get:
       tags:
@@ -938,6 +973,8 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -963,6 +1000,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -971,6 +1010,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -987,6 +1029,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -1006,6 +1050,9 @@ paths:
       responses:
         "204":
           description: "The entity-a has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The entity-a can not be updated due to a problem with the\
             \ submitted data"
@@ -1019,6 +1066,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "entity-a"
@@ -1038,6 +1087,9 @@ paths:
       responses:
         "204":
           description: "The entity-a has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The entity-a can not be updated due to a problem with the\
             \ submitted data"
@@ -1051,6 +1103,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -1078,6 +1132,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/one-to-many:
     parameters:
     - name: "id"
@@ -1250,6 +1306,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -1258,6 +1316,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1274,6 +1335,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -1292,6 +1355,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one_required"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but one_to_one_required can only\
             \ refer to one item"
@@ -1312,6 +1378,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -1341,6 +1409,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/many-to-one-required:
     parameters:
     - name: "id"
@@ -1348,6 +1418,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -1356,6 +1428,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1372,6 +1447,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -1390,6 +1467,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one_required"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but many_to_one_required can only\
             \ refer to one item"
@@ -1410,6 +1490,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -1439,6 +1521,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/one-to-many-bidirectional:
     parameters:
     - name: "id"
@@ -1776,6 +1860,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -1784,6 +1870,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1801,6 +1890,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -1819,6 +1910,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one_bidirectional"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but one_to_one_bidirectional can\
             \ only refer to one item"
@@ -1839,6 +1933,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -1868,6 +1964,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/many-to-one-bidirectional:
     parameters:
     - name: "id"
@@ -1875,6 +1973,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -1883,6 +1983,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1900,6 +2003,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -1918,6 +2023,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one_bidirectional"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but many_to_one_bidirectional can\
             \ only refer to one item"
@@ -1938,6 +2046,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -1967,6 +2077,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/one-to-one:
     parameters:
     - name: "id"
@@ -1974,6 +2086,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -1982,6 +2096,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -1998,6 +2115,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -2016,6 +2135,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as one_to_one"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but one_to_one can only refer to\
             \ one item"
@@ -2036,6 +2158,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -2065,6 +2189,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/many-to-one:
     parameters:
     - name: "id"
@@ -2072,6 +2198,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-a"
@@ -2080,6 +2208,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -2096,6 +2227,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-a"
@@ -2114,6 +2247,9 @@ paths:
       responses:
         "204":
           description: "The entity-b is linked with entity-a as many_to_one"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but many_to_one can only refer to\
             \ one item"
@@ -2134,6 +2270,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-a"
@@ -2163,6 +2301,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/many-to-many:
     parameters:
     - name: "id"
@@ -2613,6 +2753,8 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -2638,6 +2780,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-b"
@@ -2646,6 +2790,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -2662,6 +2809,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-b"
@@ -2681,6 +2830,9 @@ paths:
       responses:
         "204":
           description: "The entity-b has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The entity-b can not be updated due to a problem with the\
             \ submitted data"
@@ -2694,6 +2846,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "entity-b"
@@ -2713,6 +2867,9 @@ paths:
       responses:
         "204":
           description: "The entity-b has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "The entity-b can not be updated due to a problem with the\
             \ submitted data"
@@ -2726,6 +2883,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-b"
@@ -2753,6 +2912,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-bs/{id}/many-to-one-inverse:
     parameters:
     - name: "id"
@@ -2760,6 +2921,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-b"
@@ -2768,6 +2931,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -2784,6 +2950,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-b"
@@ -2802,6 +2970,9 @@ paths:
       responses:
         "204":
           description: "The entity-a is linked with entity-b as many_to_one_inverse"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but many_to_one_inverse can only\
             \ refer to one item"
@@ -2822,6 +2993,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-b"
@@ -2851,6 +3024,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-bs/{id}/many-to-many-inverse:
     parameters:
     - name: "id"
@@ -3023,6 +3198,8 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "entity-b"
@@ -3031,6 +3208,9 @@ paths:
       responses:
         "200":
           description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
           content:
             application/json:
               schema:
@@ -3047,6 +3227,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     put:
       tags:
       - "entity-b"
@@ -3065,6 +3247,9 @@ paths:
       responses:
         "204":
           description: "The entity-a is linked with entity-b as one_to_one_inverse"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
         "400":
           description: "Multiple URIs are given, but one_to_one_inverse can only refer\
             \ to one item"
@@ -3085,6 +3270,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
     delete:
       tags:
       - "entity-b"
@@ -3114,6 +3301,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
   /entity-bs/{id}/one-to-many-inverse:
     parameters:
     - name: "id"
@@ -4059,6 +4248,13 @@ components:
             const: 400
         required:
         - "status"
+    RFC9110.entity-tag:
+      type: "string"
+      description: "A strong ETag value"
+      examples:
+      - "\"1mktvx6\""
+      - "\"25borvrzr9thvwuua39m3c2a3\""
+      pattern: "^\"[a-z0-9]+\"$"
     ContentInfoPUT:
       type:
       - "object"
@@ -5016,3 +5212,37 @@ components:
       title: "Entity b"
       description: "Represents the second entity for demonstrating various types of\
         \ relations."
+  responses:
+    preconditionFailed:
+      description: "If-Match or If-None-Match precondition failed"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/problemDetail.unsatisfied-version"
+  parameters:
+    header.If-Match:
+      name: "If-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+    header.If-None-Match:
+      name: "If-None-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-none-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+  headers:
+    ETag:
+      description: "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-etag)"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC9110.entity-tag"
