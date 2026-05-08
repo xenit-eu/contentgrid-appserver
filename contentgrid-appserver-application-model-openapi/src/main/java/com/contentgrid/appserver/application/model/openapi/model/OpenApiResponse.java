@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Data;

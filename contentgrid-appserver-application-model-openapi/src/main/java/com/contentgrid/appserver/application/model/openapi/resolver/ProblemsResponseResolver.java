@@ -1,7 +1,12 @@
 package com.contentgrid.appserver.application.model.openapi.resolver;
 
 
-import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.*;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.description;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.property;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.requiredProperty;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.status;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.title;
+import static com.contentgrid.appserver.application.model.openapi.ProblemDetail.ProblemDetailCustomizer.type;
 
 import com.contentgrid.appserver.application.model.openapi.OpenApiSpecContext;
 import com.contentgrid.appserver.application.model.openapi.ProblemDetail;

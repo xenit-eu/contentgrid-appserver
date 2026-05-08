@@ -14,8 +14,6 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaInteger;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaObject;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;

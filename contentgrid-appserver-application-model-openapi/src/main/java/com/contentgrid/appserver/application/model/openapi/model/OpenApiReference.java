@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.function.Supplier;
 import lombok.AccessLevel;

@@ -9,10 +9,7 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
-import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper.Context;
-import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
-import com.contentgrid.appserver.application.model.openapi.model.rest.body.MediaType;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
 import com.contentgrid.appserver.application.model.openapi.type.HttpRequestType;
