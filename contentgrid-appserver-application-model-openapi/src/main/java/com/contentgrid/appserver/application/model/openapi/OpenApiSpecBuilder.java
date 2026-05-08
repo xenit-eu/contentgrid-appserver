@@ -155,11 +155,12 @@ public class OpenApiSpecBuilder {
                     ;
 
                     addResolved(context, HttpMethod.POST, op, semanticType);
-                });
+                })
+                .combineParameters();
 
         // item
         context.spec().getPaths().path("/"+entity.getPathSegment().getValue()+"/{id}")
-                .setParameters(List.of(ENTITY_ID_PARAM))
+                .parameter(ENTITY_ID_PARAM)
                 .method(HttpMethod.GET, op -> {
                     op.setOperationId("get."+entityName.getValue());
                     op.setSummary("Retrieve the %s".formatted(entityName.getValue()));
@@ -213,7 +214,9 @@ public class OpenApiSpecBuilder {
                 .each(((method, openApiOperation) -> {
                     openApiOperation.setTags(List.of(tag.getName()));
                     addResolved(context, method, openApiOperation, semanticType);
-                }));
+                }))
+                .combineParameters();
+
 
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if(relation.getSourceEndPoint().hasFlag(HiddenEndpointFlag.class)) {
@@ -236,7 +239,7 @@ public class OpenApiSpecBuilder {
             ContentAttribute contentAttribute) {
         var semanticType = AttributeType.of(contentAttribute);
         var contentPathItem = new OpenApiPathItem()
-                .setParameters(List.of(ENTITY_ID_PARAM))
+                .parameter(ENTITY_ID_PARAM)
                 .method(HttpMethod.GET, op -> {
                     op.setOperationId("get."+entity.getName().getValue()+"."+contentAttribute.getName());
                     op.setSummary("Retrieve the %s file stored with %s".formatted(
@@ -280,7 +283,8 @@ public class OpenApiSpecBuilder {
                 .each(((method, op) -> {
                     op.setTags(List.of(entity.getName().getValue()));
                     addResolved(context, method, op, semanticType);
-                }));
+                }))
+                .combineParameters();
 
         context.spec().getPaths().getItems().put("/"+entity.getPathSegment().getValue()+"/{id}/"+contentAttribute.getPathSegment().getValue(), contentPathItem);
 
@@ -301,7 +305,7 @@ public class OpenApiSpecBuilder {
         var semanticType = new RelationType(targetType);
 
         context.spec().getPaths().path(relationPath)
-                .setParameters(List.of(ENTITY_ID_PARAM))
+                .parameter(ENTITY_ID_PARAM)
                 .method(HttpMethod.GET, op -> {
                     op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
                     if(isCollection) {
@@ -431,12 +435,14 @@ public class OpenApiSpecBuilder {
                 .each(((method, op) -> {
                     op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
                     addResolved(context, method, op, semanticType);
-                }));
+                }))
+                .combineParameters();
 
         // For to-many relations, also have links to the individual items in the collection
         if (isCollection) {
             context.spec().getPaths().path(relationPath+"/{itemId}")
-                    .setParameters(List.of(ENTITY_ID_PARAM, new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString())))
+                    .parameter(ENTITY_ID_PARAM)
+                    .parameter(new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString()))
                     .method(HttpMethod.GET, op -> {
                         op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue()+".item");
                         op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
@@ -482,7 +488,8 @@ public class OpenApiSpecBuilder {
                     .each(((method, op) -> {
                         op.setTags(List.of(relation.getSourceEndPoint().getEntity().getValue()));
                         addResolved(context, method, op, new RelationItemType(relation.getSourceEndPoint().getEntity()));
-                    }));
+                    }))
+                    .combineParameters();
         }
     }
 
@@ -667,7 +674,7 @@ public class OpenApiSpecBuilder {
                             }
                         })
                 );
-        operation.setParameters(PARAMETER_RESOLVER.resolveRequestParameters(new HttpRequestType(method, semanticType), context).toList())
+        operation.parameters(PARAMETER_RESOLVER.resolveRequestParameters(new HttpRequestType(method, semanticType), context).toList())
                 /*.response(HttpStatusCode.DEFAULT, resp -> {
                     resp.setDescription("An unknown error occurred while processing the request");
                 })

@@ -352,14 +352,13 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "party"
       operationId: "get.party.summary"
       summary: "Retrieve the summary file stored with party"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -393,8 +392,6 @@ paths:
       operationId: "set.party.summary"
       summary: "Add or update the summary file stored with party"
       parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
@@ -429,9 +426,6 @@ paths:
       - "party"
       operationId: "delete.party.summary"
       summary: "Delete the summary file stored with party"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"
@@ -550,14 +544,13 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "insurance-case"
       operationId: "get.insurance-case"
       summary: "Retrieve the insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "OK"
@@ -587,9 +580,6 @@ paths:
       - "insurance-case"
       operationId: "update.insurance-case"
       summary: "Update all attributes of the insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       requestBody:
         description: "All attributes of the insurance-case have to be specified. Missing\
           \ attributes are treated as null"
@@ -627,9 +617,6 @@ paths:
       - "insurance-case"
       operationId: "patch.insurance-case"
       summary: "Update some attributes of the insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       requestBody:
         description: "Only attributes that have to be updated should be specified,\
           \ other attributes should not be present"
@@ -667,9 +654,6 @@ paths:
       - "insurance-case"
       operationId: "delete.insurance-case"
       summary: "Delete the insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The insurance-case has been deleted"
@@ -965,14 +949,13 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "insurance-case"
       operationId: "get.insurance-case.pdf"
       summary: "Retrieve the pdf file stored with insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -1006,8 +989,6 @@ paths:
       operationId: "set.insurance-case.pdf"
       summary: "Add or update the pdf file stored with insurance-case"
       parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
@@ -1042,9 +1023,6 @@ paths:
       - "insurance-case"
       operationId: "delete.insurance-case.pdf"
       summary: "Delete the pdf file stored with insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"
@@ -1069,14 +1047,13 @@ paths:
       required: true
       schema:
         type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
     get:
       tags:
       - "insurance-case"
       operationId: "get.insurance-case.thumb_nail"
       summary: "Retrieve the thumb_nail file stored with insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "200":
           description: "Contents of the stored file"
@@ -1110,8 +1087,6 @@ paths:
       operationId: "set.insurance-case.thumb_nail"
       summary: "Add or update the thumb_nail file stored with insurance-case"
       parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       - $ref: "#/components/parameters/header.Content-Disposition"
       requestBody:
         description: "File data to store"
@@ -1146,9 +1121,6 @@ paths:
       - "insurance-case"
       operationId: "delete.insurance-case.thumb_nail"
       summary: "Delete the thumb_nail file stored with insurance-case"
-      parameters:
-      - $ref: "#/components/parameters/header.If-Match"
-      - $ref: "#/components/parameters/header.If-None-Match"
       responses:
         "204":
           description: "The file has been deleted"

@@ -3,6 +3,8 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -33,13 +35,18 @@ public class OpenApiOperation {
     String description;
 
     @JsonInclude(Include.NON_EMPTY)
-    List<OpenApiPotentialReference<OpenApiParameter>> parameters;
+    final List<OpenApiPotentialReference<OpenApiParameter>> parameters = new ArrayList<>();
 
     @JsonInclude(Include.NON_EMPTY)
     OpenApiRequestBody requestBody;
 
     @JsonInclude(Include.NON_EMPTY)
     Map<HttpStatusCode, OpenApiPotentialReference<OpenApiResponse>> responses = new TreeMap<>(Comparator.comparing(HttpStatusCode::toString));
+
+    public OpenApiOperation parameters(Collection<OpenApiPotentialReference<OpenApiParameter>> parameters) {
+        this.parameters.addAll(parameters);
+        return this;
+    }
 
     public OpenApiOperation requestBody(Consumer<OpenApiRequestBody> requestBodyConsumer) {
         requestBody = new OpenApiRequestBody();

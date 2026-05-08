@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -45,7 +46,7 @@ public class OpenApiPaths {
         final Map<HttpMethod, OpenApiOperation> operations = new LinkedHashMap<>();
 
         @JsonInclude(Include.NON_EMPTY)
-        List<OpenApiPotentialReference<OpenApiParameter>> parameters;
+        final List<OpenApiPotentialReference<OpenApiParameter>> parameters = new ArrayList<>();
 
         public OpenApiOperation method(@NonNull HttpMethod method) {
             return operations.computeIfAbsent(method, (_unused) -> new OpenApiOperation());
@@ -58,6 +59,35 @@ public class OpenApiPaths {
 
         public OpenApiPathItem each(BiConsumer<HttpMethod, OpenApiOperation> consumer) {
             operations.forEach(consumer);
+            return this;
+        }
+
+        public OpenApiPathItem combineParameters() {
+            List<OpenApiPotentialReference<OpenApiParameter>> commonParameters = null;
+
+            // First, collect all common parameters
+            for (var operation : operations.values()) {
+                if (commonParameters == null) {
+                    commonParameters = new ArrayList<>(operation.getParameters());
+                }
+                commonParameters.retainAll(operation.getParameters());
+            }
+
+            // Next, add them to the stored common parameters
+            if (commonParameters != null) {
+                parameters.addAll(commonParameters);
+            }
+
+            // Finally, clear up common parameters from operations
+            for (var operation: operations.values()) {
+                operation.getParameters().removeAll(commonParameters);
+            }
+
+            return this;
+        }
+
+        public OpenApiPathItem parameter(@NonNull OpenApiPotentialReference<OpenApiParameter> parameter) {
+            parameters.add(parameter);
             return this;
         }
     }
