@@ -8,7 +8,7 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-contentstore-api')
 
-    testImplementation 'commons-io:commons-io:2.21.0'
+    testImplementation 'commons-io:commons-io:2.22.0'
 
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
     testFixturesImplementation 'com.adobe.testing:s3mock-testcontainers'
