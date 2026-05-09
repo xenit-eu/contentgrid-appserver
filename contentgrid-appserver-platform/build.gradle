@@ -26,6 +26,6 @@ dependencies {
         api 'com.networknt:json-schema-validator:1.5.9'
         api 'uk.co.datumedge:hamcrest-json:0.3'
 
-        api 'commons-io:commons-io:2.21.0'
+        api 'commons-io:commons-io:2.22.0'
     }
 }
