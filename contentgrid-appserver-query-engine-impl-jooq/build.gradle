@@ -23,7 +23,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
     testImplementation 'org.assertj:assertj-core'
-    testImplementation 'com.google.guava:guava:33.5.0-jre'
+    testImplementation 'com.google.guava:guava:33.6.0-jre'
 
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-jooq'
