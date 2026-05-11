@@ -905,7 +905,7 @@ public class ModelTestFixtures {
             .build();
 
     public static final Application APPLICATION = Application.builder()
-            .name(ApplicationName.of("default"))
+            .name(ApplicationName.of("demo-application"))
             .entity(INVOICE)
             .entity(PERSON)
             .entity(PRODUCT)

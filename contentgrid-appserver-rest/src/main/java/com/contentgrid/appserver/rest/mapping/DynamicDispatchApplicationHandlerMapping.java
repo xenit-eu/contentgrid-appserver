@@ -67,7 +67,7 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
         var applicationName = applicationNameExtractor.extract(request);
 
         return delegateHandlerMappings.computeIfAbsent(applicationName, name -> {
-            var application = applicationResolver.resolve(name).orElseThrow();
+            var application = applicationResolver.resolve(name);
             var mapping = new StaticApplicationRequestMappingHandlerMapping(application);
             mapping.setApplicationContext(obtainApplicationContext());
             mapping.setServletContext(getServletContext());

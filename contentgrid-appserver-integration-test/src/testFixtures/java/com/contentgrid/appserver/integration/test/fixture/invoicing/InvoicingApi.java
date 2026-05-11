@@ -51,7 +51,7 @@ public class InvoicingApi {
     private final ApplicationResolver applicationResolver;
 
     private Application getApplication() {
-        return applicationResolver.resolve(ApplicationName.of("default")).orElseThrow();
+        return applicationResolver.resolve(ApplicationName.of("default"));
     }
 
     private List<EntityInstance> findAll(EntityName entityName, String filterName, String value) {

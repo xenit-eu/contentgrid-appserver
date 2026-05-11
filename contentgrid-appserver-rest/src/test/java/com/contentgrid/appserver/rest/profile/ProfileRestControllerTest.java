@@ -17,7 +17,6 @@ import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -45,10 +44,10 @@ class ProfileRestControllerTest {
 
     @BeforeEach
     void setup() {
-        Mockito.doReturn(Optional.of(ModelTestFixtures.APPLICATION))
-                .when(resolver).resolve(Mockito.any());
-        Mockito.doReturn(ApplicationName.of("default"))
-                .when(nameExtractor).extract(Mockito.any());
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(ModelTestFixtures.APPLICATION);
+        Mockito.when(nameExtractor.extract(Mockito.any()))
+                .thenReturn(ApplicationName.of("default"));
     }
 
     @Test
@@ -64,7 +63,8 @@ class ProfileRestControllerTest {
 
     @Test
     void getProfileRoot_singleEntity() throws Exception {
-        Mockito.doReturn(Optional.of(Application.builder()
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(Application.builder()
                         .name(ApplicationName.of("single-entity-application"))
                         .entity(Entity.builder()
                                 .name(EntityName.of("single-entity"))
@@ -72,10 +72,9 @@ class ProfileRestControllerTest {
                                 .pathSegment(PathSegmentName.of("single-entities"))
                                 .linkName(LinkName.of("single-entities"))
                                 .build())
-                        .build()))
-                .when(resolver).resolve(Mockito.any());
-        Mockito.doReturn(ApplicationName.of("single-entity-application"))
-                .when(nameExtractor).extract(Mockito.any());
+                        .build());
+        Mockito.when(nameExtractor.extract(Mockito.any()))
+                .thenReturn(ApplicationName.of("single-entity-application"));
         mockMvc.perform(get("/profile").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.cg:entity").isArray());
@@ -83,12 +82,12 @@ class ProfileRestControllerTest {
 
     @Test
     void getProfileRoot_noEntities() throws Exception {
-        Mockito.doReturn(Optional.of(Application.builder()
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(Application.builder()
                         .name(ApplicationName.of("no-entity-application"))
-                        .build()))
-                .when(resolver).resolve(Mockito.any());
-        Mockito.doReturn(ApplicationName.of("no-entity-application"))
-                .when(nameExtractor).extract(Mockito.any());
+                        .build());
+        Mockito.when(nameExtractor.extract(Mockito.any()))
+                .thenReturn(ApplicationName.of("no-entity-application"));
         mockMvc.perform(get("/profile").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.cg:entity").doesNotExist());
