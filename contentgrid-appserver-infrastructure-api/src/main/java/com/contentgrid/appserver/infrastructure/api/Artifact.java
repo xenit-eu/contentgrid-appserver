@@ -37,8 +37,8 @@ public interface Artifact {
      * @throws ArtifactException if the artifact cannot be accessed
      * @throws ArtifactEntryNotFoundException if the entry does not exist
      */
-    default ArtifactEntry loadRequired(Path path) throws ArtifactException {
-        return load(path).orElseThrow(() -> new ArtifactEntryNotFoundException(getReference(), path.toString()));
+    default ArtifactEntry loadRequired(Path path) throws ArtifactException, ArtifactEntryNotFoundException {
+        return load(path).orElseThrow(() -> new ArtifactEntryNotFoundException(ArtifactEntryReference.of(getReference(), path.toString())));
     }
 
     /**
