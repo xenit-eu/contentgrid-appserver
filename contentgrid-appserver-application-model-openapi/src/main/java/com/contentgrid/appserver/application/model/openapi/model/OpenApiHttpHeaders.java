@@ -34,7 +34,7 @@ public class OpenApiHttpHeaders {
     public OpenApiHttpHeaders combinedWith(OpenApiHttpHeaders headers) {
         headers.items.forEach((name, header) -> {
             items.putIfAbsent(name, header);
-            items.computeIfPresent(name, (n, existing) -> existing.getOriginalObject().combinedWith(existing.getOriginalObject()));
+            items.computeIfPresent(name, (n, existing) -> existing.getOriginalObject().combinedWith(header.getOriginalObject()));
         });
         return this;
     }
