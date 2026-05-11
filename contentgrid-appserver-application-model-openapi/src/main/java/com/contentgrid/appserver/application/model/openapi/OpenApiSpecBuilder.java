@@ -675,10 +675,6 @@ public class OpenApiSpecBuilder {
                         })
                 );
         operation.parameters(PARAMETER_RESOLVER.resolveRequestParameters(new HttpRequestType(method, semanticType), context).toList())
-                /*.response(HttpStatusCode.DEFAULT, resp -> {
-                    resp.setDescription("An unknown error occurred while processing the request");
-                })
-                 */
                 .eachResponse((statusCode, resp) -> {
                     RESPONSE_HEADER_RESOLVER.resolveResponseHeaders(new HttpResponseType(method, statusCode, semanticType), context)
                             .forEachOrdered(e -> resp.getHeaders().getItems().putIfAbsent(e.getKey(), e.getValue()));
