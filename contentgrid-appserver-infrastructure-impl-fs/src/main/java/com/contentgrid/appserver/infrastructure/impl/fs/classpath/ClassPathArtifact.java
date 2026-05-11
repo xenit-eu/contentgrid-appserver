@@ -51,6 +51,9 @@ public class ClassPathArtifact implements Artifact {
             var urls = classLoader.getResources(resourceName);
             while (urls.hasMoreElements()) {
                 var url = urls.nextElement();
+                // Classpath resources can be on filesystem directly or inside jar files.
+                // Delegate to FilesystemDirectoryArtifact when the protocol is 'file'
+                // and to ZipArtifact when the protocol is 'jar'
                 switch (url.getProtocol()) {
                     case "file" -> {
                         var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()));
