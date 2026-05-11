@@ -32,6 +32,87 @@ The project is organized into modules:
 - **contentgrid-appserver-spring-boot-starter**: Spring boot starter for ContentGrid appserver applications.
 - **contentgrid-appserver-webjars**: ContentGrid module to embed and serve webjars like Swagger UI.
 
+## Configure your app
+
+Most properties are prefixed with `contentgrid.appserver`. System identity and event properties use the `contentgrid` prefix.
+
+### Application model
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.application-model` | Path to an application model JSON file (e.g. `classpath:my-app.json`). When set, loads the model from this resource. When absent, the model is loaded from the artifact defined by `contentgrid.appserver.infrastructure.location`. | — | No |
+
+### Infrastructure
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.infrastructure.location` | Location of the artifact directory that contains the application files. Accepts `classpath:`, `file:` and `zip:` URIs. | `classpath:.` | No |
+
+### Content store
+
+The content store type is selected with `contentgrid.appserver.content-store.type`.
+
+| Value | Description |
+|---|---|
+| `ephemeral` | Stores files in a temporary directory. Data is lost on restart. Useful for development. |
+| `fs` | Stores files on the local filesystem at a configurable path. |
+| `s3` | Stores files in an S3-compatible object store (e.g. MinIO or AWS S3). |
+
+#### Filesystem (`type=fs`)
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.content.fs.path` | Directory path where content files are stored. | — | Yes |
+
+#### S3 (`type=s3`)
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.content.s3.url` | S3 endpoint URL (e.g. `https://s3.amazonaws.com` or a MinIO URL). | — | Yes |
+| `contentgrid.appserver.content.s3.bucket` | Name of the S3 bucket to use. | — | Yes |
+| `contentgrid.appserver.content.s3.access-key` | S3 access key ID. | — | No |
+| `contentgrid.appserver.content.s3.secret-key` | S3 secret access key. | — | No |
+| `contentgrid.appserver.content.s3.region` | AWS region identifier (e.g. `eu-west-1`). | — | No |
+| `contentgrid.appserver.content.s3.connection-pool-size` | Maximum number of idle HTTP connections to keep in the pool. | `0` | No |
+| `contentgrid.appserver.content.s3.connection-pool-keep-alive-seconds` | How long idle connections are kept alive (in seconds). | `1` | No |
+
+### Content encryption
+
+When enabled, content is transparently encrypted before being written to the content store.
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.content.encryption.enabled` | Enables transparent content encryption. | `false` | No |
+| `contentgrid.appserver.content.encryption.bootstrap-tables` | Controls DEK table lifecycle on startup. `NONE` does nothing, `CREATE` creates the table, `CREATE_DROP` creates on start and drops on stop. | `NONE` | No |
+| `contentgrid.appserver.content.encryption.wrapper.algorithms` | Key wrapping algorithm(s) to use. Supported value: `NONE` (unencrypted symmetric key). | `NONE` | No |
+| `contentgrid.appserver.content.encryption.engine.algorithms` | Content encryption algorithm(s) to use. Supported values: `AES128_CTR`, `AES192_CTR`, `AES256_CTR`, `ALFRESCO`. | `AES128_CTR` | No |
+
+### Query engine
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.query-engine.count.timeout` | Maximum time allowed for a count query before falling back to estimate. Accepts Spring `Duration` format (e.g. `500ms`, `5s`). | `500ms` | No |
+| `contentgrid.appserver.query-engine.bootstrap-tables` | Controls database table lifecycle on startup. `NONE` does nothing, `CREATE` creates tables, `CREATE_DROP` creates on start and drops on stop. | `NONE` | No |
+
+### System
+
+These properties identify the running deployment and are used by both the actuator and event modules.
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.system.deployment-id` | Unique identifier of the deployment. | — | No |
+| `contentgrid.system.application-id` | Unique identifier of the application. | — | No |
+| `contentgrid.system.policy-package` | OPA policy package name used by the policy actuator. | — | No |
+| `contentgrid.variables` | Arbitrary key-value pairs made available as application variables (e.g. `contentgrid.variables.my-key=value`). | — | No |
+
+### Events
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.events.webhook-config-url` | URL to fetch the webhook configuration from. | — | No |
+| `contentgrid.events.rabbitmq.routing-key` | RabbitMQ routing key used when publishing change events. | `contentgrid.events` | No |
+| `contentgrid.events.rabbitmq.enabled` | Whether RabbitMQ is enabled. | `true` | No |
+
 ## Development
 
 ### Building the Project
