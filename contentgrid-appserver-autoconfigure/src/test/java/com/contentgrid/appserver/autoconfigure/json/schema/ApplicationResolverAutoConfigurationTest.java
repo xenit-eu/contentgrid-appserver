@@ -6,8 +6,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.registry.ApplicationResolverRegistry;
-import java.util.Optional;
+import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
+import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
@@ -18,8 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 class ApplicationResolverAutoConfigurationTest {
-
-    private static final ApplicationName APPLICATION = ApplicationName.of("default");
 
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
             // Use initializer to have default conversion service
@@ -35,10 +33,9 @@ class ApplicationResolverAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolverRegistry.class);
-                    assertThat(context).getBean(ApplicationResolverRegistry.class)
-                            .returns(false, resolver ->
-                                    resolver.resolve(APPLICATION).orElseThrow().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(ArtifactApplicationResolver.class);
+                    assertThat(context).getBean(ArtifactApplicationResolver.class)
+                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
 
@@ -48,10 +45,9 @@ class ApplicationResolverAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:.")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolverRegistry.class);
-                    assertThat(context).getBean(ApplicationResolverRegistry.class)
-                            .returns(false, resolver ->
-                                    resolver.resolve(APPLICATION).orElseThrow().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(ArtifactApplicationResolver.class);
+                    assertThat(context).getBean(ArtifactApplicationResolver.class)
+                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
 
@@ -61,10 +57,9 @@ class ApplicationResolverAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.application-model=classpath:application-model.json")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolverRegistry.class);
-                    assertThat(context).getBean(ApplicationResolverRegistry.class)
-                            .returns(false, resolver ->
-                                    resolver.resolve(APPLICATION).orElseThrow().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
+                    assertThat(context).getBean(SingleApplicationResolver.class)
+                            .returns(false, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
@@ -93,10 +88,9 @@ class ApplicationResolverAutoConfigurationTest {
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolverRegistry.class);
-                    assertThat(context).getBean(ApplicationResolverRegistry.class)
-                            .returns(true, resolver ->
-                                    resolver.resolve(APPLICATION).orElseThrow().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
+                    assertThat(context).getBean(SingleApplicationResolver.class)
+                            .returns(true, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
@@ -107,10 +101,9 @@ class ApplicationResolverAutoConfigurationTest {
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolverRegistry.class);
-                    assertThat(context).getBean(ApplicationResolverRegistry.class)
-                            .returns(true, resolver ->
-                                    resolver.resolve(APPLICATION).orElseThrow().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
+                    assertThat(context).getBean(SingleApplicationResolver.class)
+                            .returns(true, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
@@ -119,7 +112,9 @@ class ApplicationResolverAutoConfigurationTest {
 
         @Bean
         ApplicationResolver testApplicationResolver() {
-            return name -> Optional.of(Application.builder().name(name).build());
+            return new SingleApplicationResolver(Application.builder()
+                    .name(ApplicationName.of("default"))
+                    .build());
         }
     }
 }

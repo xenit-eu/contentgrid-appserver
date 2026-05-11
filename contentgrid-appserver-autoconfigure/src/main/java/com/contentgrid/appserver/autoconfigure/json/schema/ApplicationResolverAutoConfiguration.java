@@ -7,10 +7,9 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
-import com.contentgrid.appserver.registry.ApplicationResolverRegistry;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.io.IOException;
-import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,7 +19,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 
 @AutoConfiguration
@@ -46,12 +44,6 @@ public class ApplicationResolverAutoConfiguration {
     }
 
     @Bean
-    @Primary
-    ApplicationResolver applicationResolverRegistry(List<ApplicationResolver> resolvers) {
-        return new ApplicationResolverRegistry(resolvers);
-    }
-
-    @Bean
     ApplicationResolverValidator applicationResolverValidator(ObjectProvider<ApplicationResolver> applicationResolver) {
         return new ApplicationResolverValidator(applicationResolver);
     }
@@ -67,7 +59,7 @@ public class ApplicationResolverAutoConfiguration {
         public void afterPropertiesSet() {
             // Make sure resolving an application works.
             // If not, crash on application startup instead of on every request
-            applicationResolver.getObject().resolve(APPLICATION_NAME).orElseThrow();
+            Objects.requireNonNull(applicationResolver.getObject().resolve(APPLICATION_NAME));
         }
     }
 }

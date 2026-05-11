@@ -22,8 +22,6 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.contentgrid.appserver.registry.ApplicationNameExtractor;
-import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
@@ -32,7 +30,6 @@ import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -63,15 +60,9 @@ class InternalInverseRelationBlindOverwriteTest {
     static class TestConfig {
 
         @Bean
-        @Order(-1)
-        public ApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
-
-        @Bean
         @Primary
-        public ApplicationNameExtractor testApplicationNameExtractor() {
-            return request -> ApplicationName.of("department-employee-app");
+        public SingleApplicationResolver singleApplicationResolver() {
+            return new SingleApplicationResolver(APPLICATION);
         }
     }
 

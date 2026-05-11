@@ -29,6 +29,6 @@ public class ApplicationArgumentResolver implements HandlerMethodArgumentResolve
             NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest servletRequest = webRequest.getNativeRequest(HttpServletRequest.class);
 
-        return resolver.resolve(extractor.extract(servletRequest)).orElseThrow();
+        return resolver.resolve(extractor.extract(servletRequest));
     }
 }
