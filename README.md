@@ -84,8 +84,8 @@ When enabled, content is transparently encrypted before being written to the con
 |---|---|---|---|
 | `contentgrid.appserver.content.encryption.enabled` | Enables transparent content encryption. | `false` | No |
 | `contentgrid.appserver.content.encryption.bootstrap-tables` | Controls DEK table lifecycle on startup. `NONE` does nothing, `CREATE` creates the table, `CREATE_DROP` creates on start and drops on stop. | `NONE` | No |
-| `contentgrid.appserver.content.encryption.wrapper.algorithms` | Key wrapping algorithm(s) to use. Supported value: `NONE` (unencrypted symmetric key). | `NONE` | No |
-| `contentgrid.appserver.content.encryption.engine.algorithms` | Content encryption algorithm(s) to use. Supported values: `AES128_CTR`, `AES192_CTR`, `AES256_CTR`, `ALFRESCO`. | `AES128_CTR` | No |
+| `contentgrid.appserver.content.encryption.wrapper.algorithms` | List of key wrapping algorithms to use. Supported value: `NONE` (unencrypted symmetric key). | `NONE` | No |
+| `contentgrid.appserver.content.encryption.engine.algorithms` | List of Content encryption algorithms to use. Supported values: `AES128_CTR`, `AES192_CTR`, `AES256_CTR`, `ALFRESCO`. | `AES128_CTR` | No |
 
 ### Query engine
 

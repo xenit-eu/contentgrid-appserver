@@ -50,7 +50,7 @@ public interface Artifact {
      */
     List<ArtifactEntry> loadAll(Path path) throws ArtifactException;
 
-    default Artifact subDir(Path subDir) {
+    default Artifact subDir(@lombok.NonNull Path subDir) {
         return new Artifact() {
             @Override
             public ArtifactReference getReference() {
