@@ -6,12 +6,15 @@ This project is the heart of ContentGrid. It will serve as the API server for Co
 
 The project is organized into modules:
 
-- **contentgrid-appserver-app**: Configuration for an example application.
+- **contentgrid-appserver-actuators**: Custom Contentgrid actuators (e.g. webhooks and policy definitions).
+- **contentgrid-appserver-app**: Minimal spring boot application with configuration for an example application in testFixtures.
 - **contentgrid-appserver-application-model**: Core domain model for applications including:
   - Entities and attributes
   - Relationships (One-to-One, One-to-Many, Many-to-One, Many-to-Many)
   - Constraints (Required, Unique, Allowed Values)
   - Search filters (Exact, Prefix)
+- **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
+- **contentgrid-appserver-autoconfigure**: Autoconfiguration for appserver applications.
 - **contentgrid-appserver-contentstore-api**: Defines interfaces and data structures to query object storage.
 - **contentgrid-appserver-contentstore-impl-fs**: Implementation of contentstore API, using filesystem storage.
 - **contentgrid-appserver-contentstore-impl-s3**: Implementation of contentstore API, using S3-compatible storage.
@@ -19,11 +22,15 @@ The project is organized into modules:
 - **contentgrid-appserver-contentstore-impl-utils**: Content utils for dealing with input and output streams.
 - **contentgrid-appserver-domain**: Core domain layer defining apis and implementations to deal with entities, relations and content.
 - **contentgrid-appserver-domain-values**: Defines core data structures for representing input and output data.
-- **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
+- **contentgrid-appserver-events**: Implementation to send change events to RabbitMQ.
+- **contentgrid-appserver-infrastructure-api**: Defines interfaces and datastructures to load configuration files.
+- **contentgrid-appserver-infrastructure-impl-fs**: Implementation of infrastructure API, for loading files from filesystem directory, classpath or zip file.
 - **contentgrid-appserver-platform**: Platform defining dependencies for contentgrid-appserver.
 - **contentgrid-appserver-query-engine-api**: Defines interfaces and data structures to query database.
 - **contentgrid-appserver-query-engine-impl-jooq**: Implementation of *contentgrid-appserver-query-engine-api* using [JOOQ](https://www.jooq.org/).
 - **contentgrid-appserver-rest**: Defines the rest layer for interacting with entities, relations and content.
+- **contentgrid-appserver-spring-boot-starter**: Spring boot starter for ContentGrid appserver applications.
+- **contentgrid-appserver-webjars**: ContentGrid module to embed and serve webjars like Swagger UI.
 
 ## Development
 
