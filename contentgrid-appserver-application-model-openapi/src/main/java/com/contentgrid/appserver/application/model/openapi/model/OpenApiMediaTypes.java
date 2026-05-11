@@ -14,8 +14,6 @@ public class OpenApiMediaTypes {
     @JsonValue
     Map<String, OpenApiBodyDescription> mediatypes = new TreeMap<>();
 
-    private static final String JSON = "application/json";
-
     public OpenApiBodyDescription getJson() {
         return getMediaType(MediaType.APPLICATION_JSON);
     }

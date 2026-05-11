@@ -13,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Accessors(chain = true)
-final public class JsonSchemaOneOf implements JsonSchema {
+public final class JsonSchemaOneOf implements JsonSchema {
     @NonNull
     final List<? extends OpenApiPotentialReference<JsonSchema>> oneOf;
 

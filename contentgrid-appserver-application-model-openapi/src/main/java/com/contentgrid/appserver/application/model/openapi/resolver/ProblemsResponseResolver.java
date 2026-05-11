@@ -54,9 +54,9 @@ public class ProblemsResponseResolver implements ResponseResolver{
      */
     @RequiredArgsConstructor
     enum EndpointType {
-        RELATION_ITEM(t -> t instanceof RelationItemType),
+        RELATION_ITEM(RelationItemType.class::isInstance),
         ENTITY_COLLECTION(t -> t instanceof CollectionType ct && ct.getElementType() instanceof EntityType),
-        ENTITY_ITEM(t -> t instanceof EntityType),
+        ENTITY_ITEM(EntityType.class::isInstance),
         CONTENT(t -> t instanceof AttributeType.ContentAttributeType),
         RELATION_TO_ONE(t -> t instanceof RelationType rt && ENTITY_ITEM.matches(rt.getTarget())),
         RELATION_TO_MANY(t -> t instanceof RelationType rt && ENTITY_COLLECTION.matches(rt.getTarget())),

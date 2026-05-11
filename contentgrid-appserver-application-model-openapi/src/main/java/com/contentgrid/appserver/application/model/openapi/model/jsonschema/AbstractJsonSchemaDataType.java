@@ -44,7 +44,7 @@ public abstract sealed class AbstractJsonSchemaDataType implements JsonSchema pe
     @JsonInclude(Include.NON_DEFAULT)
     boolean writeOnly;
 
-    public AbstractJsonSchemaDataType(String type) {
+    protected AbstractJsonSchemaDataType(String type) {
         this(DataType.of(type));
     }
 

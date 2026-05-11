@@ -57,7 +57,6 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -484,9 +483,10 @@ class OpenApiSpecBuilderTest {
         assertThat(spec.getComponents().getSchemas().getItems())
                 .extractingByKey("test-entityResponse")
                 .isInstanceOfSatisfying(JsonSchemaObject.class, response -> {
-                    assertThat(response.getProperties().get("id")).isEqualTo(new JsonSchemaString().setFormat(Format.UUID));
-                    assertThat(response.getProperties().get("required_attr")).isEqualTo(jsonSchemaObject);
-                    assertThat(response.getProperties().get("optional_attr")).isEqualTo(jsonSchemaObject.orNull());
+                    assertThat(response.getProperties()).containsEntry("id",
+                            new JsonSchemaString().setFormat(Format.UUID));
+                    assertThat(response.getProperties()).containsEntry("required_attr", jsonSchemaObject);
+                    assertThat(response.getProperties()).containsEntry("optional_attr", jsonSchemaObject.orNull());
                 });
     }
 
@@ -544,14 +544,18 @@ class OpenApiSpecBuilderTest {
                 .build());
 
         // GET response
-        assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse")).isInstanceOfSatisfying(JsonSchemaObject.class, jsonSchemaObject -> {
-            assertThat(jsonSchemaObject.getProperties().get("id")).isEqualTo(new JsonSchemaString().setFormat(Format.UUID));
-            assertThat(jsonSchemaObject.getProperties().get("content").getOriginalObject()).isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
-                assertThat(object.getType()).isEqualTo(DataType.of("object").withType("null"));
-                assertThat(object.getProperties())
-                        .containsOnlyKeys("length", "mimetype", "filename");
-            });
-        });
+        assertThat(spec.getComponents().getSchemas().getItem("test-entityResponse")).isInstanceOfSatisfying(
+                JsonSchemaObject.class, jsonSchemaObject -> {
+                    assertThat(jsonSchemaObject.getProperties()).containsEntry("id",
+                            new JsonSchemaString().setFormat(Format.UUID));
+                    assertThat(
+                            jsonSchemaObject.getProperties().get("content").getOriginalObject()).isInstanceOfSatisfying(
+                            JsonSchemaObject.class, object -> {
+                                assertThat(object.getType()).isEqualTo(DataType.of("object").withType("null"));
+                                assertThat(object.getProperties())
+                                        .containsOnlyKeys("length", "mimetype", "filename");
+                            });
+                });
 
         // POST bodies
         assertThat(List.of(
@@ -643,20 +647,20 @@ class OpenApiSpecBuilderTest {
         assertThat(plainSchemas).allSatisfy(schema -> {
             assertThat(spec.getComponents().getSchemas().getItem(schema))
                     .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
-                        assertThat(object.getProperties()).containsKey("gender")
-                                .extracting("gender")
-                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")).orNull());
+                        assertThat(object.getProperties())
+                                .containsEntry("gender", new JsonSchemaEnum(List.of("female", "male")).orNull());
                     });
         });
+
         assertThat(formSchemas).allSatisfy(schema -> {
             assertThat(spec.getComponents().getSchemas().getItem(schema))
                     .isInstanceOfSatisfying(JsonSchemaObject.class, object -> {
-                        assertThat(object.getProperties()).containsKey("gender")
-                                .extracting("gender")
-                                .isEqualTo(new JsonSchemaEnum(List.of("female", "male")));
+                        assertThat(object.getProperties())
+                                .containsEntry("gender", new JsonSchemaEnum(List.of("female", "male")));
                         assertThat(object.getRequired()).doesNotContain("gender");
                     });
         });
+
     }
 
     @Test

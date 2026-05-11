@@ -5,18 +5,15 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 class Comparators {
-    public static final Comparator<String> UNDERSCORE_LAST = new Comparator<String>() {
-        @Override
-        public int compare(String s1, String s2) {
-            var s1Underscore = s1.charAt(0) == '_'?1:0;
-            var s2Underscore = s2.charAt(0) == '_'?1:0;
+    public static final Comparator<String> UNDERSCORE_LAST = (s1, s2) -> {
+        var s1Underscore = s1.charAt(0) == '_'?1:0;
+        var s2Underscore = s2.charAt(0) == '_'?1:0;
 
-            if(s1Underscore == s2Underscore) {
-                return s1.compareTo(s2);
-            }
-
-            return s1Underscore - s2Underscore;
+        if(s1Underscore == s2Underscore) {
+            return s1.compareTo(s2);
         }
+
+        return s1Underscore - s2Underscore;
     };
 
 }

@@ -19,6 +19,8 @@ import java.util.stream.Stream;
 
 public class ContentDispositionHeadersResolver implements ResponseHeaderResolver, RequestParameterResolver {
 
+    private static final String CONTENT_DISPOSITION = "Content-Disposition";
+
     private boolean hasContentDisposition(SemanticType type) {
         return type instanceof AttributeType.ContentAttributeType;
     }
@@ -34,7 +36,7 @@ public class ContentDispositionHeadersResolver implements ResponseHeaderResolver
         }
 
         return Stream.of(Map.entry(
-                "Content-Disposition", context.spec().getComponents().getHeaders().register("Content-Disposition", () -> {
+                CONTENT_DISPOSITION, context.spec().getComponents().getHeaders().register(CONTENT_DISPOSITION, () -> {
                     var h = new OpenApiHeaderDescription();
                     h.setDescription("Content-Disposition is always set to attachment, with optionally a filename");
                     h.setRequired(true);
@@ -54,9 +56,11 @@ public class ContentDispositionHeadersResolver implements ResponseHeaderResolver
             return Stream.empty();
         }
         return Stream.of(
-                context.spec().getComponents().getParameters().register("header.Content-Disposition", () -> new OpenApiParameter("Content-Disposition", In.HEADER)
-                        .setDescription("The disposition type is ignored, only the optional filename parameter is used to optionally set a filename")
-                        .setSchema(createContentDispositionSchema(context))
+                context.spec().getComponents().getParameters().register("header.Content-Disposition",
+                        () -> new OpenApiParameter(CONTENT_DISPOSITION, In.HEADER)
+                                .setDescription(
+                                        "The disposition type is ignored, only the optional filename parameter is used to optionally set a filename")
+                                .setSchema(createContentDispositionSchema(context))
                 )
         );
     }

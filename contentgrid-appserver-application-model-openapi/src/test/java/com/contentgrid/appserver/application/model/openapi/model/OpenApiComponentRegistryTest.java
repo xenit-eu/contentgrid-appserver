@@ -2,7 +2,7 @@ package com.contentgrid.appserver.application.model.openapi.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.application.model.openapi.model.OpenApiComponents.OpenApiComponentRegistry;
+import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaObject;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaString;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,7 +14,7 @@ class OpenApiComponentRegistryTest {
     void registersNewComponent() {
         var schemas = new OpenApiComponents().getSchemas();
 
-        var ref = schemas.register("test", () -> new JsonSchemaString());
+        var ref = schemas.register("test", JsonSchemaString::new);
 
         assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/schemas/test", null));
         assertThat(schemas.getItems()).containsEntry("test", new JsonSchemaString());
@@ -33,9 +33,9 @@ class OpenApiComponentRegistryTest {
     @Test
     void doesNotOverwriteExistingComponent() {
         var schemas = new OpenApiComponents().getSchemas();
-        schemas.register("test", () -> new JsonSchemaString());
+        schemas.register("test", JsonSchemaString::new);
 
-        schemas.register("test", () -> new JsonSchemaObject());
+        schemas.register("test", JsonSchemaObject::new);
 
         assertThat(schemas.getItems()).containsEntry("test", new JsonSchemaString());
     }
@@ -43,7 +43,7 @@ class OpenApiComponentRegistryTest {
     @Test
     void supplierNotCalledIfAlreadyRegistered() {
         var schemas = new OpenApiComponents().getSchemas();
-        schemas.register("test", () -> new JsonSchemaString());
+        schemas.register("test", JsonSchemaString::new);
 
         var callCount = new AtomicInteger(0);
         schemas.register("test", () -> {
@@ -58,7 +58,7 @@ class OpenApiComponentRegistryTest {
     void referenceHasCorrectPrefix() {
         var pathItems = new OpenApiComponents().getPathItems();
 
-        var ref = pathItems.register("content", () -> new OpenApiPaths.OpenApiPathItem());
+        var ref = pathItems.register("content", OpenApiPathItem::new);
 
         assertThat(ref).isEqualTo(new OpenApiReference<>("#/components/pathItems/content", null));
     }

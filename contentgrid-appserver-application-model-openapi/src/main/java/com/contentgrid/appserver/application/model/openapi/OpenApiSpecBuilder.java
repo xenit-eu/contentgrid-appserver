@@ -68,7 +68,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class OpenApiSpecBuilder {
 
     private static final RequestParameterResolver PARAMETER_RESOLVER;
