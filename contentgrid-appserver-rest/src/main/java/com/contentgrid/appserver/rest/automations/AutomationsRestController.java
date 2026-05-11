@@ -31,7 +31,7 @@ public class AutomationsRestController {
 
     @GetMapping
     public ResponseEntity<CollectionModel<AutomationRepresentationModel>> getAutomations(Application application, LinkFactoryProvider linkFactoryProvider) {
-        var model = modelResolver.resolve(application).orElseThrow();
+        var model = modelResolver.resolve(application);
         var automations = filterAutomations(model.getAutomations());
         return ResponseEntity.ok(assembler.withContext(application, linkFactoryProvider, false).toCollectionModel(automations));
     }
@@ -42,7 +42,7 @@ public class AutomationsRestController {
             LinkFactoryProvider linkFactoryProvider,
             @PathVariable(name = "id") String id
     ) {
-        var model = modelResolver.resolve(application).orElseThrow();
+        var model = modelResolver.resolve(application);
         var automation = filterAutomations(model.getAutomations()).stream()
                 .filter(aut -> aut.getId().equals(id))
                 .findFirst();

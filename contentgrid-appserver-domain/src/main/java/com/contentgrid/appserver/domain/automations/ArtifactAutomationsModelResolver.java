@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -22,10 +22,11 @@ public class ArtifactAutomationsModelResolver implements AutomationsModelResolve
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Override
-    public Optional<AutomationsModel> resolve(Application application) {
+    public AutomationsModel resolve(Application application) {
         try {
             return artifact.load(PATH)
-                    .map(this::readEntry);
+                    .map(this::readEntry)
+                    .orElseGet(() -> AutomationsModel.builder().automations(List.of()).build());
         } catch (ArtifactException e) {
             throw new IllegalStateException(e);
         }
