@@ -144,13 +144,6 @@ public class ProblemDetail {
             };
         }
 
-        static ProblemDetailCustomizer typeDiscriminator() {
-            return (self, object) -> new JsonSchemaComposite(
-                    object,
-                    new JsonSchemaDiscriminator("type")
-            );
-        }
-
         static ProblemDetailCustomizer type(@NonNull String... types) {
             return new ProblemDetailTypeSupplier(types);
         }
