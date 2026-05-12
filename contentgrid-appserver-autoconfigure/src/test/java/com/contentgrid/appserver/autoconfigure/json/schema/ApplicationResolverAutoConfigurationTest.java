@@ -6,7 +6,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -33,8 +32,8 @@ class ApplicationResolverAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ArtifactApplicationResolver.class);
-                    assertThat(context).getBean(ArtifactApplicationResolver.class)
+                    assertThat(context).hasSingleBean(ApplicationResolver.class);
+                    assertThat(context).getBean(ApplicationResolver.class)
                             .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
@@ -45,8 +44,8 @@ class ApplicationResolverAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:.")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ArtifactApplicationResolver.class);
-                    assertThat(context).getBean(ArtifactApplicationResolver.class)
+                    assertThat(context).hasSingleBean(ApplicationResolver.class);
+                    assertThat(context).getBean(ApplicationResolver.class)
                             .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
