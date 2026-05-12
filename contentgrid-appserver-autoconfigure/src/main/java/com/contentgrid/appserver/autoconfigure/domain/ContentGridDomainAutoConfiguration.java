@@ -9,6 +9,7 @@ import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
 import com.contentgrid.appserver.domain.automations.ArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.CachingAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
@@ -70,6 +71,6 @@ public class ContentGridDomainAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     AutomationsModelResolver artifactAutomationsResolver(Artifact artifact) {
-        return new ArtifactAutomationsModelResolver(artifact);
+        return new CachingAutomationsModelResolver(new ArtifactAutomationsModelResolver(artifact));
     }
 }
