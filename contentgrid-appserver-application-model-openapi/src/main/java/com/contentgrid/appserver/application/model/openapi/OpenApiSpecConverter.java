@@ -71,7 +71,7 @@ import java.util.Objects;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class OpenApiSpecBuilder {
+public class OpenApiSpecConverter {
 
     private static final RequestParameterResolver PARAMETER_RESOLVER;
     private static final ResponseHeaderResolver RESPONSE_HEADER_RESOLVER;

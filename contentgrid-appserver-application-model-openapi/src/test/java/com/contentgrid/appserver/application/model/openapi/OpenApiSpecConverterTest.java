@@ -70,13 +70,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class OpenApiSpecBuilderTest {
+class OpenApiSpecConverterTest {
 
     public static final OpenApiReference<JsonSchema> LINK_REFERENCE =
             new OpenApiReference<>("#/components/schemas/Link", null);
 
     private OpenApiSpec createSpec(Entity entity) {
-        return OpenApiSpecBuilder.convert(Application.builder()
+        return OpenApiSpecConverter.convert(Application.builder()
                 .name(ApplicationName.of("test-app"))
                 .entity(entity)
                 .build());
@@ -233,7 +233,7 @@ class OpenApiSpecBuilderTest {
 
     @Test
     void relations() {
-        var spec = OpenApiSpecBuilder.convert(Application.builder()
+        var spec = OpenApiSpecConverter.convert(Application.builder()
                 .name(ApplicationName.of("test-app"))
                 .entity(Entity.builder()
                         .name(EntityName.of("relation-target"))
@@ -613,7 +613,7 @@ class OpenApiSpecBuilderTest {
 
     @Test
     void allowedValuesAttribute() {
-        var spec = OpenApiSpecBuilder.convert(Application.builder()
+        var spec = OpenApiSpecConverter.convert(Application.builder()
                 .name(ApplicationName.of("test-app"))
                 .entity(Entity.builder()
                         .name(EntityName.of("party"))
@@ -665,7 +665,7 @@ class OpenApiSpecBuilderTest {
 
     @Test
     void biDirectionalRelation() {
-        var spec = OpenApiSpecBuilder.convert(Application.builder()
+        var spec = OpenApiSpecConverter.convert(Application.builder()
                 .name(ApplicationName.of("test-app"))
                 .entity(Entity.builder()
                         .name(EntityName.of("invoice"))
@@ -705,7 +705,7 @@ class OpenApiSpecBuilderTest {
 
 
     public static Stream<ArgumentSet> fullSpec() throws IOException, URISyntaxException {
-        var base = Path.of(OpenApiSpecBuilderTest.class.getResource("specs").toURI());
+        var base = Path.of(OpenApiSpecConverterTest.class.getResource("specs").toURI());
         try (var dirs = Files.list(base)) {
             return dirs
                     .filter(Files::isDirectory)
@@ -722,7 +722,7 @@ class OpenApiSpecBuilderTest {
         try (var appIs = new FileInputStream(basePath.resolve("application.json").toFile())) {
             application = new DefaultApplicationSchemaConverter().convert(appIs);
         }
-        var spec = OpenApiSpecBuilder.convert(application);
+        var spec = OpenApiSpecConverter.convert(application);
         var yaml = YAML_MAPPER.writeValueAsString(spec);
 
         String expectedOpenApi;
