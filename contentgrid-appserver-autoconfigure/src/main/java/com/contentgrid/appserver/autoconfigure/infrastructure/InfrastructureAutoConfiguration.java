@@ -47,7 +47,6 @@ public class InfrastructureAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     Artifact defaultArtifact(ArtifactReferenceResolver resolver, InfrastructureProperties properties) {
-        var reference = ArtifactReference.parse(properties.location());
-        return resolver.resolve(reference);
+        return resolver.resolve(ArtifactReference.of(properties.location()));
     }
 }

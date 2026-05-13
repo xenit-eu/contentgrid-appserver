@@ -8,7 +8,6 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,7 +22,7 @@ public class FilesystemDirectoryArtifact implements Artifact {
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(SCHEME, directory.toAbsolutePath().toString());
+        return ArtifactReference.of(SCHEME + ":" + directory.toAbsolutePath());
     }
 
     @Override

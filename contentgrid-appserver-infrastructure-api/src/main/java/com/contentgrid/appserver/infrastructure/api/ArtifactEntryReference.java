@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.infrastructure.api;
 
 import java.io.Serializable;
-import java.nio.file.Path;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -20,25 +19,11 @@ public class ArtifactEntryReference implements Serializable {
 
     /** The path of this entry relative to the artifact root, including the filename. */
     @NonNull
-    String relativePath;
-
-    /**
-     * The absolute path to the entry, including the path to the artifact.
-     * The path can point to a location that doesn't exist, e.g. path inside a zip archive.
-     */
-    public String getAbsolutePath() {
-        return Path.of(artifactReference.getPath()).resolve(relativePath).toString();
-    }
-
-    /**
-     * The filename of the entry.
-     */
-    public String getFilename() {
-        return relativePath.substring(relativePath.lastIndexOf('/') + 1);
-    }
+    String path;
 
     @Override
     public String toString() {
-        return artifactReference.getScheme() + ":" + getAbsolutePath();
+        var artifactRefString = artifactReference.toString();
+        return artifactRefString + (artifactRefString.endsWith("/") ? "":"/") + path;
     }
 }

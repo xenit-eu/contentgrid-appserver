@@ -29,10 +29,10 @@ public class ArtifactFlywayResourceProvider implements ResourceProvider {
     @SneakyThrows
     public Collection<LoadableResource> getResources(String prefix, String[] suffixes) {
         return artifact.loadAll(Path.of(".")).stream()
-                .filter(entry -> entry.getEntryReference().getFilename().startsWith(prefix))
-                .filter(entry -> Stream.of(suffixes)
-                        .anyMatch(suffix -> entry.getEntryReference().getFilename().endsWith(suffix)))
                 .map(ArtifactEntryLoadableResource::new)
+                .filter(resource -> resource.getFilename().startsWith(prefix))
+                .filter(resource -> Stream.of(suffixes)
+                        .anyMatch(suffix -> resource.getFilename().endsWith(suffix)))
                 .map(LoadableResource.class::cast)
                 .toList();
     }
@@ -50,22 +50,23 @@ public class ArtifactFlywayResourceProvider implements ResourceProvider {
 
         @Override
         public String getAbsolutePath() {
-            return entry.getEntryReference().getAbsolutePath();
+            return entry.getEntryReference().toString();
         }
 
         @Override
         public String getAbsolutePathOnDisk() {
-            return entry.getEntryReference().getAbsolutePath();
+            return entry.getEntryReference().toString();
         }
 
         @Override
         public String getFilename() {
-            return entry.getEntryReference().getFilename();
+            var entryPath = entry.getEntryReference().getPath();
+            return entryPath.substring(entryPath.lastIndexOf("/") + 1);
         }
 
         @Override
         public String getRelativePath() {
-            return entry.getEntryReference().getRelativePath();
+            return entry.getEntryReference().getPath();
         }
     }
 }

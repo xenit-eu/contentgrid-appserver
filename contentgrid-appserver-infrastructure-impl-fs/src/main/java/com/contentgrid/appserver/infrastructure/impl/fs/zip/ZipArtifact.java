@@ -22,7 +22,7 @@ public class ZipArtifact extends AbstractRemoteArtifact {
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(SCHEME, zipPath.toAbsolutePath().toString());
+        return ArtifactReference.of(SCHEME + ":" + zipPath.toAbsolutePath());
     }
 
     @Override

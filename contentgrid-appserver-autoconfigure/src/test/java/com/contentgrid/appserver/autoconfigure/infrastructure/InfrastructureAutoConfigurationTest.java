@@ -86,7 +86,7 @@ class InfrastructureAutoConfigurationTest {
             return new Artifact() {
                 @Override
                 public ArtifactReference getReference() {
-                    return ArtifactReference.of("test", "custom");
+                    return ArtifactReference.of("test:custom");
                 }
 
                 @Override

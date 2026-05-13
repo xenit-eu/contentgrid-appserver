@@ -29,7 +29,7 @@ public class ClassPathArtifact implements Artifact {
 
     @Override
     public ArtifactReference getReference() {
-        return ArtifactReference.of(SCHEME, directory.toString());
+        return ArtifactReference.of(SCHEME + ":" + directory);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ClassPathArtifact implements Artifact {
                     case "file" -> {
                         var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()));
                         for (var entry : fsArtifact.loadAll(Path.of(""))) {
-                            var classpathPath = targetPath.resolve(entry.getEntryReference().getRelativePath());
+                            var classpathPath = targetPath.resolve(entry.getEntryReference().getPath());
                             result.add(new ClassPathArtifactEntry(
                                     ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
                                     classLoader,
@@ -73,7 +73,7 @@ public class ClassPathArtifact implements Artifact {
                         var zipArtifact = zipArtifactCache.computeIfAbsent(
                                 Path.of(jarConn.getJarFileURL().toURI()), ZipArtifact::new);
                         for (var entry : zipArtifact.loadAll(targetPath)) {
-                            var classpathPath = Path.of(entry.getEntryReference().getRelativePath());
+                            var classpathPath = Path.of(entry.getEntryReference().getPath());
                             result.add(new ClassPathArtifactEntry(
                                     ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
                                     classLoader,

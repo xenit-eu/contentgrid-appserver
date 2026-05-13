@@ -20,12 +20,17 @@ public class FilesystemArtifactReferenceResolver implements ArtifactReferenceRes
 
     @Override
     public Artifact resolve(ArtifactReference reference) {
-        var path = Path.of(reference.getPath());
-        return switch (reference.getScheme()) {
-            case FilesystemDirectoryArtifact.SCHEME -> new FilesystemDirectoryArtifact(path);
-            case ZipArtifact.SCHEME -> new ZipArtifact(path);
-            case ClassPathArtifact.SCHEME -> new ClassPathArtifact(classLoader, path);
-            default -> null;
-        };
+        var array = reference.toString().split(":");
+        if (array.length == 2) {
+            var scheme = array[0];
+            var path = Path.of(array[1]);
+            return switch (scheme) {
+                case FilesystemDirectoryArtifact.SCHEME -> new FilesystemDirectoryArtifact(path);
+                case ZipArtifact.SCHEME -> new ZipArtifact(path);
+                case ClassPathArtifact.SCHEME -> new ClassPathArtifact(classLoader, path);
+                default -> null;
+            };
+        }
+        return null;
     }
 }
