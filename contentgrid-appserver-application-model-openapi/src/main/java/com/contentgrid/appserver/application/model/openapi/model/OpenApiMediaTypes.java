@@ -9,6 +9,9 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
+/**
+ * Mapping of media type to {@link OpenApiBodyDescription}
+ */
 @Value
 public class OpenApiMediaTypes {
     @JsonValue

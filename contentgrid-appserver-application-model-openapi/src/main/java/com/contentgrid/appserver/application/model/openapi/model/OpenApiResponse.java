@@ -8,6 +8,10 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Describes a single response from an API operation
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#response-object">Response Object</a>
+ */
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)

@@ -7,6 +7,11 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
+/**
+ * The root object of the OpenApi Description
+ * <p>
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#openapi-object">OpenAPI Object</a>
+ */
 @Value
 @RequiredArgsConstructor
 public class OpenApiSpec {

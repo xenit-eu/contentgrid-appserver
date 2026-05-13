@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.Op
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -15,6 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Holds a set of reusable objects for different aspects of the OAS.
+ * All objects defined within the Components Object will have no effect on the API unless they are explicitly referenced from outside the Components Object.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#components-object">Components Object</a>
+ */
 @Value
 public class OpenApiComponents {
     OpenApiComponentRegistry<JsonSchema> schemas = new OpenApiComponentRegistry<>("#/components/schemas/");
@@ -30,7 +36,7 @@ public class OpenApiComponents {
         @JsonIgnore
         String referencePrefix;
 
-        @JsonAnyGetter
+        @JsonValue
         Map<String, T> items = new TreeMap<>();
 
         public Map<String, T> getItems() {

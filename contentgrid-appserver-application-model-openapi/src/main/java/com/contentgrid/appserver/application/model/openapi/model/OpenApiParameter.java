@@ -11,6 +11,12 @@ import lombok.NonNull;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Describes a single operation parameter.
+ * <p>
+ * A unique parameter is defined by a combination of a {@link #name} and location ({@link #in}).
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#parameter-object">Parameter Object</a>
+ */
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)

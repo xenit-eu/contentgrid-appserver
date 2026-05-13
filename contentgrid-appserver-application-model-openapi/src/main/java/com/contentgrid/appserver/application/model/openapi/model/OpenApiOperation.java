@@ -20,6 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Describes a single API operation on a path.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#operation-object">Operation Object</a>
+ */
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -82,6 +86,10 @@ public class OpenApiOperation {
         return this;
     }
 
+    /**
+     * The HTTP Status Codes are used to indicate the status of the executed operation
+     * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#http-status-codes">HTTP status codes</a>
+     */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     @EqualsAndHashCode
     public static class HttpStatusCode {

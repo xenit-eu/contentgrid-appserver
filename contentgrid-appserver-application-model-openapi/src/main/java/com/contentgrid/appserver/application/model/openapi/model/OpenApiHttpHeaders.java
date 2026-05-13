@@ -14,6 +14,9 @@ import lombok.Value;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Mapping of the header name to its definition in a {@link OpenApiResponse}
+ */
 @Value
 public class OpenApiHttpHeaders {
     @JsonValue
@@ -39,6 +42,10 @@ public class OpenApiHttpHeaders {
         return this;
     }
 
+    /**
+     * Describes a single header for HTTP responses
+     * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#header-object">Header Object</a>
+     */
     @Data
     @Accessors(chain = true)
     @FieldDefaults(level = AccessLevel.PRIVATE)

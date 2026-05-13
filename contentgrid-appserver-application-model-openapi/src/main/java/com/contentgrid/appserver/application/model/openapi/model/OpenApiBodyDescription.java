@@ -7,6 +7,12 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+/**
+ * Each Media Type Object describes content structured in accordance with the media type identified by its key.
+ * <p>
+ * This object is always aggregated into a mapping managed by {@link OpenApiMediaTypes}
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#media-type-object">Media Type Object</a>
+ */
 @Data
 @Accessors(chain = true)
 public class OpenApiBodyDescription {

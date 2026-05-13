@@ -17,6 +17,7 @@ public final class JsonSchemaOneOf implements JsonSchema {
     @NonNull
     final List<? extends OpenApiPotentialReference<JsonSchema>> oneOf;
 
+    @SafeVarargs
     public JsonSchemaOneOf(OpenApiPotentialReference<JsonSchema>... oneOf) {
         this(List.of(oneOf));
     }

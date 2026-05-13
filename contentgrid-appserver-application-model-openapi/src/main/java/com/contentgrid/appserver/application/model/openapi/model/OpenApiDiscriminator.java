@@ -16,6 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * A polymorphic schema MAY include a Discriminator Object,
+ * which defines the name of the property that may be used as a hint for which schema of the anyOf or oneOf,
+ * or which schema that references the current schema in an allOf,
+ * is expected to validate the structure of the model.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#discriminator-object">Discriminator Object</a>
+ */
 @Data
 @Accessors(chain = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -37,6 +44,10 @@ public class OpenApiDiscriminator {
         return this;
     }
 
+    /**
+     * Converts a reference object to just its reference string,
+     * as the discriminator definition requires a direct reference, without a surrounding {@code $ref} object
+     */
     private static class DiscriminatorConverter implements Converter<OpenApiReference<JsonSchema>, String> {
 
         @Override

@@ -21,9 +21,13 @@ import lombok.Value;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Holds the relative paths to the individual endpoints and their operations.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#paths-object">Paths object</a>
+ */
 @Value
 public class OpenApiPaths {
-    @JsonAnyGetter
+    @JsonValue
     Map<String, OpenApiPotentialReference<OpenApiPathItem>> items = new TreeMap<>();
 
     public OpenApiPathItem path(@NonNull String path) {
@@ -35,6 +39,10 @@ public class OpenApiPaths {
     }
 
 
+    /**
+     * Describes the operations available on a single path.
+     * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#path-item-object">Path item object</a>
+     */
     @Data
     @Accessors(chain = true)
     @FieldDefaults(level = AccessLevel.PRIVATE)

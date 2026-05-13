@@ -8,6 +8,10 @@ import lombok.NonNull;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Adds metadata to a single tag that is used by the Operation Object.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#tag-object">Tag Object</a>
+ */
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 @Accessors(chain = true)

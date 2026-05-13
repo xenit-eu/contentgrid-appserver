@@ -5,6 +5,10 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+/**
+ * Describes a single request body.
+ * @see <a href="https://spec.openapis.org/oas/v3.2.0.html#request-body-object">Request Body Object</a>
+ */
 @Data
 @Accessors(chain = true)
 public class OpenApiRequestBody {
