@@ -24,7 +24,6 @@ import org.springframework.test.context.ActiveProfiles;
         }
 )
 @ActiveProfiles("bootRun")
-@Slf4j
 public class ContentgridPrometheusActuatorTest {
     @Autowired
     private TestRestTemplate rest;
@@ -32,17 +31,9 @@ public class ContentgridPrometheusActuatorTest {
     @Value("${local.management.port}")
     int managementPort;
 
-    @SpringBootApplication
-    static class TestApplication {
-        public static void main(String[] args) {
-            SpringApplication.run(TestApplication.class, args);
-        }
-    }
-
     @Test
     void prometheusEndpointIsPublic() {
         ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/prometheus", String.class);
-        log.debug(resp.toString());
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
     }
 }
