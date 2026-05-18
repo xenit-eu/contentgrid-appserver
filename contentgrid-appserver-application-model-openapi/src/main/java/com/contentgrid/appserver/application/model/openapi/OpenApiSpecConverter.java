@@ -298,15 +298,13 @@ public class OpenApiSpecConverter {
 
         var modifyMethod = isCollection?HttpMethod.POST:HttpMethod.PUT;
 
-        var relationPath = "/"+entity.getPathSegment().getValue()+"/{id}/"+relation.getSourceEndPoint().getPathSegment().getValue();
-
         SemanticType targetType = new EntityType(entityName);
         if(isCollection) {
             targetType = new CollectionType(targetType);
         }
         var semanticType = new RelationType(targetType);
 
-        context.spec().getPaths().path(relationPath)
+        context.spec().getPaths().path("/"+entity.getPathSegment().getValue()+"/{id}/"+relation.getSourceEndPoint().getPathSegment().getValue())
                 .parameter(ENTITY_ID_PARAM)
                 .method(HttpMethod.GET, op -> {
                     op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue());
@@ -440,59 +438,64 @@ public class OpenApiSpecConverter {
                 }))
                 .combineParameters();
 
-        // For to-many relations, also have links to the individual items in the collection
         if (isCollection) {
-            context.spec().getPaths().path(relationPath+"/{itemId}")
-                    .parameter(ENTITY_ID_PARAM)
-                    .parameter(new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString()))
-                    .method(HttpMethod.GET, op -> {
-                        op.setOperationId("get."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue()+".item");
-                        op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
-                                relation.getTargetEndPoint().getEntity().getValue(),
-                                relation.getSourceEndPoint().getEntity().getValue(),
-                                relation.getSourceEndPoint().getName().getValue()
-                        ));
-                        op.response(200, resp -> {
-                            resp.setDescription("OK");
-                            resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
-                        });
-                        op.response(404, resp -> {
-                            resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
-                                    relation.getSourceEndPoint().getName().getValue(),
-                                    relation.getTargetEndPoint().getEntity().getValue()
-                            ));
-                        });
-                    })
-                    .method(HttpMethod.DELETE, op -> {
-                        op.setOperationId("delete."+entity.getName().getValue()+"."+relation.getSourceEndPoint().getName().getValue()+".item");
-                        op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
-                                relation.getTargetEndPoint().getEntity().getValue(),
-                                relation.getSourceEndPoint().getName().getValue()
-                        ));
-                        op.response(204, resp -> {
-                            resp.setDescription("The link to %s has been removed from %s".formatted(
-                                    relation.getTargetEndPoint().getEntity().getValue(),
-                                    relation.getSourceEndPoint().getName().getValue()
-                            ));
-                        });
-                        op.response(404, resp -> {
-                            resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
-                                    relation.getSourceEndPoint().getName().getValue(),
-                                    relation.getTargetEndPoint().getEntity().getValue()
-                            ));
-                        });
-                        op.response(409, resp -> {
-                            resp.setDescription("You can not remove the %s link, because the inverse relation is marked as required".formatted(
-                                    relation.getSourceEndPoint().getName().getValue()
-                            ));
-                        });
-                    })
-                    .each(((method, op) -> {
-                        op.tag(relation.getSourceEndPoint().getEntity().getValue());
-                        addResolved(context, method, op, new RelationItemType(relation.getSourceEndPoint().getEntity()));
-                    }))
-                    .combineParameters();
+            // For to-many relations, also have links to the individual items in the collection
+            addRelationItem(context, entity, relation);
         }
+    }
+
+    private static void addRelationItem(OpenApiSpecContext context, Entity entity, Relation relation) {
+        var entityName = relation.getTargetEndPoint().getEntity();
+        context.spec().getPaths().path("/"+entity.getPathSegment().getValue()+"/{id}/"+relation.getSourceEndPoint().getPathSegment().getValue()+"/{itemId}")
+                .parameter(ENTITY_ID_PARAM)
+                .parameter(new OpenApiParameter("itemId", In.PATH).setRequired(true).setSchema(new JsonSchemaString()))
+                .method(HttpMethod.GET, op -> {
+                    op.setOperationId("get."+ entity.getName().getValue()+"."+ relation.getSourceEndPoint().getName().getValue()+".item");
+                    op.setSummary("Retrieve the %s identified by 'itemId' linked with %s as %s".formatted(
+                            relation.getTargetEndPoint().getEntity().getValue(),
+                            relation.getSourceEndPoint().getEntity().getValue(),
+                            relation.getSourceEndPoint().getName().getValue()
+                    ));
+                    op.response(200, resp -> {
+                        resp.setDescription("OK");
+                        resp.getContent().addJson(resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON));
+                    });
+                    op.response(404, resp -> {
+                        resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
+                                relation.getSourceEndPoint().getName().getValue(),
+                                relation.getTargetEndPoint().getEntity().getValue()
+                        ));
+                    });
+                })
+                .method(HttpMethod.DELETE, op -> {
+                    op.setOperationId("delete."+ entity.getName().getValue()+"."+ relation.getSourceEndPoint().getName().getValue()+".item");
+                    op.setSummary("Removes the link to %s identified by 'itemId' from %s".formatted(
+                            relation.getTargetEndPoint().getEntity().getValue(),
+                            relation.getSourceEndPoint().getName().getValue()
+                    ));
+                    op.response(204, resp -> {
+                        resp.setDescription("The link to %s has been removed from %s".formatted(
+                                relation.getTargetEndPoint().getEntity().getValue(),
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    });
+                    op.response(404, resp -> {
+                        resp.setDescription("The %s relation does not link to the %s identified by 'itemId'".formatted(
+                                relation.getSourceEndPoint().getName().getValue(),
+                                relation.getTargetEndPoint().getEntity().getValue()
+                        ));
+                    });
+                    op.response(409, resp -> {
+                        resp.setDescription("You can not remove the %s link, because the inverse relation is marked as required".formatted(
+                                relation.getSourceEndPoint().getName().getValue()
+                        ));
+                    });
+                })
+                .each(((method, op) -> {
+                    op.tag(relation.getSourceEndPoint().getEntity().getValue());
+                    addResolved(context, method, op, new RelationItemType(relation.getSourceEndPoint().getEntity()));
+                }))
+                .combineParameters();
     }
 
     private static OpenApiPotentialReference<JsonSchema> resolveCollectionSchema(EntityName entityName, OpenApiSpecContext context) {
