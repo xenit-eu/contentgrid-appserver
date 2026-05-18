@@ -13,6 +13,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
+    testRuntimeOnly 'io.micrometer:micrometer-registry-prometheus'
 }
 
 bootRun {
