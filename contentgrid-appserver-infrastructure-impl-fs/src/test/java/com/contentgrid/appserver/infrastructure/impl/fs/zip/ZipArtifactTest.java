@@ -1,10 +1,9 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,7 +45,7 @@ class ZipArtifactTest extends AbstractArtifactTest {
     }
 
     @AfterAll
-    static void cleanup() {
+    static void cleanup() throws IOException {
         artifact.close();
     }
 
@@ -56,15 +55,19 @@ class ZipArtifactTest extends AbstractArtifactTest {
     }
 
     @Test
-    void loadAll_nonExistentZip_throwsArtifactException() {
-        try (var missing = new ZipArtifact(tempDir.resolve("missing.zip"))) {
-            assertThatThrownBy(() -> missing.loadAll(Path.of("")))
-                    .isInstanceOf(ArtifactException.class);
+    void createArtifact_nonExistentZip_throwsIOException() {
+        var missingPath = tempDir.resolve("missing.zip");
+        boolean thrown;
+        try (var ignored = new ZipArtifact(missingPath)) {
+            thrown = false;
+        } catch (IOException e) {
+            thrown = true;
         }
+        assertThat(thrown).as("Creating a ZipArtifact for missing.zip should throw IOException").isTrue();
     }
 
     @Test
-    void loadAll_unreadableZip_throwsArtifactException() throws IOException {
+    void createArtifact_unreadableZip_throwsIOException() throws IOException {
         Assumptions.assumeTrue(Files.getFileAttributeView(tempDir, PosixFileAttributeView.class) != null,
                 "Skipping on non-POSIX filesystem");
         Assumptions.assumeFalse("root".equals(System.getProperty("user.name")),
@@ -75,12 +78,15 @@ class ZipArtifactTest extends AbstractArtifactTest {
             addEntry(zos, "file.txt", "hello");
         }
         Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
-        try (var lockedArtifact = new ZipArtifact(unreadablePath)) {
-            assertThatThrownBy(() -> lockedArtifact.loadAll(Path.of("")))
-                    .isInstanceOf(ArtifactException.class);
+        boolean thrown;
+        try (var ignored = new ZipArtifact(unreadablePath)) {
+            thrown = false;
+        } catch (IOException e) {
+            thrown = true;
         } finally {
             // Restore permissions, so that Junit can clean up the temp zip
             Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("rw-r--r--"));
         }
+        assertThat(thrown).as("Creating a ZipArtifact for unreadable.zip should throw IOException").isTrue();
     }
 }

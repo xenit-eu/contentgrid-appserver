@@ -32,9 +32,9 @@ class ApplicationResolverAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolver.class);
-                    assertThat(context).getBean(ApplicationResolver.class)
-                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
+                    assertThat(context).getBean(SingleApplicationResolver.class)
+                            .returns(false, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
@@ -44,9 +44,9 @@ class ApplicationResolverAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:.")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(ApplicationResolver.class);
-                    assertThat(context).getBean(ApplicationResolver.class)
-                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
+                    assertThat(context).getBean(SingleApplicationResolver.class)
+                            .returns(false, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
