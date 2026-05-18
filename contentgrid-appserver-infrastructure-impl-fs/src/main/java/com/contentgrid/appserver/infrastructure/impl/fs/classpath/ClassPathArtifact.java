@@ -23,6 +23,7 @@ public class ClassPathArtifact implements Artifact {
 
     private final ClassLoader classLoader;
     private final Path directory;
+    private volatile boolean closed = false;
 
     @Override
     public ArtifactReference getReference() {
@@ -30,7 +31,19 @@ public class ClassPathArtifact implements Artifact {
     }
 
     @Override
+    public void close() {
+        this.closed = true;
+    }
+
+    private void checkOpen() throws ArtifactException {
+        if (closed) {
+            throw new ArtifactException(getReference(), "artifact has been closed");
+        }
+    }
+
+    @Override
     public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
+        checkOpen();
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var classpathPath = directory.resolve(path).normalize();
         var resourceName = classpathPath.toString().replace('\\', '/');
@@ -42,6 +55,7 @@ public class ClassPathArtifact implements Artifact {
 
     @Override
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
+        checkOpen();
         var ref = getReference();
         var targetPath = directory.resolve(path).normalize();
         var resourceName = targetPath.toString().replace('\\', '/');

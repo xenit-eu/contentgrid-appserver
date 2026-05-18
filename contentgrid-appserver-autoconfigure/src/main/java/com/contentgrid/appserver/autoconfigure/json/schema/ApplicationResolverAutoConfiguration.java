@@ -5,11 +5,12 @@ import com.contentgrid.appserver.application.model.json.DefaultApplicationSchema
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
-import com.contentgrid.appserver.registry.CachingApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.InitializingBean;
@@ -30,7 +31,7 @@ public class ApplicationResolverAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnClass({SingleApplicationResolver.class, DefaultApplicationSchemaConverter.class})
     @ConditionalOnProperty("contentgrid.appserver.application-model")
-    ApplicationResolver applicationResolver(@Value("${contentgrid.appserver.application-model}") Resource resource) throws IOException, InvalidJsonException {
+    ApplicationResolver deprecatedApplicationResolver(@Value("${contentgrid.appserver.application-model}") Resource resource) throws IOException, InvalidJsonException {
         var applicationSchemaConverter = new DefaultApplicationSchemaConverter();
         var application = applicationSchemaConverter.convert(resource.getInputStream());
         return new SingleApplicationResolver(application);
@@ -38,10 +39,13 @@ public class ApplicationResolverAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass({ArtifactApplicationResolver.class, DefaultApplicationSchemaConverter.class})
+    @ConditionalOnClass({SingleApplicationResolver.class, DefaultApplicationSchemaConverter.class})
     @ConditionalOnProperty(name = "contentgrid.appserver.application-model", havingValue = "false", matchIfMissing = true)
-    ApplicationResolver artifactApplicationResolver(Artifact artifact) {
-        return new CachingApplicationResolver(new ArtifactApplicationResolver(artifact));
+    ApplicationResolver defaultApplicationResolver(Artifact artifact)
+            throws ArtifactException, ArtifactEntryUnreadableException, InvalidJsonException {
+        var entry = artifact.loadRequired(Path.of("application-model.json"));
+        var application = new DefaultApplicationSchemaConverter().convert(entry.getInputStream());
+        return new SingleApplicationResolver(application);
     }
 
     @Bean

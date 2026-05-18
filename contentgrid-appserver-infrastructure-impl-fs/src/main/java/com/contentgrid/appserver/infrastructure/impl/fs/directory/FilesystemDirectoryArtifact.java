@@ -20,6 +20,7 @@ public class FilesystemDirectoryArtifact implements Artifact {
     public static final String SCHEME = "file";
 
     private final Path directory;
+    private volatile boolean closed = false;
 
     @Override
     public ArtifactReference getReference() {
@@ -27,7 +28,19 @@ public class FilesystemDirectoryArtifact implements Artifact {
     }
 
     @Override
+    public void close() {
+        this.closed = true;
+    }
+
+    private void checkOpen() throws ArtifactException {
+        if (closed) {
+            throw new ArtifactException(getReference(), "artifact has been closed");
+        }
+    }
+
+    @Override
     public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
+        checkOpen();
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var file = directory.resolve(path).normalize();
         if (!Files.exists(file)) {
@@ -38,6 +51,7 @@ public class FilesystemDirectoryArtifact implements Artifact {
 
     @Override
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
+        checkOpen();
         var ref = getReference();
         var dir = directory.resolve(path).normalize();
         if (Files.isDirectory(dir)) {

@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.infrastructure.api;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +11,7 @@ import java.util.Optional;
  * The artifact's identity is expressed as an {@link ArtifactReference}, which can be used to reconstruct the artifact
  * via an {@link ArtifactReferenceResolver}.
  */
-public interface Artifact {
+public interface Artifact extends AutoCloseable {
 
     /**
      * Returns the reference that identifies this artifact.
@@ -50,6 +51,16 @@ public interface Artifact {
      */
     List<ArtifactEntry> loadAll(Path path) throws ArtifactException;
 
+    /**
+     * Closes this artifact and releases any resources associated with it.
+     * <p>
+     * After this method is called, any subsequent calls to {@link #load} or {@link #loadAll} will throw
+     * an {@link ArtifactException}. Implementations must be idempotent: calling {@code close()} more than
+     * once must have no additional effect.
+     */
+    @Override
+    default void close() throws IOException {}
+
     default Artifact subDir(@lombok.NonNull Path subDir) {
         return new Artifact() {
             @Override
@@ -65,6 +76,11 @@ public interface Artifact {
             @Override
             public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
                 return Artifact.this.loadAll(subDir.resolve(path).normalize());
+            }
+
+            @Override
+            public void close() throws IOException {
+                Artifact.this.close();
             }
         };
     }

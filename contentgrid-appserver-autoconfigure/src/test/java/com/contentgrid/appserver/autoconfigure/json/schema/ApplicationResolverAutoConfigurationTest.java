@@ -66,18 +66,21 @@ class ApplicationResolverAutoConfigurationTest {
     void checkWithApplicationModelProperty_nonExistingValue() {
         contextRunner
                 .withPropertyValues("contentgrid.appserver.application-model=classpath:unknown.json")
-                .run(context -> {
-                    assertThat(context).hasFailed();
-                });
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void checkWithInfrastructureLocationProperty_nonExistingValue() {
         contextRunner
                 .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:unknown")
-                .run(context -> {
-                    assertThat(context).hasFailed();
-                });
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void checkWithBrokenApplicationResolver() {
+        contextRunner
+                .withUserConfiguration(BrokenConfiguration.class)
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
@@ -114,6 +117,17 @@ class ApplicationResolverAutoConfigurationTest {
             return new SingleApplicationResolver(Application.builder()
                     .name(ApplicationName.of("default"))
                     .build());
+        }
+    }
+
+    @Configuration
+    static class BrokenConfiguration {
+
+        @Bean
+        ApplicationResolver brokenApplicationResolver() {
+            return name -> {
+                throw new UnsupportedOperationException("broken resolver");
+            };
         }
     }
 }

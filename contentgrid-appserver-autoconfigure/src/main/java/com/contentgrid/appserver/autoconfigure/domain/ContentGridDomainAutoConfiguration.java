@@ -7,16 +7,23 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
-import com.contentgrid.appserver.domain.automations.ArtifactAutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.AutomationsModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
-import com.contentgrid.appserver.domain.automations.CachingAutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Clock;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -70,7 +77,14 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    AutomationsModelResolver artifactAutomationsResolver(Artifact artifact) {
-        return new CachingAutomationsModelResolver(new ArtifactAutomationsModelResolver(artifact));
+    AutomationsModelResolver defaultAutomationsResolver(Artifact artifact)
+            throws ArtifactException, ArtifactEntryUnreadableException, IOException {
+        var objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        var maybeEntry = artifact.load(Path.of("automation", "automations.json"));
+        if (maybeEntry.isPresent()) {
+            var model = objectMapper.readValue(maybeEntry.get().getInputStream(), AutomationsModel.class);
+            return new SingleAutomationsModelResolver(model);
+        }
+        return new SingleAutomationsModelResolver(AutomationsModel.builder().automations(List.of()).build());
     }
 }

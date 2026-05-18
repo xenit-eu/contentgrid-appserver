@@ -5,7 +5,10 @@ import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +40,9 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact) {
-        return new PolicyActuator(artifact, policyVariables);
+    PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact)
+            throws ArtifactException, ArtifactEntryUnreadableException, IOException {
+        return PolicyActuator.fromArtifact(artifact, policyVariables);
     }
 
     @Bean
@@ -50,8 +54,9 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact) {
-        return new WebhookConfigActuator(artifact, webhookVariables);
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact)
+            throws ArtifactException, ArtifactEntryUnreadableException, IOException {
+        return WebhookConfigActuator.fromArtifact(artifact, webhookVariables);
     }
 
     @Bean

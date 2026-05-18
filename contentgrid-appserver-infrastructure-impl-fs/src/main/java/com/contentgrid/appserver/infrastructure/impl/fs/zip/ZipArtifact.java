@@ -19,6 +19,7 @@ public class ZipArtifact implements Artifact {
     public static final String SCHEME = "zip";
 
     private final Path zipPath;
+    private volatile boolean closed = false;
 
     @Override
     public ArtifactReference getReference() {
@@ -26,7 +27,19 @@ public class ZipArtifact implements Artifact {
     }
 
     @Override
+    public void close() {
+        this.closed = true;
+    }
+
+    private void checkOpen() throws ArtifactException {
+        if (closed) {
+            throw new ArtifactException(getReference(), "artifact has been closed");
+        }
+    }
+
+    @Override
     public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
+        checkOpen();
         var ref = getReference();
         var entryRef = ArtifactEntryReference.of(ref, path.toString());
         try (var zipFile = new ZipFile(zipPath.toFile())) {
@@ -41,6 +54,7 @@ public class ZipArtifact implements Artifact {
 
     @Override
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
+        checkOpen();
         var ref = getReference();
         var prefix = path.normalize();
         var result = new ArrayList<ArtifactEntry>();
