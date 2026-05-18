@@ -104,10 +104,11 @@ public class OpenApiPaths {
 
     public enum HttpMethod {
         GET,
-        PUT,
         POST,
+        PUT,
+        PATCH,
         DELETE,
-        PATCH;
+        ;
 
         @JsonValue
         public String getJsonValue() {

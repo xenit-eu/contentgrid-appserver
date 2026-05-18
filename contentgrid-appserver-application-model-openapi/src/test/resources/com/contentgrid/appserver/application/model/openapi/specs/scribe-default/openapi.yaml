@@ -179,35 +179,6 @@ paths:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "412":
           $ref: "#/components/responses/preconditionFailed"
-    delete:
-      tags:
-      - "insurance-case"
-      operationId: "delete.insurance-case"
-      summary: "Delete the insurance-case"
-      responses:
-        "204":
-          description: "The insurance-case has been deleted"
-        "400":
-          description: "Bad request: Invalid header"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.invalid-request-header"
-        "404":
-          description: "Resource not found: Item not found"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-        "409":
-          description: "The insurance-case can not be deleted because it is linked\
-            \ via a required relation"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.required-relation"
-        "412":
-          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "insurance-case"
@@ -243,6 +214,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "delete.insurance-case"
+      summary: "Delete the insurance-case"
+      responses:
+        "204":
+          description: "The insurance-case has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The insurance-case can not be deleted because it is linked\
+            \ via a required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
         "412":
           $ref: "#/components/responses/preconditionFailed"
   /insurance-cases/{id}/followups:
@@ -897,33 +897,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-    delete:
-      tags:
-      - "party"
-      operationId: "delete.party"
-      summary: "Delete the party"
-      responses:
-        "204":
-          description: "The party has been deleted"
-        "400":
-          description: "Bad request: Invalid header"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.invalid-request-header"
-        "404":
-          description: "Resource not found: Item not found"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-        "409":
-          description: "The party can not be deleted because it is linked via a required\
-            \ relation"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.required-relation"
     patch:
       tags:
       - "party"
@@ -956,6 +929,33 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+    delete:
+      tags:
+      - "party"
+      operationId: "delete.party"
+      summary: "Delete the party"
+      responses:
+        "204":
+          description: "The party has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The party can not be deleted because it is linked via a required\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
   /parties/{id}/subsidiary:
     parameters:
     - name: "id"

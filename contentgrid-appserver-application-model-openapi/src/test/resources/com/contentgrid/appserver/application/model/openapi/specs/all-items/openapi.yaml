@@ -646,35 +646,6 @@ paths:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "412":
           $ref: "#/components/responses/preconditionFailed"
-    delete:
-      tags:
-      - "entity-a"
-      operationId: "delete.entity-a"
-      summary: "Delete the entity-a"
-      responses:
-        "204":
-          description: "The entity-a has been deleted"
-        "400":
-          description: "Bad request: Invalid header"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.invalid-request-header"
-        "404":
-          description: "Resource not found: Item not found"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-        "409":
-          description: "The entity-a can not be deleted because it is linked via a\
-            \ required relation"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.required-relation"
-        "412":
-          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "entity-a"
@@ -710,6 +681,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "entity-a"
+      operationId: "delete.entity-a"
+      summary: "Delete the entity-a"
+      responses:
+        "204":
+          description: "The entity-a has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The entity-a can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
         "412":
           $ref: "#/components/responses/preconditionFailed"
   /entity-as/{id}/many-to-many:
@@ -2426,35 +2426,6 @@ paths:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "412":
           $ref: "#/components/responses/preconditionFailed"
-    delete:
-      tags:
-      - "entity-b"
-      operationId: "delete.entity-b"
-      summary: "Delete the entity-b"
-      responses:
-        "204":
-          description: "The entity-b has been deleted"
-        "400":
-          description: "Bad request: Invalid header"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.invalid-request-header"
-        "404":
-          description: "Resource not found: Item not found"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-        "409":
-          description: "The entity-b can not be deleted because it is linked via a\
-            \ required relation"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.required-relation"
-        "412":
-          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "entity-b"
@@ -2490,6 +2461,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "entity-b"
+      operationId: "delete.entity-b"
+      summary: "Delete the entity-b"
+      responses:
+        "204":
+          description: "The entity-b has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The entity-b can not be deleted because it is linked via a\
+            \ required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
         "412":
           $ref: "#/components/responses/preconditionFailed"
   /entity-bs/{id}/many-to-many-inverse:
@@ -3308,35 +3308,6 @@ paths:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
         "412":
           $ref: "#/components/responses/preconditionFailed"
-    delete:
-      tags:
-      - "sample-entity"
-      operationId: "delete.sample-entity"
-      summary: "Delete the sample-entity"
-      responses:
-        "204":
-          description: "The sample-entity has been deleted"
-        "400":
-          description: "Bad request: Invalid header"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.invalid-request-header"
-        "404":
-          description: "Resource not found: Item not found"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
-        "409":
-          description: "The sample-entity can not be deleted because it is linked\
-            \ via a required relation"
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/problemDetail.required-relation"
-        "412":
-          $ref: "#/components/responses/preconditionFailed"
     patch:
       tags:
       - "sample-entity"
@@ -3372,6 +3343,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "sample-entity"
+      operationId: "delete.sample-entity"
+      summary: "Delete the sample-entity"
+      responses:
+        "204":
+          description: "The sample-entity has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The sample-entity can not be deleted because it is linked\
+            \ via a required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
         "412":
           $ref: "#/components/responses/preconditionFailed"
   /sample-entities/{id}/content-attribute:
