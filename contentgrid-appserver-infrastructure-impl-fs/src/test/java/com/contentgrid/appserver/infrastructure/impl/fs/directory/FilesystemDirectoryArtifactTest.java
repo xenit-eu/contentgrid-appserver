@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,11 @@ class FilesystemDirectoryArtifactTest extends AbstractArtifactTest {
         Files.writeString(tempDir.resolve("config/sub/c.yaml"), "key: c");
     }
 
+    @AfterAll
+    static void cleanup() {
+        artifact.close();
+    }
+
     @Override
     protected Artifact getArtifact() {
         return artifact;
@@ -46,9 +52,8 @@ class FilesystemDirectoryArtifactTest extends AbstractArtifactTest {
                 "Skipping when running as root");
 
         var unreadableDir = Files.createTempDirectory(tempDir, "unreadable");
-        var lockedArtifact = new FilesystemDirectoryArtifact(unreadableDir);
         Files.setPosixFilePermissions(unreadableDir, PosixFilePermissions.fromString("---------"));
-        try {
+        try (var lockedArtifact = new FilesystemDirectoryArtifact(unreadableDir)) {
             assertThatThrownBy(() -> lockedArtifact.loadAll(Path.of("")))
                     .isInstanceOf(ArtifactException.class);
         } finally {

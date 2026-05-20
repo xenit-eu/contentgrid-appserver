@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +33,11 @@ class ClassPathArtifactTest {
 
             var classLoader = new URLClassLoader(new java.net.URL[]{root.toUri().toURL()});
             artifact = new ClassPathArtifact(classLoader, Path.of("test"));
+        }
+
+        @AfterAll
+        static void cleanup() {
+            artifact.close();
         }
 
         @Override
@@ -71,6 +77,11 @@ class ClassPathArtifactTest {
                 jos.write(content.getBytes());
             }
             jos.closeEntry();
+        }
+
+        @AfterAll
+        static void cleanup() {
+            artifact.close();
         }
 
         @Override

@@ -13,6 +13,7 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,11 @@ class ZipArtifactTest extends AbstractArtifactTest {
         zos.closeEntry();
     }
 
+    @AfterAll
+    static void cleanup() {
+        artifact.close();
+    }
+
     @Override
     protected Artifact getArtifact() {
         return artifact;
@@ -51,9 +57,10 @@ class ZipArtifactTest extends AbstractArtifactTest {
 
     @Test
     void loadAll_nonExistentZip_throwsArtifactException() {
-        var missing = new ZipArtifact(tempDir.resolve("missing.zip"));
-        assertThatThrownBy(() -> missing.loadAll(Path.of("")))
-                .isInstanceOf(ArtifactException.class);
+        try (var missing = new ZipArtifact(tempDir.resolve("missing.zip"))) {
+            assertThatThrownBy(() -> missing.loadAll(Path.of("")))
+                    .isInstanceOf(ArtifactException.class);
+        }
     }
 
     @Test
@@ -67,9 +74,8 @@ class ZipArtifactTest extends AbstractArtifactTest {
         try (var zos = new ZipOutputStream(new FileOutputStream(unreadablePath.toFile()))) {
             addEntry(zos, "file.txt", "hello");
         }
-        var lockedArtifact = new ZipArtifact(unreadablePath);
         Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
-        try {
+        try (var lockedArtifact = new ZipArtifact(unreadablePath)) {
             assertThatThrownBy(() -> lockedArtifact.loadAll(Path.of("")))
                     .isInstanceOf(ArtifactException.class);
         } finally {

@@ -17,30 +17,38 @@ class FilesystemArtifactReferenceResolverTest {
     private final FilesystemArtifactReferenceResolver resolver = new FilesystemArtifactReferenceResolver();
 
     @Test
-    void resolve_fileReference_returnsFileSystemDirectoryArtifact(@TempDir Path dir) {
+    void resolve_fileReference_returnsFileSystemDirectoryArtifact(@TempDir Path dir) throws IOException {
         var ref = ArtifactReference.of(FilesystemDirectoryArtifact.SCHEME, dir.toString());
-        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(FilesystemDirectoryArtifact.class,
-                artifact -> assertThat(artifact.getReference()).isEqualTo(ref));
+        try (var artifact = resolver.resolve(ref)) {
+            assertThat(artifact).isInstanceOf(FilesystemDirectoryArtifact.class);
+            assertThat(artifact.getReference()).isEqualTo(ref);
+        }
     }
 
     @Test
     void resolve_zipReference_returnsZipArtifact(@TempDir Path dir) throws IOException {
         var zip = Files.createFile(dir.resolve("artifact.zip"));
         var ref = ArtifactReference.of(ZipArtifact.SCHEME, zip.toString());
-        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(ZipArtifact.class,
-                artifact -> assertThat(artifact.getReference()).isEqualTo(ref));
+        try (var artifact = resolver.resolve(ref)) {
+            assertThat(artifact).isInstanceOf(ZipArtifact.class);
+            assertThat(artifact.getReference()).isEqualTo(ref);
+        }
     }
 
     @Test
-    void resolve_classpathReference_returnsClassPathArtifact() {
+    void resolve_classpathReference_returnsClassPathArtifact() throws IOException {
         var ref = ArtifactReference.of(ClassPathArtifact.SCHEME, "some/path");
-        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(ClassPathArtifact.class,
-                artifact -> assertThat(artifact.getReference()).isEqualTo(ref));
+        try (var artifact = resolver.resolve(ref)) {
+            assertThat(resolver.resolve(ref)).isInstanceOf(ClassPathArtifact.class);
+            assertThat(artifact.getReference()).isEqualTo(ref);
+        }
     }
 
     @Test
-    void resolve_unsupportedReference_returnsNull() {
+    void resolve_unsupportedReference_returnsNull() throws IOException {
         var ref = ArtifactReference.of("s3", "bucket/key");
-        assertThat(resolver.resolve(ref)).isNull();
+        try (var artifact = resolver.resolve(ref)) {
+            assertThat(artifact).isNull();
+        }
     }
 }

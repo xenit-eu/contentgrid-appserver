@@ -70,24 +70,26 @@ public class ClassPathArtifact implements Artifact {
                 // and to ZipArtifact when the protocol is 'jar'
                 switch (url.getProtocol()) {
                     case "file" -> {
-                        var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()));
-                        for (var entry : fsArtifact.loadAll(Path.of(""))) {
-                            var classpathPath = targetPath.resolve(entry.getEntryReference().getRelativePath());
-                            result.add(new ClassPathArtifactEntry(
-                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
-                                    classLoader,
-                                    classpathPath));
+                        try (var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()))) {
+                            for (var entry : fsArtifact.loadAll(Path.of(""))) {
+                                var classpathPath = targetPath.resolve(entry.getEntryReference().getRelativePath());
+                                result.add(new ClassPathArtifactEntry(
+                                        ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
+                                        classLoader,
+                                        classpathPath));
+                            }
                         }
                     }
                     case "jar" -> {
                         var jarConn = (JarURLConnection) url.openConnection();
-                        var zipArtifact = new ZipArtifact(Path.of(jarConn.getJarFileURL().toURI()));
-                        for (var entry : zipArtifact.loadAll(targetPath)) {
-                            var classpathPath = Path.of(entry.getEntryReference().getRelativePath());
-                            result.add(new ClassPathArtifactEntry(
-                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
-                                    classLoader,
-                                    classpathPath));
+                        try (var zipArtifact = new ZipArtifact(Path.of(jarConn.getJarFileURL().toURI()))) {
+                            for (var entry : zipArtifact.loadAll(targetPath)) {
+                                var classpathPath = Path.of(entry.getEntryReference().getRelativePath());
+                                result.add(new ClassPathArtifactEntry(
+                                        ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
+                                        classLoader,
+                                        classpathPath));
+                            }
                         }
                     }
                     default -> throw new UnsupportedOperationException("Protocol %s not supported".formatted(url.getProtocol()));
