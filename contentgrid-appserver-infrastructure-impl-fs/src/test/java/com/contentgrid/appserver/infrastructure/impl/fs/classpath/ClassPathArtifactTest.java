@@ -2,11 +2,11 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 
 import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipUtils;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -58,25 +58,17 @@ class ClassPathArtifactTest {
         static void setup() throws IOException {
             var jarPath = tempDir.resolve("test.jar");
             try (var jos = new JarOutputStream(Files.newOutputStream(jarPath))) {
-                addEntry(jos, "test/", null);
-                addEntry(jos, "test/file.txt", "hello");
-                addEntry(jos, "test/config/", null);
-                addEntry(jos, "test/config/a.yaml", "key: a");
-                addEntry(jos, "test/config/b.yaml", "key: b");
-                addEntry(jos, "test/config/sub/", null);
-                addEntry(jos, "test/config/sub/c.yaml", "key: c");
+                ZipUtils.addEntry(jos, "test/", null);
+                ZipUtils.addEntry(jos, "test/file.txt", "hello");
+                ZipUtils.addEntry(jos, "test/config/", null);
+                ZipUtils.addEntry(jos, "test/config/a.yaml", "key: a");
+                ZipUtils.addEntry(jos, "test/config/b.yaml", "key: b");
+                ZipUtils.addEntry(jos, "test/config/sub/", null);
+                ZipUtils.addEntry(jos, "test/config/sub/c.yaml", "key: c");
             }
 
             var classLoader = new URLClassLoader(new java.net.URL[]{jarPath.toUri().toURL()});
             artifact = new ClassPathArtifact(classLoader, Path.of("test"));
-        }
-
-        private static void addEntry(JarOutputStream jos, String name, String content) throws IOException {
-            jos.putNextEntry(new JarEntry(name));
-            if (content != null) {
-                jos.write(content.getBytes());
-            }
-            jos.closeEntry();
         }
 
         @AfterAll

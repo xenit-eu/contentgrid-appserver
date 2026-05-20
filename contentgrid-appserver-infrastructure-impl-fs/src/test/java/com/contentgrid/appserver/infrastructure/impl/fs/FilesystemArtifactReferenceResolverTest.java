@@ -6,8 +6,8 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
 import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
 import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryArtifact;
 import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipArtifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipUtils;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,7 +27,8 @@ class FilesystemArtifactReferenceResolverTest {
 
     @Test
     void resolve_zipReference_returnsZipArtifact(@TempDir Path dir) throws IOException {
-        var zip = Files.createFile(dir.resolve("artifact.zip"));
+        var zip = dir.resolve("artifact.zip");
+        ZipUtils.createZip(zip);
         var ref = ArtifactReference.of(ZipArtifact.SCHEME, zip.toString());
         try (var artifact = resolver.resolve(ref)) {
             assertThat(artifact).isInstanceOf(ZipArtifact.class);

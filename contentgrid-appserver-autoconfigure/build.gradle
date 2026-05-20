@@ -63,6 +63,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
+    testImplementation testFixtures(project(':contentgrid-appserver-infrastructure-impl-fs'))
 
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'

@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -30,18 +29,12 @@ class ZipArtifactTest extends AbstractArtifactTest {
     static void setup() throws IOException {
         zipPath = tempDir.resolve("test.zip");
         try (var zos = new ZipOutputStream(new FileOutputStream(zipPath.toFile()))) {
-            addEntry(zos, "config/a.yaml", "key: a");
-            addEntry(zos, "config/b.yaml", "key: b");
-            addEntry(zos, "config/sub/c.yaml", "key: c");
-            addEntry(zos, "file.txt", "hello");
+            ZipUtils.addEntry(zos, "config/a.yaml", "key: a");
+            ZipUtils.addEntry(zos, "config/b.yaml", "key: b");
+            ZipUtils.addEntry(zos, "config/sub/c.yaml", "key: c");
+            ZipUtils.addEntry(zos, "file.txt", "hello");
         }
         artifact = new ZipArtifact(zipPath);
-    }
-
-    private static void addEntry(ZipOutputStream zos, String name, String content) throws IOException {
-        zos.putNextEntry(new ZipEntry(name));
-        zos.write(content.getBytes());
-        zos.closeEntry();
     }
 
     @AfterAll
@@ -67,6 +60,19 @@ class ZipArtifactTest extends AbstractArtifactTest {
     }
 
     @Test
+    void createArtifact_emptyZip_throwsIOException() throws IOException {
+        var emptyPath = tempDir.resolve("empty.zip");
+        Files.createFile(emptyPath); // empty file
+        boolean thrown;
+        try (var ignored = new ZipArtifact(emptyPath)) {
+            thrown = false;
+        } catch (IOException e) {
+            thrown = true;
+        }
+        assertThat(thrown).as("Creating a ZipArtifact for empty.zip should throw IOException").isTrue();
+    }
+
+    @Test
     void createArtifact_unreadableZip_throwsIOException() throws IOException {
         Assumptions.assumeTrue(Files.getFileAttributeView(tempDir, PosixFileAttributeView.class) != null,
                 "Skipping on non-POSIX filesystem");
@@ -74,9 +80,7 @@ class ZipArtifactTest extends AbstractArtifactTest {
                 "Skipping when running as root");
 
         var unreadablePath = tempDir.resolve("unreadable.zip");
-        try (var zos = new ZipOutputStream(new FileOutputStream(unreadablePath.toFile()))) {
-            addEntry(zos, "file.txt", "hello");
-        }
+        ZipUtils.createZip(unreadablePath);
         Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
         boolean thrown;
         try (var ignored = new ZipArtifact(unreadablePath)) {
