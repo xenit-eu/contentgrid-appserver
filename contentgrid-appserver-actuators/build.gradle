@@ -9,6 +9,7 @@ dependencies {
     api project(':contentgrid-appserver-domain')
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'com.contentgrid.common:contentgrid-common-spring-actuators:0.0.1-SNAPSHOT'
 
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
@@ -18,4 +19,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.hamcrest:hamcrest'
+    testImplementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.0.1-SNAPSHOT') {
+        capabilities {
+            requireCapability('com.contentgrid.common:spring-boot-3:0.0.1-SNAPSHOT')
+        }
+    }
 }
