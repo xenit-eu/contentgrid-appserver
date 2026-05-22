@@ -11,18 +11,21 @@ contentgrid:
   system:
     policyPackage: xfb0e9318f3894300a64edba3532e6ac0
   events:
-    rabbitmq.enabled: false
+    rabbitmq.enabled: true
+
+#
+#spring:
+#  autoconfigure:
+#    exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
 spring:
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
-
-# spring:
-#   rabbitmq:
-#     host: localhost
-#     port: 5672
-#     username: guest
-#     password: guest
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: slingshot
+    password: password
+    template:
+     exchange: contentgrid.apps
 
 # When unauthenticated, you get HTTP 403 instead of 401 if you don't have the following
 

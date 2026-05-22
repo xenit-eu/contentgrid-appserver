@@ -212,7 +212,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 .name(AttributeName.of(attributeName))
                                 .column(ColumnName.of(attributeName))
                                 .type(Type.TEXT)
-                                .flag(SyntheticAttributeFlag.INSTANCE)
+//                                .flag(SyntheticAttributeFlag.INSTANCE) // TODO.
                                 .build();
                         this.attributes.put(AttributeName.of(attributeName), hiddenTextAttribute);
                     }

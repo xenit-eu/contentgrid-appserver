@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchContentAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -222,6 +223,11 @@ public class ContentgridAppConfiguration {
                         .operation(Operation.EXACT)
                         .name(FilterName.of("shipments.address.country"))
                         .attributePath(PropertyPath.of(RelationName.of("shipments"), AttributeName.of("address"), AttributeName.of("country")))
+                        .build())
+                .searchFilter(FullTextSearchContentAttributeSearchFilter.builder()
+                        .name(FilterName.of("content"))
+                        .locale(Locale.ENGLISH) // TODO: double-check.
+                        .attributePath(PropertyPath.of(AttributeName.of("content")))
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("number"))
