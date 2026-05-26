@@ -13,7 +13,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class ClassPathArtifact implements Artifact {
 
     private final ClassLoader classLoader;
     private final Path directory;
+    private final Map<Path, ZipArtifact> zipArtifactCache = new ConcurrentHashMap<>();
 
     @Override
     public ArtifactReference getReference() {
@@ -67,7 +70,8 @@ public class ClassPathArtifact implements Artifact {
                     }
                     case "jar" -> {
                         var jarConn = (JarURLConnection) url.openConnection();
-                        var zipArtifact = new ZipArtifact(Path.of(jarConn.getJarFileURL().toURI()));
+                        var zipArtifact = zipArtifactCache.computeIfAbsent(
+                                Path.of(jarConn.getJarFileURL().toURI()), ZipArtifact::new);
                         for (var entry : zipArtifact.loadAll(targetPath)) {
                             var classpathPath = Path.of(entry.getEntryReference().getRelativePath());
                             result.add(new ClassPathArtifactEntry(
