@@ -1,24 +1,24 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
+import com.contentgrid.appserver.infrastructure.api.AbstractRemoteArtifact;
 import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactException;
 import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
+import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryArtifact;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.zip.ZipFile;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ZipArtifact implements Artifact {
+public class ZipArtifact extends AbstractRemoteArtifact {
 
+    private static final String TEMP_DIR_PREFIX = "zip-artifact-";
     public static final String SCHEME = "zip";
 
     private final Path zipPath;
+    private Path tempDir;
 
     @Override
     public ArtifactReference getReference() {
@@ -26,34 +26,42 @@ public class ZipArtifact implements Artifact {
     }
 
     @Override
-    public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
-        var ref = getReference();
-        var entryRef = ArtifactEntryReference.of(ref, path.toString());
+    protected Artifact createDelegate() throws ArtifactException {
+        var reference = getReference();
         try (var zipFile = new ZipFile(zipPath.toFile())) {
-            if (zipFile.getEntry(path.toString()) == null) {
-                return Optional.empty();
-            }
-        } catch (IOException e) {
-            throw new ArtifactException(ref, e);
-        }
-        return Optional.of(new ZipArtifactEntry(entryRef, zipPath));
-    }
-
-    @Override
-    public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
-        var ref = getReference();
-        var prefix = path.normalize();
-        var result = new ArrayList<ArtifactEntry>();
-        try (var zipFile = new ZipFile(zipPath.toFile())) {
-            zipFile.entries().asIterator().forEachRemaining(entry -> {
-                var entryPath = Path.of(entry.getName());
-                if ((prefix.toString().isEmpty() || entryPath.startsWith(prefix)) && !entry.isDirectory()) {
-                    result.add(new ZipArtifactEntry(ArtifactEntryReference.of(ref, entry.getName()), zipPath));
+            tempDir = Files.createTempDirectory(TEMP_DIR_PREFIX);
+            zipFile.entries().asIterator().forEachRemaining(zipEntry -> {
+                try {
+                    if (!zipEntry.isDirectory()) {
+                        var name = zipEntry.getName();
+                        var directory = name.substring(0, name.lastIndexOf('/') + 1);
+                        Files.createDirectories(tempDir.resolve(directory)); // create missing directories first
+                        Files.write(tempDir.resolve(name), zipFile.getInputStream(zipEntry).readAllBytes());
+                    }
+                } catch (IOException e) {
+                    // tempDir is not writable, or zipEntry is not readable
+                    throw new WrappedIOException(e);
                 }
             });
+            return new FilesystemDirectoryArtifact(tempDir);
         } catch (IOException e) {
-            throw new ArtifactException(ref, e);
+            throw new ArtifactException(reference, e);
+        } catch (WrappedIOException e) {
+            throw new ArtifactException(reference, e.unwrap());
         }
-        return result;
+    }
+
+    /**
+     * An {@link IOException} wrapped in a {@link RuntimeException} so that it can be used inside lambda functions.
+     */
+    private static class WrappedIOException extends RuntimeException {
+
+        public WrappedIOException(IOException cause) {
+            super(cause);
+        }
+
+        public IOException unwrap() {
+            return (IOException) getCause();
+        }
     }
 }
