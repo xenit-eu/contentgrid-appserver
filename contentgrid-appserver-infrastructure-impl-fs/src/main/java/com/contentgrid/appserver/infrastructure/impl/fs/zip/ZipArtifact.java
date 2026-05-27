@@ -8,6 +8,7 @@ import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDire
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.zip.ZipFile;
 import lombok.RequiredArgsConstructor;
 
@@ -29,7 +30,8 @@ public class ZipArtifact extends AbstractRemoteArtifact {
     protected Artifact createDelegate() throws ArtifactException {
         var reference = getReference();
         try (var zipFile = new ZipFile(zipPath.toFile())) {
-            tempDir = Files.createTempDirectory(TEMP_DIR_PREFIX);
+            tempDir = Files.createTempDirectory(TEMP_DIR_PREFIX, PosixFilePermissions
+                    .asFileAttribute(PosixFilePermissions.fromString("rwx------")));
             zipFile.entries().asIterator().forEachRemaining(zipEntry -> {
                 try {
                     if (!zipEntry.isDirectory()) {
