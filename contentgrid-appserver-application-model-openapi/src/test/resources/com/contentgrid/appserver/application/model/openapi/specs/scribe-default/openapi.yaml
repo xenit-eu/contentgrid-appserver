@@ -1,0 +1,2084 @@
+openapi: "3.2.0"
+info:
+  title: "DemoApplication"
+  version: "1.0"
+tags:
+- name: "insurance-case"
+  description: ""
+  kind: "nav"
+- name: "party"
+  description: "An individual or organization"
+  kind: "nav"
+paths:
+  /insurance-cases:
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "list.insurance-case"
+      summary: "Retrieve insurance-case list"
+      parameters:
+      - name: "owning_party.name"
+        in: "query"
+        description: "owning_party.name"
+        schema:
+          type: "string"
+          description: "Owning party: Name of the party"
+      - name: "owning_party.name~prefix"
+        in: "query"
+        description: "owning_party.name~prefix"
+        schema:
+          type: "string"
+          description: "Owning party: Starts with name"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        schema:
+          type: "string"
+          examples:
+          - "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/insurance-caseCollection"
+        "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+    post:
+      tags:
+      - "insurance-case"
+      operationId: "create.insurance-case"
+      summary: "Create a new insurance-case"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/insurance-casePostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePostFormBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/insurance-casePostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The insurance-case has been created"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Location:
+              description: "The URL of the created insurance-case"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/insurance-caseResponse"
+        "400":
+          description: "The insurance-case can not be created due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "409":
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+  /insurance-cases/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case"
+      summary: "Retrieve the insurance-case"
+      responses:
+        "200":
+          description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/insurance-caseResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "insurance-case"
+      operationId: "update.insurance-case"
+      summary: "Update all attributes of the insurance-case"
+      requestBody:
+        description: "All attributes of the insurance-case have to be specified. Missing\
+          \ attributes are treated as null"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/insurance-casePutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePutFormBody"
+      responses:
+        "204":
+          description: "The insurance-case has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "The insurance-case can not be updated due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    patch:
+      tags:
+      - "insurance-case"
+      operationId: "patch.insurance-case"
+      summary: "Update some attributes of the insurance-case"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/insurance-casePatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/insurance-casePatchFormBody"
+      responses:
+        "204":
+          description: "The insurance-case has been updated"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "The insurance-case can not be updated due to a problem with\
+            \ the submitted data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "delete.insurance-case"
+      summary: "Delete the insurance-case"
+      responses:
+        "204":
+          description: "The insurance-case has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The insurance-case can not be deleted because it is linked\
+            \ via a required relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+  /insurance-cases/{id}/followups:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case.followups"
+      summary: "Retrieve the insurance-case list linked with insurance-case as followups"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/insurance-caseCollection"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+    post:
+      tags:
+      - "insurance-case"
+      operationId: "add.insurance-case.followups"
+      summary: "Add links to insurance-case list that is linked with insurance-case\
+        \ as followups, in addition to the existing insurance-case list"
+      requestBody:
+        description: "Newline separated list of insurance-case URIs"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "array"
+              items:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The list of insurance-case is linked with insurance-case as\
+            \ followups"
+        "400":
+          description: "Bad request: Invalid property data, Invalid header, Invalid\
+            \ body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some insurance-case that is already\
+            \ linked with a different insurance-case as followups"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "clear.insurance-case.followups"
+      summary: "Removes all links to insurance-case from followups"
+      responses:
+        "204":
+          description: "All links to insurance-case have been removed from followups"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "You can not remove the followups link, because the inverse\
+            \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+  /insurance-cases/{id}/followups/{itemId}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - name: "itemId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case.followups.item"
+      summary: "Retrieve the insurance-case identified by 'itemId' linked with insurance-case\
+        \ as followups"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/insurance-caseResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The followups relation does not link to the insurance-case\
+            \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "delete.insurance-case.followups.item"
+      summary: "Removes the link to insurance-case identified by 'itemId' from followups"
+      responses:
+        "204":
+          description: "The link to insurance-case has been removed from followups"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The followups relation does not link to the insurance-case\
+            \ identified by 'itemId'"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+        "409":
+          description: "You can not remove the followups link, because the inverse\
+            \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+  /insurance-cases/{id}/owning-party:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case.owning_party"
+      summary: "Retrieve the party linked with insurance-case as owning_party"
+      responses:
+        "200":
+          description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/partyResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The owning_party relation does not link to any party"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "insurance-case"
+      operationId: "set.insurance-case.owning_party"
+      summary: "Set the party that is linked with insurance-case as owning_party"
+      requestBody:
+        description: "One party URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              format: "uri"
+              examples:
+              - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The party is linked with insurance-case as owning_party"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "Multiple URIs are given, but owning_party can only refer to\
+            \ one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some party that is already linked with\
+            \ a different insurance-case as owning_party"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "clear.insurance-case.owning_party"
+      summary: "Removes the link to party from owning_party"
+      responses:
+        "204":
+          description: "The link to party has been removed from owning_party"
+        "400":
+          description: "You can not remove the owning_party link, because it is marked\
+            \ as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+        "409":
+          description: "You can not remove the owning_party link, because the inverse\
+            \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+  /insurance-cases/{id}/pdf:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case.pdf"
+      summary: "Retrieve the pdf file stored with insurance-case"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          headers:
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "No pdf file is stored with insurance-case"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "insurance-case"
+      operationId: "set.insurance-case.pdf"
+      summary: "Add or update the pdf file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.Content-Disposition"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "Bad request: Invalid header, Invalid body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "delete.insurance-case.pdf"
+      summary: "Delete the pdf file stored with insurance-case"
+      responses:
+        "204":
+          description: "The file has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+  /insurance-cases/{id}/thumb-nail:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "insurance-case"
+      operationId: "get.insurance-case.thumb_nail"
+      summary: "Retrieve the thumb_nail file stored with insurance-case"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          headers:
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "No thumb_nail file is stored with insurance-case"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "insurance-case"
+      operationId: "set.insurance-case.thumb_nail"
+      summary: "Add or update the thumb_nail file stored with insurance-case"
+      parameters:
+      - $ref: "#/components/parameters/header.Content-Disposition"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "Bad request: Invalid header, Invalid body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "insurance-case"
+      operationId: "delete.insurance-case.thumb_nail"
+      summary: "Delete the thumb_nail file stored with insurance-case"
+      responses:
+        "204":
+          description: "The file has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+  /parties:
+    get:
+      tags:
+      - "party"
+      operationId: "list.party"
+      summary: "Retrieve party list"
+      parameters:
+      - name: "name"
+        in: "query"
+        description: "name"
+        schema:
+          type: "string"
+          description: "Name of the party"
+      - name: "name~prefix"
+        in: "query"
+        description: "name~prefix"
+        schema:
+          type: "string"
+          description: "Starts with name"
+      - name: "subsidiary.name"
+        in: "query"
+        description: "subsidiary.name"
+        schema:
+          type: "string"
+          description: "Subsidiary: Name of the party"
+      - name: "subsidiary.name~prefix"
+        in: "query"
+        description: "subsidiary.name~prefix"
+        schema:
+          type: "string"
+          description: "Subsidiary: Starts with name"
+      - name: "_cursor"
+        in: "query"
+        description: "Cursor to access a page (cursors are server-generated and supplied\
+          \ in the page metadata)"
+        schema:
+          type: "string"
+          examples:
+          - "1mlpulv1"
+      - name: "_size"
+        in: "query"
+        description: "Page size"
+        schema:
+          type: "integer"
+      - name: "_sort"
+        in: "query"
+        schema:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+            - "name,asc"
+            - "name,desc"
+            examples:
+            - "name,asc"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/partyCollection"
+        "400":
+          description: "Bad request: Invalid query parameter, Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+    post:
+      tags:
+      - "party"
+      operationId: "create.party"
+      summary: "Create a new party"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partyPostBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPostFormBody"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/partyPostMultipartFormDataBody"
+      responses:
+        "201":
+          description: "The party has been created"
+          headers:
+            Location:
+              description: "The URL of the created party"
+              required: true
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/partyResponse"
+        "400":
+          description: "The party can not be created due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "409":
+          description: "Conflict with other data: Would overwrite a relation of another\
+            \ item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+  /parties/{id}:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    get:
+      tags:
+      - "party"
+      operationId: "get.party"
+      summary: "Retrieve the party"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/partyResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+    put:
+      tags:
+      - "party"
+      operationId: "update.party"
+      summary: "Update all attributes of the party"
+      requestBody:
+        description: "All attributes of the party have to be specified. Missing attributes\
+          \ are treated as null"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partyPutBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPutFormBody"
+      responses:
+        "204":
+          description: "The party has been updated"
+        "400":
+          description: "The party can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+    patch:
+      tags:
+      - "party"
+      operationId: "patch.party"
+      summary: "Update some attributes of the party"
+      requestBody:
+        description: "Only attributes that have to be updated should be specified,\
+          \ other attributes should not be present"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/partyPatchBody"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/partyPatchFormBody"
+      responses:
+        "204":
+          description: "The party has been updated"
+        "400":
+          description: "The party can not be updated due to a problem with the submitted\
+            \ data"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+    delete:
+      tags:
+      - "party"
+      operationId: "delete.party"
+      summary: "Delete the party"
+      responses:
+        "204":
+          description: "The party has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The party can not be deleted because it is linked via a required\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+  /parties/{id}/subsidiary:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "party"
+      operationId: "get.party.subsidiary"
+      summary: "Retrieve the party linked with party as subsidiary"
+      responses:
+        "200":
+          description: "OK"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/partyResponse"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "The subsidiary relation does not link to any party"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "party"
+      operationId: "set.party.subsidiary"
+      summary: "Set the party that is linked with party as subsidiary"
+      requestBody:
+        description: "One party URI"
+        required: true
+        content:
+          text/uri-list:
+            schema:
+              type: "string"
+              format: "uri"
+              examples:
+              - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      responses:
+        "204":
+          description: "The party is linked with party as subsidiary"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "Multiple URIs are given, but subsidiary can only refer to\
+            \ one item"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "409":
+          description: "The URI list contains some party that is already linked with\
+            \ a different party as subsidiary"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "party"
+      operationId: "clear.party.subsidiary"
+      summary: "Removes the link to party from subsidiary"
+      responses:
+        "204":
+          description: "The link to party has been removed from subsidiary"
+        "400":
+          description: "You can not remove the subsidiary link, because it is marked\
+            \ as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found, Item not found in the\
+            \ relation"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found"
+        "409":
+          description: "You can not remove the subsidiary link, because the inverse\
+            \ relation is marked as required"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.required-relation"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+  /parties/{id}/summary:
+    parameters:
+    - name: "id"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+    - $ref: "#/components/parameters/header.If-Match"
+    - $ref: "#/components/parameters/header.If-None-Match"
+    get:
+      tags:
+      - "party"
+      operationId: "get.party.summary"
+      summary: "Retrieve the summary file stored with party"
+      responses:
+        "200":
+          description: "Contents of the stored file"
+          headers:
+            Content-Disposition:
+              $ref: "#/components/headers/Content-Disposition"
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "binary"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "No summary file is stored with party"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    put:
+      tags:
+      - "party"
+      operationId: "set.party.summary"
+      summary: "Add or update the summary file stored with party"
+      parameters:
+      - $ref: "#/components/parameters/header.Content-Disposition"
+      requestBody:
+        description: "File data to store"
+        required: true
+        content:
+          '*/*':
+            schema:
+              type: "string"
+              format: "binary"
+      responses:
+        "204":
+          description: "The file is uploaded"
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+        "400":
+          description: "Bad request: Invalid header, Invalid body"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+    delete:
+      tags:
+      - "party"
+      operationId: "delete.party.summary"
+      summary: "Delete the summary file stored with party"
+      responses:
+        "204":
+          description: "The file has been deleted"
+        "400":
+          description: "Bad request: Invalid header"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.invalid-request-header"
+        "404":
+          description: "Resource not found: Item not found"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+        "412":
+          $ref: "#/components/responses/preconditionFailed"
+components:
+  schemas:
+    ContentInfo:
+      type:
+      - "object"
+      - "null"
+      properties:
+        filename:
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
+        mimetype:
+          type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
+        length:
+          type: "integer"
+          format: "int64"
+          title: "Size"
+          description: "File size in bytes"
+      required:
+      - "filename"
+      - "mimetype"
+      - "length"
+    ContentInfoPATCH:
+      type:
+      - "object"
+      - "null"
+      properties:
+        filename:
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
+        mimetype:
+          type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
+    ContentInfoPUT:
+      type:
+      - "object"
+      - "null"
+      properties:
+        filename:
+          type:
+          - "string"
+          - "null"
+          title: "Filename"
+        mimetype:
+          type: "string"
+          title: "Mimetype"
+          description: "Technical indicator of the type of the file"
+      required:
+      - "mimetype"
+    Link:
+      type: "object"
+      properties:
+        href:
+          type: "string"
+          format: "uri"
+      required:
+      - "href"
+    RFC6266.Content-Disposition:
+      type: "string"
+      description: "See [RFC 6266](https://datatracker.ietf.org/doc/html/rfc6266)"
+      examples:
+      - "attachment"
+      - "attachment; filename=\"my-file.pdf\""
+      - "attachment; filename=\"=?UTF-8?Q?my-file.pdf?=\"; filename*=UTF-8''my-file.pdf"
+    RFC9110.entity-tag:
+      type: "string"
+      description: "A strong ETag value"
+      examples:
+      - "\"1mktvx6\""
+      - "\"25borvrzr9thvwuua39m3c2a3\""
+      pattern: "^\"[a-z0-9]+\"$"
+    insurance-caseCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/insurance-caseResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    insurance-casePatchBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
+        pdf:
+          $ref: "#/components/schemas/ContentInfoPATCH"
+        thumb_nail:
+          $ref: "#/components/schemas/ContentInfoPATCH"
+    insurance-casePatchFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        pdf.filename:
+          type: "string"
+          title: "pdf: Filename"
+        pdf.mimetype:
+          type: "string"
+          title: "pdf: Mimetype"
+          description: "Technical indicator of the type of the file"
+        thumb_nail.filename:
+          type: "string"
+          title: "thumb_nail: Filename"
+        thumb_nail.mimetype:
+          type: "string"
+          title: "thumb_nail: Mimetype"
+          description: "Technical indicator of the type of the file"
+    insurance-casePostBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
+        owning_party:
+          type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+      required:
+      - "case_number"
+      - "owning_party"
+    insurance-casePostFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        owning_party:
+          type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+      required:
+      - "case_number"
+      - "owning_party"
+    insurance-casePostMultipartFormDataBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        pdf:
+          type: "string"
+          format: "binary"
+        thumb_nail:
+          type: "string"
+          format: "binary"
+        owning_party:
+          type: "string"
+          format: "uri"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+        followups:
+          type: "array"
+          items:
+            type: "string"
+            format: "uri"
+            examples:
+            - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+      required:
+      - "case_number"
+      - "owning_party"
+    insurance-casePutBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
+        pdf:
+          $ref: "#/components/schemas/ContentInfoPUT"
+        thumb_nail:
+          $ref: "#/components/schemas/ContentInfoPUT"
+      required:
+      - "case_number"
+    insurance-casePutFormBody:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type: "string"
+          format: "date-time"
+        pdf.filename:
+          type: "string"
+          title: "pdf: Filename"
+        pdf.mimetype:
+          type: "string"
+          title: "pdf: Mimetype"
+          description: "Technical indicator of the type of the file"
+        thumb_nail.filename:
+          type: "string"
+          title: "thumb_nail: Filename"
+        thumb_nail.mimetype:
+          type: "string"
+          title: "thumb_nail: Mimetype"
+          description: "Technical indicator of the type of the file"
+      required:
+      - "case_number"
+    insurance-caseResponse:
+      type: "object"
+      title: "insurance-case"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+        case_number:
+          type: "integer"
+          format: "int64"
+        created:
+          type:
+          - "string"
+          - "null"
+          format: "date-time"
+        pdf:
+          $ref: "#/components/schemas/ContentInfo"
+        thumb_nail:
+          $ref: "#/components/schemas/ContentInfo"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "case_number"
+      - "created"
+      - "pdf"
+      - "thumb_nail"
+      - "_links"
+    page:
+      type: "object"
+      title: "Page metadata"
+      properties:
+        size:
+          type: "integer"
+          description: "Number of items shown on a single page"
+        total_items_estimate:
+          type: "integer"
+          description: "Estimated total number of items across all pages"
+        total_items_exact:
+          type: "integer"
+          description: "Exact total number of items across all pages (may be absent\
+            \ if no exact number could be calculated)"
+        next_cursor:
+          type: "string"
+          description: "Cursor to access the next page of results (absent if there\
+            \ is no next page)"
+          examples:
+          - "0msa4pz0"
+        prev_cursor:
+          type: "string"
+          description: "Cursor to access the previous page of results (absent if there\
+            \ is no previous page)"
+          examples:
+          - "1mlpulv1"
+      required:
+      - "size"
+      - "total_items_estimate"
+    partyCollection:
+      type: "object"
+      properties:
+        _embedded:
+          type: "object"
+          properties:
+            item:
+              type: "array"
+              items:
+                $ref: "#/components/schemas/partyResponse"
+        page:
+          $ref: "#/components/schemas/page"
+      required:
+      - "page"
+    partyPatchBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary:
+          $ref: "#/components/schemas/ContentInfoPATCH"
+    partyPatchFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary.filename:
+          type: "string"
+          title: "summary: Filename"
+        summary.mimetype:
+          type: "string"
+          title: "summary: Mimetype"
+          description: "Technical indicator of the type of the file"
+    partyPostBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        subsidiary:
+          type:
+          - "string"
+          - "null"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      required:
+      - "vat"
+      - "name"
+    partyPostFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        subsidiary:
+          type: "string"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      required:
+      - "vat"
+      - "name"
+    partyPostMultipartFormDataBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary:
+          type: "string"
+          format: "binary"
+          description: "Pdf file containing a summary of the party"
+        subsidiary:
+          type: "string"
+          format: "uri"
+          description: "Subsidiary of the party"
+          examples:
+          - "https://contentgrid-app.example/parties/00000000-0000-0000-0000-000000000000"
+      required:
+      - "vat"
+      - "name"
+    partyPutBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary:
+          $ref: "#/components/schemas/ContentInfoPUT"
+      required:
+      - "vat"
+      - "name"
+    partyPutFormBody:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary.filename:
+          type: "string"
+          title: "summary: Filename"
+        summary.mimetype:
+          type: "string"
+          title: "summary: Mimetype"
+          description: "Technical indicator of the type of the file"
+      required:
+      - "vat"
+      - "name"
+    partyResponse:
+      type: "object"
+      title: "party"
+      description: "An individual or organization"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+        vat:
+          type: "string"
+          description: "Vat number"
+        name:
+          type: "string"
+          description: "Name of the party"
+        summary:
+          $ref: "#/components/schemas/ContentInfo"
+        _links:
+          type: "object"
+          properties:
+            self:
+              $ref: "#/components/schemas/Link"
+          required:
+          - "self"
+      required:
+      - "id"
+      - "vat"
+      - "name"
+      - "summary"
+      - "_links"
+    problemDetail:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        title:
+          type: "string"
+        status:
+          type: "integer"
+        detail:
+          type: "string"
+        instance:
+          type: "string"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation: "#/components/schemas/problemDetail.input-validation"
+          https://contentgrid.cloud/problems/integrity/blind-relation-overwrite: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+          https://contentgrid.cloud/problems/integrity/required-relation: "#/components/schemas/problemDetail.required-relation"
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+          https://contentgrid.cloud/problems/invalid-request/body: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/json: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/single-link: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/body/uri-list: "#/components/schemas/problemDetail.invalid-request-body"
+          https://contentgrid.cloud/problems/invalid-request/forbidden-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/invalid-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/invalid-request/required-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+          https://contentgrid.cloud/problems/unsatisfied-version: "#/components/schemas/problemDetail.unsatisfied-version"
+        defaultMapping: "#/components/schemas/problemDetail"
+    problemDetail.input-validation:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Input validation failed"
+        description: "The submitted data does not meet the requirements"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          errors:
+            type: "array"
+            description: "List of validation errors"
+            items:
+              $ref: "#/components/schemas/problemDetail.input-validation.field"
+        required:
+        - "status"
+        - "errors"
+    problemDetail.input-validation.field:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+          format: "uri"
+        title:
+          type: "string"
+        detail:
+          type: "string"
+        field:
+          type: "string"
+          description: "Refers to the specific input field for which validation failed\
+            \ with a property path"
+      required:
+      - "type"
+      - "field"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
+          https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
+          https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
+          https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.no-content"
+          https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
+          https://contentgrid.cloud/problems/input/validation/required: "#/components/schemas/problemDetail.input-validation.field.required"
+          https://contentgrid.cloud/problems/input/validation/type: "#/components/schemas/problemDetail.input-validation.field.type"
+          https://contentgrid.cloud/problems/input/validation/type/format: "#/components/schemas/problemDetail.input-validation.field.type-format"
+        defaultMapping: "#/components/schemas/problemDetail.input-validation.field"
+    problemDetail.input-validation.field.allowed-values:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value not allowed"
+        description: "This field can only be set to one of the allowed values"
+        properties:
+          allowed_values:
+            type: "array"
+            items:
+              type: "string"
+        required:
+        - "allowed_values"
+    problemDetail.input-validation.field.duplicate:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Duplicate value"
+        description: "This field value is already used by another entity item"
+        properties:
+          conflicting_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "conflicting_item"
+    problemDetail.input-validation.field.missing-relation-target:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Relation target does not exist"
+        description: "The referenced entity-item does not exist"
+        properties:
+          missing_item:
+            type: "string"
+            format: "uri"
+        required:
+        - "missing_item"
+    problemDetail.input-validation.field.no-content:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Content attribute is empty"
+        description: "A content attribute can not be set when there is no content"
+    problemDetail.input-validation.field.pattern:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Value does not match pattern"
+        description: "The value does not match the required pattern"
+        properties:
+          pattern:
+            type: "string"
+        required:
+        - "pattern"
+    problemDetail.input-validation.field.required:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Required field"
+        description: "This field is required"
+    problemDetail.input-validation.field.type:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong type"
+        description: "Submitted value is of the wrong type"
+        properties:
+          expected_type:
+            type: "string"
+          actual_type:
+            type: "string"
+        required:
+        - "expected_type"
+        - "actual_type"
+    problemDetail.input-validation.field.type-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Wrong format"
+        description: "Submitted value is of the correct type, but doesn't match the\
+          \ expected format"
+        properties:
+          expected_type:
+            type: "string"
+          format_error:
+            type: "string"
+        required:
+        - "expected_type"
+        - "format_error"
+    problemDetail.integrity.blind-relation-overwrite:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Overwrite of an existing relation blocked"
+        description: "In a to-one relation, the target entity is already referenced\
+          \ by another entity"
+        properties:
+          status:
+            type: "integer"
+            const: 409
+          new_item:
+            type: "string"
+            format: "uri"
+          new_relation:
+            type: "string"
+            format: "uri"
+          existing_item:
+            type: "string"
+            format: "uri"
+          existing_relation:
+            type: "string"
+            format: "uri"
+          target_item:
+            type: "string"
+            format: "uri"
+          target_relation:
+            type: "string"
+            format: "uri"
+          additional_errors:
+            type: "array"
+            items:
+              $ref: "#/components/schemas/problemDetail.integrity.blind-relation-overwrite"
+        required:
+        - "status"
+        - "new_item"
+        - "new_relation"
+        - "existing_item"
+        - "existing_relation"
+        - "target_item"
+        - "additional_errors"
+    problemDetail.invalid-query-parameter:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "A query parameter is not valid"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          query_parameter:
+            type: "string"
+        required:
+        - "status"
+        - "query_parameter"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/invalid-query-parameter/filter/format: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/pagination: "#/components/schemas/problemDetail.invalid-query-parameter.pagination"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/format: "#/components/schemas/problemDetail.invalid-query-parameter.sort-format"
+          https://contentgrid.cloud/problems/invalid-query-parameter/sort/target: "#/components/schemas/problemDetail.invalid-query-parameter.sort-target"
+        defaultMapping: "#/components/schemas/problemDetail.invalid-query-parameter"
+    problemDetail.invalid-query-parameter.filter-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Filter value is of wrong format"
+        description: "The value of a filter does not match the expected format"
+        properties:
+          expected_type:
+            type: "string"
+          format_error:
+            type: "string"
+          additional_errors:
+            type: "array"
+            items:
+              $ref: "#/components/schemas/problemDetail.invalid-query-parameter.filter-format"
+        required:
+        - "expected_type"
+        - "format_error"
+        - "additional_errors"
+    problemDetail.invalid-query-parameter.pagination:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Invalid pagination parameter"
+        properties:
+          query_parameter:
+            type: "string"
+            enum:
+            - "_limit"
+            - "_cursor"
+            examples:
+            - "_limit"
+          format_error:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "format_error"
+    problemDetail.invalid-query-parameter.sort-format:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "The sort parameter is malformed"
+        properties:
+          query_parameter:
+            const: "_sort"
+          format_error:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "format_error"
+    problemDetail.invalid-query-parameter.sort-target:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.invalid-query-parameter"
+      - type: "object"
+        title: "Invalid sort target"
+        description: "The sort parameter refers to a target that doesn't exist or\
+          \ on which sorting is not possible"
+        properties:
+          query_parameter:
+            const: "_sort"
+          target_name:
+            type: "string"
+        required:
+        - "query_parameter"
+        - "target_name"
+    problemDetail.invalid-request-body:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Invalid request body"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+        required:
+        - "status"
+    problemDetail.invalid-request-header:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Invalid request header"
+        properties:
+          status:
+            type: "integer"
+            const: 400
+          header:
+            type: "string"
+        required:
+        - "status"
+        - "header"
+    problemDetail.not-found:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          status:
+            type: "integer"
+            const: 404
+        required:
+        - "status"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
+          https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
+        defaultMapping: "#/components/schemas/problemDetail.not-found"
+    problemDetail.not-found.entity-item:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
+    problemDetail.not-found.relation-item:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
+    problemDetail.required-relation:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        title: "Item is still referenced by a required relation"
+        properties:
+          affected_relation:
+            type: "string"
+            format: "uri"
+        required:
+        - "affected_relation"
+    problemDetail.unsatisfied-version:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail"
+      - type: "object"
+        properties:
+          status:
+            type: "integer"
+            const: 412
+          actual_version:
+            type: "string"
+        required:
+        - "status"
+        - "actual_version"
+  responses:
+    preconditionFailed:
+      description: "If-Match or If-None-Match precondition failed"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/problemDetail.unsatisfied-version"
+  parameters:
+    header.Content-Disposition:
+      name: "Content-Disposition"
+      in: "header"
+      description: "The disposition type is ignored, only the optional filename parameter\
+        \ is used to optionally set a filename"
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
+    header.If-Match:
+      name: "If-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+    header.If-None-Match:
+      name: "If-None-Match"
+      in: "header"
+      description: "See [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-none-match)"
+      schema:
+        oneOf:
+        - const: "*"
+        - type: "array"
+          items:
+            $ref: "#/components/schemas/RFC9110.entity-tag"
+  headers:
+    Content-Disposition:
+      description: "Content-Disposition is always set to attachment, with optionally\
+        \ a filename"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC6266.Content-Disposition"
+    ETag:
+      description: "See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-etag)"
+      required: true
+      schema:
+        $ref: "#/components/schemas/RFC9110.entity-tag"
+  pathItems: {}

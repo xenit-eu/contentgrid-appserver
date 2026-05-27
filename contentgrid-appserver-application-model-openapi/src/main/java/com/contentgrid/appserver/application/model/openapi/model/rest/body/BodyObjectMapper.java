@@ -87,12 +87,18 @@ public final class BodyObjectMapper {
                 bodyValue = simpleBodyValue.toBuilder().clearConstraints().build();
             }
 
+
             if(bodyValue != null) {
+                if(translations.getName() != null) {
+                    bodyValue = bodyValue.withTitle(translations.getName());
+                }
+
+                if (translations.getDescription() != null) {
+                    bodyValue = bodyValue.withDescription(translations.getDescription());
+                }
                 fields.put(
                         searchFilter.getName().getValue(),
                         bodyValue
-                                .withTitle(translations.getName())
-                                .withDescription(translations.getDescription())
                                 // Search fields are never mandatory, and can't hold a null value
                                 .withMandatory(false)
                                 .withNullable(false)
