@@ -323,7 +323,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         requiredProperty("expected_type", new JsonSchemaString()),
                         requiredProperty("format_error", new JsonSchemaString())
                 )
-                .andSubType("noContent",
+                .andSubType("no-content",
                         type("https://contentgrid.cloud/problems/input/validation/no-content"),
                         title("Content attribute is empty"),
                         description("A content attribute can not be set when there is no content")

@@ -1738,7 +1738,7 @@ components:
           https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
           https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
           https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
-          https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.noContent"
+          https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.no-content"
           https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
           https://contentgrid.cloud/problems/input/validation/required: "#/components/schemas/problemDetail.input-validation.field.required"
           https://contentgrid.cloud/problems/input/validation/type: "#/components/schemas/problemDetail.input-validation.field.type"
@@ -1781,7 +1781,7 @@ components:
             format: "uri"
         required:
         - "missing_item"
-    problemDetail.input-validation.field.noContent:
+    problemDetail.input-validation.field.no-content:
       allOf:
       - $ref: "#/components/schemas/problemDetail.input-validation.field"
       - type: "object"

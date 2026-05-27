@@ -217,7 +217,7 @@ class OpenApiSpecConverterTest {
                 "problemDetail.input-validation.field",
                 "problemDetail.input-validation.field.type",
                 "problemDetail.input-validation.field.type-format",
-                "problemDetail.input-validation.field.noContent",
+                "problemDetail.input-validation.field.no-content",
                 "problemDetail.input-validation.field.required",
                 "problemDetail.input-validation.field.duplicate",
                 "problemDetail.input-validation.field.allowed-values",
