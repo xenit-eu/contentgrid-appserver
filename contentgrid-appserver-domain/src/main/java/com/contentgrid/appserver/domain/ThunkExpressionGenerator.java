@@ -19,6 +19,7 @@ import com.contentgrid.appserver.query.engine.api.thunx.expression.StringCompari
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -55,28 +57,19 @@ public class ThunkExpressionGenerator {
                 // currently only handle attribute search filters
                 if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                     var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                    List<ThunkExpression<Boolean>> subexpressions = new ArrayList<>();
+                    List<Scalar<?>> parsedValues = new ArrayList<>();
 
                     for (String value : entry.getValue()) {
                         try {
-                            Scalar<?> parsedValue = parseValueToScalar(attribute.getType(), value);
-                            subexpressions.add(createExpression(
-                                    attributeSearchFilter,
-                                    convertPath(variableGenerator, application, entity, attributeSearchFilter.getAttributePath()),
-                                    parsedValue
-                            ));
+                            parsedValues.add(parseValueToScalar(attribute.getType(), value));
                         } catch (Exception e) {
                             throw new InvalidFilterParameterException(entity.getName(), attributeSearchFilter.getName(),
                                     attribute.getType(), e);
                         }
                     }
 
-                    if (subexpressions.size() == 1) {
-                        // If there's only one subexpression, add it directly
-                        expressions.add(subexpressions.getFirst());
-                    } else if (!subexpressions.isEmpty()) {
-                        // Otherwise, create a disjunction (OR) of all subexpressions if not empty
-                        expressions.add(LogicalOperation.disjunction(subexpressions));
+                    if (!parsedValues.isEmpty()) {
+                        expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter, parsedValues));
                     }
                 }
             }
@@ -114,32 +107,87 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static ThunkExpression<Boolean> createExpression(BaseAttributeSearchFilter filter,
-                                                             List<PathElement> pathElements,
-                                                             Scalar<?> value) throws IllegalArgumentException {
-        SymbolicReference attr = SymbolicReference.of(Variable.named("entity"), pathElements);
+    private static ThunkExpression<Boolean> createExpression(
+            VariableGenerator variableGenerator,
+            Application application,
+            Entity entity,
+            BaseAttributeSearchFilter filter,
+            List<Scalar<?>> values) {
 
-        if (filter instanceof FullTextSearchAttributeSearchFilter ftsSearchFilter) return createExpression(ftsSearchFilter, attr, value);
-        if (filter instanceof AttributeSearchFilter attrSearchFilter) return createExpression(attrSearchFilter, attr, value);
+        if (filter instanceof FullTextSearchAttributeSearchFilter ftsFilter) {
+            // FTS keeps a disjunction; each term gets its own path so to-many wildcards stay independent
+            var subexpressions = values.stream()
+                    .map(v -> (ThunkExpression<Boolean>) StringComparison.contentGridFullTextSearchMatch(
+                            symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                            v.assertResultType(String.class),
+                            ftsFilter.getLocale()
+                    ))
+                    .toList();
+            return toSingleOrDisjunction(subexpressions);
+        }
+
+        if (filter instanceof AttributeSearchFilter attrFilter) {
+            return switch (attrFilter.getOperation()) {
+                case EXACT -> {
+                    // EXACT can use in when there are multiple values
+                    var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
+                    yield values.size() == 1
+                            ? Comparison.areEqual(attr, values.getFirst())
+                            : Comparison.in(attr, new SetValue(new LinkedHashSet<>(values)));
+                }
+                case PREFIX -> {
+                    // PREFIX keeps a disjunction; each term gets its own path so to-many wildcards stay independent
+                    var subexpressions = values.stream()
+                            .map(v -> (ThunkExpression<Boolean>) StringComparison.contentGridPrefixSearchMatch(
+                                    symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                                    v.assertResultType(String.class)
+                            ))
+                            .toList();
+                    yield toSingleOrDisjunction(subexpressions);
+                }
+                // GREATER_THAN and GREATER_THAN_OR_EQUAL always compare with the minimum value
+                case GREATER_THAN -> Comparison.greater(
+                        symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                        minScalar(values));
+                case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(
+                        symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                        minScalar(values));
+                // LESS_THAN and LESS_THAN_OR_EQUAL always compare with the maximum value
+                case LESS_THAN -> Comparison.less(
+                        symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                        maxScalar(values));
+                case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(
+                        symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
+                        maxScalar(values));
+            };
+        }
 
         throw new IllegalArgumentException("Received unknown filter type (%s).".formatted(filter.getClass().getName()));
     }
 
-    private static ThunkExpression<Boolean> createExpression(AttributeSearchFilter filter, SymbolicReference attr, Scalar<?> value) {
-        return switch (filter.getOperation()) {
-            case EXACT -> Comparison.areEqual(attr, value);
-            case PREFIX -> StringComparison.contentGridPrefixSearchMatch(attr, value.assertResultType(String.class));
-            case GREATER_THAN -> Comparison.greater(attr, value);
-            case GREATER_THAN_OR_EQUAL -> Comparison.greaterOrEquals(attr, value);
-            case LESS_THAN -> Comparison.less(attr, value);
-            case LESS_THAN_OR_EQUAL -> Comparison.lessOrEquals(attr, value);
-        };
+    private static SymbolicReference symRef(List<PathElement> pathElements) {
+        return SymbolicReference.of(Variable.named("entity"), pathElements);
     }
 
-    private static ThunkExpression<Boolean> createExpression(FullTextSearchAttributeSearchFilter filter,
-                                                             SymbolicReference attr,
-                                                             Scalar<?> value) {
-        return StringComparison.contentGridFullTextSearchMatch(attr, value.assertResultType(String.class), filter.getLocale());
+    private static ThunkExpression<Boolean> toSingleOrDisjunction(List<ThunkExpression<Boolean>> subexpressions) {
+        if (subexpressions.size() == 1) {
+            return subexpressions.getFirst();
+        }
+        return LogicalOperation.disjunction(subexpressions);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Scalar<?> minScalar(List<Scalar<?>> values) {
+        return values.stream()
+                .min((a, b) -> ((Comparable<Object>) a.getValue()).compareTo(b.getValue()))
+                .orElseThrow();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Scalar<?> maxScalar(List<Scalar<?>> values) {
+        return values.stream()
+                .max((a, b) -> ((Comparable<Object>) a.getValue()).compareTo(b.getValue()))
+                .orElseThrow();
     }
 
     private static List<PathElement> convertPath(VariableGenerator variableGenerator, Application application, Entity entity, PropertyPath path) {
