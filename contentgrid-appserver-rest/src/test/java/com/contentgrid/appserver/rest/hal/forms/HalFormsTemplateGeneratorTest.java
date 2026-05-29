@@ -24,7 +24,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
-import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.mediatype.hal.forms.HalFormsOptions;

@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest;
 
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModel;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModel;
+import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.Optional;

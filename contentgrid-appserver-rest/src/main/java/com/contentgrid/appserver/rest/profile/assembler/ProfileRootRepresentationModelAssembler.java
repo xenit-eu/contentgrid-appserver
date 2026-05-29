@@ -1,0 +1,33 @@
+package com.contentgrid.appserver.rest.profile.assembler;
+
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.rest.profile.assembler.ProfileRootRepresentationModelAssembler.Context;
+import com.contentgrid.appserver.rest.hal.links.ContentGridLinkRelations;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
+import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
+import lombok.NonNull;
+import org.springframework.hateoas.server.RepresentationModelAssembler;
+
+public class ProfileRootRepresentationModelAssembler implements
+        RepresentationModelContextAssembler<Application, ProfileRootRepresentationModel, Context> {
+
+    public RepresentationModelAssembler<Application, ProfileRootRepresentationModel> withContext(
+            LinkFactoryProvider linkFactoryProvider) {
+        return withContext(new Context(linkFactoryProvider));
+    }
+
+    public record Context(LinkFactoryProvider linkFactoryProvider) {
+
+    }
+
+    @Override
+    public ProfileRootRepresentationModel toModel(@NonNull Application application, Context context) {
+        var result = new ProfileRootRepresentationModel();
+        result.add(context.linkFactoryProvider().toProfileRoot().withSelfRel());
+        for (var entity : application.getEntities()) {
+            result.add(context.linkFactoryProvider().toProfile(entity.getName()).withRel(ContentGridLinkRelations.ENTITY));
+        }
+        return result;
+    }
+
+}

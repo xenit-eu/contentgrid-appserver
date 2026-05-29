@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest.hal.forms;
 
-import com.contentgrid.appserver.rest.assembler.JsonViews.DefaultView;
-import com.contentgrid.appserver.rest.assembler.JsonViews.HalFormsView;
+import com.contentgrid.appserver.rest.hal.forms.JsonViews.DefaultView;
+import com.contentgrid.appserver.rest.hal.forms.JsonViews.HalFormsView;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;

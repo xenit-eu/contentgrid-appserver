@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.rest;
 
 import com.contentgrid.appserver.rest.ContentGridRestConfiguration;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
