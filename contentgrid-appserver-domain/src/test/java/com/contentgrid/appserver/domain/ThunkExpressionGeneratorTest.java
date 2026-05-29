@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
@@ -35,6 +36,7 @@ import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
+import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.Variable;
@@ -351,6 +353,11 @@ class ThunkExpressionGeneratorTest {
                     .name(FilterName.of("wishlist.description"))
                     .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
                     .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.PREFIX)
+                    .name(FilterName.of("wishlist.description~prefix"))
+                    .attributePath(PropertyPath.of(RelationName.of("wishlist"), AttributeName.of("description")))
+                    .build())
             .build();
 
     private static final Relation shipmentRelation = ManyToOneRelation.builder()
@@ -504,7 +511,7 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void MultipleParametersMultipleValuesShouldCreateConjunctionOfDisjunctions() {
+    void multipleParametersMultipleValuesShouldCreateConjunctionWithOptimizedTerms() {
         Map<String, List<String>> params = new HashMap<>();
         params.put("description~prefix", List.of("foo", "bar"));
         params.put("count", List.of("0", "1"));
@@ -514,11 +521,22 @@ class ThunkExpressionGeneratorTest {
         var operation = assertInstanceOf(LogicalOperation.class, result);
         assertEquals(Operator.AND, operation.getOperator());
         assertEquals(2, operation.getTerms().size());
-        operation.getTerms().forEach(term -> {
-            var innerOperation = assertInstanceOf(LogicalOperation.class, term);
-            assertEquals(Operator.OR, innerOperation.getOperator());
-            assertEquals(2, innerOperation.getTerms().size());
-        });
+
+        // PREFIX uses a disjunction (no single-expression optimization available)
+        var prefixTerm = operation.getTerms().stream()
+                .filter(t -> t instanceof LogicalOperation lo && lo.getOperator() == Operator.OR)
+                .findFirst().orElseThrow();
+        var orOp = assertInstanceOf(LogicalOperation.class, prefixTerm);
+        assertEquals(2, orOp.getTerms().size());
+        orOp.getTerms().forEach(t -> assertInstanceOf(ContentGridPrefixSearch.class, t));
+
+        // EXACT with multiple values uses IN
+        var inTerm = operation.getTerms().stream()
+                .filter(t -> t instanceof Comparison c && c.getOperator() == Operator.IN)
+                .findFirst().orElseThrow();
+        var inComparison = assertInstanceOf(Comparison.class, inTerm);
+        var setValue = assertInstanceOf(SetValue.class, inComparison.getRightTerm());
+        assertEquals(2, setValue.getValue().size());
     }
 
     @ParameterizedTest
@@ -867,13 +885,74 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void multipleValuesToManyRelationUseDifferentWildCards() {
-        // TODO: currently uses OR, but should use IN after ACC-2639 (and then there are no wildcards anymore)
+    void multipleValuesExactShouldUseIn() {
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("count", List.of("1", "2", "3"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var comparison = assertInstanceOf(Comparison.class, result);
+        assertEquals(Operator.IN, comparison.getOperator());
+        var setValue = assertInstanceOf(SetValue.class, comparison.getRightTerm());
+        assertEquals(3, setValue.getValue().size());
+        assertTrue(setValue.getValue().contains(Scalar.of(1L)));
+        assertTrue(setValue.getValue().contains(Scalar.of(2L)));
+        assertTrue(setValue.getValue().contains(Scalar.of(3L)));
+    }
+
+    @Test
+    void multipleValuesGreaterThanShouldUseMinimum() {
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("count~gt", List.of("10", "5", "20"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var comparison = assertInstanceOf(Comparison.class, result);
+        assertEquals(Operator.GREATER_THAN, comparison.getOperator());
+        assertEquals(new BigDecimal("5"), ((Scalar<?>) comparison.getRightTerm()).getValue());
+    }
+
+    @Test
+    void multipleValuesLessThanShouldUseMaximum() {
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("count~lt", List.of("10", "5", "20"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var comparison = assertInstanceOf(Comparison.class, result);
+        assertEquals(Operator.LESS_THAN, comparison.getOperator());
+        assertEquals(new BigDecimal("20"), ((Scalar<?>) comparison.getRightTerm()).getValue());
+    }
+
+    @Test
+    void multipleExactValuesToManyRelationUsesInWithSingleWildcard() {
         Map<String, List<String>> params = Map.of(
                 "shipments.destination", List.of("Moon Base", "Middle Earth")
         );
-        var entity = testApplication.getEntityByName(EntityName.of("customer")).orElseThrow();
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, entity, params);
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, customerEntity, params);
+
+        var comparison = assertInstanceOf(Comparison.class, result);
+        assertEquals(Operator.IN, comparison.getOperator());
+        assertEquals(
+                SymbolicReference.of(
+                        Variable.named("entity"),
+                        SymbolicReference.path("shipments"),
+                        SymbolicReference.pathVar("__wildcard_0"),
+                        SymbolicReference.path("destination")
+                ),
+                comparison.getLeftTerm()
+        );
+        var setValue = assertInstanceOf(SetValue.class, comparison.getRightTerm());
+        assertTrue(setValue.getValue().contains(Scalar.of("Moon Base")));
+        assertTrue(setValue.getValue().contains(Scalar.of("Middle Earth")));
+    }
+
+    @Test
+    void multiplePrefixValuesToManyRelationUseDifferentWildCards() {
+        Map<String, List<String>> params = Map.of(
+                "wishlist.description~prefix", List.of("foo", "bar")
+        );
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, customerEntity, params);
         var logicalOperation = assertInstanceOf(LogicalOperation.class, result);
         assertEquals(Operator.OR, logicalOperation.getOperator());
         assertEquals(2, logicalOperation.getTerms().size());
@@ -883,18 +962,18 @@ class ThunkExpressionGeneratorTest {
         assertEquals(
                 SymbolicReference.of(
                         Variable.named("entity"),
-                        SymbolicReference.path("shipments"),
+                        SymbolicReference.path("wishlist"),
                         SymbolicReference.pathVar("__wildcard_0"),
-                        SymbolicReference.path("destination")
+                        SymbolicReference.path("description")
                 ),
                 left.getLeftTerm()
         );
         assertEquals(
                 SymbolicReference.of(
                         Variable.named("entity"),
-                        SymbolicReference.path("shipments"),
+                        SymbolicReference.path("wishlist"),
                         SymbolicReference.pathVar("__wildcard_1"),
-                        SymbolicReference.path("destination")
+                        SymbolicReference.path("description")
                 ),
                 right.getLeftTerm()
         );
