@@ -20,7 +20,6 @@ reckon {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
-        mavenLocal()
     }
 }
 
