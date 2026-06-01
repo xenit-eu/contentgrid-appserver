@@ -7,7 +7,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.UUID;
 import lombok.NonNull;

@@ -2,8 +2,8 @@ package com.contentgrid.appserver.autoconfigure.rest;
 
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.rest.ContentGridRestFormatterConfiguration;
-import com.contentgrid.appserver.rest.EntityRestController;
-import com.contentgrid.appserver.rest.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.entity.EntityRestController;
+import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;

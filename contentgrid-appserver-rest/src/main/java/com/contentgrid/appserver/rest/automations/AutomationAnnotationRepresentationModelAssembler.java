@@ -2,7 +2,7 @@ package com.contentgrid.appserver.rest.automations;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
-import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.Link;

@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.rest;
 
-import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;

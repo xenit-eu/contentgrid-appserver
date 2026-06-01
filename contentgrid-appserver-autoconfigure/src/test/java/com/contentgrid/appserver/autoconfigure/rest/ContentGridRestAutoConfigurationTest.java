@@ -11,7 +11,7 @@ import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoC
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.EntityRestController;
+import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.appserver.rest.automations.AutomationsRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;

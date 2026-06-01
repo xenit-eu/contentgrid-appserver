@@ -5,7 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
-import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

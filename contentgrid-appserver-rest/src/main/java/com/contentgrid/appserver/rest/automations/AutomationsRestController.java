@@ -3,7 +3,7 @@ package com.contentgrid.appserver.rest.automations;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
-import com.contentgrid.appserver.rest.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.thunx.spring.security.AbacContextSupplier;
 import java.util.List;
 import lombok.NonNull;

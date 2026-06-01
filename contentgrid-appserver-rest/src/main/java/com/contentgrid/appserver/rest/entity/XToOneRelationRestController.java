@@ -1,0 +1,150 @@
+package com.contentgrid.appserver.rest.entity;
+
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
+import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.rest.VersionValidator;
+import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
+import com.contentgrid.appserver.rest.exception.EmptyRelationException;
+import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
+import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequiredArgsConstructor
+@SpecializedOnPropertyType(type = PropertyType.TO_ONE_RELATION, entityPathVariable = "entityName", propertyPathVariable = "propertyName")
+@RequestMapping("/{entityName}/{id}/{propertyName}")
+public class XToOneRelationRestController {
+
+    @NonNull
+    private final DatamodelApi datamodelApi;
+
+    @NonNull
+    private final VersionValidator versionValidator;
+
+    private Relation getRequiredRelation(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
+        return application.getRelationForPath(entityName, propertyName)
+                .filter(relation -> relation instanceof OneToOneRelation || relation instanceof ManyToOneRelation)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping
+    public ResponseEntity<Object> getRelation(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) throws EmptyRelationException {
+        var relation = getRequiredRelation(application, entityName, propertyName);
+        var source = relation.getSourceEndPoint();
+        var relationRequest = RelationRequest.forRelation(source.getEntity(), id, source.getName());
+        try {
+            var relationTarget = datamodelApi.findRelationTarget(application, relationRequest, authorizationContext)
+                    .orElseThrow(() -> new EmptyRelationException(RelationIdentity.forRelation(source.getEntity(), id, source.getName())));
+            var redirectUrl = linkFactoryProvider.toItem(relationTarget.getTargetEntityIdentity()).toUri();
+
+            if (versionValidator.checkVersion(webRequest, versionConstraint, relationTarget.getRelationIdentity().getVersion())) {
+                return null; // The response headers inside webRequest are modified as side effect
+            }
+
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(redirectUrl)
+                    .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
+                    .build();
+        } catch (EntityIdNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        }
+    }
+
+    @PutMapping(consumes = "text/uri-list")
+    public ResponseEntity<Object> setRelation(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            @RequestBody(required = false) URIList body,
+            VersionConstraint versionConstraint,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) throws MissingRelationTargetException, InvalidRelationTargetException, MultipleRelationTargetsException {
+        var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationIdent = RelationIdentity.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName());
+        if (body == null || body.uris().isEmpty()) {
+            throw new MissingRelationTargetException(relationIdent);
+        }
+        var uris = body.uris();
+        if (uris.size() > 1) {
+            throw new MultipleRelationTargetsException(relationIdent);
+        }
+        var element = uris.getFirst();
+        var maybeId = linkFactoryProvider.itemMatcher(relation.getTargetEndPoint().getEntity()).tryMatch(element.toString());
+        if (maybeId.isEmpty()) {
+            throw new InvalidRelationTargetException(
+                    relation.getSourceEndPoint().getEntity(),
+                    relation.getSourceEndPoint().getName(),
+                    element
+            );
+        }
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        ).withVersionConstraint(versionConstraint);
+        var relationTarget = datamodelApi.setRelation(application, relationRequest, maybeId.get(), authorizationContext);
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(relationTarget.getRelationIdentity().getVersion()))
+                .build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Object> clearRelation(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            AuthorizationContext authorizationContext
+    ) {
+        var relation = getRequiredRelation(application, entityName, propertyName);
+        var relationRequest = RelationRequest.forRelation(
+                relation.getSourceEndPoint().getEntity(),
+                id,
+                relation.getSourceEndPoint().getName()
+        ).withVersionConstraint(versionConstraint);
+        datamodelApi.deleteRelation(application, relationRequest, authorizationContext);
+        return ResponseEntity.noContent().build();
+    }
+
+}
