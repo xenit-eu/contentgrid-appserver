@@ -9,4 +9,3 @@ spring:
 server:
   tomcat:
     max-part-count: 200
-debug: true
