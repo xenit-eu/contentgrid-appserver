@@ -3,7 +3,7 @@ package com.contentgrid.appserver.rest.automations;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import com.contentgrid.appserver.rest.root.assembler.RootRepresentationModel;
+import com.contentgrid.appserver.rest.metadata.assembler.RootRepresentationModel;
 import com.contentgrid.appserver.rest.hal.links.curie.CurieProviderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
