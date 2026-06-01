@@ -589,7 +589,7 @@ class RelationRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
