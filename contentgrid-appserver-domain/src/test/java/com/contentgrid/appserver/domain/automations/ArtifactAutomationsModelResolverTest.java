@@ -82,7 +82,7 @@ class ArtifactAutomationsModelResolverTest {
 
     @Test
     void resolveConfig() {
-        var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of(""));
+        var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("artifact"));
 
         var resolver = new ArtifactAutomationsModelResolver(artifact);
 

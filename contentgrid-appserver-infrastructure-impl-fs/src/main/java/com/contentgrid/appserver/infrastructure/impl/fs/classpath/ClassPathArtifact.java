@@ -39,7 +39,7 @@ public class ClassPathArtifact implements Artifact {
     public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
         var classpathPath = directory.resolve(path).normalize();
-        var resourceName = classpathPath.toString().replace('\\', '/');
+        var resourceName = classpathPath.toString();
         if (classLoader.getResource(resourceName) == null) {
             return Optional.empty();
         }
@@ -50,7 +50,7 @@ public class ClassPathArtifact implements Artifact {
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
         var ref = getReference();
         var targetPath = directory.resolve(path).normalize();
-        var resourceName = targetPath.toString().replace('\\', '/');
+        var resourceName = targetPath.toString();
         var result = new ArrayList<ArtifactEntry>();
 
         try {

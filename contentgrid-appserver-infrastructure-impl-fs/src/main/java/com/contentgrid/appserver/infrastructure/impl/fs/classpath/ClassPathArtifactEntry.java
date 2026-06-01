@@ -22,6 +22,6 @@ public class ClassPathArtifactEntry implements ArtifactEntry {
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {
-        return classLoader.getResourceAsStream(classpathPath.toString().replace('\\', '/'));
+        return classLoader.getResourceAsStream(classpathPath.toString());
     }
 }

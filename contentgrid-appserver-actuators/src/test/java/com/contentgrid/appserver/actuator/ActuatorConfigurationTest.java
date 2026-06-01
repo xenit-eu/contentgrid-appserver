@@ -40,7 +40,7 @@ class ActuatorConfigurationTest {
 
         @Bean
         Artifact TestArtifact() {
-            return new ClassPathArtifact(ActuatorConfigurationTest.class.getClassLoader(), Path.of(""));
+            return new ClassPathArtifact(ActuatorConfigurationTest.class.getClassLoader(), Path.of("artifact"));
         }
     }
 

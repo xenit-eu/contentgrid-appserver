@@ -6,6 +6,8 @@ import java.util.Optional;
 
 public abstract class AbstractRemoteArtifact implements Artifact {
 
+    private final Object lock = new Object[0];
+
     private volatile Artifact delegate;
 
     @Override
@@ -20,7 +22,7 @@ public abstract class AbstractRemoteArtifact implements Artifact {
 
     private Artifact delegate() throws ArtifactException {
         if (delegate == null) {
-            synchronized (this) {
+            synchronized (lock) {
                 if (delegate == null) {
                     delegate = createDelegate();
                 }
