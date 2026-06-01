@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.zip.ZipFile;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class ZipArtifact extends AbstractRemoteArtifact {
     private static final String TEMP_DIR_PREFIX = "zip-artifact-";
     public static final String SCHEME = "zip";
 
+    @NonNull
     private final Path zipPath;
     private Path tempDir;
 

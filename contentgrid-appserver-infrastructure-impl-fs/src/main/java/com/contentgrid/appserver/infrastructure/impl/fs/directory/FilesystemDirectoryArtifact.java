@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class FilesystemDirectoryArtifact implements Artifact {
 
     public static final String SCHEME = "file";
 
+    @NonNull
     private final Path directory;
 
     @Override

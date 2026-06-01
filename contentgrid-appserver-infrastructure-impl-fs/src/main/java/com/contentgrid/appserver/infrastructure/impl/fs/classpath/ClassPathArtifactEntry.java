@@ -6,14 +6,18 @@ import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableExcep
 import java.io.InputStream;
 import java.nio.file.Path;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ClassPathArtifactEntry implements ArtifactEntry {
 
     @Getter
+    @NonNull
     private final ArtifactEntryReference entryReference;
+    @NonNull
     private final ClassLoader classLoader;
+    @NonNull
     private final Path classpathPath;
 
     @Override

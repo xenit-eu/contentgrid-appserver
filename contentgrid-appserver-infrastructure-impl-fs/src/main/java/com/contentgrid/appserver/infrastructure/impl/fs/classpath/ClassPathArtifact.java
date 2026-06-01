@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -23,7 +24,9 @@ public class ClassPathArtifact implements Artifact {
 
     public static final String SCHEME = "classpath";
 
+    @NonNull
     private final ClassLoader classLoader;
+    @NonNull
     private final Path directory;
     private final Map<Path, ZipArtifact> zipArtifactCache = new ConcurrentHashMap<>();
 

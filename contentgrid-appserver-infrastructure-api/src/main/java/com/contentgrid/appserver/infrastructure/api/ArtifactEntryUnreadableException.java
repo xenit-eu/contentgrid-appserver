@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.infrastructure.api;
 
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Thrown when a specific entry within an {@link Artifact} cannot be read
@@ -10,6 +11,7 @@ import lombok.Getter;
 public class ArtifactEntryUnreadableException extends Exception {
 
     /** The reference identifying the unreadable artifact entry. */
+    @NonNull
     private final ArtifactEntryReference reference;
 
     /**

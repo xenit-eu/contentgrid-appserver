@@ -7,11 +7,13 @@ import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtif
 import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryArtifact;
 import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipArtifact;
 import java.nio.file.Path;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class FilesystemArtifactReferenceResolver implements ArtifactReferenceResolver {
 
+    @NonNull
     private final ClassLoader classLoader;
 
     public FilesystemArtifactReferenceResolver() {

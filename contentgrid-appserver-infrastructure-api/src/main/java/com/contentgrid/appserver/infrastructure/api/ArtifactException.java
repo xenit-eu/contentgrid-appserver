@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.infrastructure.api;
 
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Thrown when an {@link Artifact} cannot be accessed (e.g. the backing file or archive cannot be opened).
@@ -9,6 +10,7 @@ import lombok.Getter;
 public class ArtifactException extends Exception {
 
     /** The reference identifying the artifact that could not be accessed. */
+    @NonNull
     private final ArtifactReference reference;
 
     /**
