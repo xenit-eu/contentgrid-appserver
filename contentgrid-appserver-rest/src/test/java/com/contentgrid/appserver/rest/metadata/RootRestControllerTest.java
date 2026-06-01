@@ -1,6 +1,8 @@
-package com.contentgrid.appserver.rest.root;
+package com.contentgrid.appserver.rest.metadata;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -80,6 +83,26 @@ class RootRestControllerTest {
                 .andExpect(jsonPath("$._links.cg:entity").doesNotExist())
                 .andExpect(jsonPath("$._links.automation:registrations.href").value("http://localhost/.contentgrid/automations"))
                 .andExpect(jsonPath("$._links.curies").isArray()); // curies are still present, because there is a link with automation curie prefix
+    }
+
+    @Test
+    void getOpenApiConfig() throws Exception {
+        Mockito.when(resolver.resolve(Mockito.any()))
+                .thenReturn(Application.builder()
+                        .name(ApplicationName.of("test-application"))
+                        .build());
+
+
+        mockMvc.perform(get("/openapi.yml"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_YAML))
+                .andExpect(content().string(containsString("openapi: \"3.2.0\"")));
+
+        mockMvc.perform(get("/openapi.json"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(containsString("{\"openapi\":\"3.2.0\"")));
+
     }
 
 }

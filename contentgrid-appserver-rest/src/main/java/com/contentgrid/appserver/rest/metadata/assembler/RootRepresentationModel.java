@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.rest.root.assembler;
+package com.contentgrid.appserver.rest.metadata.assembler;
 
 import com.contentgrid.appserver.rest.hal.forms.RepresentationModelWithTemplates;
 

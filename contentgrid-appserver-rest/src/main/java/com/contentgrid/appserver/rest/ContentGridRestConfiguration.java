@@ -25,7 +25,7 @@ import com.contentgrid.appserver.rest.profile.ProfileRestController;
 import com.contentgrid.appserver.rest.entity.ContentRestController;
 import com.contentgrid.appserver.rest.entity.XToManyRelationRestController;
 import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
-import com.contentgrid.appserver.rest.root.RootRestController;
+import com.contentgrid.appserver.rest.metadata.RootRestController;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.fasterxml.jackson.databind.DeserializationFeature;
