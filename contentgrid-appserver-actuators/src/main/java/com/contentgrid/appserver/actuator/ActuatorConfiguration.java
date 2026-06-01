@@ -31,7 +31,6 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass(PolicyActuator.class)
     ExposedActuatorEndpoint exposedPolicyActuatorEndpoint() {
         return new ExposedActuatorEndpoint(PolicyActuator.class);
     }
@@ -51,7 +50,6 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass(WebhookConfigActuator.class)
     ExposedActuatorEndpoint exposedWebhookConfigActuatorEndpoint() {
         return new ExposedActuatorEndpoint(WebhookConfigActuator.class);
     }
