@@ -20,7 +20,7 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')
     implementation project(':contentgrid-appserver-webjars')
-    api ('com.contentgrid.common:contentgrid-common-spring-boot-starter:0.1.1') {
+    implementation ('com.contentgrid.common:contentgrid-common-spring-boot-starter:0.1.1') {
         capabilities {
             requireFeature('spring-boot-3')
         }
