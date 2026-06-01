@@ -59,9 +59,10 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
-    testImplementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.0.1-SNAPSHOT') {
+    testImplementation project(':contentgrid-appserver-spring-boot-starter')
+    testImplementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.1.1') {
         capabilities {
-            requireCapability('com.contentgrid.common:spring-boot-3:0.0.1-SNAPSHOT')
+            requireFeature('spring-boot-3')
         }
     }
 

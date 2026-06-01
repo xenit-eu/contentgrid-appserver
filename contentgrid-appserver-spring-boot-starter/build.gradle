@@ -20,12 +20,14 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')
     implementation project(':contentgrid-appserver-webjars')
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-    implementation 'org.springframework.boot:spring-boot-starter-jooq'
-    implementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.0.1-SNAPSHOT') {
+    api ('com.contentgrid.common:contentgrid-common-spring-boot-starter:0.1.1') {
         capabilities {
-            requireCapability('com.contentgrid.common:spring-boot-3:0.0.1-SNAPSHOT')
+            requireFeature('spring-boot-3')
         }
     }
+
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 }
