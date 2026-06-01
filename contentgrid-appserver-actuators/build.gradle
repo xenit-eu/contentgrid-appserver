@@ -7,7 +7,7 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-domain')
-    api ('com.contentgrid.common:contentgrid-common-spring-actuators:0.1.1')
+    api ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
 
@@ -21,7 +21,7 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     // needed for endpoint security config.
     // Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency
-    testImplementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.1.1') {
+    testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         capabilities {
             requireFeature('spring-boot-3')
         }

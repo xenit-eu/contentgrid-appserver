@@ -60,7 +60,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-rest')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
-    testImplementation ('com.contentgrid.common:contentgrid-common-spring-autoconfigure:0.1.1') {
+    testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         capabilities {
             requireFeature('spring-boot-3')
         }
