@@ -12,12 +12,18 @@ public abstract class AbstractRemoteArtifact implements Artifact {
 
     @Override
     public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
-        return delegate().load(path);
+        return delegate().load(path).map(entry -> {
+            var entryRef = ArtifactEntryReference.of(getReference(), entry.getEntryReference().getPath());
+            return entry.withEntryReference(entryRef);
+        });
     }
 
     @Override
     public List<ArtifactEntry> loadAll(Path path) throws ArtifactException {
-        return delegate().loadAll(path);
+        return delegate().loadAll(path).stream().map(entry -> {
+            var entryRef = ArtifactEntryReference.of(getReference(), entry.getEntryReference().getPath());
+            return entry.withEntryReference(entryRef);
+        }).toList();
     }
 
     private Artifact delegate() throws ArtifactException {

@@ -29,6 +29,7 @@ public abstract class AbstractArtifactTest {
         var artifact = getArtifact();
         var maybeEntry = artifact.load(Path.of("file.txt"));
         assertThat(maybeEntry).hasValueSatisfying(entry -> {
+            assertThat(entry.getEntryReference().getArtifactReference()).isEqualTo(artifact.getReference());
             try (var stream = entry.getInputStream()) {
                 assertThat(stream).hasContent("hello");
             } catch (ArtifactEntryUnreadableException | IOException e) {
@@ -53,8 +54,10 @@ public abstract class AbstractArtifactTest {
         var artifact = getArtifact();
         var entries = artifact.loadAll(Path.of("file.txt"));
 
-        assertThat(entries).singleElement().satisfies(entry ->
-                assertThat(entry.getEntryReference().getPath()).isEqualTo("file.txt"));
+        assertThat(entries).singleElement().satisfies(entry -> {
+            assertThat(entry.getEntryReference().getArtifactReference()).isEqualTo(artifact.getReference());
+            assertThat(entry.getEntryReference().getPath()).isEqualTo("file.txt");
+        });
     }
 
     @ParameterizedTest

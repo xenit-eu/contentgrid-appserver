@@ -23,4 +23,25 @@ public interface ArtifactEntry {
      * @throws ArtifactEntryUnreadableException if the stream cannot be opened
      */
     InputStream getInputStream() throws ArtifactEntryUnreadableException;
+
+    /**
+     * Returns a new {@link ArtifactEntry} with the provided {@code entryReference}.
+     * The underlying {@link InputStream} stays the same.
+     *
+     * @param entryReference the new reference
+     * @return an entry with the updated {@code entryReference}
+     */
+    default ArtifactEntry withEntryReference(ArtifactEntryReference entryReference) {
+        return new ArtifactEntry() {
+            @Override
+            public ArtifactEntryReference getEntryReference() {
+                return entryReference;
+            }
+
+            @Override
+            public InputStream getInputStream() throws ArtifactEntryUnreadableException {
+                return ArtifactEntry.this.getInputStream();
+            }
+        };
+    }
 }

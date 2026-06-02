@@ -65,10 +65,8 @@ public class ClassPathArtifact implements Artifact {
                         var fsArtifact = new FilesystemDirectoryArtifact(Path.of(url.toURI()));
                         for (var entry : fsArtifact.loadAll(Path.of(""))) {
                             var classpathPath = targetPath.resolve(entry.getEntryReference().getPath());
-                            result.add(new ClassPathArtifactEntry(
-                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
-                                    classLoader,
-                                    classpathPath));
+                            var entryRef = ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString());
+                            result.add(entry.withEntryReference(entryRef));
                         }
                     }
                     case "jar" -> {
@@ -77,10 +75,8 @@ public class ClassPathArtifact implements Artifact {
                                 Path.of(jarConn.getJarFileURL().toURI()), ZipArtifact::new);
                         for (var entry : zipArtifact.loadAll(targetPath)) {
                             var classpathPath = Path.of(entry.getEntryReference().getPath());
-                            result.add(new ClassPathArtifactEntry(
-                                    ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString()),
-                                    classLoader,
-                                    classpathPath));
+                            var entryRef = ArtifactEntryReference.of(ref, directory.relativize(classpathPath).toString());
+                            result.add(entry.withEntryReference(entryRef));
                         }
                     }
                     default -> throw new UnsupportedOperationException("Protocol %s not supported".formatted(url.getProtocol()));
