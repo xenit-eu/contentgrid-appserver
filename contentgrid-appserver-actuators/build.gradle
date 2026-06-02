@@ -7,9 +7,10 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-domain')
-    api ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
+
+    implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
 
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
