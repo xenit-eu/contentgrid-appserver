@@ -36,14 +36,11 @@ public class ClassPathArtifact implements Artifact {
     }
 
     @Override
-    public Optional<ArtifactEntry> load(Path path) throws ArtifactException {
+    public Optional<ArtifactEntry> load(Path path) {
         var ref = ArtifactEntryReference.of(getReference(), path.toString());
-        var classpathPath = directory.resolve(path).normalize();
-        var resourceName = classpathPath.toString();
-        if (classLoader.getResource(resourceName) == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new ClassPathArtifactEntry(ref, classLoader, classpathPath));
+        var classpathPath = directory.resolve(path).normalize().toString();
+        return Optional.ofNullable(classLoader.getResource(classpathPath))
+                .map(resource -> new ClassPathArtifactEntry(ref, resource));
     }
 
     @Override

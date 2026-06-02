@@ -3,8 +3,9 @@ package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryReference;
 import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
+import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
+import java.net.URL;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,14 @@ public class ClassPathArtifactEntry implements ArtifactEntry {
     @NonNull
     private final ArtifactEntryReference entryReference;
     @NonNull
-    private final ClassLoader classLoader;
-    @NonNull
-    private final Path classpathPath;
+    private final URL resource;
 
     @Override
     public InputStream getInputStream() throws ArtifactEntryUnreadableException {
-        return classLoader.getResourceAsStream(classpathPath.toString());
+        try {
+            return resource.openStream();
+        } catch (IOException e) {
+            throw new ArtifactEntryUnreadableException(entryReference, e);
+        }
     }
 }
