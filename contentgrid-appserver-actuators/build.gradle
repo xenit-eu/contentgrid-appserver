@@ -10,6 +10,8 @@ dependencies {
 
     api 'org.springframework.boot:spring-boot-starter-actuator'
 
+    implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
+
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
     implementation 'jakarta.servlet:jakarta.servlet-api'
@@ -18,4 +20,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.hamcrest:hamcrest'
+    testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
+        because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
+        capabilities {
+            requireFeature('spring-boot-3')
+        }
+    }
 }

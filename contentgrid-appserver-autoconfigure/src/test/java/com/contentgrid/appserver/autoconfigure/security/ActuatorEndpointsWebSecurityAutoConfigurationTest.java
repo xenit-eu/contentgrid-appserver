@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 import com.contentgrid.appserver.actuator.ActuatorConfiguration;
-import com.contentgrid.appserver.actuator.ActuatorConfiguration.ActuatorEndpointsWebSecurityConfiguration;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.security.ManagementContextSupplierConfiguration.ManagementContextSupplier;
+import com.contentgrid.common.spring.autoconfigure.ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
@@ -27,6 +27,7 @@ import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfi
 import org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.metrics.MetricsEndpointAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.web.servlet.ServletManagementContextAutoConfiguration;
@@ -60,6 +61,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
     static final String ACTUATOR_HEALTH = "/actuator/health";
     static final String ACTUATOR_INFO = "/actuator/info";
     static final String ACTUATOR_METRICS = "/actuator/metrics";
+    static final String ACTUATOR_PROMETHEUS = "/actuator/prometheus";
     static final String ACTUATOR_ENV = "/actuator/env";
 
     static final String ACTUATOR_POLICY = "/actuator/policy";
@@ -75,6 +77,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 MetricsAutoConfiguration.class,
                 MetricsEndpointAutoConfiguration.class,
                 CompositeMeterRegistryAutoConfiguration.class,
+                PrometheusMetricsExportAutoConfiguration.class,
 
                 EnvironmentEndpointAutoConfiguration.class,
 
@@ -109,7 +112,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     SecurityAutoConfiguration.class,
                     ManagementWebSecurityAutoConfiguration.class,
-                    ActuatorEndpointsWebSecurityConfiguration.class
+                    ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration.class
             ));
 
     @Test
@@ -118,8 +121,9 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
         runner.run(context -> {
             assertThat(context)
                     .hasNotFailed()
-                    .hasBean("actuatorEndpointsSecurityFilterChain")
-                    .hasSingleBean(PolicyActuator.class);
+                    .hasBean("contentgridCommonActuatorEndpointsSecurityFilterChain")
+                    .hasBean("exposedPolicyActuatorEndpoint")
+            ;
 
             withWebTestClient(context, remoteAddress("192.0.2.1"), assertHttp -> {
                 // public endpoints
@@ -128,6 +132,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
 
                 // management on primary server port
                 assertHttp.get(ACTUATOR_METRICS).isForbidden();
+                assertHttp.get(ACTUATOR_PROMETHEUS).isForbidden();
                 assertHttp.get(ACTUATOR_POLICY).isForbidden();
 
                 // other endpoints fall through if not from loopback-address
@@ -138,14 +143,18 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             });
 
             // security matcher on /actuator/** and only /actuator/** endpoints
-            assertThat(context.getBean("actuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
+            assertThat(
+                    context.getBean("contentgridCommonActuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
                     .isNotNull()
                     .satisfies(filterChain -> {
                         var servletContext = context.getServletContext();
                         assertThat(context.getServletContext()).isNotNull();
 
                         assertThat(filterChain.matches(get("/actuator", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/info", servletContext))).isTrue();
                         assertThat(filterChain.matches(get("/actuator/health", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/metrics", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/prometheus", servletContext))).isTrue();
                         assertThat(filterChain.matches(get("/api", servletContext))).isFalse();
                     });
         });
@@ -158,8 +167,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context)
                             .hasNotFailed()
-                            .hasBean("actuatorEndpointsSecurityFilterChain");
-
+                            .hasBean("contentgridCommonActuatorEndpointsSecurityFilterChain")
+                    ;
                     withWebTestClient(context, remoteAddress("192.0.2.1"), assertHttp -> {
                         // public endpoints
                         assertHttp.get(ACTUATOR_HEALTH).isOk();
@@ -167,6 +176,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
 
                         // management on different port
                         assertHttp.get(ACTUATOR_METRICS).isOk();
+                        assertHttp.get(ACTUATOR_PROMETHEUS).isOk();
                         assertHttp.get(ACTUATOR_POLICY).isOk();
 
                         // other endpoints fall through if not from loopback-address
@@ -177,21 +187,29 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                     });
 
                     // security matcher on /actuator/** on management port only
-                    assertThat(context.getBean("actuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
+                    assertThat(context.getBean("contentgridCommonActuatorEndpointsSecurityFilterChain",
+                            SecurityFilterChain.class))
                             .isNotNull()
                             .satisfies(filterChain -> {
                                 var servletContext = context.getServletContext();
                                 assertThat(context.getServletContext()).isNotNull();
 
                                 assertThat(filterChain.matches(get("/actuator", servletContext))).isFalse();
+                                assertThat(filterChain.matches(get("/actuator/info", servletContext))).isFalse();
                                 assertThat(filterChain.matches(get("/actuator/health", servletContext))).isFalse();
+                                assertThat(filterChain.matches(get("/actuator/metrics", servletContext))).isFalse();
+                                assertThat(filterChain.matches(get("/actuator/prometheus", servletContext))).isFalse();
                                 assertThat(filterChain.matches(get("/api", servletContext))).isFalse();
 
                                 // management context runs on a different port
                                 var mgmtServletContext = context.getBean(ManagementContextSupplier.class).get()
                                         .getServletContext();
                                 assertThat(filterChain.matches(get("/actuator", mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get("/actuator/info", mgmtServletContext))).isTrue();
                                 assertThat(filterChain.matches(get("/actuator/health", mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get("/actuator/metrics", mgmtServletContext))).isTrue();
+                                assertThat(
+                                        filterChain.matches(get("/actuator/prometheus", mgmtServletContext))).isTrue();
                                 assertThat(filterChain.matches(get("/api", mgmtServletContext))).isFalse();
 
                             });
@@ -204,13 +222,15 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
         runner.run(context -> {
             assertThat(context)
                     .hasNotFailed()
-                    .hasBean("actuatorEndpointsSecurityFilterChain");
+                    .hasBean("contentgridCommonActuatorEndpointsSecurityFilterChain")
+            ;
 
             withWebTestClient(context, remoteAddress("localhost"), assertHttp -> {
                 // all /actuator endpoints allowed when from a loopback address
                 assertHttp.get(ACTUATOR_HEALTH).isOk();
                 assertHttp.get(ACTUATOR_INFO).isOk();
                 assertHttp.get(ACTUATOR_METRICS).isOk();
+                assertHttp.get(ACTUATOR_PROMETHEUS).isOk();
                 assertHttp.get(ACTUATOR_POLICY).isOk();
                 assertHttp.get(ACTUATOR_ENV).isOk();
 
@@ -218,14 +238,18 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             });
 
             // should match /actuator/** and only /actuator/** endpoints
-            assertThat(context.getBean("actuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
+            assertThat(
+                    context.getBean("contentgridCommonActuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
                     .isNotNull()
                     .satisfies(filterChain -> {
                         var servletContext = context.getServletContext();
                         assertThat(context.getServletContext()).isNotNull();
 
                         assertThat(filterChain.matches(get("/actuator", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/info", servletContext))).isTrue();
                         assertThat(filterChain.matches(get("/actuator/health", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/metrics", servletContext))).isTrue();
+                        assertThat(filterChain.matches(get("/actuator/prometheus", servletContext))).isTrue();
                         assertThat(filterChain.matches(get("/api", servletContext))).isFalse();
                     });
         });
@@ -238,32 +262,39 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 .withPropertyValues("management.server.port=0")
                 .withClassLoader(new FilteredClassLoader(ActuatorConfiguration.class))
                 .run(context -> {
-            assertThat(context)
-                    .hasNotFailed()
-                    .hasBean("actuatorEndpointsSecurityFilterChain")
-                    .doesNotHaveBean(PolicyActuator.class);
+                    assertThat(context)
+                            .hasNotFailed()
+                            .hasBean("contentgridCommonActuatorEndpointsSecurityFilterChain")
+                            .doesNotHaveBean(PolicyActuator.class);
 
-            // security matcher on /actuator/** and only /actuator/** endpoints
-            // because contentgrid actuators are not loaded
-            // the contentgrid-actuators are not covered by EndpointRequest.anyEndpoint()
-            assertThat(context.getBean("actuatorEndpointsSecurityFilterChain", SecurityFilterChain.class))
-                    .isNotNull()
-                    .satisfies(filterChain -> {
-                        var servletContext = context.getServletContext();
-                        assertThat(context.getServletContext()).isNotNull();
+                    // security matcher on /actuator/** and only /actuator/** endpoints
+                    // because contentgrid actuators are not loaded
+                    // the contentgrid-actuators are not covered by EndpointRequest.anyEndpoint()
+                    assertThat(context.getBean("contentgridCommonActuatorEndpointsSecurityFilterChain",
+                            SecurityFilterChain.class))
+                            .isNotNull()
+                            .satisfies(filterChain -> {
+                                var servletContext = context.getServletContext();
+                                assertThat(context.getServletContext()).isNotNull();
 
-                        assertThat(filterChain.matches(get(ACTUATOR_ROOT, servletContext))).isFalse();
-                        assertThat(filterChain.matches(get(ACTUATOR_HEALTH, servletContext))).isFalse();
-                        assertThat(filterChain.matches(get(ACTUATOR_POLICY, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_ROOT, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_INFO, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_HEALTH, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_METRICS, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_PROMETHEUS, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_POLICY, servletContext))).isFalse();
 
-                        // management context runs on a different port
-                        var mgmtServletContext = context.getBean(ManagementContextSupplier.class).get()
-                                .getServletContext();
-                        assertThat(filterChain.matches(get(ACTUATOR_ROOT, mgmtServletContext))).isTrue();
-                        assertThat(filterChain.matches(get(ACTUATOR_HEALTH, mgmtServletContext))).isTrue();
-                        assertThat(filterChain.matches(get(ACTUATOR_POLICY, mgmtServletContext))).isFalse();
-                    });
-        });
+                                // management context runs on a different port
+                                var mgmtServletContext = context.getBean(ManagementContextSupplier.class).get()
+                                        .getServletContext();
+                                assertThat(filterChain.matches(get(ACTUATOR_ROOT, mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get(ACTUATOR_INFO, mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get(ACTUATOR_HEALTH, mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get(ACTUATOR_METRICS, mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get(ACTUATOR_PROMETHEUS, mgmtServletContext))).isTrue();
+                                assertThat(filterChain.matches(get(ACTUATOR_POLICY, mgmtServletContext))).isFalse();
+                            });
+                });
     }
 
     private void withWebTestClient(ApplicationContext context, MockMvcConfigurer remoteAddress,

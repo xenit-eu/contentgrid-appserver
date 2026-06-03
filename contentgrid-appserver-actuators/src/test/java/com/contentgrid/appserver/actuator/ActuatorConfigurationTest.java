@@ -21,7 +21,7 @@ import org.springframework.http.ResponseEntity;
                 "management.server.port=0" // random, different port from main port
         }
 )
-public class ContentgridActuatorConfigurationTest {
+class ActuatorConfigurationTest {
     @Autowired
     private TestRestTemplate rest;
 

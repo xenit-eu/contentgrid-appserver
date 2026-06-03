@@ -59,6 +59,13 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
+    testImplementation project(':contentgrid-appserver-spring-boot-starter')
+    testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
+        because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
+        capabilities {
+            requireFeature('spring-boot-3')
+        }
+    }
 
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
