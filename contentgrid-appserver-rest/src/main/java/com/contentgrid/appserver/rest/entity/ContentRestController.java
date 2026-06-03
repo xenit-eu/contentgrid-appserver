@@ -12,10 +12,11 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
+import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
@@ -64,8 +65,8 @@ public class ContentRestController {
     private final VersionValidator versionValidator;
 
     private EntityAndContentAttribute resolve(Application application, PathSegmentName entityName, PathSegmentName propertyName) {
-        var entity = application.getEntityByPathSegment(entityName).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        var contentProperty = entity.getContentByPathSegment(propertyName).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var entity = application.getEntityByPathSegment(entityName).orElseThrow();
+        var contentProperty = entity.getContentByPathSegment(propertyName).orElseThrow();
         return new EntityAndContentAttribute(entity.getName(), contentProperty);
     }
 
@@ -97,7 +98,10 @@ public class ContentRestController {
                 id,
                 entityAndContent.attributeName(),
                 authorizationContext
-        ).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        ).orElseThrow(() -> new ContentNotFoundException(EntityIdentity.forEntity(
+                entityAndContent.entityName(),
+                id
+        ), entityAndContent.attributeName()));
 
         if(versionValidator.checkVersion(webRequest, versionConstraint, content.getVersion())) {
             return null; // The response headers inside webRequest are modified as side effect
@@ -236,22 +240,18 @@ public class ContentRestController {
                 inputStreamSupplier
         );
 
-        try {
-            var newContent = contentApi.update(
-                    application,
-                    entityAndContent.entityName(),
-                    id,
-                    entityAndContent.attributeName(),
-                    versionConstraint,
-                    fileData,
-                    authorizationContext
-            );
-            return ResponseEntity.noContent()
-                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
-                    .build();
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        var newContent = contentApi.update(
+                application,
+                entityAndContent.entityName(),
+                id,
+                entityAndContent.attributeName(),
+                versionConstraint,
+                fileData,
+                authorizationContext
+        );
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(newContent.getVersion()))
+                .build();
     }
 
     @RequestMapping(method = {RequestMethod.POST, RequestMethod.PUT}, consumes = "multipart/form-data")
@@ -275,22 +275,18 @@ public class ContentRestController {
                 file::getInputStream
         );
 
-        try {
-            var newContent = contentApi.update(
-                    application,
-                    entityAndContent.entityName(),
-                    id,
-                    entityAndContent.attributeName(),
-                    versionConstraint,
-                    fileData,
-                    authorizationContext
-            );
-            return ResponseEntity.noContent()
-                    .eTag(versionValidator.calculateETag(newContent.getVersion()))
-                    .build();
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        var newContent = contentApi.update(
+                application,
+                entityAndContent.entityName(),
+                id,
+                entityAndContent.attributeName(),
+                versionConstraint,
+                fileData,
+                authorizationContext
+        );
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(newContent.getVersion()))
+                .build();
     }
 
     @DeleteMapping
@@ -304,18 +300,14 @@ public class ContentRestController {
     ) throws InvalidPropertyDataException {
         var entityAndContent = resolve(application, entityName, propertyName);
 
-        try {
-            contentApi.delete(
-                    application,
-                    entityAndContent.entityName(),
-                    id,
-                    entityAndContent.attributeName(),
-                    versionConstraint,
-                    authorizationContext
-            );
-        } catch(EntityIdNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, null, e);
-        }
+        contentApi.delete(
+                application,
+                entityAndContent.entityName(),
+                id,
+                entityAndContent.attributeName(),
+                versionConstraint,
+                authorizationContext
+        );
 
         return ResponseEntity.noContent().build();
     }

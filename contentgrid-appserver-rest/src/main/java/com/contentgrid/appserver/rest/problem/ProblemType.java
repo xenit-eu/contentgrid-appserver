@@ -34,6 +34,7 @@ public enum ProblemType implements ProblemTypeResolvable {
     NOT_FOUND_ENDPOINT("not-found", "endpoint"),
     NOT_FOUND_ENTITY_ITEM("not-found", "entity-item"),
     NOT_FOUND_RELATION_ITEM("not-found", "relation-item"), // Specific item not linked in a relation
+    NOT_FOUND_CONTENT("not-found", "content"),
 
     INTEGRITY_RELATION_BLIND_OVERWRITE("integrity", "blind-relation-overwrite"),
     INTEGRITY_REQUIRED_RELATION("integrity", "required-relation"),

@@ -441,7 +441,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
@@ -810,7 +810,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
@@ -820,7 +820,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
@@ -832,13 +832,13 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                                    .withTitle("Entity or resource not found")
+                                    .withTitle("Endpoint not found")
                     );
             mockMvc.perform(get("/foobars"))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                                    .withTitle("Entity or resource not found")
+                                    .withTitle("Endpoint not found")
                     );
         }
     }
@@ -1370,7 +1370,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                                    .withTitle("Entity or resource not found")
+                                    .withTitle("Endpoint not found")
                     );
         }
 
@@ -1409,7 +1409,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
@@ -1983,7 +1983,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 
@@ -1995,7 +1995,7 @@ class EntityRestControllerTest {
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
-                            .withTitle("Entity or resource not found")
+                            .withTitle("Endpoint not found")
                     );
         }
 

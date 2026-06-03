@@ -753,7 +753,7 @@ class ContentRestControllerTest {
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("about:blank"));
+                            .withType("https://contentgrid.cloud/problems/not-found/content"));
         }
 
         @Test
@@ -777,7 +777,7 @@ class ContentRestControllerTest {
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("about:blank"));
+                            .withType("https://contentgrid.cloud/problems/not-found/content"));
 
         }
 

@@ -32,6 +32,7 @@ import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
+import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.MergedProblemProperties;
@@ -342,6 +343,12 @@ public class ProblemDetailsExceptionHandler {
     @ExceptionHandler({EmptyRelationException.class, RelationLinkNotFoundException.class})
     ResponseEntity<Problem> notFound() {
         return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_RELATION_ITEM)
+                .withStatus(HttpStatus.NOT_FOUND));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> notFound(ContentNotFoundException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_CONTENT, exception.getEntityIdentity(), exception.getAttributeName().getValue())
                 .withStatus(HttpStatus.NOT_FOUND));
     }
 
