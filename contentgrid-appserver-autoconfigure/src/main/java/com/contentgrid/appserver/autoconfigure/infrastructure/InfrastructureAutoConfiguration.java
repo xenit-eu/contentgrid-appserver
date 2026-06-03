@@ -27,7 +27,7 @@ public class InfrastructureAutoConfiguration {
 
     private final ApplicationContext applicationContext;
 
-    @ConfigurationProperties(prefix = "contentgrid.appserver.infrastructure")
+    @ConfigurationProperties(prefix = "contentgrid.appserver.artifact")
     public record InfrastructureProperties(
             @DefaultValue("classpath:.") @NonNull String location
     ) {}

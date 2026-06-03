@@ -39,9 +39,9 @@ class ApplicationResolverAutoConfigurationTest {
     }
 
     @Test
-    void checkWithInfrastructureLocationProperty() {
+    void checkWithArtifactLocationProperty() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:.")
+                .withPropertyValues("contentgrid.appserver.artifact.location=classpath:.")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ApplicationResolver.class);
@@ -72,9 +72,9 @@ class ApplicationResolverAutoConfigurationTest {
     }
 
     @Test
-    void checkWithInfrastructureLocationProperty_nonExistingValue() {
+    void checkWithArtifactLocationProperty_nonExistingValue() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:unknown")
+                .withPropertyValues("contentgrid.appserver.artifact.location=classpath:unknown")
                 .run(context -> {
                     assertThat(context).hasFailed();
                 });
@@ -94,9 +94,9 @@ class ApplicationResolverAutoConfigurationTest {
     }
 
     @Test
-    void checkWithInfrastructureLocationPropertyAndApplicationResolver() {
+    void checkWithArtifactLocationPropertyAndApplicationResolver() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.location=classpath:.")
+                .withPropertyValues("contentgrid.appserver.artifact.location=classpath:.")
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();

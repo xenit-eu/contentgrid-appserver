@@ -46,7 +46,7 @@ class InfrastructureAutoConfigurationTest {
     })
     void withLocationProperty(String reference) {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.location=" + reference)
+                .withPropertyValues("contentgrid.appserver.artifact.location=" + reference)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(Artifact.class);
@@ -63,7 +63,7 @@ class InfrastructureAutoConfigurationTest {
     })
     void withInvalidLocationProperty(String reference) {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.location=" + reference)
+                .withPropertyValues("contentgrid.appserver.artifact.location=" + reference)
                 .run(context -> assertThat(context).hasFailed());
     }
 
