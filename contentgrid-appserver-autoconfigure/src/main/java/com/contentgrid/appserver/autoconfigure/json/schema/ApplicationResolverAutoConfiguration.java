@@ -4,9 +4,9 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
 import com.contentgrid.appserver.registry.ApplicationResolver;
-import com.contentgrid.appserver.registry.ArtifactApplicationResolver;
+import com.contentgrid.appserver.registry.BlueprintArtifactApplicationResolver;
 import com.contentgrid.appserver.registry.CachingApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import java.io.IOException;
@@ -38,10 +38,10 @@ public class ApplicationResolverAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass({ArtifactApplicationResolver.class, DefaultApplicationSchemaConverter.class})
+    @ConditionalOnClass({BlueprintArtifactApplicationResolver.class, DefaultApplicationSchemaConverter.class})
     @ConditionalOnProperty(name = "contentgrid.appserver.application-model", havingValue = "false", matchIfMissing = true)
-    ApplicationResolver artifactApplicationResolver(Artifact artifact) {
-        return new CachingApplicationResolver(new ArtifactApplicationResolver(artifact));
+    ApplicationResolver blueprintArtifactApplicationResolver(BlueprintArtifact blueprintArtifact) {
+        return new CachingApplicationResolver(new BlueprintArtifactApplicationResolver(blueprintArtifact));
     }
 
     @Bean

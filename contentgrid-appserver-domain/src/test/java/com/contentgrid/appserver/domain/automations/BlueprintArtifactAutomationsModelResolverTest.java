@@ -15,10 +15,10 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationAnnotationModel;
 import com.contentgrid.appserver.domain.automations.AutomationsModel.AutomationModel;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
-import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItemUnreadableException;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathBlueprintArtifact;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-class ArtifactAutomationsModelResolverTest {
+class BlueprintArtifactAutomationsModelResolverTest {
 
     private static final String AUTOMATION_ID = "a0da9322-3dae-4b5a-8f92-c3cb53989938";
     private static final String SYSTEM_ID = "my-system";
@@ -82,31 +82,31 @@ class ArtifactAutomationsModelResolverTest {
 
     @Test
     void resolveConfig() {
-        var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("artifact"));
+        var blueprintArtifact = new ClassPathBlueprintArtifact(BlueprintArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("blueprint-artifact"));
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = new BlueprintArtifactAutomationsModelResolver(blueprintArtifact);
 
         assertThat(resolver.resolve(APPLICATION_MODEL)).isEqualTo(MODEL);
     }
 
     @Test
     void resolveConfigNotFound() {
-        var artifact = new ClassPathArtifact(ArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("nonexisting"));
+        var blueprintArtifact = new ClassPathBlueprintArtifact(BlueprintArtifactAutomationsModelResolverTest.class.getClassLoader(), Path.of("nonexisting"));
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = new BlueprintArtifactAutomationsModelResolver(blueprintArtifact);
 
         assertThat(resolver.resolve(APPLICATION_MODEL).getAutomations()).isEmpty();
     }
 
     @Test
     void resolveConfigUnreadable() throws Exception {
-        var artifact = Mockito.mock(Artifact.class);
-        var artifactEntry = Mockito.mock(ArtifactEntry.class);
-        Mockito.doThrow(ArtifactEntryUnreadableException.class)
-                .when(artifactEntry).getInputStream();
-        Mockito.doReturn(Optional.of(artifactEntry)).when(artifact).load(Mockito.any());
+        var blueprintArtifact = Mockito.mock(BlueprintArtifact.class);
+        var blueprintArtifactItem = Mockito.mock(BlueprintArtifactItem.class);
+        Mockito.doThrow(BlueprintArtifactItemUnreadableException.class)
+                .when(blueprintArtifactItem).getInputStream();
+        Mockito.doReturn(Optional.of(blueprintArtifactItem)).when(blueprintArtifact).load(Mockito.any());
 
-        var resolver = new ArtifactAutomationsModelResolver(artifact);
+        var resolver = new BlueprintArtifactAutomationsModelResolver(blueprintArtifact);
 
         assertThatThrownBy(() -> resolver.resolve(APPLICATION_MODEL))
                 .isInstanceOf(IllegalStateException.class);

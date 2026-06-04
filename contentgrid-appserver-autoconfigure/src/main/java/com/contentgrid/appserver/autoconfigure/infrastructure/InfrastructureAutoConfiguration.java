@@ -1,11 +1,11 @@
 package com.contentgrid.appserver.autoconfigure.infrastructure;
 
-import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration.InfrastructureProperties;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReferenceResolver;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReferenceResolverRegistry;
-import com.contentgrid.appserver.infrastructure.impl.fs.FilesystemArtifactReferenceResolver;
+import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration.BlueprintArtifactProperties;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactReference;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactReferenceResolver;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactReferenceResolverRegistry;
+import com.contentgrid.appserver.infrastructure.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -21,32 +21,32 @@ import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration
 @RequiredArgsConstructor
-@ConditionalOnClass({Artifact.class, ArtifactReferenceResolverRegistry.class})
-@EnableConfigurationProperties(InfrastructureProperties.class)
+@ConditionalOnClass({BlueprintArtifact.class, BlueprintArtifactReferenceResolverRegistry.class})
+@EnableConfigurationProperties(BlueprintArtifactProperties.class)
 public class InfrastructureAutoConfiguration {
 
     private final ApplicationContext applicationContext;
 
-    @ConfigurationProperties(prefix = "contentgrid.appserver.artifact")
-    public record InfrastructureProperties(
+    @ConfigurationProperties(prefix = "contentgrid.appserver.blueprint-artifact")
+    public record BlueprintArtifactProperties(
             @DefaultValue("classpath:.") @NonNull String location
     ) {}
 
     @Bean
-    @ConditionalOnClass(FilesystemArtifactReferenceResolver.class)
-    ArtifactReferenceResolver filesystemArtifactReferenceResolver() {
-        return new FilesystemArtifactReferenceResolver(applicationContext.getClassLoader());
+    @ConditionalOnClass(FilesystemBlueprintArtifactReferenceResolver.class)
+    BlueprintArtifactReferenceResolver filesystemBlueprintArtifactReferenceResolver() {
+        return new FilesystemBlueprintArtifactReferenceResolver(applicationContext.getClassLoader());
     }
 
     @Bean
     @Primary
-    ArtifactReferenceResolver artifactReferenceResolverRegistry(List<ArtifactReferenceResolver> artifactReferenceResolvers) {
-        return new ArtifactReferenceResolverRegistry(artifactReferenceResolvers);
+    BlueprintArtifactReferenceResolver blueprintArtifactReferenceResolverRegistry(List<BlueprintArtifactReferenceResolver> blueprintArtifactReferenceResolvers) {
+        return new BlueprintArtifactReferenceResolverRegistry(blueprintArtifactReferenceResolvers);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    Artifact defaultArtifact(ArtifactReferenceResolver resolver, InfrastructureProperties properties) {
-        return resolver.resolve(ArtifactReference.of(properties.location()));
+    BlueprintArtifact defaultBlueprintArtifact(BlueprintArtifactReferenceResolver resolver, BlueprintArtifactProperties properties) {
+        return resolver.resolve(BlueprintArtifactReference.of(properties.location()));
     }
 }

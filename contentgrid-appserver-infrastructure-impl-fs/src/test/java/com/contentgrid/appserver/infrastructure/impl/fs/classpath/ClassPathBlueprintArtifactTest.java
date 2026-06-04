@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.classpath;
 
-import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -12,15 +12,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
 
-class ClassPathArtifactTest {
+class ClassPathBlueprintArtifactTest {
 
     @Nested
-    class FileSystemBacked extends AbstractArtifactTest {
+    class FileSystemBacked extends AbstractBlueprintArtifactTest {
 
         @TempDir
         static Path root;
 
-        static ClassPathArtifact artifact;
+        static ClassPathBlueprintArtifact blueprintArtifact;
 
         @BeforeAll
         static void setup() throws IOException {
@@ -31,22 +31,22 @@ class ClassPathArtifactTest {
             Files.writeString(root.resolve("test/config/sub/c.yaml"), "key: c");
 
             var classLoader = new URLClassLoader(new java.net.URL[]{root.toUri().toURL()});
-            artifact = new ClassPathArtifact(classLoader, Path.of("test"));
+            blueprintArtifact = new ClassPathBlueprintArtifact(classLoader, Path.of("test"));
         }
 
         @Override
-        protected Artifact getArtifact() {
-            return artifact;
+        protected BlueprintArtifact getBlueprintArtifact() {
+            return blueprintArtifact;
         }
     }
 
     @Nested
-    class JarBacked extends AbstractArtifactTest {
+    class JarBacked extends AbstractBlueprintArtifactTest {
 
         @TempDir
         static Path tempDir;
 
-        static ClassPathArtifact artifact;
+        static ClassPathBlueprintArtifact blueprintArtifact;
 
         @BeforeAll
         static void setup() throws IOException {
@@ -62,7 +62,7 @@ class ClassPathArtifactTest {
             }
 
             var classLoader = new URLClassLoader(new java.net.URL[]{jarPath.toUri().toURL()});
-            artifact = new ClassPathArtifact(classLoader, Path.of("test"));
+            blueprintArtifact = new ClassPathBlueprintArtifact(classLoader, Path.of("test"));
         }
 
         private static void addEntry(JarOutputStream jos, String name, String content) throws IOException {
@@ -74,8 +74,8 @@ class ClassPathArtifactTest {
         }
 
         @Override
-        protected Artifact getArtifact() {
-            return artifact;
+        protected BlueprintArtifact getBlueprintArtifact() {
+            return blueprintArtifact;
         }
     }
 }

@@ -40,13 +40,13 @@ Most properties are prefixed with `contentgrid.appserver`. System identity and e
 
 | Property | Description | Default | Required |
 |---|---|---|---|
-| `contentgrid.appserver.application-model` | Path to an application model JSON file (e.g. `classpath:my-app.json`). When set, loads the model from this resource. When absent, the model is loaded from the artifact defined by `contentgrid.appserver.infrastructure.location`. | — | No |
+| `contentgrid.appserver.application-model` | Path to an application model JSON file (e.g. `classpath:my-app.json`). When set, loads the model from this resource. When absent, the model is loaded from the blueprint artifact defined by `contentgrid.appserver.blueprint-artifact.location`. | — | No |
 
 ### Infrastructure
 
 | Property | Description | Default | Required |
 |---|---|---|---|
-| `contentgrid.appserver.infrastructure.location` | Location of the artifact directory that contains the application files. Accepts `classpath:`, `file:` and `zip:` URIs. | `classpath:.` | No |
+| `contentgrid.appserver.blueprint-artifact.location` | Location of the blueprint artifact that contains the blueprint files. Accepts `classpath:`, `file:` and `zip:` URIs. | `classpath:.` | No |
 
 ### Content store
 

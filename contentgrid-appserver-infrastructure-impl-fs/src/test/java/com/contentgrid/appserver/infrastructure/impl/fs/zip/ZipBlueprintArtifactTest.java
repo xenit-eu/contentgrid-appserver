@@ -2,9 +2,9 @@ package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
+import com.contentgrid.appserver.infrastructure.api.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,13 +18,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class ZipArtifactTest extends AbstractArtifactTest {
+class ZipBlueprintArtifactTest extends AbstractBlueprintArtifactTest {
 
     @TempDir
     static Path tempDir;
 
     static Path zipPath;
-    static ZipArtifact artifact;
+    static ZipBlueprintArtifact blueprintArtifact;
 
     @BeforeAll
     static void setup() throws IOException {
@@ -35,7 +35,7 @@ class ZipArtifactTest extends AbstractArtifactTest {
             addEntry(zos, "config/sub/c.yaml", "key: c");
             addEntry(zos, "file.txt", "hello");
         }
-        artifact = new ZipArtifact(zipPath);
+        blueprintArtifact = new ZipBlueprintArtifact(zipPath);
     }
 
     private static void addEntry(ZipOutputStream zos, String name, String content) throws IOException {
@@ -45,19 +45,19 @@ class ZipArtifactTest extends AbstractArtifactTest {
     }
 
     @Override
-    protected Artifact getArtifact() {
-        return artifact;
+    protected BlueprintArtifact getBlueprintArtifact() {
+        return blueprintArtifact;
     }
 
     @Test
-    void loadAll_nonExistentZip_throwsArtifactException() {
-        var missing = new ZipArtifact(tempDir.resolve("missing.zip"));
+    void loadAll_nonExistentZip_throwsBlueprintArtifactException() {
+        var missing = new ZipBlueprintArtifact(tempDir.resolve("missing.zip"));
         assertThatThrownBy(() -> missing.loadAll(Path.of("")))
-                .isInstanceOf(ArtifactException.class);
+                .isInstanceOf(BlueprintArtifactException.class);
     }
 
     @Test
-    void loadAll_unreadableZip_throwsArtifactException() throws IOException {
+    void loadAll_unreadableZip_throwsBlueprintArtifactException() throws IOException {
         Assumptions.assumeTrue(Files.getFileAttributeView(tempDir, PosixFileAttributeView.class) != null,
                 "Skipping on non-POSIX filesystem");
         Assumptions.assumeFalse("root".equals(System.getProperty("user.name")),
@@ -67,11 +67,11 @@ class ZipArtifactTest extends AbstractArtifactTest {
         try (var zos = new ZipOutputStream(new FileOutputStream(unreadablePath.toFile()))) {
             addEntry(zos, "file.txt", "hello");
         }
-        var lockedArtifact = new ZipArtifact(unreadablePath);
+        var lockedBlueprintArtifact = new ZipBlueprintArtifact(unreadablePath);
         Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
         try {
-            assertThatThrownBy(() -> lockedArtifact.loadAll(Path.of("")))
-                    .isInstanceOf(ArtifactException.class);
+            assertThatThrownBy(() -> lockedBlueprintArtifact.loadAll(Path.of("")))
+                    .isInstanceOf(BlueprintArtifactException.class);
         } finally {
             // Restore permissions, so that Junit can clean up the temp zip
             Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("rw-r--r--"));

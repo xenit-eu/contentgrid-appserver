@@ -2,8 +2,8 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathBlueprintArtifact;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +39,8 @@ class ActuatorConfigurationTest {
         }
 
         @Bean
-        Artifact TestArtifact() {
-            return new ClassPathArtifact(ActuatorConfigurationTest.class.getClassLoader(), Path.of("artifact"));
+        BlueprintArtifact testBlueprintArtifact() {
+            return new ClassPathBlueprintArtifact(ActuatorConfigurationTest.class.getClassLoader(), Path.of("blueprint-artifact"));
         }
     }
 

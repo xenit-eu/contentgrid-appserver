@@ -4,7 +4,7 @@ import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -23,8 +23,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables, Artifact artifact) {
-        return new PolicyActuator(artifact, policyVariables);
+    PolicyActuator policyActuator(PolicyVariables policyVariables, BlueprintArtifact blueprintArtifact) {
+        return new PolicyActuator(blueprintArtifact, policyVariables);
     }
 
     @Bean
@@ -41,8 +41,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, Artifact artifact) {
-        return new WebhookConfigActuator(artifact, webhookVariables);
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, BlueprintArtifact blueprintArtifact) {
+        return new WebhookConfigActuator(blueprintArtifact, webhookVariables);
     }
 
     @Bean

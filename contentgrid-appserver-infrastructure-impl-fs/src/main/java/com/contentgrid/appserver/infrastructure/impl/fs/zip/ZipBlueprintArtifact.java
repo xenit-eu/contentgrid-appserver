@@ -1,10 +1,10 @@
 package com.contentgrid.appserver.infrastructure.impl.fs.zip;
 
-import com.contentgrid.appserver.infrastructure.api.AbstractRemoteArtifact;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryArtifact;
+import com.contentgrid.appserver.infrastructure.api.AbstractRemoteBlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactException;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactReference;
+import com.contentgrid.appserver.infrastructure.impl.fs.directory.FilesystemDirectoryBlueprintArtifact;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,9 +14,9 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class ZipArtifact extends AbstractRemoteArtifact {
+public class ZipBlueprintArtifact extends AbstractRemoteBlueprintArtifact {
 
-    private static final String TEMP_DIR_PREFIX = "zip-artifact-";
+    private static final String TEMP_DIR_PREFIX = "zip-blueprint-artifact-";
     public static final String SCHEME = "zip";
 
     @NonNull
@@ -24,12 +24,12 @@ public class ZipArtifact extends AbstractRemoteArtifact {
     private Path tempDir;
 
     @Override
-    public ArtifactReference getReference() {
-        return ArtifactReference.of(SCHEME + ":" + zipPath.toAbsolutePath());
+    public BlueprintArtifactReference getReference() {
+        return BlueprintArtifactReference.of(SCHEME + ":" + zipPath.toAbsolutePath());
     }
 
     @Override
-    protected Artifact createDelegate() throws ArtifactException {
+    protected BlueprintArtifact createDelegate() throws BlueprintArtifactException {
         var reference = getReference();
         try (var zipFile = new ZipFile(zipPath.toFile())) {
             tempDir = Files.createTempDirectory(TEMP_DIR_PREFIX, PosixFilePermissions
@@ -47,11 +47,11 @@ public class ZipArtifact extends AbstractRemoteArtifact {
                     throw new WrappedIOException(e);
                 }
             });
-            return new FilesystemDirectoryArtifact(tempDir);
+            return new FilesystemDirectoryBlueprintArtifact(tempDir);
         } catch (IOException e) {
-            throw new ArtifactException(reference, e);
+            throw new BlueprintArtifactException(reference, e);
         } catch (WrappedIOException e) {
-            throw new ArtifactException(reference, e.unwrap());
+            throw new BlueprintArtifactException(reference, e.unwrap());
         }
     }
 

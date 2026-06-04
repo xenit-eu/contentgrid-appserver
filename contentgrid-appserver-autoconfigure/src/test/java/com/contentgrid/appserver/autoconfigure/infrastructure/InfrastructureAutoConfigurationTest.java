@@ -2,10 +2,10 @@ package com.contentgrid.appserver.autoconfigure.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactReference;
+import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathBlueprintArtifact;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -31,10 +31,10 @@ class InfrastructureAutoConfigurationTest {
     void defaults() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(Artifact.class);
-            assertThat(context.getBean(Artifact.class))
-                    .isInstanceOfSatisfying(ClassPathArtifact.class, artifact ->
-                            assertThat(artifact.getReference()).hasToString("classpath:."));
+            assertThat(context).hasSingleBean(BlueprintArtifact.class);
+            assertThat(context.getBean(BlueprintArtifact.class))
+                    .isInstanceOfSatisfying(ClassPathBlueprintArtifact.class, blueprintArtifact ->
+                            assertThat(blueprintArtifact.getReference()).hasToString("classpath:."));
         });
     }
 
@@ -42,16 +42,16 @@ class InfrastructureAutoConfigurationTest {
     @ValueSource(strings = {
             "classpath:my/location",
             "file:/my/path",
-            "zip:/my/artifact.zip",
+            "zip:/my/blueprint-artifact.zip",
     })
     void withLocationProperty(String reference) {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.artifact.location=" + reference)
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=" + reference)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(Artifact.class);
-                    assertThat(context).getBean(Artifact.class).satisfies(artifact ->
-                            assertThat(artifact.getReference()).hasToString(reference));
+                    assertThat(context).hasSingleBean(BlueprintArtifact.class);
+                    assertThat(context).getBean(BlueprintArtifact.class).satisfies(blueprintArtifact ->
+                            assertThat(blueprintArtifact.getReference()).hasToString(reference));
                 });
     }
 
@@ -63,39 +63,39 @@ class InfrastructureAutoConfigurationTest {
     })
     void withInvalidLocationProperty(String reference) {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.artifact.location=" + reference)
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=" + reference)
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
-    void withCustomArtifactBean() {
+    void withCustomBlueprintArtifactBean() {
         contextRunner
-                .withUserConfiguration(CustomArtifactConfiguration.class)
+                .withUserConfiguration(CustomBlueprintArtifactConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean("defaultArtifact");
-                    assertThat(context).hasSingleBean(Artifact.class);
+                    assertThat(context).doesNotHaveBean("defaultBlueprintArtifact");
+                    assertThat(context).hasSingleBean(BlueprintArtifact.class);
                 });
     }
 
     @Configuration
-    static class CustomArtifactConfiguration {
+    static class CustomBlueprintArtifactConfiguration {
 
         @Bean
-        Artifact customArtifact() {
-            return new Artifact() {
+        BlueprintArtifact customBlueprintArtifact() {
+            return new BlueprintArtifact() {
                 @Override
-                public ArtifactReference getReference() {
-                    return ArtifactReference.of("test:custom");
+                public BlueprintArtifactReference getReference() {
+                    return BlueprintArtifactReference.of("test:custom");
                 }
 
                 @Override
-                public Optional<ArtifactEntry> load(Path path) {
+                public Optional<BlueprintArtifactItem> load(Path path) {
                     return Optional.empty();
                 }
 
                 @Override
-                public List<ArtifactEntry> loadAll(Path path) {
+                public List<BlueprintArtifactItem> loadAll(Path path) {
                     return List.of();
                 }
             };

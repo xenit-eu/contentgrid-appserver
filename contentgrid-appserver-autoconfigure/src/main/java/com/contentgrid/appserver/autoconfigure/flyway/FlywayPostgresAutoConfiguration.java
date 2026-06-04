@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.flyway;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
 import java.nio.file.Path;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -13,8 +13,9 @@ import org.springframework.context.annotation.Bean;
 public class FlywayPostgresAutoConfiguration {
 
     @Bean
-    FlywayConfigurationCustomizer infrastructureResourceProviderFlywayConfigurationCustomizer(Artifact artifact) {
-        var resourceProvider = new ArtifactFlywayResourceProvider(artifact.subDir(Path.of("db", "migration")));
+    FlywayConfigurationCustomizer blueprintArtifactResourceProviderFlywayConfigurationCustomizer(
+            BlueprintArtifact blueprintArtifact) {
+        var resourceProvider = new BlueprintArtifactFlywayResourceProvider(blueprintArtifact.subDir(Path.of("db", "migration")));
         return configuration -> configuration.resourceProvider(resourceProvider);
     }
 }

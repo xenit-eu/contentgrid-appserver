@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.actuator.webhooks;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntryUnreadableException;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItemUnreadableException;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +20,7 @@ import org.springframework.util.SystemPropertyUtils;
 public class WebhookConfigActuator {
     private static final Path PATH = Path.of("eventhandler", "webhooks.json");
 
-    private final Artifact artifact;
+    private final BlueprintArtifact blueprintArtifact;
     private final WebhookVariables webhookVariables;
     private static final PropertyPlaceholderHelper PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper(
             SystemPropertyUtils.PLACEHOLDER_PREFIX,
@@ -28,18 +28,18 @@ public class WebhookConfigActuator {
     );
 
     @ReadOperation(producesFrom = WebhookConfigProducible.class)
-    public String getConfig() throws IOException, ArtifactException, ArtifactEntryUnreadableException {
-        var maybeArtifactEntry = artifact.load(PATH);
-        if (maybeArtifactEntry.isPresent()) {
-            String contents = readContents(maybeArtifactEntry.get());
+    public String getConfig() throws IOException, BlueprintArtifactException, BlueprintArtifactItemUnreadableException {
+        var maybeBlueprintArtifactItem = blueprintArtifact.load(PATH);
+        if (maybeBlueprintArtifactItem.isPresent()) {
+            String contents = readContents(maybeBlueprintArtifactItem.get());
             return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, webhookVariables);
         } else {
-            throw new FileNotFoundException("rego file at " + PATH + " in " + artifact.getReference() + " is not present");
+            throw new FileNotFoundException("rego file at " + PATH + " in " + blueprintArtifact.getReference() + " is not present");
         }
     }
 
-    static String readContents(ArtifactEntry artifactEntry) throws IOException, ArtifactEntryUnreadableException {
-        try (InputStream resourceStream = artifactEntry.getInputStream()) {
+    static String readContents(BlueprintArtifactItem blueprintArtifactItem) throws IOException, BlueprintArtifactItemUnreadableException {
+        try (InputStream resourceStream = blueprintArtifactItem.getInputStream()) {
             return new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

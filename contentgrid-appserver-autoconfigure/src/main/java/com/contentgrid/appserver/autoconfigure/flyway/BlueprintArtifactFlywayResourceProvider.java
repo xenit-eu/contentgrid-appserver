@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.flyway;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactEntry;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;
@@ -13,14 +13,14 @@ import org.flywaydb.core.api.ResourceProvider;
 import org.flywaydb.core.api.resource.LoadableResource;
 
 @RequiredArgsConstructor
-public class ArtifactFlywayResourceProvider implements ResourceProvider {
+public class BlueprintArtifactFlywayResourceProvider implements ResourceProvider {
 
-    private final Artifact artifact;
+    private final BlueprintArtifact blueprintArtifact;
 
     @Override
     @SneakyThrows
     public LoadableResource getResource(String name) {
-        return artifact.load(Path.of(name))
+        return blueprintArtifact.load(Path.of(name))
                 .map(ArtifactEntryLoadableResource::new)
                 .orElse(null);
     }
@@ -28,7 +28,7 @@ public class ArtifactFlywayResourceProvider implements ResourceProvider {
     @Override
     @SneakyThrows
     public Collection<LoadableResource> getResources(String prefix, String[] suffixes) {
-        return artifact.loadAll(Path.of(".")).stream()
+        return blueprintArtifact.loadAll(Path.of(".")).stream()
                 .map(ArtifactEntryLoadableResource::new)
                 .filter(resource -> resource.getFilename().startsWith(prefix))
                 .filter(resource -> Stream.of(suffixes)
@@ -40,33 +40,33 @@ public class ArtifactFlywayResourceProvider implements ResourceProvider {
     @RequiredArgsConstructor
     public static class ArtifactEntryLoadableResource extends LoadableResource {
 
-        private final ArtifactEntry entry;
+        private final BlueprintArtifactItem item;
 
         @Override
         @SneakyThrows
         public Reader read() {
-            return new InputStreamReader(entry.getInputStream());
+            return new InputStreamReader(item.getInputStream());
         }
 
         @Override
         public String getAbsolutePath() {
-            return entry.getEntryReference().toString();
+            return item.getItemReference().toString();
         }
 
         @Override
         public String getAbsolutePathOnDisk() {
-            return entry.getEntryReference().toString();
+            return item.getItemReference().toString();
         }
 
         @Override
         public String getFilename() {
-            var entryPath = entry.getEntryReference().getPath();
-            return entryPath.substring(entryPath.lastIndexOf("/") + 1);
+            var itemPath = item.getItemReference().getPath();
+            return itemPath.substring(itemPath.lastIndexOf("/") + 1);
         }
 
         @Override
         public String getRelativePath() {
-            return entry.getEntryReference().getPath();
+            return item.getItemReference().getPath();
         }
     }
 }
