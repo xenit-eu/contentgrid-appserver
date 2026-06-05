@@ -112,6 +112,10 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         Matcher.matcher(Set.of(HttpMethod.GET, HttpMethod.DELETE), EndpointType.RELATION_TO_ONE),
                         Matcher.matcher(Set.of(HttpMethod.GET, HttpMethod.DELETE), EndpointType.RELATION_ITEM)
                 )),
+        NOT_FOUND_CONTENT(
+                HttpStatusCode.of(404),
+                Matcher.matcher(Set.of(HttpMethod.GET), EndpointType.CONTENT)
+        ),
         INTEGRITY_BLIND_RELATION_OVERWRITE(
                 HttpStatusCode.of(409),
                 Matcher.compose(
@@ -211,6 +215,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
                     case REQUEST_PROBLEM_BODY -> "Invalid body";
                     case NOT_FOUND_ENTITY_ITEM -> "Item not found";
                     case NOT_FOUND_RELATION_ITEM -> "Item not found in the relation";
+                    case NOT_FOUND_CONTENT -> "No content is present";
                     case INTEGRITY_BLIND_RELATION_OVERWRITE -> "Would overwrite a relation of another item";
                     case INTEGRITY_REQUIRED_RELATION -> "Would clear a required relation";
                 })
@@ -260,6 +265,7 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         );
                 case NOT_FOUND_ENTITY_ITEM -> createNotFoundProblem(base, "entity-item");
                 case NOT_FOUND_RELATION_ITEM -> createNotFoundProblem(base, "relation-item");
+                case NOT_FOUND_CONTENT -> createNotFoundProblem(base, "content");
                 case INTEGRITY_BLIND_RELATION_OVERWRITE -> base
                         .subType("integrity.blind-relation-overwrite",
                                 type("https://contentgrid.cloud/problems/integrity/blind-relation-overwrite"),

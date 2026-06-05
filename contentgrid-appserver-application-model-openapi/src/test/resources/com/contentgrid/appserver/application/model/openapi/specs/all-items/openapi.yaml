@@ -3412,7 +3412,7 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/problemDetail.not-found.entity-item"
+                $ref: "#/components/schemas/problemDetail.not-found"
         "412":
           $ref: "#/components/responses/preconditionFailed"
     put:
@@ -4149,6 +4149,7 @@ components:
           https://contentgrid.cloud/problems/invalid-request/forbidden-header: "#/components/schemas/problemDetail.invalid-request-header"
           https://contentgrid.cloud/problems/invalid-request/invalid-header: "#/components/schemas/problemDetail.invalid-request-header"
           https://contentgrid.cloud/problems/invalid-request/required-header: "#/components/schemas/problemDetail.invalid-request-header"
+          https://contentgrid.cloud/problems/not-found/content: "#/components/schemas/problemDetail.not-found.content"
           https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
           https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
           https://contentgrid.cloud/problems/unsatisfied-version: "#/components/schemas/problemDetail.unsatisfied-version"
@@ -4455,9 +4456,14 @@ components:
       discriminator:
         propertyName: "type"
         mapping:
+          https://contentgrid.cloud/problems/not-found/content: "#/components/schemas/problemDetail.not-found.content"
           https://contentgrid.cloud/problems/not-found/entity-item: "#/components/schemas/problemDetail.not-found.entity-item"
           https://contentgrid.cloud/problems/not-found/relation-item: "#/components/schemas/problemDetail.not-found.relation-item"
         defaultMapping: "#/components/schemas/problemDetail.not-found"
+    problemDetail.not-found.content:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.not-found"
+      - type: "object"
     problemDetail.not-found.entity-item:
       allOf:
       - $ref: "#/components/schemas/problemDetail.not-found"
