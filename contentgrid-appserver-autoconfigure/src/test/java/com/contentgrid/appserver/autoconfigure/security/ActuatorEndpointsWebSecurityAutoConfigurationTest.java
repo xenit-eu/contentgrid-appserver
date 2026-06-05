@@ -7,7 +7,7 @@ import com.contentgrid.appserver.actuator.ActuatorConfiguration;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.security.ManagementContextSupplierConfiguration.ManagementContextSupplier;
-import com.contentgrid.common.spring.autoconfigure.ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration;
+import com.contentgrid.common.spring.autoconfigure.security.ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
