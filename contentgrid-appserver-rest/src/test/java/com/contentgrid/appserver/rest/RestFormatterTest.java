@@ -11,9 +11,9 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.rest.test.TestApplication;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,7 +33,7 @@ class RestFormatterTest {
     RestEntityFormatter entityFormatter;
 
     @Test
-    void testEntityDataSerialization() throws JsonProcessingException {
+    void testEntityDataSerialization() throws JacksonException {
         var uuid = UUID.fromString("69415bf7-9aba-4a35-b677-0d66f3bec2bf");
         var entity = new TestEntityInstance(
                 EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
@@ -43,8 +43,7 @@ class RestFormatterTest {
                 ))
         );
         var actual = entityFormatter.format(APPLICATION, entity);
-        var mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
+        var mapper = JsonMapper.builder().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
         var expected = mapper.readTree(EXPECTED);
         assertThat(actual).isEqualTo(expected);
     }

@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.events;
 
-import com.fasterxml.jackson.core.TreeNode;
+import tools.jackson.core.TreeNode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

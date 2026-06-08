@@ -3,12 +3,11 @@ package com.contentgrid.appserver.example;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -20,15 +19,17 @@ import org.springframework.test.context.ActiveProfiles;
 )
 @ActiveProfiles("bootRun")
 class ContentgridPrometheusActuatorTest {
-    @Autowired
-    private TestRestTemplate rest;
 
     @Value("${local.management.port}")
     int managementPort;
 
+    private WebTestClient getClient() {
+        return WebTestClient.bindToServer().baseUrl("http://localhost:" + managementPort).build();
+    }
+
     @Test
     void prometheusEndpointIsPublic() {
-        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/prometheus", String.class);
-        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
+        ResponseSpec resp = getClient().get().uri("/actuator/prometheus").exchange();
+        assertThat(resp.expectStatus().is2xxSuccessful());
     }
 }

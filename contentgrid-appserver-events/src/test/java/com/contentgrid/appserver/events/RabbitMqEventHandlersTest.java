@@ -13,7 +13,7 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

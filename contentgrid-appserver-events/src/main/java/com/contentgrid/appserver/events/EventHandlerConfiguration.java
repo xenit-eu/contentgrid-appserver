@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.events;
 
 import com.contentgrid.appserver.rest.RestEntityFormatter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

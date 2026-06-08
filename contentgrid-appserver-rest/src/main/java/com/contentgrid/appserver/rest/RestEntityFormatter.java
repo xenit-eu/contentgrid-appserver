@@ -5,8 +5,8 @@ import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -17,7 +17,7 @@ import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 public class RestEntityFormatter {
     private final EntityDataRepresentationModelAssembler assembler;
     private final MethodLinkBuilderFactory<?> linkBuilderFactory;
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper;
 
     public JsonNode format(Application application, EntityInstance entityInstance) {
         var locales = new DummyLocales();

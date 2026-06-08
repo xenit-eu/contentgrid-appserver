@@ -12,7 +12,7 @@ dependencies {
 
     api 'org.springframework.boot:spring-boot-starter-amqp'
     implementation project(':contentgrid-appserver-rest')
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'tools.jackson.core:jackson-databind'
 
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation project(':contentgrid-appserver-rest')
