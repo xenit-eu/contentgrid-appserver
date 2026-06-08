@@ -2,8 +2,8 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
-import com.contentgrid.appserver.infrastructure.impl.fs.classpath.ClassPathBlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

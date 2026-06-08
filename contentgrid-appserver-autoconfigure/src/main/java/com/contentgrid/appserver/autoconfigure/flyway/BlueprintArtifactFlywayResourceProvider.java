@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.flyway;
 
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Path;

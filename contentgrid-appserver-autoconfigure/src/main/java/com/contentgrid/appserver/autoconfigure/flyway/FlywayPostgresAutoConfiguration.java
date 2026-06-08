@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.flyway;
 
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.nio.file.Path;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

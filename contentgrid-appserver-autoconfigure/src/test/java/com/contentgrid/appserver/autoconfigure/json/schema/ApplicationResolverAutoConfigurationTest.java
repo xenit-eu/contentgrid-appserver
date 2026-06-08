@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ class ApplicationResolverAutoConfigurationTest {
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
             .withConfiguration(AutoConfigurations.of(
                     ApplicationResolverAutoConfiguration.class,
-                    InfrastructureAutoConfiguration.class
+                    BlueprintArtifactAutoConfiguration.class
             ));
 
     @Test

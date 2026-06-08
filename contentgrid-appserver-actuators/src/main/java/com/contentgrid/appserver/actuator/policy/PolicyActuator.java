@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.actuator.policy;
 
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItemUnreadableException;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;

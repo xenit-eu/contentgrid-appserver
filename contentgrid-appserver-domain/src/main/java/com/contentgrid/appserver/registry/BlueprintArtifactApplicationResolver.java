@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.json.ApplicationSchemaConverter;
 import com.contentgrid.appserver.application.model.json.DefaultApplicationSchemaConverter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;

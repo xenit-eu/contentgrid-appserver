@@ -6,7 +6,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import com.contentgrid.appserver.actuator.ActuatorConfiguration;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration;
-import com.contentgrid.appserver.autoconfigure.infrastructure.InfrastructureAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.security.ManagementContextSupplierConfiguration.ManagementContextSupplier;
 import com.contentgrid.common.spring.autoconfigure.security.ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration;
 import jakarta.servlet.ServletContext;
@@ -96,7 +96,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
 
         static final AutoConfigurations CONTENTGRID = AutoConfigurations.of(
                 ContentgridActuatorAutoConfiguration.class,
-                InfrastructureAutoConfiguration.class
+                BlueprintArtifactAutoConfiguration.class
         );
     }
 

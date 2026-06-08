@@ -1,10 +1,10 @@
 package com.contentgrid.appserver.domain.automations;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifact;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItem;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactItemUnreadableException;
-import com.contentgrid.appserver.infrastructure.api.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
