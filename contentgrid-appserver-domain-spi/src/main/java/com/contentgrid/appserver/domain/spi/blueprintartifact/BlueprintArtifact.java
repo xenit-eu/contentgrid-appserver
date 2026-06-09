@@ -50,23 +50,4 @@ public interface BlueprintArtifact {
      * @throws BlueprintArtifactException if the blueprint artifact cannot be accessed
      */
     List<BlueprintArtifactItem> loadAll(Path path) throws BlueprintArtifactException;
-
-    default BlueprintArtifact subDir(@lombok.NonNull Path subDir) {
-        return new BlueprintArtifact() {
-            @Override
-            public BlueprintArtifactReference getReference() {
-                return BlueprintArtifact.this.getReference();
-            }
-
-            @Override
-            public Optional<BlueprintArtifactItem> load(Path path) throws BlueprintArtifactException {
-                return BlueprintArtifact.this.load(subDir.resolve(path).normalize());
-            }
-
-            @Override
-            public List<BlueprintArtifactItem> loadAll(Path path) throws BlueprintArtifactException {
-                return BlueprintArtifact.this.loadAll(subDir.resolve(path).normalize());
-            }
-        };
-    }
 }

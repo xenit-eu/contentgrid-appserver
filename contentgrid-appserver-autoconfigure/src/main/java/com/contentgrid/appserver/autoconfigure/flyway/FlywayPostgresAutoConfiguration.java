@@ -15,7 +15,7 @@ public class FlywayPostgresAutoConfiguration {
     @Bean
     FlywayConfigurationCustomizer blueprintArtifactResourceProviderFlywayConfigurationCustomizer(
             BlueprintArtifact blueprintArtifact) {
-        var resourceProvider = new BlueprintArtifactFlywayResourceProvider(blueprintArtifact.subDir(Path.of("db", "migration")));
+        var resourceProvider = new BlueprintArtifactFlywayResourceProvider(blueprintArtifact);
         return configuration -> configuration.resourceProvider(resourceProvider);
     }
 }

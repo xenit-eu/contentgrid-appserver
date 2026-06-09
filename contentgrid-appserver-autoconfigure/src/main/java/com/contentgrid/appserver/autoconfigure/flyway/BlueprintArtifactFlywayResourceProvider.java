@@ -15,12 +15,14 @@ import org.flywaydb.core.api.resource.LoadableResource;
 @RequiredArgsConstructor
 public class BlueprintArtifactFlywayResourceProvider implements ResourceProvider {
 
+    private static final Path PATH = Path.of("db", "migration");
+
     private final BlueprintArtifact blueprintArtifact;
 
     @Override
     @SneakyThrows
     public LoadableResource getResource(String name) {
-        return blueprintArtifact.load(Path.of(name))
+        return blueprintArtifact.load(PATH.resolve(name))
                 .map(ArtifactEntryLoadableResource::new)
                 .orElse(null);
     }
@@ -28,7 +30,7 @@ public class BlueprintArtifactFlywayResourceProvider implements ResourceProvider
     @Override
     @SneakyThrows
     public Collection<LoadableResource> getResources(String prefix, String[] suffixes) {
-        return blueprintArtifact.loadAll(Path.of(".")).stream()
+        return blueprintArtifact.loadAll(PATH).stream()
                 .map(ArtifactEntryLoadableResource::new)
                 .filter(resource -> resource.getFilename().startsWith(prefix))
                 .filter(resource -> Stream.of(suffixes)
@@ -66,7 +68,10 @@ public class BlueprintArtifactFlywayResourceProvider implements ResourceProvider
 
         @Override
         public String getRelativePath() {
-            return item.getItemReference().getPath();
+            // Relative path should be relative to migrations root directory, not relative to blueprint artifact root,
+            // so drop "db/migration/" from relative path
+            var relativePathToBlueprintArtifactRoot = Path.of(item.getItemReference().getPath());
+            return PATH.relativize(relativePathToBlueprintArtifactRoot).toString();
         }
     }
 }
