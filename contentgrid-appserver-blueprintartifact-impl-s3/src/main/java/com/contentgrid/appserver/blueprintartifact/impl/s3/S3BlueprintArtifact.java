@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.impl.s3;
+package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import com.contentgrid.appserver.blueprintartifact.impl.fs.zip.ZipBlueprintArtifact;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractRemoteBlueprintArtifact;
@@ -19,7 +19,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class S3Artifact extends AbstractRemoteBlueprintArtifact {
+public class S3BlueprintArtifact extends AbstractRemoteBlueprintArtifact {
 
     public static final String SCHEME = "s3";
 
@@ -41,7 +41,7 @@ public class S3Artifact extends AbstractRemoteBlueprintArtifact {
     protected BlueprintArtifact createDelegate() throws BlueprintArtifactException {
         var ref = getReference();
         try {
-            var tmpFile = Files.createTempFile("s3artifact-", ".zip",
+            var tmpFile = Files.createTempFile("s3-blueprint-artifact-", ".zip",
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
             tmpFile.toFile().deleteOnExit();
 

@@ -6,7 +6,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
-import com.contentgrid.appserver.impl.s3.S3ArtifactReferenceResolver;
+import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
 import io.minio.MinioAsyncClient;
 import java.util.List;
 import lombok.NonNull;
@@ -62,9 +62,9 @@ public class BlueprintArtifactAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass({S3ArtifactReferenceResolver.class, MinioAsyncClient.class})
+    @ConditionalOnClass({S3BlueprintArtifactReferenceResolver.class, MinioAsyncClient.class})
     @ConditionalOnProperty("contentgrid.appserver.blueprint-artifact.s3.url")
-    BlueprintArtifactReferenceResolver s3ArtifactReferenceResolver(BlueprintArtifactProperties properties) {
+    BlueprintArtifactReferenceResolver s3BlueprintArtifactReferenceResolver(BlueprintArtifactProperties properties) {
         var s3 = properties.s3();
         var clientBuilder = MinioAsyncClient.builder().endpoint(s3.url());
         if (s3.accessKey() != null && s3.secretKey() != null) {
@@ -73,6 +73,6 @@ public class BlueprintArtifactAutoConfiguration {
         if (s3.region() != null) {
             clientBuilder.region(s3.region());
         }
-        return new S3ArtifactReferenceResolver(clientBuilder.build());
+        return new S3BlueprintArtifactReferenceResolver(clientBuilder.build());
     }
 }

@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.impl.s3;
+package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
@@ -17,15 +17,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-class S3ArtifactTest extends AbstractBlueprintArtifactTest {
+class S3BlueprintArtifactTest extends AbstractBlueprintArtifactTest {
 
-    private static final String BUCKET_NAME = "test-artifact";
+    private static final String BUCKET_NAME = "test-blueprint-artifact";
     private static final String OBJECT_KEY = "test.zip";
 
     @Container
     private static final S3MockContainer S3_MOCK = S3MockUtils.s3MockContainer();
 
-    private static S3Artifact artifact;
+    private static S3BlueprintArtifact blueprintArtifact;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -47,7 +47,7 @@ class S3ArtifactTest extends AbstractBlueprintArtifactTest {
                 .build())
                 .join();
 
-        artifact = new S3Artifact(client, BUCKET_NAME, OBJECT_KEY);
+        blueprintArtifact = new S3BlueprintArtifact(client, BUCKET_NAME, OBJECT_KEY);
     }
 
     private static byte[] createZip() throws IOException {
@@ -69,6 +69,6 @@ class S3ArtifactTest extends AbstractBlueprintArtifactTest {
 
     @Override
     protected BlueprintArtifact getBlueprintArtifact() {
-        return artifact;
+        return blueprintArtifact;
     }
 }

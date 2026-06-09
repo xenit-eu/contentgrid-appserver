@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.impl.s3;
+package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -6,7 +6,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
 
-class S3ArtifactReferenceResolverTest {
+class S3BlueprintArtifactReferenceResolverTest {
 
     // No actual S3 calls are made: S3Artifact downloads lazily, so a dummy endpoint is fine.
     private final MinioAsyncClient client = MinioAsyncClient.builder()
@@ -14,13 +14,13 @@ class S3ArtifactReferenceResolverTest {
             .credentials("test", "test")
             .build();
 
-    private final S3ArtifactReferenceResolver resolver = new S3ArtifactReferenceResolver(client);
+    private final S3BlueprintArtifactReferenceResolver resolver = new S3BlueprintArtifactReferenceResolver(client);
 
     @Test
-    void resolve_s3Reference_returnsS3Artifact() {
-        var ref = BlueprintArtifactReference.of(S3Artifact.SCHEME + ":my-bucket/path/to/artifact.zip");
-        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(S3Artifact.class,
-                artifact -> assertThat(artifact.getReference()).isEqualTo(ref));
+    void resolve_s3Reference_returnsS3BlueprintArtifact() {
+        var ref = BlueprintArtifactReference.of(S3BlueprintArtifact.SCHEME + ":my-bucket/path/to/blueprint-artifact.zip");
+        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(S3BlueprintArtifact.class,
+                blueprintArtifact -> assertThat(blueprintArtifact.getReference()).isEqualTo(ref));
     }
 
     @Test

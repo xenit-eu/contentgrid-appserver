@@ -7,7 +7,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
-import com.contentgrid.appserver.impl.s3.S3ArtifactReferenceResolver;
+import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -83,10 +83,10 @@ class BlueprintArtifactAutoConfigurationTest {
     @Test
     void withS3_minimalValues() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.infrastructure.s3.url=http://localhost:9000")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.s3.url=http://localhost:9000")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(S3ArtifactReferenceResolver.class);
+                    assertThat(context).hasSingleBean(S3BlueprintArtifactReferenceResolver.class);
                 });
     }
 
@@ -94,10 +94,10 @@ class BlueprintArtifactAutoConfigurationTest {
     void withS3_allValues() {
         contextRunner
                 .withPropertyValues(
-                        "contentgrid.appserver.infrastructure.s3.url=http://localhost:9000",
-                        "contentgrid.appserver.infrastructure.s3.access-key=myAccessKey",
-                        "contentgrid.appserver.infrastructure.s3.secret-key=mySecretKey",
-                        "contentgrid.appserver.infrastructure.s3.region=eu-west-1"
+                        "contentgrid.appserver.blueprint-artifact.s3.url=http://localhost:9000",
+                        "contentgrid.appserver.blueprint-artifact.s3.access-key=myAccessKey",
+                        "contentgrid.appserver.blueprint-artifact.s3.secret-key=mySecretKey",
+                        "contentgrid.appserver.blueprint-artifact.s3.region=eu-west-1"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
