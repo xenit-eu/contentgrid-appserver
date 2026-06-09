@@ -1,10 +1,10 @@
 package com.contentgrid.appserver.impl.s3;
 
-import com.contentgrid.appserver.infrastructure.api.AbstractRemoteArtifact;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactException;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.impl.fs.zip.ZipArtifact;
+import com.contentgrid.appserver.blueprintartifact.impl.fs.zip.ZipBlueprintArtifact;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractRemoteBlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import io.minio.GetObjectArgs;
 import io.minio.MinioAsyncClient;
 import io.minio.errors.MinioException;
@@ -19,7 +19,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class S3Artifact extends AbstractRemoteArtifact {
+public class S3Artifact extends AbstractRemoteBlueprintArtifact {
 
     public static final String SCHEME = "s3";
 
@@ -33,12 +33,12 @@ public class S3Artifact extends AbstractRemoteArtifact {
     private final String objectKey;
 
     @Override
-    public ArtifactReference getReference() {
-        return ArtifactReference.of(SCHEME + ":" + bucketName + "/" + objectKey);
+    public BlueprintArtifactReference getReference() {
+        return BlueprintArtifactReference.of(SCHEME + ":" + bucketName + "/" + objectKey);
     }
 
     @Override
-    protected Artifact createDelegate() throws ArtifactException {
+    protected BlueprintArtifact createDelegate() throws BlueprintArtifactException {
         var ref = getReference();
         try {
             var tmpFile = Files.createTempFile("s3artifact-", ".zip",
@@ -53,14 +53,14 @@ public class S3Artifact extends AbstractRemoteArtifact {
                 Files.copy(response, tmpFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            return new ZipArtifact(tmpFile);
+            return new ZipBlueprintArtifact(tmpFile);
         } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
-            throw new ArtifactException(ref, e);
+            throw new BlueprintArtifactException(ref, e);
         } catch (ExecutionException e) {
-            throw new ArtifactException(ref, e.getCause());
+            throw new BlueprintArtifactException(ref, e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new ArtifactException(ref, e);
+            throw new BlueprintArtifactException(ref, e);
         }
     }
 }

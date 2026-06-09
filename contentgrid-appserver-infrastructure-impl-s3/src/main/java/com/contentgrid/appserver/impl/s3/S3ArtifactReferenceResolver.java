@@ -1,18 +1,18 @@
 package com.contentgrid.appserver.impl.s3;
 
-import com.contentgrid.appserver.infrastructure.api.Artifact;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
-import com.contentgrid.appserver.infrastructure.api.ArtifactReferenceResolver;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import io.minio.MinioAsyncClient;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class S3ArtifactReferenceResolver implements ArtifactReferenceResolver {
+public class S3ArtifactReferenceResolver implements BlueprintArtifactReferenceResolver {
 
     private final MinioAsyncClient client;
 
     @Override
-    public Artifact resolve(ArtifactReference reference) {
+    public BlueprintArtifact resolve(BlueprintArtifactReference reference) {
         var parts = reference.toString().split(":");
         if (parts.length == 2 && S3Artifact.SCHEME.equals(parts[0])) {
             var path = parts[1];

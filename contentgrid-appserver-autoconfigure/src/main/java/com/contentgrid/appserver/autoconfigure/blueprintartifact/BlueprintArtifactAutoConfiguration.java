@@ -64,7 +64,7 @@ public class BlueprintArtifactAutoConfiguration {
     @Bean
     @ConditionalOnClass({S3ArtifactReferenceResolver.class, MinioAsyncClient.class})
     @ConditionalOnProperty("contentgrid.appserver.blueprint-artifact.s3.url")
-    ArtifactReferenceResolver s3ArtifactReferenceResolver(BlueprintArtifactProperties properties) {
+    BlueprintArtifactReferenceResolver s3ArtifactReferenceResolver(BlueprintArtifactProperties properties) {
         var s3 = properties.s3();
         var clientBuilder = MinioAsyncClient.builder().endpoint(s3.url());
         if (s3.accessKey() != null && s3.secretKey() != null) {

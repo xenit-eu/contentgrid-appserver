@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.impl.s3;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
-import com.contentgrid.appserver.infrastructure.api.AbstractArtifactTest;
-import com.contentgrid.appserver.infrastructure.api.Artifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioAsyncClient;
 import io.minio.PutObjectArgs;
@@ -17,7 +17,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-class S3ArtifactTest extends AbstractArtifactTest {
+class S3ArtifactTest extends AbstractBlueprintArtifactTest {
 
     private static final String BUCKET_NAME = "test-artifact";
     private static final String OBJECT_KEY = "test.zip";
@@ -68,7 +68,7 @@ class S3ArtifactTest extends AbstractArtifactTest {
     }
 
     @Override
-    protected Artifact getArtifact() {
+    protected BlueprintArtifact getBlueprintArtifact() {
         return artifact;
     }
 }

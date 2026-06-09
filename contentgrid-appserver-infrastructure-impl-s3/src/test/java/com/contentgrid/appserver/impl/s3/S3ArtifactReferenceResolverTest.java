@@ -2,7 +2,7 @@ package com.contentgrid.appserver.impl.s3;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.infrastructure.api.ArtifactReference;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
 
@@ -18,14 +18,14 @@ class S3ArtifactReferenceResolverTest {
 
     @Test
     void resolve_s3Reference_returnsS3Artifact() {
-        var ref = ArtifactReference.of(S3Artifact.SCHEME + ":my-bucket/path/to/artifact.zip");
+        var ref = BlueprintArtifactReference.of(S3Artifact.SCHEME + ":my-bucket/path/to/artifact.zip");
         assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(S3Artifact.class,
                 artifact -> assertThat(artifact.getReference()).isEqualTo(ref));
     }
 
     @Test
     void resolve_unsupportedScheme_returnsNull() {
-        var ref = ArtifactReference.of("file:/some/path");
+        var ref = BlueprintArtifactReference.of("file:/some/path");
         assertThat(resolver.resolve(ref)).isNull();
     }
 }
