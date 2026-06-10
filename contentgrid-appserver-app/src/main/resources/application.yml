@@ -9,3 +9,9 @@ spring:
 server:
   tomcat:
     max-part-count: 200
+management:
+  server:
+    port: 8081
+  health:
+    rabbit:
+      enabled: true
