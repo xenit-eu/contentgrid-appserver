@@ -79,7 +79,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Slf4j
 @SpringBootTest(properties = {
         "contentgrid.appserver.content-store.type=s3", // Use s3 storage type for storing content
-        "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
+        "spring.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
         "contentgrid.events.rabbitmq.enabled=false",
 })
 @AutoConfigureMockMvc(printOnlyOnFailure = false)

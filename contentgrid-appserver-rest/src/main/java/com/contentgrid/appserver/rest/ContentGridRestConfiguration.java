@@ -41,6 +41,9 @@ import org.springframework.format.Formatter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
+import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
+import org.springframework.hateoas.mediatype.hal.HalConfiguration;
+import org.springframework.http.MediaType;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -120,4 +123,14 @@ public class ContentGridRestConfiguration {
         return new SlicedResourcesAssembler<>(resolver);
     }
 
+    /**
+     * Serves HAL to clients requesting plain {@code application/json}.
+     * <p>
+     * Spring Boot only configures this when its {@code spring-boot-hateoas} autoconfiguration is present;
+     * we use {@link EnableHypermediaSupport} directly, so it has to be configured here.
+     */
+    @Bean
+    MediaTypeConfigurationCustomizer<HalConfiguration> applicationJsonHalConfigurationCustomizer() {
+        return halConfiguration -> halConfiguration.withMediaType(MediaType.APPLICATION_JSON);
+    }
 }
