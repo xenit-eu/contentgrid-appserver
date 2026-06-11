@@ -14,17 +14,14 @@ import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.MissingNode;
+import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -33,10 +30,7 @@ public class JsonRequestInputData implements RequestInputData {
 
     @Override
     public Stream<String> keys() {
-        return StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(rootNode.fieldNames(), Spliterator.DISTINCT),
-                false
-        );
+        return rootNode.propertyNames().stream();
     }
 
     @Override

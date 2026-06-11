@@ -23,6 +23,7 @@ import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfi
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.env.EnvironmentEndpointAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.contributor.HealthContributorAutoConfiguration;
+import org.springframework.boot.health.autoconfigure.registry.HealthContributorRegistryAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.actuate.endpoint.HealthEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
 import org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration;
@@ -32,8 +33,11 @@ import org.springframework.boot.micrometer.metrics.autoconfigure.export.promethe
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration;
 import org.springframework.boot.servlet.autoconfigure.actuate.web.ServletManagementContextAutoConfiguration;
+import org.springframework.boot.tomcat.autoconfigure.actuate.web.server.TomcatServletManagementContextAutoConfiguration;
+import org.springframework.boot.tomcat.autoconfigure.servlet.TomcatServletWebServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration;
 import org.springframework.boot.web.server.autoconfigure.servlet.ServletWebServerConfiguration;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
@@ -71,6 +75,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
 
         static final AutoConfigurations ACTUATORS = AutoConfigurations.of(
                 HealthContributorAutoConfiguration.class,
+                HealthContributorRegistryAutoConfiguration.class,
                 HealthEndpointAutoConfiguration.class,
 
                 InfoEndpointAutoConfiguration.class,
@@ -90,7 +95,9 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
         static final AutoConfigurations MANAGEMENT = AutoConfigurations.of(
                 ManagementContextAutoConfiguration.class,
                 ServletManagementContextAutoConfiguration.class,
+                TomcatServletManagementContextAutoConfiguration.class,
                 ServletWebServerConfiguration.class,
+                TomcatServletWebServerAutoConfiguration.class,
                 DispatcherServletAutoConfiguration.class
         );
 
@@ -113,6 +120,7 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             .withConfiguration(AutoConfigs.MANAGEMENT)
             .withConfiguration(AutoConfigurations.of(
                     SecurityAutoConfiguration.class,
+                    ServletWebSecurityAutoConfiguration.class,
                     ManagementWebSecurityAutoConfiguration.class,
                     ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration.class
             ))
