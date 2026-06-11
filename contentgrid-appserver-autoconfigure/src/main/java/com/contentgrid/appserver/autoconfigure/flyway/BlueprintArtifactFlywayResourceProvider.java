@@ -40,7 +40,7 @@ public class BlueprintArtifactFlywayResourceProvider implements ResourceProvider
     }
 
     @RequiredArgsConstructor
-    public static class ArtifactEntryLoadableResource extends LoadableResource {
+    private static class ArtifactEntryLoadableResource extends LoadableResource {
 
         private final BlueprintArtifactItem item;
 

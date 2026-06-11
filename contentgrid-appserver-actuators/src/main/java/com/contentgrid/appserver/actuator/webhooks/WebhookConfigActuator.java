@@ -34,7 +34,7 @@ public class WebhookConfigActuator {
             String contents = readContents(maybeBlueprintArtifactItem.get());
             return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, webhookVariables);
         } else {
-            throw new FileNotFoundException("rego file at " + PATH + " in " + blueprintArtifact.getReference() + " is not present");
+            throw new FileNotFoundException("webhook configuration file at " + PATH + " in " + blueprintArtifact.getReference() + " is not present");
         }
     }
 

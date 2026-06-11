@@ -15,12 +15,12 @@ public class BlueprintArtifactApplicationResolver implements ApplicationResolver
     private static final Path PATH = Path.of("application-model.json");
 
     private final BlueprintArtifact blueprintArtifact;
-    private final ApplicationSchemaConverter converter = new DefaultApplicationSchemaConverter();
+    private static final ApplicationSchemaConverter CONVERTER = new DefaultApplicationSchemaConverter();
 
     @Override
     @SneakyThrows
     public Application resolve(ApplicationName name) {
         var blueprintArtifactItem = blueprintArtifact.loadRequired(PATH);
-        return converter.convert(blueprintArtifactItem.getInputStream());
+        return CONVERTER.convert(blueprintArtifactItem.getInputStream());
     }
 }

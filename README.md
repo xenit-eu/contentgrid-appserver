@@ -15,14 +15,14 @@ The project is organized into modules:
   - Search filters (Exact, Prefix)
 - **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
 - **contentgrid-appserver-autoconfigure**: Autoconfiguration for appserver applications.
-- **contentgrid-appserver-blueprintartifact-impl-fs**: Implementation of domain SPI, for loading files from filesystem directory, classpath or zip file.
+- **contentgrid-appserver-blueprintartifact-impl-fs**: Implementation of domain SPI, for loading files from a blueprint artifact on filesystem (e.g. directory, classpath or zip file).
 - **contentgrid-appserver-contentstore-api**: Defines interfaces and data structures to query object storage.
 - **contentgrid-appserver-contentstore-impl-fs**: Implementation of contentstore API, using filesystem storage.
 - **contentgrid-appserver-contentstore-impl-s3**: Implementation of contentstore API, using S3-compatible storage.
 - **contentgrid-appserver-contentstore-impl-encryption**: Encryption wrapper around any contentstore implementation
 - **contentgrid-appserver-contentstore-impl-utils**: Content utils for dealing with input and output streams.
 - **contentgrid-appserver-domain**: Core domain layer defining apis and implementations to deal with entities, relations and content.
-- **contentgrid-appserver-domain-spi**: Defines interfaces and datastructures that the domain layer can use.
+- **contentgrid-appserver-domain-spi**: Defines interfaces and datastructures that are used by the domain layer to access its dependencies.
 - **contentgrid-appserver-domain-values**: Defines core data structures for representing input and output data.
 - **contentgrid-appserver-events**: Implementation to send change events to RabbitMQ.
 - **contentgrid-appserver-platform**: Platform defining dependencies for contentgrid-appserver.
