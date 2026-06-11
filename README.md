@@ -16,6 +16,7 @@ The project is organized into modules:
 - **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
 - **contentgrid-appserver-autoconfigure**: Autoconfiguration for appserver applications.
 - **contentgrid-appserver-blueprintartifact-impl-fs**: Implementation of domain SPI, for loading files from a blueprint artifact on filesystem (e.g. directory, classpath or zip file).
+- **contentgrid-appserver-blueprintartifact-impl-utils**: Blueprint artifact utilities.
 - **contentgrid-appserver-contentstore-api**: Defines interfaces and data structures to query object storage.
 - **contentgrid-appserver-contentstore-impl-fs**: Implementation of contentstore API, using filesystem storage.
 - **contentgrid-appserver-contentstore-impl-s3**: Implementation of contentstore API, using S3-compatible storage.

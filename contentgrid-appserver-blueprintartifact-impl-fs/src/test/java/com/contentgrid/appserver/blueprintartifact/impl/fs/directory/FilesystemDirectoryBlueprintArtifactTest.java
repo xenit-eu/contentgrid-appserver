@@ -2,7 +2,7 @@ package com.contentgrid.appserver.blueprintartifact.impl.fs.directory;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.contentgrid.appserver.domain.spi.blueprintartifact.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import java.io.IOException;

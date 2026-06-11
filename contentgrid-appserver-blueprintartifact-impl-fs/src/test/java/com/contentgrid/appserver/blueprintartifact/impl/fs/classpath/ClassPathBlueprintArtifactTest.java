@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.blueprintartifact.impl.fs.classpath;
 
-import com.contentgrid.appserver.domain.spi.blueprintartifact.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.io.IOException;
 import java.net.URLClassLoader;

@@ -1,8 +1,14 @@
-package com.contentgrid.appserver.domain.spi.blueprintartifact;
+package com.contentgrid.appserver.blueprintartifact.impl.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemNotFoundException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemReference;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;

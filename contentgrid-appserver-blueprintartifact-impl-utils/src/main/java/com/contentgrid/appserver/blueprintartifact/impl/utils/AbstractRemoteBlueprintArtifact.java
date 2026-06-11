@@ -1,5 +1,9 @@
-package com.contentgrid.appserver.domain.spi.blueprintartifact;
+package com.contentgrid.appserver.blueprintartifact.impl.utils;
 
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemReference;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +18,7 @@ public abstract class AbstractRemoteBlueprintArtifact implements BlueprintArtifa
     public Optional<BlueprintArtifactItem> load(Path path) throws BlueprintArtifactException {
         return delegate().load(path).map(item -> {
             var itemRef = BlueprintArtifactItemReference.of(getReference(), item.getItemReference().getPath());
-            return item.withItemReference(itemRef);
+            return new DelegateBlueprintArtifactItem(itemRef, item);
         });
     }
 
@@ -22,8 +26,8 @@ public abstract class AbstractRemoteBlueprintArtifact implements BlueprintArtifa
     public List<BlueprintArtifactItem> loadAll(Path path) throws BlueprintArtifactException {
         return delegate().loadAll(path).stream().map(item -> {
             var itemRef = BlueprintArtifactItemReference.of(getReference(), item.getItemReference().getPath());
-            return item.withItemReference(itemRef);
-        }).toList();
+            return new DelegateBlueprintArtifactItem(itemRef, item);
+        }).map(BlueprintArtifactItem.class::cast).toList();
     }
 
     private BlueprintArtifact delegate() throws BlueprintArtifactException {

@@ -6,8 +6,9 @@ plugins {
 
 dependencies {
     implementation project(':contentgrid-appserver-domain-spi')
+    implementation project(':contentgrid-appserver-blueprintartifact-impl-utils')
 
     testImplementation 'org.assertj:assertj-core'
-    testImplementation testFixtures(project(':contentgrid-appserver-domain-spi'))
+    testImplementation testFixtures(project(':contentgrid-appserver-blueprintartifact-impl-utils'))
 }
 

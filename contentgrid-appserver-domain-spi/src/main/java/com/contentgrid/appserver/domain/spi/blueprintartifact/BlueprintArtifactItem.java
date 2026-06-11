@@ -23,25 +23,4 @@ public interface BlueprintArtifactItem {
      * @throws BlueprintArtifactItemUnreadableException if the stream cannot be opened
      */
     InputStream getInputStream() throws BlueprintArtifactItemUnreadableException;
-
-    /**
-     * Returns a new {@link BlueprintArtifactItem} with the provided {@code itemReference}.
-     * The underlying {@link InputStream} stays the same.
-     *
-     * @param itemReference the new reference
-     * @return an item with the updated {@code itemReference}
-     */
-    default BlueprintArtifactItem withItemReference(BlueprintArtifactItemReference itemReference) {
-        return new BlueprintArtifactItem() {
-            @Override
-            public BlueprintArtifactItemReference getItemReference() {
-                return itemReference;
-            }
-
-            @Override
-            public InputStream getInputStream() throws BlueprintArtifactItemUnreadableException {
-                return BlueprintArtifactItem.this.getInputStream();
-            }
-        };
-    }
 }

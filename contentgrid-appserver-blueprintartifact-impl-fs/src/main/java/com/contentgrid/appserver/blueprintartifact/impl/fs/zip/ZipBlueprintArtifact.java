@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.blueprintartifact.impl.fs.zip;
 
-import com.contentgrid.appserver.domain.spi.blueprintartifact.AbstractRemoteBlueprintArtifact;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractRemoteBlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;

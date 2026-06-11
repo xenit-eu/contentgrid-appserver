@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.blueprintartifact.impl.fs.classpath;
 
+import com.contentgrid.appserver.blueprintartifact.impl.utils.DelegateBlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemReference;
@@ -63,7 +64,7 @@ public class ClassPathBlueprintArtifact implements BlueprintArtifact {
                         for (var item : fsBlueprintArtifact.loadAll(Path.of(""))) {
                             var classpathPath = targetPath.resolve(item.getItemReference().getPath());
                             var itemRef = BlueprintArtifactItemReference.of(ref, directory.relativize(classpathPath).toString());
-                            result.add(item.withItemReference(itemRef));
+                            result.add(new DelegateBlueprintArtifactItem(itemRef, item));
                         }
                     }
                     case "jar" -> {
@@ -73,7 +74,7 @@ public class ClassPathBlueprintArtifact implements BlueprintArtifact {
                         for (var item : zipBlueprintArtifact.loadAll(targetPath)) {
                             var classpathPath = Path.of(item.getItemReference().getPath());
                             var itemRef = BlueprintArtifactItemReference.of(ref, directory.relativize(classpathPath).toString());
-                            result.add(item.withItemReference(itemRef));
+                            result.add(new DelegateBlueprintArtifactItem(itemRef, item));
                         }
                     }
                     default -> throw new UnsupportedOperationException("Protocol %s not supported".formatted(url.getProtocol()));
