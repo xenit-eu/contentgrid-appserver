@@ -36,7 +36,7 @@ import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactory;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.problem.ext.MergedProblemProperties;
-import com.fasterxml.jackson.core.JsonParseException;
+import tools.jackson.core.exc.StreamReadException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -240,8 +240,8 @@ public class ProblemDetailsExceptionHandler {
 
     @ExceptionHandler
     ResponseEntity<Problem> invalidRequest(HttpMessageNotReadableException exception) {
-        if (exception.getCause() instanceof JsonParseException ex) {
-            // JsonParseException is sometimes the _cause_ of the HttpMessageNotReadableException,
+        if (exception.getCause() instanceof StreamReadException ex) {
+            // StreamReadException is sometimes the _cause_ of the HttpMessageNotReadableException,
             // but this handler always gets called first because resolution goes from root exception down the cause chain
             // So explicitly go down the necessary path here
             return invalidRequest(ex);
@@ -252,7 +252,7 @@ public class ProblemDetailsExceptionHandler {
     }
 
     @ExceptionHandler
-    ResponseEntity<Problem> invalidRequest(JsonParseException exception) {
+    ResponseEntity<Problem> invalidRequest(StreamReadException exception) {
         var message = Objects.requireNonNullElse(exception.getOriginalMessage(), "No message");
         var location = exception.getLocation();
         if(location != null) {
