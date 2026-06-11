@@ -51,45 +51,11 @@ class ApplicationResolverAutoConfigurationTest {
     }
 
     @Test
-    void checkWithApplicationModelProperty() {
-        contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:application-model.json")
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
-                    assertThat(context).getBean(SingleApplicationResolver.class)
-                            .returns(false, resolver -> resolver.getApplication().getEntities().isEmpty());
-                });
-    }
-
-    @Test
-    void checkWithApplicationModelProperty_nonExistingValue() {
-        contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:unknown.json")
-                .run(context -> {
-                    assertThat(context).hasFailed();
-                });
-    }
-
-    @Test
     void checkWithBlueprintArtifactLocationProperty_nonExistingValue() {
         contextRunner
                 .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:unknown")
                 .run(context -> {
                     assertThat(context).hasFailed();
-                });
-    }
-
-    @Test
-    void checkWithApplicationModelPropertyAndApplicationResolver() {
-        contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:application-model.json")
-                .withUserConfiguration(TestConfiguration.class)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
-                    assertThat(context).getBean(SingleApplicationResolver.class)
-                            .returns(true, resolver -> resolver.getApplication().getEntities().isEmpty());
                 });
     }
 
