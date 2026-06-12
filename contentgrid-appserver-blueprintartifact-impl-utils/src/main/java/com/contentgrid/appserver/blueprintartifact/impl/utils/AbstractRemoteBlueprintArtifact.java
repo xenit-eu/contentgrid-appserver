@@ -26,8 +26,8 @@ public abstract class AbstractRemoteBlueprintArtifact implements BlueprintArtifa
     public List<BlueprintArtifactItem> loadAll(Path path) throws BlueprintArtifactException {
         return delegate().loadAll(path).stream().map(item -> {
             var itemRef = BlueprintArtifactItemReference.of(getReference(), item.getItemReference().getPath());
-            return new DelegateBlueprintArtifactItem(itemRef, item);
-        }).map(BlueprintArtifactItem.class::cast).toList();
+            return (BlueprintArtifactItem) new DelegateBlueprintArtifactItem(itemRef, item);
+        }).toList();
     }
 
     private BlueprintArtifact delegate() throws BlueprintArtifactException {
