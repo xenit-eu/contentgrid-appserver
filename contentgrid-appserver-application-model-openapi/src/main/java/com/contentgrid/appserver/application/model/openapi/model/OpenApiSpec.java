@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.openapi.model;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
@@ -14,6 +15,7 @@ import lombok.Value;
  */
 @Value
 @RequiredArgsConstructor
+@JsonPropertyOrder({"openapi", "info", "tags", "paths", "components"})
 public class OpenApiSpec {
     @NonNull
     String openapi;
