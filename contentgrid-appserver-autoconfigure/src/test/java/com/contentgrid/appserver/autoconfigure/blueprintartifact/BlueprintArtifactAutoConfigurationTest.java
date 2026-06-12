@@ -83,7 +83,7 @@ class BlueprintArtifactAutoConfigurationTest {
     @Test
     void withS3_minimalValues() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.blueprint-artifact.s3.url=http://localhost:9000")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(S3BlueprintArtifactReferenceResolver.class);
@@ -94,7 +94,7 @@ class BlueprintArtifactAutoConfigurationTest {
     void withS3_allValues() {
         contextRunner
                 .withPropertyValues(
-                        "contentgrid.appserver.blueprint-artifact.s3.url=http://localhost:9000",
+                        "contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000",
                         "contentgrid.appserver.blueprint-artifact.s3.access-key=myAccessKey",
                         "contentgrid.appserver.blueprint-artifact.s3.secret-key=mySecretKey",
                         "contentgrid.appserver.blueprint-artifact.s3.region=eu-west-1"
@@ -102,7 +102,7 @@ class BlueprintArtifactAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     var properties = context.getBean(BlueprintArtifactProperties.class);
-                    assertThat(properties.s3().url()).isEqualTo("http://localhost:9000");
+                    assertThat(properties.s3().endpoint()).isEqualTo("http://localhost:9000");
                     assertThat(properties.s3().accessKey()).isEqualTo("myAccessKey");
                     assertThat(properties.s3().secretKey()).isEqualTo("mySecretKey");
                     assertThat(properties.s3().region()).isEqualTo("eu-west-1");

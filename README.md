@@ -16,6 +16,7 @@ The project is organized into modules:
 - **contentgrid-appserver-application-model-json**: Serialization and deserialization of Applications.
 - **contentgrid-appserver-autoconfigure**: Autoconfiguration for appserver applications.
 - **contentgrid-appserver-blueprintartifact-impl-fs**: Implementation of domain SPI, for loading files from a blueprint artifact on filesystem (e.g. directory, classpath or zip file).
+- **contentgrid-appserver-blueprintartifact-impl-s3**: Implementation of domain SPI, for loading files from a blueprint artifact over s3.
 - **contentgrid-appserver-blueprintartifact-impl-utils**: Blueprint artifact utilities.
 - **contentgrid-appserver-contentstore-api**: Defines interfaces and data structures to query object storage.
 - **contentgrid-appserver-contentstore-impl-fs**: Implementation of contentstore API, using filesystem storage.
@@ -47,7 +48,7 @@ Most properties are prefixed with `contentgrid.appserver`. System identity and e
 
 | Property | Description | Default | Required |
 |---|---|---|---|
-| `contentgrid.appserver.blueprint-artifact.location` | Location of the blueprint artifact that contains the blueprint files. Accepts `classpath:`, `file:` and `zip:` URIs. | `classpath:.` | No |
+| `contentgrid.appserver.blueprint-artifact.location` | Location of the blueprint artifact that contains the blueprint files. Accepts `classpath:`, `file:`, `zip:` and `s3:` URIs. | `classpath:.` | No |
 
 ### Content store
 
