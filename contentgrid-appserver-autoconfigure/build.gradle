@@ -9,14 +9,16 @@ dependencies {
     implementation 'com.contentgrid.thunx:thunx-autoconfigure'
 
     compileOnly project(':contentgrid-appserver-application-model')
+    compileOnly project(':contentgrid-appserver-application-model-json')
     compileOnly project(':contentgrid-appserver-actuators')
+    compileOnly project(':contentgrid-appserver-blueprintartifact-impl-fs')
     compileOnly project(':contentgrid-appserver-contentstore-api')
     compileOnly project(':contentgrid-appserver-contentstore-impl-encryption')
     compileOnly project(':contentgrid-appserver-contentstore-impl-fs')
     compileOnly project(':contentgrid-appserver-contentstore-impl-s3')
     compileOnly project(':contentgrid-appserver-domain')
+    compileOnly project(':contentgrid-appserver-domain-spi')
     compileOnly project(':contentgrid-appserver-events')
-    compileOnly project(':contentgrid-appserver-application-model-json')
     compileOnly project(':contentgrid-appserver-query-engine-api')
     compileOnly project(':contentgrid-appserver-query-engine-impl-jooq')
     compileOnly project(':contentgrid-appserver-rest')
@@ -27,7 +29,6 @@ dependencies {
     compileOnly 'io.minio:minio'
     compileOnly 'com.squareup.okhttp3:okhttp'
     compileOnly 'org.flywaydb:flyway-core'
-    compileOnly 'org.flywaydb:flyway-database-postgresql'
     compileOnly 'org.jooq:jooq'
     compileOnly 'org.springframework:spring-tx'
     compileOnly 'org.springframework.hateoas:spring-hateoas'
@@ -48,13 +49,15 @@ dependencies {
 
     testImplementation project(':contentgrid-appserver-actuators')
     testImplementation project(':contentgrid-appserver-application-model')
+    testImplementation project(':contentgrid-appserver-application-model-json')
+    testImplementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
     testImplementation project(':contentgrid-appserver-contentstore-api')
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
     testImplementation project(':contentgrid-appserver-contentstore-impl-fs')
     testImplementation project(':contentgrid-appserver-contentstore-impl-s3')
     testImplementation project(':contentgrid-appserver-domain')
+    testImplementation project(':contentgrid-appserver-domain-spi')
     testImplementation project(':contentgrid-appserver-events')
-    testImplementation project(':contentgrid-appserver-application-model-json')
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
@@ -67,6 +70,8 @@ dependencies {
         }
     }
 
+    testImplementation 'org.flywaydb:flyway-core'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
 

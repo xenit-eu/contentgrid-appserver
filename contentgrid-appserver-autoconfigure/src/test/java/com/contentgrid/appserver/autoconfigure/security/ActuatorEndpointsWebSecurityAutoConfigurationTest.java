@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import com.contentgrid.appserver.actuator.ActuatorConfiguration;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.security.ManagementContextSupplierConfiguration.ManagementContextSupplier;
 import com.contentgrid.common.spring.autoconfigure.security.ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration;
 import jakarta.servlet.ServletContext;
@@ -93,8 +94,9 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 DispatcherServletAutoConfiguration.class
         );
 
-        static final AutoConfigurations CONTENTGRID_ACTUATORS = AutoConfigurations.of(
-                ContentgridActuatorAutoConfiguration.class
+        static final AutoConfigurations CONTENTGRID = AutoConfigurations.of(
+                ContentgridActuatorAutoConfiguration.class,
+                BlueprintArtifactAutoConfiguration.class
         );
     }
 
@@ -107,13 +109,14 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
             )
             .withInitializer(new ServerPortInfoApplicationContextInitializer())
             .withConfiguration(AutoConfigs.ACTUATORS)
-            .withConfiguration(AutoConfigs.CONTENTGRID_ACTUATORS)
+            .withConfiguration(AutoConfigs.CONTENTGRID)
             .withConfiguration(AutoConfigs.MANAGEMENT)
             .withConfiguration(AutoConfigurations.of(
                     SecurityAutoConfiguration.class,
                     ManagementWebSecurityAutoConfiguration.class,
                     ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration.class
-            ));
+            ))
+            .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact");
 
     @Test
     void whenAccessFromRemoteAddress() {

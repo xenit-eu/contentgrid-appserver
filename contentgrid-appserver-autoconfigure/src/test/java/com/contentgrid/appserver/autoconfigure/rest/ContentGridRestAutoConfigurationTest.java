@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
 import com.contentgrid.appserver.registry.ApplicationResolver;
@@ -44,11 +45,13 @@ class ContentGridRestAutoConfigurationTest {
                     JOOQQueryEngineAutoConfiguration.class,
                     // autoconfiguration for content store
                     FilesystemContentStoreAutoConfiguration.class,
+                    // autoconfiguration for infrastructure
+                    BlueprintArtifactAutoConfiguration.class,
                     // autoconfiguration for domain
                     ContentGridDomainAutoConfiguration.class,
+                    // autoconfigurations for rest
                     ContentGridEventsAutoConfiguration.class,
                     ContentGridRestFormatterAutoConfiguration.class,
-                    // autoconfigurations for rest
                     HttpMessageConvertersAutoConfiguration.class,
                     WebMvcAutoConfiguration.class,
                     AbacContextAutoConfiguration.class,
@@ -57,6 +60,7 @@ class ContentGridRestAutoConfigurationTest {
             .withUserConfiguration(TestConfiguration.class)
             .withPropertyValues(
                     "spring.datasource.url=jdbc:tc:postgresql:15:///",
+                    "contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact",
                     "contentgrid.appserver.content-store.type=ephemeral",
                     "contentgrid.events.rabbitmq.enabled=false"
             );

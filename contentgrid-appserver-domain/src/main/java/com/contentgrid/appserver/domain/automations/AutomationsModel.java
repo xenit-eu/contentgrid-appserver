@@ -1,15 +1,11 @@
 package com.contentgrid.appserver.domain.automations;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
-import org.springframework.core.io.Resource;
 
 @Value
 @Builder
@@ -38,19 +34,5 @@ public class AutomationsModel {
         @NonNull String id;
         @NonNull Map<String, String> subject;
         @NonNull Map<String, Object> data;
-    }
-
-    public static AutomationsModel fromConfig(Resource resource) {
-        if (resource.exists()) {
-            try {
-                @NonNull ObjectMapper objectMapper = new ObjectMapper()
-                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-                return objectMapper.readValue(resource.getInputStream(), AutomationsModel.class);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            return AutomationsModel.builder().automations(List.of()).build();
-        }
     }
 }

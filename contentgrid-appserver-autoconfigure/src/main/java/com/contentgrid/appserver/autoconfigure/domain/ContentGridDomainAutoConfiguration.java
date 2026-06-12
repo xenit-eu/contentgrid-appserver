@@ -7,17 +7,19 @@ import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
-import com.contentgrid.appserver.domain.automations.AutomationsModel;
+import com.contentgrid.appserver.domain.automations.BlueprintArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
-import com.contentgrid.appserver.domain.automations.SingleAutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.CachingAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
@@ -69,8 +71,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    AutomationsModelResolver automationsResolver() {
-        var model = AutomationsModel.fromConfig(applicationContext.getResource("classpath:automation/automations.json"));
-        return new SingleAutomationsModelResolver(model);
+    @ConditionalOnBean(BlueprintArtifact.class)
+    AutomationsModelResolver blueprintArtifactAutomationsResolver(BlueprintArtifact blueprintArtifact) {
+        return new CachingAutomationsModelResolver(new BlueprintArtifactAutomationsModelResolver(blueprintArtifact));
     }
 }

@@ -11,13 +11,16 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-core'
 
     implementation 'org.slf4j:slf4j-api'
+    implementation project(':contentgrid-appserver-application-model-json')
     implementation project(':contentgrid-appserver-contentstore-api')
+    implementation project(':contentgrid-appserver-domain-spi')
     implementation 'org.springframework:spring-core'
     implementation 'com.contentgrid.hateoas:contentgrid-pagination-offset:0.0.4'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
+    testImplementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
     testImplementation 'org.assertj:assertj-core'
 }
 

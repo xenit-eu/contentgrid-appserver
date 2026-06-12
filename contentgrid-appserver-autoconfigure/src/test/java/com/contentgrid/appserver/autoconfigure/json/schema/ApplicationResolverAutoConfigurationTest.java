@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import org.junit.jupiter.api.Test;
@@ -21,42 +22,47 @@ class ApplicationResolverAutoConfigurationTest {
             // Use initializer to have default conversion service
             .withInitializer(applicationContext -> applicationContext.getBeanFactory().setConversionService(new ApplicationConversionService()))
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
-            .withConfiguration(AutoConfigurations.of(ApplicationResolverAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(
+                    ApplicationResolverAutoConfiguration.class,
+                    BlueprintArtifactAutoConfiguration.class
+            ));
 
     @Test
-    void checkWithoutProperty() {
+    void checkWithoutProperties() {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ApplicationResolver.class);
+                    assertThat(context).hasSingleBean(ApplicationResolver.class);
+                    assertThat(context).getBean(ApplicationResolver.class)
+                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
 
     @Test
-    void checkWithProperty() {
+    void checkWithBlueprintArtifactLocationProperty() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:test.json")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(SingleApplicationResolver.class);
-                    assertThat(context).getBean(SingleApplicationResolver.class)
-                            .returns(false, resolver -> resolver.getApplication().getEntities().isEmpty());
+                    assertThat(context).hasSingleBean(ApplicationResolver.class);
+                    assertThat(context).getBean(ApplicationResolver.class)
+                            .returns(false, resolver -> resolver.resolve(ApplicationName.of("default")).getEntities().isEmpty());
                 });
     }
 
     @Test
-    void checkWithProperty_unknownValue() {
+    void checkWithBlueprintArtifactLocationProperty_nonExistingValue() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:unknown.json")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:unknown")
                 .run(context -> {
                     assertThat(context).hasFailed();
                 });
     }
 
     @Test
-    void checkWithPropertyAndApplicationResolver() {
+    void checkWithBlueprintArtifactLocationPropertyAndApplicationResolver() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.application-model=classpath:test.json")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact")
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();

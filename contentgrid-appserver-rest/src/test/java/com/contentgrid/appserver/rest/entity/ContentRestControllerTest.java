@@ -18,8 +18,6 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
-import com.contentgrid.appserver.rest.entity.ContentRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
@@ -42,9 +40,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -53,7 +48,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
+@SpringBootTest(classes = TestApplication.class, properties = {
         "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
 })
 @AutoConfigureMockMvc
@@ -77,16 +72,6 @@ class ContentRestControllerTest {
 
     @MockitoSpyBean
     private ContentStore contentStoreSpy;
-
-    @TestConfiguration
-    static class TestConfig {
-
-        @Bean
-        @Primary
-        public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
-    }
 
     @BeforeEach
     void setup() {

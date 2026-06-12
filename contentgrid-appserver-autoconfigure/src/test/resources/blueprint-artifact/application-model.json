@@ -1,0 +1,66 @@
+{
+  "$schema": "https://contentgrid.com/schemas/application-schema.json",
+  "applicationName": "default",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "name": "test",
+      "table": "test",
+      "pathSegment": "tests",
+      "linkName": "tests",
+      "primaryKey": {
+        "name": "id",
+        "type": "simple",
+        "columnName": "id",
+        "dataType": "uuid",
+        "flags": [
+          "readOnly"
+        ]
+      },
+      "attributes": [
+        {
+          "name": "foo",
+          "type": "simple",
+          "columnName": "foo",
+          "dataType": "text"
+        }
+      ],
+      "searchFilters": [
+        {
+          "name": "foo",
+          "attributePath": [{"name": "foo", "type": "attr"}],
+          "type": "exact"
+        },
+        {
+          "name": "bar.foo",
+          "attributePath": [{"name": "bar", "type": "rel"}, {"name": "foo", "type": "attr"}],
+          "type": "exact"
+        }
+      ],
+      "sortableFields": [
+        {
+          "name": "foo",
+          "attributePath": [{"name": "foo", "type": "attr"}]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "one-to-many",
+      "sourceEndpoint": {
+        "entityName": "test",
+        "flags": [
+          "hidden"
+        ]
+      },
+      "targetEndpoint": {
+        "name": "bar",
+        "pathSegment": "bar",
+        "linkName": "bar",
+        "entityName": "test"
+      },
+      "sourceReference": "bar"
+    }
+  ]
+}

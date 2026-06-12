@@ -11,10 +11,8 @@ import static org.mockito.Mockito.verify;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
-import com.contentgrid.appserver.events.RabbitMqEventHandlersTest.TestConfig;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
-import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -26,14 +24,11 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 
-@SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
+@SpringBootTest(classes = TestApplication.class, properties = {
         "contentgrid.events.rabbitmq.enabled=true",
         "spring.rabbitmq.host=foo",
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
@@ -56,17 +51,6 @@ class RabbitMqEventHandlersTest {
 
     @Autowired
     private DatamodelApi datamodelApi;
-
-    @TestConfiguration
-    static class TestConfig {
-
-        @Bean
-        @Primary
-        public SingleApplicationResolver singleApplicationResolver() {
-            return new SingleApplicationResolver(APPLICATION);
-        }
-
-    }
 
     @Autowired
     TableCreator tableCreator;

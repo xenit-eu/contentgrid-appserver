@@ -4,18 +4,16 @@ import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @RequiredArgsConstructor
 public class ActuatorConfiguration {
-
-    private final ApplicationContext applicationContext;
 
     @Bean
     PolicyVariables policyVariables(ContentgridApplicationProperties applicationProperties) {
@@ -25,8 +23,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyActuator policyActuator(PolicyVariables policyVariables) {
-        return new PolicyActuator(applicationContext.getResource("classpath:rego/policy.rego"), policyVariables);
+    PolicyActuator policyActuator(PolicyVariables policyVariables, BlueprintArtifact blueprintArtifact) {
+        return new PolicyActuator(blueprintArtifact, policyVariables);
     }
 
     @Bean
@@ -43,9 +41,8 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables) {
-        return new WebhookConfigActuator(applicationContext.getResource("classpath:eventhandler/webhooks.json"),
-                webhookVariables);
+    WebhookConfigActuator webHooksConfigActuator(WebhookVariables webhookVariables, BlueprintArtifact blueprintArtifact) {
+        return new WebhookConfigActuator(blueprintArtifact, webhookVariables);
     }
 
     @Bean
