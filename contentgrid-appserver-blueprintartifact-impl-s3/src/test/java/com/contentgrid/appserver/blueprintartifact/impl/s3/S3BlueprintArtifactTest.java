@@ -2,6 +2,7 @@ package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.ZipUtils;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import io.minio.MakeBucketArgs;
@@ -10,7 +11,6 @@ import io.minio.PutObjectArgs;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Container;
@@ -53,18 +53,12 @@ class S3BlueprintArtifactTest extends AbstractBlueprintArtifactTest {
     private static byte[] createZip() throws IOException {
         var baos = new ByteArrayOutputStream();
         try (var zos = new ZipOutputStream(baos)) {
-            addEntry(zos, "config/a.yaml", "key: a");
-            addEntry(zos, "config/b.yaml", "key: b");
-            addEntry(zos, "config/sub/c.yaml", "key: c");
-            addEntry(zos, "file.txt", "hello");
+            ZipUtils.addEntry(zos, "config/a.yaml", "key: a");
+            ZipUtils.addEntry(zos, "config/b.yaml", "key: b");
+            ZipUtils.addEntry(zos, "config/sub/c.yaml", "key: c");
+            ZipUtils.addEntry(zos, "file.txt", "hello");
         }
         return baos.toByteArray();
-    }
-
-    private static void addEntry(ZipOutputStream zos, String name, String content) throws IOException {
-        zos.putNextEntry(new ZipEntry(name));
-        zos.write(content.getBytes());
-        zos.closeEntry();
     }
 
     @Override

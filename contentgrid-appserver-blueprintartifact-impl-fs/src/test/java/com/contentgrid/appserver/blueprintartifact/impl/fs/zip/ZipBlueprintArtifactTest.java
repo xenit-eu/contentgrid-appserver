@@ -3,6 +3,7 @@ package com.contentgrid.appserver.blueprintartifact.impl.fs.zip;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
+import com.contentgrid.appserver.blueprintartifact.impl.utils.ZipUtils;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import java.io.FileOutputStream;
@@ -11,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,18 +30,12 @@ class ZipBlueprintArtifactTest extends AbstractBlueprintArtifactTest {
     static void setup() throws IOException {
         zipPath = tempDir.resolve("test.zip");
         try (var zos = new ZipOutputStream(new FileOutputStream(zipPath.toFile()))) {
-            addEntry(zos, "config/a.yaml", "key: a");
-            addEntry(zos, "config/b.yaml", "key: b");
-            addEntry(zos, "config/sub/c.yaml", "key: c");
-            addEntry(zos, "file.txt", "hello");
+            ZipUtils.addEntry(zos, "config/a.yaml", "key: a");
+            ZipUtils.addEntry(zos, "config/b.yaml", "key: b");
+            ZipUtils.addEntry(zos, "config/sub/c.yaml", "key: c");
+            ZipUtils.addEntry(zos, "file.txt", "hello");
         }
         blueprintArtifact = new ZipBlueprintArtifact(zipPath);
-    }
-
-    private static void addEntry(ZipOutputStream zos, String name, String content) throws IOException {
-        zos.putNextEntry(new ZipEntry(name));
-        zos.write(content.getBytes());
-        zos.closeEntry();
     }
 
     @Override
@@ -65,7 +59,7 @@ class ZipBlueprintArtifactTest extends AbstractBlueprintArtifactTest {
 
         var unreadablePath = tempDir.resolve("unreadable.zip");
         try (var zos = new ZipOutputStream(new FileOutputStream(unreadablePath.toFile()))) {
-            addEntry(zos, "file.txt", "hello");
+            ZipUtils.addEntry(zos, "file.txt", "hello");
         }
         var lockedBlueprintArtifact = new ZipBlueprintArtifact(unreadablePath);
         Files.setPosixFilePermissions(unreadablePath, PosixFilePermissions.fromString("---------"));
