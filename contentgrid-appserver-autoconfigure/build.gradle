@@ -29,7 +29,6 @@ dependencies {
     compileOnly 'io.minio:minio'
     compileOnly 'com.squareup.okhttp3:okhttp'
     compileOnly 'org.flywaydb:flyway-core'
-    compileOnly 'org.flywaydb:flyway-database-postgresql'
     compileOnly 'org.jooq:jooq'
     compileOnly 'org.springframework:spring-tx'
     compileOnly 'org.springframework.hateoas:spring-hateoas'
@@ -71,6 +70,8 @@ dependencies {
         }
     }
 
+    testImplementation 'org.flywaydb:flyway-core'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
 
