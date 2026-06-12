@@ -41,7 +41,7 @@ class ApplicationResolverAutoConfigurationTest {
     @Test
     void checkWithBlueprintArtifactLocationProperty() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:.")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ApplicationResolver.class);
@@ -62,7 +62,7 @@ class ApplicationResolverAutoConfigurationTest {
     @Test
     void checkWithBlueprintArtifactLocationPropertyAndApplicationResolver() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:.")
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact")
                 .withUserConfiguration(TestConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();

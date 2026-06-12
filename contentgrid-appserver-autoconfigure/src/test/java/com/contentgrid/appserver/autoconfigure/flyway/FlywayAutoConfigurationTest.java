@@ -31,7 +31,10 @@ class FlywayAutoConfigurationTest {
     @Test
     void picksUpMigrationFiles() {
         contextRunner
-                .withPropertyValues("spring.datasource.url=jdbc:tc:postgresql:15:///")
+                .withPropertyValues(
+                        "spring.datasource.url=jdbc:tc:postgresql:15:///",
+                        "contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact"
+                )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(Flyway.class);

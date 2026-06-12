@@ -60,6 +60,7 @@ class ContentGridRestAutoConfigurationTest {
             .withUserConfiguration(TestConfiguration.class)
             .withPropertyValues(
                     "spring.datasource.url=jdbc:tc:postgresql:15:///",
+                    "contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact",
                     "contentgrid.appserver.content-store.type=ephemeral",
                     "contentgrid.events.rabbitmq.enabled=false"
             );

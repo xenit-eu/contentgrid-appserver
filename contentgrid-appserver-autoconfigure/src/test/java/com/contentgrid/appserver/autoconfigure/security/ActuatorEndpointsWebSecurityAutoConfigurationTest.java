@@ -115,7 +115,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                     SecurityAutoConfiguration.class,
                     ManagementWebSecurityAutoConfiguration.class,
                     ContentgridCommonActuatorEndpointsWebSecurityAutoConfiguration.class
-            ));
+            ))
+            .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=classpath:blueprint-artifact");
 
     @Test
     void whenAccessFromRemoteAddress() {
