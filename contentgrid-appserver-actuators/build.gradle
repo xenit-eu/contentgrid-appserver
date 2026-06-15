@@ -14,7 +14,7 @@ dependencies {
     implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
-    implementation 'jakarta.servlet:jakarta.servlet-api' // TODO-m: Check if this can be removed 
+    implementation 'jakarta.servlet:jakarta.servlet-api'
 
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
