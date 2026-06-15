@@ -12,7 +12,6 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring'
-    implementation 'org.springframework.boot:spring-boot-jackson2'
     implementation('com.contentgrid.thunx:thunx-api-spring-boot-starter') {
         exclude group: 'com.contentgrid.thunx', module: 'spring-data-querydsl-predicate-injector'
         exclude group: 'com.contentgrid.thunx', module: 'thunx-predicates-querydsl'

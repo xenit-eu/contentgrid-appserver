@@ -31,7 +31,7 @@ import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -77,7 +77,7 @@ class RelationRestControllerTest {
     private DatamodelApi datamodelApi;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper objectMapper;
 
     @Autowired
     private VersionValidator versionValidator;

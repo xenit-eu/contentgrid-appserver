@@ -30,7 +30,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -80,7 +80,7 @@ class EntityRestControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper objectMapper;
 
     @TestConfiguration
     static class TestConfig {
@@ -110,7 +110,7 @@ class EntityRestControllerTest {
     }
 
     static Stream<MediaTypeConfiguration> supportedMediaTypes() {
-        var objectMapper = new ObjectMapper();
+        var objectMapper = new JsonMapper();
         return Stream.of(
                 new MediaTypeConfiguration() {
                     @Override

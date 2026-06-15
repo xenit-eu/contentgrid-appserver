@@ -17,9 +17,9 @@ import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.MissingNode;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Base64;
@@ -50,7 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PermissionsPropagationTest {
     @Autowired
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper = new JsonMapper();
 
     static String encodeThunk(ThunkExpression<Boolean> thunk) {
         var data = new JsonThunkExpressionCoder().encode(thunk);
