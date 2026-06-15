@@ -29,15 +29,9 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.autoconfigure.domain.ContentGridDomainAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestFormatterAutoConfiguration;
-import com.contentgrid.appserver.domain.data.EntityInstance;
-import com.contentgrid.appserver.domain.events.EntityFormatter;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -147,19 +141,6 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @Override
                 public void addCorsMappings(CorsRegistry registry) {
                     registry.addMapping("/**").allowedOrigins("http://localhost:1234").allowedMethods("*");
-                }
-            };
-        }
-
-        @Bean
-        public EntityFormatter dummyFormatter() {
-            return new EntityFormatter() {
-                private final ObjectMapper mapper = JsonMapper.builder()
-                        .configure(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES, false)
-                        .build();
-                @Override
-                public JsonNode format(Application application, EntityInstance entityInstance) {
-                    return mapper.valueToTree(entityInstance);
                 }
             };
         }
