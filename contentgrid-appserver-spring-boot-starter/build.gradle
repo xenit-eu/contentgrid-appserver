@@ -25,7 +25,7 @@ dependencies {
     implementation project(':contentgrid-appserver-webjars')
     implementation ("com.contentgrid.common:contentgrid-common-spring-boot-starter:${contentgridCommonVersion}") {
         capabilities {
-            requireFeature('spring-boot-3')
+            requireFeature('spring-boot-4')
         }
     }
 

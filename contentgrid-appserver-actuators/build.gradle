@@ -25,7 +25,7 @@ dependencies {
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
         capabilities {
-            requireFeature('spring-boot-3')
+            requireFeature('spring-boot-4')
         }
     }
 }
