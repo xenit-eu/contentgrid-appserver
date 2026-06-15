@@ -8,7 +8,7 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-query-engine-api')
     api 'com.contentgrid.hateoas:contentgrid-pagination-api'
-    api 'com.fasterxml.jackson.core:jackson-core'
+    api 'tools.jackson.core:jackson-core'
 
     implementation 'org.slf4j:slf4j-api'
     implementation project(':contentgrid-appserver-application-model-json')
@@ -16,7 +16,7 @@ dependencies {
     implementation project(':contentgrid-appserver-domain-spi')
     implementation 'org.springframework:spring-core'
     implementation 'com.contentgrid.hateoas:contentgrid-pagination-offset:0.0.4'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'tools.jackson.core:jackson-databind'
 
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))

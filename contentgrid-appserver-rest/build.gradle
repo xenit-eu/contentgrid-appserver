@@ -32,7 +32,7 @@ dependencies {
 
     testFixturesImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testFixturesImplementation 'org.springframework.boot:spring-boot-autoconfigure'
-    testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testFixturesImplementation 'tools.jackson.core:jackson-databind'
     testFixturesImplementation 'org.springframework:spring-web'
     testFixturesImplementation 'jakarta.servlet:jakarta.servlet-api'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'

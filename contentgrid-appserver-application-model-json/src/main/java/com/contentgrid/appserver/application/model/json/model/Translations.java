@@ -3,12 +3,11 @@ package com.contentgrid.appserver.application.model.json.model;
 import com.contentgrid.appserver.application.model.json.model.Translations.TranslationsDeserializer;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import java.io.IOException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -41,7 +40,7 @@ public sealed interface Translations {
         }
     }
 
-    @JsonDeserialize(using = JsonDeserializer.None.class)
+    @JsonDeserialize(using = ValueDeserializer.None.class)
     @Value
     class SingleTranslation implements Translations {
         @JsonValue
@@ -61,7 +60,7 @@ public sealed interface Translations {
         }
     }
 
-    @JsonDeserialize(using = JsonDeserializer.None.class)
+    @JsonDeserialize(using = ValueDeserializer.None.class)
     @Value
     class MultipleTranslations implements Translations {
 
@@ -84,10 +83,10 @@ public sealed interface Translations {
         }
     }
 
-    class TranslationsDeserializer extends JsonDeserializer<Translations> {
+    class TranslationsDeserializer extends ValueDeserializer<Translations> {
         @Override
-        public Translations deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            var t = p.getCurrentToken();
+        public Translations deserialize(JsonParser p, DeserializationContext ctxt) {
+            var t = p.currentToken();
             if (t == JsonToken.VALUE_NULL) {
                 return EmptyTranslation.INSTANCE;
             }

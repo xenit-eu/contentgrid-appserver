@@ -5,8 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.contentgrid.appserver.application.model.json.model.Translations.EmptyTranslation;
 import com.contentgrid.appserver.application.model.json.model.Translations.MultipleTranslations;
 import com.contentgrid.appserver.application.model.json.model.Translations.SingleTranslation;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -32,7 +31,7 @@ class TranslationsTest {
 
     @ParameterizedTest
     @MethodSource("translations")
-    void serialize(String serialized, Translations object) throws JsonProcessingException {
+    void serialize(String serialized, Translations object) {
         var objectMapper = new ObjectMapper();
         var expectedTree = objectMapper.readTree(serialized);
         var serializedTree = objectMapper.valueToTree(object);
@@ -42,7 +41,7 @@ class TranslationsTest {
 
     @ParameterizedTest
     @MethodSource("translations")
-    void deserialize(String serialized, Translations object) throws JsonProcessingException {
+    void deserialize(String serialized, Translations object) {
         var objectMapper = new ObjectMapper();
         var deserializedObject = objectMapper.readValue(serialized, Translations.class);
 

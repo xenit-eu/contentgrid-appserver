@@ -3,10 +3,10 @@ package com.contentgrid.appserver.application.model.openapi.model;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.databind.util.Converter;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.type.TypeFactory;
+import tools.jackson.databind.util.StdConverter;
 import java.util.Map;
 import java.util.TreeMap;
 import lombok.AccessLevel;
@@ -48,7 +48,7 @@ public class OpenApiDiscriminator {
      * Converts a reference object to just its reference string,
      * as the discriminator definition requires a direct reference, without a surrounding {@code $ref} object
      */
-    private static class DiscriminatorConverter implements Converter<OpenApiReference<JsonSchema>, String> {
+    private static class DiscriminatorConverter extends StdConverter<OpenApiReference<JsonSchema>, String> {
 
         @Override
         public String convert(OpenApiReference<JsonSchema> value) {

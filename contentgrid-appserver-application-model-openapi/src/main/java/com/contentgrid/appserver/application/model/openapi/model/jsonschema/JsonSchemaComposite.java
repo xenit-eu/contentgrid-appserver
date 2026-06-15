@@ -1,13 +1,12 @@
 package com.contentgrid.appserver.application.model.openapi.model.jsonschema;
 
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaComposite.Serializer;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
@@ -32,16 +31,14 @@ public final class JsonSchemaComposite implements JsonSchema {
                 .reduce((a, b) -> b));
     }
 
-    static class Serializer extends JsonSerializer<JsonSchemaComposite> {
+    static class Serializer extends ValueSerializer<JsonSchemaComposite> {
 
         @Override
-        public void serialize(JsonSchemaComposite value, JsonGenerator gen, SerializerProvider serializers)
-                throws IOException {
-            var mapper = (ObjectMapper) gen.getCodec();
-            ObjectNode object = mapper.createObjectNode();
+        public void serialize(JsonSchemaComposite value, JsonGenerator gen, SerializationContext ctxt) {
+            ObjectNode object = JsonNodeFactory.instance.objectNode();
 
             for (var schema : value.getSchemas()) {
-                object.setAll((ObjectNode) mapper.valueToTree(schema));
+                object.setAll((ObjectNode) ctxt.valueToTree(schema));
             }
             gen.writeTree(object);
         }

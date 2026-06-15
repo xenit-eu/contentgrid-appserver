@@ -54,8 +54,9 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -700,8 +701,12 @@ class OpenApiSpecConverterTest {
         assertThat(path(spec, "get", "/suppliers/{id}/invoices")).isNotNull();
     }
 
-    private static final YAMLMapper YAML_MAPPER = new YAMLMapper()
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
+    private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder()
+            .disable(YAMLWriteFeature.WRITE_DOC_START_MARKER)
+            // Jackson 3 sorts keys alphabetically, but our yaml documents look nicer in declaration order
+            // The alternative is putting @JsonPropertyOrder({...}) everywhere but that's kind of a pain
+            .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+            .build();
 
 
     public static Stream<ArgumentSet> fullSpec() throws IOException, URISyntaxException {
