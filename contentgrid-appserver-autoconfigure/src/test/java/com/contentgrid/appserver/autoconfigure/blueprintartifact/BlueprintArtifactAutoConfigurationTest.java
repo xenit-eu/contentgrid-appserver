@@ -2,10 +2,12 @@ package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration.BlueprintArtifactProperties;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
+import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -75,6 +77,35 @@ class BlueprintArtifactAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean("defaultBlueprintArtifact");
                     assertThat(context).hasSingleBean(BlueprintArtifact.class);
+                });
+    }
+
+    @Test
+    void withS3_minimalValues() {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(S3BlueprintArtifactReferenceResolver.class);
+                });
+    }
+
+    @Test
+    void withS3_allValues() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000",
+                        "contentgrid.appserver.blueprint-artifact.s3.access-key=myAccessKey",
+                        "contentgrid.appserver.blueprint-artifact.s3.secret-key=mySecretKey",
+                        "contentgrid.appserver.blueprint-artifact.s3.region=eu-west-1"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var properties = context.getBean(BlueprintArtifactProperties.class);
+                    assertThat(properties.s3().endpoint()).isEqualTo("http://localhost:9000");
+                    assertThat(properties.s3().accessKey()).isEqualTo("myAccessKey");
+                    assertThat(properties.s3().secretKey()).isEqualTo("mySecretKey");
+                    assertThat(properties.s3().region()).isEqualTo("eu-west-1");
                 });
     }
 

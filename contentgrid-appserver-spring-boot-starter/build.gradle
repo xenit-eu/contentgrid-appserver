@@ -18,6 +18,7 @@ dependencies {
     implementation project(':contentgrid-appserver-events')
     implementation project(':contentgrid-appserver-query-engine-impl-jooq')
     implementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
+    implementation project(':contentgrid-appserver-blueprintartifact-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-fs')
     implementation project(':contentgrid-appserver-contentstore-impl-s3')
     implementation project(':contentgrid-appserver-contentstore-impl-encryption')

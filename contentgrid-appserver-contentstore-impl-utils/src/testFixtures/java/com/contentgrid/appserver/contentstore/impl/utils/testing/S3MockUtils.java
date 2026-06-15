@@ -11,7 +11,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class S3MockUtils {
 
-    public static final String S3_MOCK_VERSION;
+    private static final String S3_MOCK_VERSION;
 
     static {
         // Read the version of com.adobe.testing:s3mock-testcontainers by looking at pom.properties
@@ -25,5 +25,9 @@ public class S3MockUtils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static S3MockContainer s3MockContainer() {
+        return new S3MockContainer(S3_MOCK_VERSION);
     }
 }

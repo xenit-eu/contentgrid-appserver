@@ -6,12 +6,15 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
+import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
+import io.minio.MinioAsyncClient;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -29,8 +32,16 @@ public class BlueprintArtifactAutoConfiguration {
 
     @ConfigurationProperties(prefix = "contentgrid.appserver.blueprint-artifact")
     public record BlueprintArtifactProperties(
-            @DefaultValue("classpath:.") @NonNull String location
-    ) {}
+            @DefaultValue("classpath:.") @NonNull String location,
+            S3Properties s3
+    ) {
+        public record S3Properties(
+                @NonNull String endpoint,
+                String accessKey,
+                String secretKey,
+                String region
+        ) {}
+    }
 
     @Bean
     @ConditionalOnClass(FilesystemBlueprintArtifactReferenceResolver.class)
@@ -48,5 +59,20 @@ public class BlueprintArtifactAutoConfiguration {
     @ConditionalOnMissingBean
     BlueprintArtifact defaultBlueprintArtifact(BlueprintArtifactReferenceResolver resolver, BlueprintArtifactProperties properties) {
         return resolver.resolve(BlueprintArtifactReference.of(properties.location()));
+    }
+
+    @Bean
+    @ConditionalOnClass({S3BlueprintArtifactReferenceResolver.class, MinioAsyncClient.class})
+    @ConditionalOnProperty("contentgrid.appserver.blueprint-artifact.s3.endpoint")
+    BlueprintArtifactReferenceResolver s3BlueprintArtifactReferenceResolver(BlueprintArtifactProperties properties) {
+        var s3 = properties.s3();
+        var clientBuilder = MinioAsyncClient.builder().endpoint(s3.endpoint());
+        if (s3.accessKey() != null && s3.secretKey() != null) {
+            clientBuilder.credentials(s3.accessKey(), s3.secretKey());
+        }
+        if (s3.region() != null) {
+            clientBuilder.region(s3.region());
+        }
+        return new S3BlueprintArtifactReferenceResolver(clientBuilder.build());
     }
 }

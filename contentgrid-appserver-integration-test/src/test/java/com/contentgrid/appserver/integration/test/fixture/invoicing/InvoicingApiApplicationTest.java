@@ -119,7 +119,7 @@ class InvoicingApiApplicationTest {
     PlatformTransactionManager transactionManager;
 
     @Container
-    static S3MockContainer s3MockContainer = new S3MockContainer(S3MockUtils.S3_MOCK_VERSION)
+    static S3MockContainer s3MockContainer = S3MockUtils.s3MockContainer()
             .withInitialBuckets(BUCKET_NAME);
 
     @DynamicPropertySource
