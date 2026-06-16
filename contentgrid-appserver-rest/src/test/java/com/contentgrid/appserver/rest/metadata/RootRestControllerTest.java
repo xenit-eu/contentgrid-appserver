@@ -95,12 +95,12 @@ class RootRestControllerTest {
 
         mockMvc.perform(get("/openapi.yml"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_YAML))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_YAML))
                 .andExpect(content().string(containsString("openapi: \"3.2.0\"")));
 
         mockMvc.perform(get("/openapi.json"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(containsString("{\"openapi\":\"3.2.0\"")));
 
     }

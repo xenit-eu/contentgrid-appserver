@@ -69,6 +69,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import lombok.experimental.UtilityClass;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 
 @UtilityClass
 public class OpenApiSpecConverter {
@@ -686,4 +690,23 @@ public class OpenApiSpecConverter {
                 });
     }
 
+    public static final class Writer {
+
+        private static final JsonMapper JSON_MAPPER = JsonMapper.builder()
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .build();
+
+        private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder()
+                .disable(YAMLWriteFeature.WRITE_DOC_START_MARKER)
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .build();
+
+        public static String toJson(OpenApiSpec spec) {
+            return JSON_MAPPER.writeValueAsString(spec);
+        }
+
+        public static String toYaml(OpenApiSpec spec) {
+            return YAML_MAPPER.writeValueAsString(spec);
+        }
+    }
 }
