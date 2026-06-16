@@ -77,7 +77,7 @@ class RelationRestControllerTest {
     private DatamodelApi datamodelApi;
 
     @Autowired
-    private JsonMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private VersionValidator versionValidator;
@@ -138,7 +138,7 @@ class RelationRestControllerTest {
                 .andReturn()
                 .getResponse();
 
-        var id = objectMapper.readTree(response.getContentAsByteArray()).get("id").asText();
+        var id = jsonMapper.readTree(response.getContentAsByteArray()).get("id").asText();
         return EntityIdentity.forEntity(
                 entity.getName(),
                 EntityId.of(UUID.fromString(id))

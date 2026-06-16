@@ -17,7 +17,7 @@ public class BlueprintArtifactAutomationsModelResolver implements AutomationsMod
     private static final Path PATH = Path.of("automation", "automations.json");
 
     private final BlueprintArtifact blueprintArtifact;
-    private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder()
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .build();
 
@@ -34,7 +34,7 @@ public class BlueprintArtifactAutomationsModelResolver implements AutomationsMod
 
     private AutomationsModel readItem(BlueprintArtifactItem blueprintArtifactItem) {
         try {
-            return OBJECT_MAPPER.readValue(blueprintArtifactItem.getInputStream(), AutomationsModel.class);
+            return JSON_MAPPER.readValue(blueprintArtifactItem.getInputStream(), AutomationsModel.class);
         } catch (BlueprintArtifactItemUnreadableException e) {
             throw new IllegalStateException(e);
         }

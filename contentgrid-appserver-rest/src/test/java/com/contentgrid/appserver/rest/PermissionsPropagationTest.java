@@ -50,7 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PermissionsPropagationTest {
     @Autowired
     private MockMvc mockMvc;
-    private final JsonMapper objectMapper = new JsonMapper();
+    private final JsonMapper jsonMapper = new JsonMapper();
 
     static String encodeThunk(ThunkExpression<Boolean> thunk) {
         var data = new JsonThunkExpressionCoder().encode(thunk);
@@ -169,7 +169,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
         ).andExpect(status().isOk())
                 .andExpect(result -> {
-                    var response = objectMapper.readTree(result.getResponse().getContentAsString());
+                    var response = jsonMapper.readTree(result.getResponse().getContentAsString());
                     assertThat((Object)response.path("_embedded").path("item"))
                             .satisfies(obj -> {
                                 if(isAllowed) {
@@ -242,7 +242,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(request(method, invoice)
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsBytes(content))
+                .content(jsonMapper.writeValueAsBytes(content))
         ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
@@ -269,7 +269,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(request(method, invoice)
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsBytes(content))
+                .content(jsonMapper.writeValueAsBytes(content))
         ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
@@ -414,7 +414,7 @@ class PermissionsPropagationTest {
                 .getResponse()
                 .getRedirectedUrl();
 
-        var productId = objectMapper.readTree(
+        var productId = jsonMapper.readTree(
                 mockMvc.perform(get(productsUrl)
                                 .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
                                 .accept(MediaType.APPLICATION_JSON)
@@ -442,7 +442,7 @@ class PermissionsPropagationTest {
                 .getResponse()
                 .getRedirectedUrl();
 
-        var productId = objectMapper.readTree(
+        var productId = jsonMapper.readTree(
                 mockMvc.perform(get(productsUrl)
                                 .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
                                 .accept(MediaType.APPLICATION_JSON)

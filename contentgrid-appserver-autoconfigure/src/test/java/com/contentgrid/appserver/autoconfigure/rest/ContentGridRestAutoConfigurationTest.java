@@ -52,7 +52,6 @@ class ContentGridRestAutoConfigurationTest {
                     // autoconfigurations for rest
                     ContentGridEventsAutoConfiguration.class,
                     ContentGridRestFormatterAutoConfiguration.class,
-                    // autoconfigurations for rest
                     HttpMessageConvertersAutoConfiguration.class,
                     WebMvcAutoConfiguration.class,
                     AbacContextAutoConfiguration.class,

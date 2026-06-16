@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemDetailsMockMvcMatchers {
 
-    private static final JsonMapper objectMapper = JsonMapper.builder()
+    private static final JsonMapper jsonMapper = JsonMapper.builder()
             .addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class)
             .build();
 
@@ -65,7 +65,7 @@ public final class ProblemDetailsMockMvcMatchers {
                     .as("response Content-Type")
                     .isEqualTo("application/problem+json");
 
-            var problemDetails = objectMapper.readValue(result.getResponse().getContentAsByteArray(), ProblemDetail.class);
+            var problemDetails = jsonMapper.readValue(result.getResponse().getContentAsByteArray(), ProblemDetail.class);
 
             if (statusCode != null) {
                 assertThat(result.getResponse().getStatus())

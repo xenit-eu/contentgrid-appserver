@@ -76,7 +76,7 @@ import com.contentgrid.appserver.application.model.json.model.Translations.Singl
 import com.contentgrid.appserver.application.model.json.model.UniqueConstraint;
 import com.contentgrid.appserver.application.model.json.model.UserAttribute;
 import com.contentgrid.appserver.application.model.json.validation.ApplicationSchemaValidator;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,7 +98,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private static final String FTS_TYPE = "full-text";
 
-    private final ObjectMapper mapper = ApplicationSchemaObjectMapperFactory.createObjectMapper();
+    private final JsonMapper mapper = ApplicationSchemaJsonMapperFactory.createJsonMapper();
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
 
     private static final TranslationConverter<ConfigurableEntityTranslations, Entity> ENTITY_TRANSLATIONS = TranslationConverter.<ConfigurableEntityTranslations, Entity>builder()

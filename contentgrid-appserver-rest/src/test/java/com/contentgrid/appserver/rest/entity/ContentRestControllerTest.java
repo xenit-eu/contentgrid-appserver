@@ -65,7 +65,7 @@ class ContentRestControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JsonMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private TableCreator tableCreator;
@@ -113,7 +113,7 @@ class ContentRestControllerTest {
         // We don't care about content interactions done during setup
         Mockito.reset(contentStoreSpy);
 
-        return objectMapper.readTree(responseContent).get("id").asText();
+        return jsonMapper.readTree(responseContent).get("id").asText();
     }
 
     static Stream<Arguments> nonExistentPaths() {

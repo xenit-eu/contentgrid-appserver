@@ -51,7 +51,7 @@ class InternalInverseRelationBlindOverwriteTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JsonMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     TableCreator tableCreator;
@@ -88,7 +88,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String employeeUrl = objectMapper.readTree(employeeResponse)
+        String employeeUrl = jsonMapper.readTree(employeeResponse)
                 .at("/_links/self/href")
                 .asText();
 
@@ -101,7 +101,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String departmentEngineeringUrl = objectMapper.readTree(departmentEngineering)
+        String departmentEngineeringUrl = jsonMapper.readTree(departmentEngineering)
                 .at("/_links/self/href")
                 .asText();
 
@@ -114,7 +114,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String departmentManagementUrl = objectMapper.readTree(departmentManagementResponse)
+        String departmentManagementUrl = jsonMapper.readTree(departmentManagementResponse)
                 .at("/_links/self/href")
                 .asText();
 
