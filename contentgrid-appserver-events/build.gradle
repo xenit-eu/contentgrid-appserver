@@ -20,4 +20,5 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 }

@@ -38,6 +38,9 @@ dependencies {
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-resource-server'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testFixturesImplementation 'org.assertj:assertj-core'
+
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+
 }
 
 // Required for resolution of variable-name-based controller method parameters
