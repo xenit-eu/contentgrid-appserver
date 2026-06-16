@@ -50,8 +50,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
     testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 
     testImplementation project(':contentgrid-appserver-actuators')
     testImplementation project(':contentgrid-appserver-application-model')
