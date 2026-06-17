@@ -22,7 +22,6 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
-    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.boot:spring-boot-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 
@@ -32,7 +31,6 @@ dependencies {
     testFixturesImplementation 'org.springframework:spring-web'
     testFixturesImplementation 'jakarta.servlet:jakarta.servlet-api'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testFixturesImplementation 'org.springframework.security:spring-security-test'
     testFixturesImplementation 'org.springframework.boot:spring-boot-security-test'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-jose'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-resource-server'
