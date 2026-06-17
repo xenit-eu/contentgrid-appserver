@@ -9,7 +9,8 @@ contentgrid:
     query-engine:
       bootstrap-tables: create
     content-store.type: ephemeral
-    application-model: classpath:application-model.json
+    blueprint-artifact:
+      location: classpath:.
   system:
     application-id: dece6818-fab2-11f0-aa04-17747aaadf5e
     deployment-id: e5708fca-fab2-11f0-ab48-1b1797482fc9
@@ -23,16 +24,12 @@ spring:
     url: jdbc:tc:postgresql:15:///
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
-server:
-  port: ${PORT:8080}
 
 management:
   endpoints:
     web:
       exposure:
         include: '*'
-  server:
-    port: '8081'
 
 # spring:
 #   rabbitmq:
