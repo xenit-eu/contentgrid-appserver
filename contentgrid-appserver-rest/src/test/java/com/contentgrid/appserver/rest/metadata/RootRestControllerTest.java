@@ -18,7 +18,7 @@ import com.contentgrid.appserver.registry.ApplicationResolver;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
@@ -95,12 +95,12 @@ class RootRestControllerTest {
 
         mockMvc.perform(get("/openapi.yml"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_YAML))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_YAML))
                 .andExpect(content().string(containsString("openapi: \"3.2.0\"")));
 
         mockMvc.perform(get("/openapi.json"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(containsString("{\"openapi\":\"3.2.0\"")));
 
     }

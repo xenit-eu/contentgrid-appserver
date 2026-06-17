@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.rest.RestEntityFormatter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

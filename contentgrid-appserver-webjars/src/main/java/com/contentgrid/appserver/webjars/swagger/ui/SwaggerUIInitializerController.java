@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.resource.ResourceResolver;
-import org.webjars.WebJarAssetLocator;
+import org.webjars.WebJarVersionLocator;
 
 /**
  * This controller serves the (static) Swagger UI configuration file 'swagger-initializer.js'.
@@ -15,7 +15,7 @@ import org.webjars.WebJarAssetLocator;
  * This static file should NOT be served with standard {@link ResourceResolver} methods:
  * <ul>
  *     <li>If served via {@code /META-INF/resources/webjars/swagger-ui/}, the automatic version detection of
- *     {@link WebJarAssetLocator} breaks.</li>
+ *     {@link WebJarVersionLocator} breaks.</li>
  *     <li>If served via {@code /META-INF/resources/webjars/swagger-ui/<version-number>/}, (automated) dependency
  *     updates would break the configuration.</li>
  * </ul>

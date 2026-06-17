@@ -3,10 +3,6 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
-import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
-import com.contentgrid.appserver.rest.entity.EntityRestController;
-import com.contentgrid.appserver.rest.profile.assembler.BlueprintLinkRelationsConfiguration;
-import com.contentgrid.appserver.rest.profile.assembler.hal.ProfileEntityRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.automations.ContentGridAutomationsConfiguration;
 import com.contentgrid.appserver.rest.converter.RequestInputDataJacksonModule;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter;
@@ -16,24 +12,26 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToDecimalDa
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToInstantDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLocalDateDataEntryConverter;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
+import com.contentgrid.appserver.rest.entity.ContentRestController;
+import com.contentgrid.appserver.rest.entity.EntityRestController;
+import com.contentgrid.appserver.rest.entity.XToManyRelationRestController;
+import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
+import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.filter.SingleRangeRequestServletFilter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.hal.links.ContentGridLinksConfiguration;
 import com.contentgrid.appserver.rest.mapping.ContentGridHandlerMappingConfiguration;
+import com.contentgrid.appserver.rest.metadata.RootRestController;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
 import com.contentgrid.appserver.rest.profile.ProfileRestController;
-import com.contentgrid.appserver.rest.entity.ContentRestController;
-import com.contentgrid.appserver.rest.entity.XToManyRelationRestController;
-import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
-import com.contentgrid.appserver.rest.metadata.RootRestController;
+import com.contentgrid.appserver.rest.profile.assembler.BlueprintLinkRelationsConfiguration;
+import com.contentgrid.appserver.rest.profile.assembler.hal.ProfileEntityRepresentationModelAssembler;
 import com.contentgrid.hateoas.spring.pagination.PaginationHandlerMethodArgumentResolver;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -41,6 +39,9 @@ import org.springframework.format.Formatter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
+import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
+import org.springframework.hateoas.mediatype.hal.HalConfiguration;
+import org.springframework.http.MediaType;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -109,15 +110,18 @@ public class ContentGridRestConfiguration {
     }
 
     @Bean
-    Jackson2ObjectMapperBuilderCustomizer contentgridRestObjectMapperCustomizer() {
-        return builder -> {
-            builder.featuresToDisable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
-        };
-    }
-
-    @Bean
     SlicedResourcesAssembler<EntityInstance> slicedResourcesAssembler(PaginationHandlerMethodArgumentResolver resolver) {
         return new SlicedResourcesAssembler<>(resolver);
     }
 
+    /**
+     * Serves HAL to clients requesting plain {@code application/json}.
+     * <p>
+     * Spring Boot only configures this when its {@code spring-boot-hateoas} autoconfiguration is present;
+     * we use {@link EnableHypermediaSupport} directly, so it has to be configured here.
+     */
+    @Bean
+    MediaTypeConfigurationCustomizer<HalConfiguration> applicationJsonHalConfigurationCustomizer() {
+        return halConfiguration -> halConfiguration.withMediaType(MediaType.APPLICATION_JSON);
+    }
 }

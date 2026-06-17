@@ -6,6 +6,10 @@ plugins {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'org.springframework.boot:spring-boot-http-converter'
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.springframework.boot:spring-boot-jooq'
+    implementation 'org.springframework.boot:spring-boot-security'
     implementation 'com.contentgrid.thunx:thunx-autoconfigure'
 
     compileOnly project(':contentgrid-appserver-application-model')
@@ -46,7 +50,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
     testImplementation 'org.springframework.boot:spring-boot-actuator-autoconfigure'
-    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 
     testImplementation project(':contentgrid-appserver-actuators')
     testImplementation project(':contentgrid-appserver-application-model')
@@ -68,14 +72,15 @@ dependencies {
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
         capabilities {
-            requireFeature('spring-boot-3')
+            requireFeature('spring-boot-4')
         }
     }
 
     testImplementation 'org.flywaydb:flyway-core'
-    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+
 
     testImplementation 'io.minio:minio'
     testImplementation 'org.springframework.hateoas:spring-hateoas'

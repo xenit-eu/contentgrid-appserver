@@ -19,7 +19,7 @@ import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -38,7 +38,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -49,7 +49,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = TestApplication.class, properties = {
-        "server.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
+        "spring.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
 })
 @AutoConfigureMockMvc
 class ContentRestControllerTest {
@@ -65,7 +65,7 @@ class ContentRestControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private TableCreator tableCreator;
@@ -113,7 +113,7 @@ class ContentRestControllerTest {
         // We don't care about content interactions done during setup
         Mockito.reset(contentStoreSpy);
 
-        return objectMapper.readTree(responseContent).get("id").asText();
+        return jsonMapper.readTree(responseContent).get("id").asText();
     }
 
     static Stream<Arguments> nonExistentPaths() {

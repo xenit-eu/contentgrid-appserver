@@ -22,18 +22,23 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'com.contentgrid.thunx:thunx-encoding-json'
-    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 
     testFixturesImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testFixturesImplementation 'org.springframework.boot:spring-boot-autoconfigure'
-    testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testFixturesImplementation 'tools.jackson.core:jackson-databind'
     testFixturesImplementation 'org.springframework:spring-web'
     testFixturesImplementation 'jakarta.servlet:jakarta.servlet-api'
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testFixturesImplementation 'org.springframework.security:spring-security-test'
+    testFixturesImplementation 'org.springframework.boot:spring-boot-security-test'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-jose'
     testFixturesImplementation 'org.springframework.security:spring-security-oauth2-resource-server'
+    testFixturesImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testFixturesImplementation 'org.assertj:assertj-core'
+
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+
 }
 
 // Required for resolution of variable-name-based controller method parameters

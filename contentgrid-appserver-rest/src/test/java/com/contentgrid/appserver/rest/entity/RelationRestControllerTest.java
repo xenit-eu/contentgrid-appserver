@@ -31,7 +31,7 @@ import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -51,7 +51,7 @@ import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -77,7 +77,7 @@ class RelationRestControllerTest {
     private DatamodelApi datamodelApi;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private VersionValidator versionValidator;
@@ -138,7 +138,7 @@ class RelationRestControllerTest {
                 .andReturn()
                 .getResponse();
 
-        var id = objectMapper.readTree(response.getContentAsByteArray()).get("id").asText();
+        var id = jsonMapper.readTree(response.getContentAsByteArray()).get("id").asText();
         return EntityIdentity.forEntity(
                 entity.getName(),
                 EntityId.of(UUID.fromString(id))

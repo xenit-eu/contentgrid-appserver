@@ -9,8 +9,8 @@ dependencies {
     testFixturesImplementation project(':contentgrid-appserver-spring-boot-starter')
     testFixturesImplementation 'org.springframework.boot:spring-boot-starter-test'
     testFixturesImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testFixturesImplementation 'org.testcontainers:postgresql'
-    testFixturesImplementation 'org.testcontainers:rabbitmq'
+    testFixturesImplementation 'org.testcontainers:testcontainers-postgresql'
+    testFixturesImplementation 'org.testcontainers:testcontainers-rabbitmq'
     testFixturesRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     testFixturesRuntimeOnly 'org.postgresql:postgresql'
@@ -22,14 +22,15 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.hateoas:spring-hateoas'
     testImplementation 'org.springframework.security:spring-security-oauth2-jose'
-    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework:spring-tx'
     testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.hamcrest:hamcrest'
-    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'com.adobe.testing:s3mock-testcontainers'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
+
 }

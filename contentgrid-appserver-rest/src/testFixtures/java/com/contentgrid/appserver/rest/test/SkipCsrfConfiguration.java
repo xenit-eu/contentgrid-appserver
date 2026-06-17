@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.rest.test;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcBuilderCustomizer;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.csrf.CsrfFilter;

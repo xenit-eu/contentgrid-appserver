@@ -12,7 +12,7 @@ import java.time.Duration;
 import org.jooq.DSLContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
+import org.springframework.boot.jooq.autoconfigure.ExceptionTranslatorExecuteListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;

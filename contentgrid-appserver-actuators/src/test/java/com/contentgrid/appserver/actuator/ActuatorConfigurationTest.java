@@ -2,8 +2,8 @@ package com.contentgrid.appserver.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +11,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -25,9 +25,10 @@ import org.springframework.http.ResponseEntity;
                 "management.server.port=0" // random, different port from main port
         }
 )
-class ActuatorConfigurationTest {
+@AutoConfigureRestTestClient
+public class ActuatorConfigurationTest {
     @Autowired
-    private TestRestTemplate rest;
+    private RestTestClient rest;
 
     @Value("${local.management.port}")
     int managementPort;
@@ -49,27 +50,30 @@ class ActuatorConfigurationTest {
 
     @Test
     void healthEndpointIsPublic() {
-        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/health", String.class);
-        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
+        rest.get().uri("http://localhost:" + managementPort + "/actuator/health")
+                .exchange()
+                .expectStatus().is2xxSuccessful();
     }
 
     @Test
     void policyEndpointIsPublic() {
-        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/policy", String.class);
-        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(resp.getHeaders().getContentType())
-                .hasToString("application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8");
-        assertThat(resp.getBody()).contains("xfb0"); // templating works
+        rest.get().uri("http://localhost:" + managementPort + "/actuator/policy")
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectHeader().valueEquals("Content-Type",
+                        "application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8")
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("xfb0")); // templating works
     }
 
     @Test
     void webhooksEndpointIsPublic() {
-        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + managementPort + "/actuator/webhooks", String.class);
-        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(resp.getHeaders().getContentType())
-                .hasToString("application/vnd.contentgrid.webhooks.v1+json");
-        // Check application id/deployment id templating
-        assertThat(resp.getBody()).contains("18-f3");
-        assertThat(resp.getBody()).contains("a5-94");
+        rest.get().uri("http://localhost:" + managementPort + "/actuator/webhooks")
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectHeader().valueEquals("Content-Type", "application/vnd.contentgrid.webhooks.v1+json")
+                // Check application id/deployment id templating
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("18-f3", "a5-94"));
     }
 }

@@ -30,7 +30,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -53,7 +53,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -66,6 +66,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.LinkedMultiValueMap;
@@ -79,7 +80,7 @@ class EntityRestControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @TestConfiguration
     static class TestConfig {
@@ -91,7 +92,7 @@ class EntityRestControllerTest {
     }
 
     interface MediaTypeConfiguration {
-        MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder, Map<String, Object> requestData) throws Exception;
+        RequestBuilder configure(MockHttpServletRequestBuilder builder, Map<String, Object> requestData) throws Exception;
     }
 
     private static Stream<Map.Entry<String, Object>> flattenMap(Map<String, Object> map) {
@@ -109,14 +110,14 @@ class EntityRestControllerTest {
     }
 
     static Stream<MediaTypeConfiguration> supportedMediaTypes() {
-        var objectMapper = new ObjectMapper();
+        var jsonMapper = new JsonMapper();
         return Stream.of(
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         return builder.contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(requestData));
+                                .content(jsonMapper.writeValueAsString(requestData));
                     }
 
                     @Override
@@ -126,7 +127,7 @@ class EntityRestControllerTest {
                 },
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         var fieldMap = new LinkedMultiValueMap<String, String>();
                         flattenMap(requestData)
@@ -145,7 +146,7 @@ class EntityRestControllerTest {
                 },
                 new MediaTypeConfiguration() {
                     @Override
-                    public MockHttpServletRequestBuilder configure(MockHttpServletRequestBuilder builder,
+                    public RequestBuilder configure(MockHttpServletRequestBuilder builder,
                             Map<String, Object> requestData) throws Exception {
                         var request = builder.buildRequest(new MockServletContext());
                         var multipartRequestBuilder = MockMvcRequestBuilders.multipart(
@@ -278,8 +279,8 @@ class EntityRestControllerTest {
             product.put("release_date", "2023-01-15T10:00:00Z");
             product.put("in_stock", true);
 
-            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
-                            .accept(MediaTypes.HAL_JSON))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products")
+                        .accept(MediaTypes.HAL_JSON), product))
                     .andExpect(status().isCreated())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.id", notNullValue()))
@@ -447,8 +448,8 @@ class EntityRestControllerTest {
             product.put("in_stock", true);
             product.put("picture", Map.of("filename", "picture.jpg", "mimetype", "application/jpeg"));
 
-            mockMvc.perform(mediaTypeConfiguration.configure(post("/products"), product)
-                            .accept(MediaTypes.HAL_JSON))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/products")
+                        .accept(MediaTypes.HAL_JSON), product))
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                             .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/no-content")
                                     .withTitle("No content present")
@@ -543,13 +544,13 @@ class EntityRestControllerTest {
 
             String responseContent = mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product)))
+                            .content(jsonMapper.writeValueAsString(product)))
                     .andExpect(status().isCreated())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andReturn().getResponse().getContentAsString();
 
             // Extract ID from created entity
-            String id = objectMapper.readTree(responseContent).get("id").asText();
+            String id = jsonMapper.readTree(responseContent).get("id").asText();
 
             // Then retrieve it with application/hal+json
             mockMvc.perform(get("/products/" + id).accept(MediaTypes.HAL_JSON))
@@ -856,13 +857,13 @@ class EntityRestControllerTest {
             // Add first product
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product1)))
+                            .content(jsonMapper.writeValueAsString(product1)))
                     .andExpect(status().isCreated());
 
             // Add second product
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product2)))
+                            .content(jsonMapper.writeValueAsString(product2)))
                     .andExpect(status().isCreated());
 
             // Test the list endpoint with application/hal+json
@@ -952,7 +953,7 @@ class EntityRestControllerTest {
             // Add first person
             var person1response = mockMvc.perform(post("/persons")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(person1)))
+                            .content(jsonMapper.writeValueAsString(person1)))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse();
@@ -973,7 +974,7 @@ class EntityRestControllerTest {
             // Add first invoice
             var invoice1response = mockMvc.perform(post("/invoices")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(invoice1)))
+                            .content(jsonMapper.writeValueAsString(invoice1)))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse();
@@ -989,7 +990,7 @@ class EntityRestControllerTest {
             // Add second person
             var person2response = mockMvc.perform(post("/persons")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(person2)))
+                            .content(jsonMapper.writeValueAsString(person2)))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse();
@@ -1011,7 +1012,7 @@ class EntityRestControllerTest {
             // Add second invoice
             mockMvc.perform(post("/invoices")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(invoice2)))
+                            .content(jsonMapper.writeValueAsString(invoice2)))
                     .andExpect(status().isCreated())
                     .andReturn()
                     .getResponse();
@@ -1061,7 +1062,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product)))
+                            .content(jsonMapper.writeValueAsString(product)))
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
@@ -1073,7 +1074,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product2)))
+                            .content(jsonMapper.writeValueAsString(product2)))
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
@@ -1111,7 +1112,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product)))
+                            .content(jsonMapper.writeValueAsString(product)))
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
@@ -1192,13 +1193,13 @@ class EntityRestControllerTest {
                     .getResponse();
 
             // Follow self link should succeed
-            var firstSelfLink = objectMapper.readTree(firstPage.getContentAsString()).at("/_links/self/href").asText();
+            var firstSelfLink = jsonMapper.readTree(firstPage.getContentAsString()).at("/_links/self/href").asText();
             assertThat(firstSelfLink).isNotBlank();
             mockMvc.perform(get(firstSelfLink)
                             .accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk());
 
-            var secondLink = objectMapper.readTree(firstPage.getContentAsString()).at("/_links/next/href").asText();
+            var secondLink = jsonMapper.readTree(firstPage.getContentAsString()).at("/_links/next/href").asText();
             assertThat(secondLink).isNotBlank();
 
             // Follow next link and check the results
@@ -1239,7 +1240,7 @@ class EntityRestControllerTest {
                     .andReturn()
                     .getResponse();
 
-            var thirdLink = objectMapper.readTree(secondPage.getContentAsString()).at("/_links/next/href").asText();
+            var thirdLink = jsonMapper.readTree(secondPage.getContentAsString()).at("/_links/next/href").asText();
             assertThat(thirdLink).isNotBlank();
 
             // Follow next link of second page
@@ -1250,9 +1251,9 @@ class EntityRestControllerTest {
                     .getResponse();
 
             // Check first and prev links
-            var firstLink = objectMapper.readTree(thirdPage.getContentAsString()).at("/_links/first/href").asText();
+            var firstLink = jsonMapper.readTree(thirdPage.getContentAsString()).at("/_links/first/href").asText();
             assertThat(firstLink).isEqualTo(firstSelfLink);
-            var prevLink = objectMapper.readTree(thirdPage.getContentAsString()).at("/_links/prev/href").asText();
+            var prevLink = jsonMapper.readTree(thirdPage.getContentAsString()).at("/_links/prev/href").asText();
             assertThat(prevLink).isEqualTo(secondLink);
         }
 
@@ -1317,7 +1318,7 @@ class EntityRestControllerTest {
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
-            String id = objectMapper.readTree(responseContent).get("id").asText();
+            String id = jsonMapper.readTree(responseContent).get("id").asText();
 
             // New values
             Map<String, Object> updated = new HashMap<>();
@@ -1329,7 +1330,7 @@ class EntityRestControllerTest {
             // Update with PUT
             mockMvc.perform(put("/products/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updated)))
+                            .content(jsonMapper.writeValueAsString(updated)))
                     .andExpect(status().isNoContent());
         }
 
@@ -1347,7 +1348,7 @@ class EntityRestControllerTest {
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
-            String id = objectMapper.readTree(responseContent).get("id").asText();
+            String id = jsonMapper.readTree(responseContent).get("id").asText();
 
             // New values
             Map<String, Object> updated = new HashMap<>();
@@ -1358,7 +1359,7 @@ class EntityRestControllerTest {
             // Update with PUT (correct id but wrong path)
             mockMvc.perform(put("/foobars/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updated)))
+                            .content(jsonMapper.writeValueAsString(updated)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/endpoint")
@@ -1388,7 +1389,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(put("/products/" + nonExistentId)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updatedProduct)))
+                            .content(jsonMapper.writeValueAsString(updatedProduct)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                                     .withStatusCode(HttpStatus.NOT_FOUND)
                                     .withType("https://contentgrid.cloud/problems/not-found/entity-item")
@@ -1397,7 +1398,7 @@ class EntityRestControllerTest {
 
             mockMvc.perform(put("/products/invalid-id")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updatedProduct)))
+                            .content(jsonMapper.writeValueAsString(updatedProduct)))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
@@ -1688,7 +1689,7 @@ class EntityRestControllerTest {
                 // Update product
                 mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(data)))
+                                .content(jsonMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update was successful
@@ -1742,7 +1743,7 @@ class EntityRestControllerTest {
                 // Update product -> should fail
                 mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(data)))
+                                .content(jsonMapper.writeValueAsString(data)))
                         .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                                 .withError(
                                         e -> e.withType("https://contentgrid.cloud/problems/input/validation/required")
@@ -1809,7 +1810,7 @@ class EntityRestControllerTest {
                 // Update product
                 mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(data)))
+                                .content(jsonMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update did not modify content
@@ -1863,7 +1864,7 @@ class EntityRestControllerTest {
                 // Update product -> should fail
                 mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(data)))
+                                .content(jsonMapper.writeValueAsString(data)))
                         .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                                 .withError(e -> e.withType(
                                                 "https://contentgrid.cloud/problems/input/validation/no-content")
@@ -1906,7 +1907,7 @@ class EntityRestControllerTest {
                 // Update product
                 mockMvc.perform(request(method, url)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(data)))
+                                .content(jsonMapper.writeValueAsString(data)))
                         .andExpect(status().isNoContent());
 
                 // Verify update deleted content
@@ -1935,12 +1936,12 @@ class EntityRestControllerTest {
 
             String responseContent = mockMvc.perform(post("/products")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(product)))
+                            .content(jsonMapper.writeValueAsString(product)))
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
             // Extract ID from created entity
-            String id = objectMapper.readTree(responseContent).get("id").asText();
+            String id = jsonMapper.readTree(responseContent).get("id").asText();
 
             // Delete the entity
             mockMvc.perform(delete("/products/" + id))

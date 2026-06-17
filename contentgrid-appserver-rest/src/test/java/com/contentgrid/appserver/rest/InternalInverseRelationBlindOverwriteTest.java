@@ -27,12 +27,12 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.appserver.rest.InternalInverseRelationBlindOverwriteTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -51,7 +51,7 @@ class InternalInverseRelationBlindOverwriteTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     TableCreator tableCreator;
@@ -88,7 +88,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String employeeUrl = objectMapper.readTree(employeeResponse)
+        String employeeUrl = jsonMapper.readTree(employeeResponse)
                 .at("/_links/self/href")
                 .asText();
 
@@ -101,7 +101,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String departmentEngineeringUrl = objectMapper.readTree(departmentEngineering)
+        String departmentEngineeringUrl = jsonMapper.readTree(departmentEngineering)
                 .at("/_links/self/href")
                 .asText();
 
@@ -114,7 +114,7 @@ class InternalInverseRelationBlindOverwriteTest {
                 .getResponse()
                 .getContentAsString();
 
-        String departmentManagementUrl = objectMapper.readTree(departmentManagementResponse)
+        String departmentManagementUrl = jsonMapper.readTree(departmentManagementResponse)
                 .at("/_links/self/href")
                 .asText();
 

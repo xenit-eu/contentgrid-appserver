@@ -127,7 +127,7 @@ public class ContentRestController {
     }
 
     private static List<HttpRange> parseRanges(HttpHeaders httpHeaders) {
-        if(!httpHeaders.containsKey(HttpHeaders.RANGE)) {
+        if(!httpHeaders.containsHeader(HttpHeaders.RANGE)) {
             return List.of();
         }
         try {

@@ -17,9 +17,9 @@ import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.MissingNode;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Base64;
@@ -35,7 +35,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -50,7 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PermissionsPropagationTest {
     @Autowired
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper = new JsonMapper();
 
     static String encodeThunk(ThunkExpression<Boolean> thunk) {
         var data = new JsonThunkExpressionCoder().encode(thunk);
@@ -169,7 +169,7 @@ class PermissionsPropagationTest {
                 .header("X-ABAC-Context", abacContext)
         ).andExpect(status().isOk())
                 .andExpect(result -> {
-                    var response = objectMapper.readTree(result.getResponse().getContentAsString());
+                    var response = jsonMapper.readTree(result.getResponse().getContentAsString());
                     assertThat((Object)response.path("_embedded").path("item"))
                             .satisfies(obj -> {
                                 if(isAllowed) {
@@ -242,7 +242,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(request(method, invoice)
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsBytes(content))
+                .content(jsonMapper.writeValueAsBytes(content))
         ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
@@ -269,7 +269,7 @@ class PermissionsPropagationTest {
         mockMvc.perform(request(method, invoice)
                 .header("X-ABAC-Context", abacContext)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsBytes(content))
+                .content(jsonMapper.writeValueAsBytes(content))
         ).andExpect(isAllowed ? status().is2xxSuccessful():status().isForbidden());
     }
 
@@ -414,7 +414,7 @@ class PermissionsPropagationTest {
                 .getResponse()
                 .getRedirectedUrl();
 
-        var productId = objectMapper.readTree(
+        var productId = jsonMapper.readTree(
                 mockMvc.perform(get(productsUrl)
                                 .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
                                 .accept(MediaType.APPLICATION_JSON)
@@ -442,7 +442,7 @@ class PermissionsPropagationTest {
                 .getResponse()
                 .getRedirectedUrl();
 
-        var productId = objectMapper.readTree(
+        var productId = jsonMapper.readTree(
                 mockMvc.perform(get(productsUrl)
                                 .header("X-ABAC-Context", encodeThunk(Scalar.of(true)))
                                 .accept(MediaType.APPLICATION_JSON)

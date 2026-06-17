@@ -12,11 +12,13 @@ dependencies {
 
     api 'org.springframework.boot:spring-boot-starter-amqp'
     implementation project(':contentgrid-appserver-rest')
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'tools.jackson.core:jackson-databind'
 
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation project(':contentgrid-appserver-rest')
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
     testImplementation testFixtures(project(':contentgrid-appserver-application-model'))
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 }

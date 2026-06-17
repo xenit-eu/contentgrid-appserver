@@ -54,8 +54,6 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -700,10 +698,6 @@ class OpenApiSpecConverterTest {
         assertThat(path(spec, "get", "/suppliers/{id}/invoices")).isNotNull();
     }
 
-    private static final YAMLMapper YAML_MAPPER = new YAMLMapper()
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
-
-
     public static Stream<ArgumentSet> fullSpec() throws IOException, URISyntaxException {
         var base = Path.of(OpenApiSpecConverterTest.class.getResource("specs").toURI());
         try (var dirs = Files.list(base)) {
@@ -723,7 +717,7 @@ class OpenApiSpecConverterTest {
             application = new DefaultApplicationSchemaConverter().convert(appIs);
         }
         var spec = OpenApiSpecConverter.convert(application);
-        var yaml = YAML_MAPPER.writeValueAsString(spec);
+        var yaml = OpenApiSpecConverter.Writer.toYaml(spec);
 
         String expectedOpenApi;
         try (var is = new FileInputStream(basePath.resolve("openapi.yaml").toFile())) {

@@ -9,19 +9,19 @@ import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.JsonRequestInputData;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import java.io.IOException;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 @Component
 public class RequestInputDataJacksonModule extends SimpleModule {
@@ -38,25 +38,25 @@ public class RequestInputDataJacksonModule extends SimpleModule {
         }
 
         @Override
-        public void serialize(PlainDataEntry value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+        public void serialize(PlainDataEntry value, JsonGenerator gen, SerializationContext ctxt) throws JacksonException {
             switch (value) {
                 case MapDataEntry mapDataEntry -> {
                     gen.writeStartObject(mapDataEntry, mapDataEntry.getItems().size());
                     for (var entry : mapDataEntry.getItems().entrySet()) {
-                        gen.writeFieldName(entry.getKey());
-                        serialize(entry.getValue(), gen, provider);
+                        gen.writeName(entry.getKey());
+                        serialize(entry.getValue(), gen, ctxt);
                     }
                     gen.writeEndObject();
                 }
                 case NullDataEntry ignored -> gen.writeNull();
                 case ScalarDataEntry scalarDataEntry -> {
                     var primitiveValue = scalarDataEntry.getValue();
-                    provider.findValueSerializer(primitiveValue.getClass()).serialize(primitiveValue, gen, provider);
+                    ctxt.findValueSerializer(primitiveValue.getClass()).serialize(primitiveValue, gen, ctxt);
                 }
                 case ListDataEntry listDataEntry -> {
                     gen.writeStartArray(listDataEntry, listDataEntry.getItems().size());
                     for (var entry : listDataEntry.getItems()) {
-                        serialize(entry, gen, provider);
+                        serialize(entry, gen, ctxt);
                     }
                     gen.writeEndArray();
                 }
@@ -64,7 +64,6 @@ public class RequestInputDataJacksonModule extends SimpleModule {
                     // Do not write anything for missing data
                 }
             }
-
         }
     }
 
@@ -77,8 +76,7 @@ public class RequestInputDataJacksonModule extends SimpleModule {
         }
 
         @Override
-        public RequestInputData deserialize(JsonParser p, DeserializationContext ctxt)
-                throws IOException {
+        public RequestInputData deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
             return new ConversionServiceRequestInputData(new JsonRequestInputData(p.readValueAs(ObjectNode.class)), conversionServiceSupplier.get());
         }
     }

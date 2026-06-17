@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 @SpringBootApplication
 public class InvoicingApiApplication {
@@ -20,8 +20,8 @@ public class InvoicingApiApplication {
 
         @Bean
         @ServiceConnection
-        PostgreSQLContainer<?> postgreSQLContainer() {
-            return new PostgreSQLContainer<>("postgres:15");
+        PostgreSQLContainer postgreSQLContainer() {
+            return new PostgreSQLContainer("postgres:15");
         }
 
         @Bean

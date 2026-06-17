@@ -7,9 +7,9 @@ import com.contentgrid.common.spring.autoconfigure.FlywayPostgresAutoConfigurati
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
 import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
@@ -21,7 +21,7 @@ class FlywayAutoConfigurationTest {
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
             .withConfiguration(AutoConfigurations.of(
                     DataSourceAutoConfiguration.class,
-                    org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration.class,
+                    org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration.class,
                     FlywayAutoConfiguration.class, FlywayPostgresAutoConfiguration.class,
                     BlueprintArtifactAutoConfiguration.class
             ));

@@ -11,7 +11,7 @@ dependencies {
     api 'com.contentgrid.thunx:thunx-model'
 
     implementation 'org.jooq:jooq'
-    implementation 'org.testcontainers:postgresql'
+    implementation 'org.testcontainers:testcontainers-postgresql'
     implementation 'org.springframework:spring-tx'
     implementation 'com.fasterxml.uuid:java-uuid-generator'
     runtimeOnly 'org.postgresql:postgresql'
