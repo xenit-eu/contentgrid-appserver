@@ -2,6 +2,9 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -51,6 +54,7 @@ import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonEx
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.application.model.json.model.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.json.model.ContentEncryption;
 import com.contentgrid.appserver.application.model.json.model.ApplicationSchema;
 import com.contentgrid.appserver.application.model.json.model.Attribute;
 import com.contentgrid.appserver.application.model.json.model.AttributeConstraint;
@@ -143,6 +147,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
+                .contentEncryptionConfig(fromJsonContentEncryption(schema.getContentEncryption()))
                 .build();
     }
 
@@ -154,6 +159,24 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private ContentEncryptionConfig fromJsonContentEncryption(ContentEncryption json) {
+        if (json == null) {
+            return null;
+        }
+        var builder = ContentEncryptionConfig.builder().enabled(json.isEnabled());
+        if (json.getEncryptionEngineAlgorithms() != null) {
+            json.getEncryptionEngineAlgorithms().stream()
+                    .map(ContentEncryptionEngineAlgorithm::valueOf)
+                    .forEach(builder::encryptionEngineAlgorithm);
+        }
+        if (json.getKeyWrapperAlgorithms() != null) {
+            json.getKeyWrapperAlgorithms().stream()
+                    .map(ContentEncryptionKeyWrapperAlgorithm::valueOf)
+                    .forEach(builder::keyWrapperAlgorithm);
+        }
+        return builder.build();
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
@@ -465,7 +488,26 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         schema.setApplicationName(app.getName().getValue());
         schema.setEntities(entities);
         schema.setRelations(relations);
+        if (app.getContentEncryptionConfig().isEnabled()) {
+            schema.setContentEncryption(toJsonContentEncryption(app.getContentEncryptionConfig()));
+        }
         return schema;
+    }
+
+    private ContentEncryption toJsonContentEncryption(ContentEncryptionConfig config) {
+        var json = new ContentEncryption();
+        json.setEnabled(config.isEnabled());
+        if (!config.getEncryptionEngineAlgorithms().isEmpty()) {
+            json.setEncryptionEngineAlgorithms(config.getEncryptionEngineAlgorithms().stream()
+                    .map(ContentEncryptionEngineAlgorithm::name)
+                    .toList());
+        }
+        if (!config.getKeyWrapperAlgorithms().isEmpty()) {
+            json.setKeyWrapperAlgorithms(config.getKeyWrapperAlgorithms().stream()
+                    .map(ContentEncryptionKeyWrapperAlgorithm::name)
+                    .toList());
+        }
+        return json;
     }
 
     private Entity toJsonEntity(com.contentgrid.appserver.application.model.Entity entity) {

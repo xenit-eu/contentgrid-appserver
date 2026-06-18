@@ -11,13 +11,14 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"$schema", "applicationName", "version", "entities", "relations"})
+@JsonPropertyOrder({"$schema", "applicationName", "version", "entities", "relations", "contentEncryption"})
 public class ApplicationSchema {
     @NonNull
     private String applicationName;
     private final String version = "1.0.0";
     private List<Entity> entities;
     private List<Relation> relations;
+    private ContentEncryption contentEncryption;
 
     @JsonProperty("$schema")
     private final String schema = "https://contentgrid.cloud/schemas/application-schema.json";

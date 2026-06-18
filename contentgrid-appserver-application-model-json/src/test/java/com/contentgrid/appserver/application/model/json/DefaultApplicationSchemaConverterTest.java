@@ -10,6 +10,9 @@ import static uk.co.datumedge.hamcrest.json.SameJSONAs.sameJSONAs;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -33,6 +36,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class DefaultApplicationSchemaConverterTest {
@@ -76,6 +80,81 @@ class DefaultApplicationSchemaConverterTest {
         assertThrows(InvalidJsonException.class, () -> {
             converter.convert(new ByteArrayInputStream(invalidJson.getBytes(StandardCharsets.UTF_8)));
         });
+    }
+
+    @Test
+    void testConvertSampleApplicationJsonHasDisabledEncryption() throws Exception {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
+            Application app = new DefaultApplicationSchemaConverter().convert(is);
+            assertFalse(app.getContentEncryptionConfig().isEnabled());
+        }
+    }
+
+    @Test
+    void testConvertContentEncryptionEnabled() throws Exception {
+        var json = """
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "contentEncryption": {
+                        "enabled": true,
+                        "encryptionEngineAlgorithms": ["AES256_CTR"],
+                        "keyWrapperAlgorithms": ["NONE"]
+                    }
+                }
+                """;
+        var app = new DefaultApplicationSchemaConverter().convert(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+        var config = app.getContentEncryptionConfig();
+        assertTrue(config.isEnabled());
+        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), config.getEncryptionEngineAlgorithms());
+        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), config.getKeyWrapperAlgorithms());
+    }
+
+    @Test
+    void testSerializeContentEncryptionEnabled() {
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .contentEncryptionConfig(ContentEncryptionConfig.builder()
+                        .enabled(true)
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
+                        .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                        .build())
+                .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+        var jsonOutput = out.toString(StandardCharsets.UTF_8);
+
+        assertThat(jsonOutput, sameJSONAs("""
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "contentEncryption": {
+                        "enabled": true,
+                        "encryptionEngineAlgorithms": ["AES256_CTR"],
+                        "keyWrapperAlgorithms": ["NONE"]
+                    }
+                }
+                """));
+    }
+
+    @Test
+    void testSerializeContentEncryptionDisabledOmitsBlock() {
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+        var jsonOutput = out.toString(StandardCharsets.UTF_8);
+
+        assertFalse(jsonOutput.contains("contentEncryption"));
     }
 
     @Test
