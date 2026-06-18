@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
@@ -62,8 +63,10 @@ public class Application {
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
+            ContentEncryptionConfig contentEncryptionConfig) {
         this.name = name;
+        this.contentEncryptionConfig = contentEncryptionConfig != null ? contentEncryptionConfig : ContentEncryptionConfig.disabled();
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -108,6 +111,9 @@ public class Application {
      */
     @NonNull
     ApplicationName name;
+
+    @NonNull
+    ContentEncryptionConfig contentEncryptionConfig;
 
     /**
      * Internal map of entities by name.
