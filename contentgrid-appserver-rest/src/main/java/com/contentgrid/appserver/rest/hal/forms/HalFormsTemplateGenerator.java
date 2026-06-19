@@ -170,6 +170,8 @@ public class HalFormsTemplateGenerator {
                     } else if (constraint instanceof AllowedValuesConstraint avc) {
                         var options = HalFormsOptions.inline(avc.getValues())
                                 .withMinItems(sv.isMandatory() ? 1L : 0L)
+                                // TODO: incorrect for search, query parameter can be present multiple times to do an OR.
+                                //  set maxItems = null for search when frontend supports this feature.
                                 .withMaxItems(1L);
                         property = property.withOptions(options);
                     }
