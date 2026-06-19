@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.contentstore;
 
+import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
-import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

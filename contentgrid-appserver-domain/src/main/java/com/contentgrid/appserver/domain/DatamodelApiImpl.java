@@ -35,7 +35,7 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
-import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;

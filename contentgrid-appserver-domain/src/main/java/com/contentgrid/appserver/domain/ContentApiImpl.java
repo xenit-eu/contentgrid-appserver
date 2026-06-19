@@ -15,7 +15,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
-import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.Version;

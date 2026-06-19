@@ -5,6 +5,4 @@ plugins {
 }
 
 dependencies {
-    implementation project(":contentgrid-appserver-application-model")
-    implementation project(":contentgrid-appserver-contentstore-api")
 }

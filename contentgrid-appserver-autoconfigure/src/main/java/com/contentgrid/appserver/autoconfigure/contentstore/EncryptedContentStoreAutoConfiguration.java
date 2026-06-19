@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineProperties;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperProperties;
+import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AlfrescoCompatibleEncryptionEngine;
@@ -11,7 +12,6 @@ import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptio
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
-import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 
 import java.util.List;
 import java.util.Set;

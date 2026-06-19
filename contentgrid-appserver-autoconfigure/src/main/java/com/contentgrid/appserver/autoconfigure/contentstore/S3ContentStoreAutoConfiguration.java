@@ -2,8 +2,8 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration.S3Properties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
-import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 import io.minio.MinioAsyncClient;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
