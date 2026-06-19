@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.TableInitializer;
-import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.ContentEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
@@ -52,7 +51,7 @@ class EncryptedContentStoreAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).hasSingleBean(TableInitializer.class);
                     assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.NONE);
                 });
@@ -84,7 +83,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content.encryption.wrapper.algorithms[0]=none")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                 });
     }
 
@@ -106,7 +105,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                 });
     }
 
@@ -133,7 +132,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                 });
     }
 
@@ -152,7 +151,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withUserConfiguration(CustomEncryptionKeyWrapperConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                 });
     }
 
@@ -162,7 +161,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withUserConfiguration(CustomEncryptionEngineConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                 });
     }
 
@@ -172,7 +171,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withUserConfiguration(CustomEncryptionKeyAccessorConfiguration.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).doesNotHaveBean(TableStorageDataEncryptionKeyAccessor.class);
                 });
     }
@@ -183,7 +182,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=none")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).hasSingleBean(TableStorageDataEncryptionKeyAccessor.class);
                     assertThat(context).hasSingleBean(TableInitializer.class);
                     assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.NONE);
@@ -196,7 +195,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=create")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).hasSingleBean(TableStorageDataEncryptionKeyAccessor.class);
                     assertThat(context).hasSingleBean(TableInitializer.class);
                     assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.CREATE);
@@ -209,7 +208,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=create-drop")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).hasSingleBean(TableStorageDataEncryptionKeyAccessor.class);
                     assertThat(context).hasSingleBean(TableInitializer.class);
                     assertThat(context.getBean(TableInitializer.class).getBootstrap()).isEqualTo(Bootstrap.CREATE_DROP);
@@ -232,7 +231,7 @@ class EncryptedContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content.encryption.bootstrap-tables=create")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(EncryptedContentStore.class);
+                    assertThat(context).hasBean("encryptedContentStoreResolver");
                     assertThat(context).doesNotHaveBean(TableStorageDataEncryptionKeyAccessor.class);
                     assertThat(context).doesNotHaveBean(TableInitializer.class);
                 });

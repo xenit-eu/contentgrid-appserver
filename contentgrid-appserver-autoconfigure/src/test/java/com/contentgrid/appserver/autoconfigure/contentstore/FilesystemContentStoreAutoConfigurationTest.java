@@ -2,7 +2,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,7 +25,7 @@ class FilesystemContentStoreAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                    assertThat(context).doesNotHaveBean(ContentStoreResolver.class);
                 });
     }
 
@@ -35,7 +35,7 @@ class FilesystemContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content-store.type=ephemeral")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasBean("ephemeralContentStore");
+                    assertThat(context).hasBean("ephemeralContentStoreResolver");
                 });
     }
 
@@ -45,7 +45,7 @@ class FilesystemContentStoreAutoConfigurationTest {
                 .withPropertyValues("contentgrid.appserver.content-store.type=unknown")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                    assertThat(context).doesNotHaveBean(ContentStoreResolver.class);
                 });
     }
 
@@ -58,7 +58,7 @@ class FilesystemContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasBean("filesystemContentStore");
+                    assertThat(context).hasBean("filesystemContentStoreResolver");
                 });
     }
 
@@ -72,7 +72,7 @@ class FilesystemContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasBean("filesystemContentStore");
+                    assertThat(context).hasBean("filesystemContentStoreResolver");
                 });
     }
 

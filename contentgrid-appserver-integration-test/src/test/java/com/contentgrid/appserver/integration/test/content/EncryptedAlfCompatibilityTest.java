@@ -13,12 +13,12 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.contentstore.api.ContentAccessor;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.WrappingKeyId;
+import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
@@ -149,8 +149,8 @@ class EncryptedAlfCompatibilityTest {
     private WebTestClient client;
 
     @Autowired
-    @Qualifier("ephemeralContentStore")
-    private ContentStore contentStore;
+    @Qualifier("ephemeralContentStoreResolver")
+    private ContentStoreResolver contentStoreResolver;
 
     @Autowired
     private QueryEngine queryEngine;
@@ -217,8 +217,9 @@ class EncryptedAlfCompatibilityTest {
 
         // write file as stored in Alfresco
         ContentAccessor written;
+        var contentStore = contentStoreResolver.resolve(APPLICATION);
         try (InputStream is = EncryptedAlfCompatibilityTest.class.getResourceAsStream(encryptedResource)) {
-                written = contentStore.writeContent(is);
+            written = contentStore.writeContent(is);
         }
 
         // record content-associated key 

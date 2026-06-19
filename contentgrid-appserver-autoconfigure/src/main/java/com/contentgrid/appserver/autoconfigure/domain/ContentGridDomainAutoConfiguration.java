@@ -2,7 +2,6 @@ package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
@@ -15,6 +14,7 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,14 +54,14 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
-            CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
+    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStoreResolver contentStoreResolver,
+            DomainEventDispatcher dispatcher, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, cursorCodec, clock);
     }
 
     @Bean
-    ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStore contentStore) {
-        return new ContentApiImpl(datamodelApi, contentStore);
+    ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStoreResolver contentStoreResolver) {
+        return new ContentApiImpl(datamodelApi, contentStoreResolver);
     }
 
     @Bean

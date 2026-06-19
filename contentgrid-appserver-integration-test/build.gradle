@@ -17,6 +17,7 @@ dependencies {
 
 
     testImplementation project(':contentgrid-appserver-domain')
+    testImplementation project(':contentgrid-appserver-domain-spi')
     // should not be used for most integration tests, but relevant for encryption compatibility
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))

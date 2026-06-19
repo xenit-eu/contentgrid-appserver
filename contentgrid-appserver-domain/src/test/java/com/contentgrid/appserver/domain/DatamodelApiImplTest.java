@@ -139,7 +139,7 @@ class DatamodelApiImplTest {
     void setup() {
         datamodelApi = new DatamodelApiImpl(
                 queryEngine,
-                contentStore,
+                application -> contentStore,
                 domainEventDispatcher,
                 codec,
                 clock

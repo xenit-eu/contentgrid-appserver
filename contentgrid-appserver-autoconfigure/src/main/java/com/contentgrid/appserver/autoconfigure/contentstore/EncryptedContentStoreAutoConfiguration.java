@@ -3,7 +3,6 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 import com.contentgrid.appserver.autoconfigure.Bootstrap;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineProperties;
 import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperProperties;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AlfrescoCompatibleEncryptionEngine;
@@ -12,6 +11,7 @@ import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptio
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
+import com.contentgrid.appserver.domain.spi.contentstore.resolver.ContentStoreResolver;
 
 import java.util.List;
 import java.util.Set;
@@ -25,7 +25,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -46,7 +45,7 @@ public class EncryptedContentStoreAutoConfiguration {
 
     @Primary
     @Bean
-    ContentStore encryptedContentStore(ContentStore contentStore, DataEncryptionKeyAccessor encryptionKeyAccessor,
+    ContentStoreResolver encryptedContentStoreResolver(ContentStoreResolver contentStoreResolver, DataEncryptionKeyAccessor encryptionKeyAccessor,
             List<DataEncryptionKeyWrapper> encryptionKeyWrappers, List<ContentEncryptionEngine> encryptionEngines,
             EncryptionKeyWrapperProperties encryptionKeyWrapperAlgorithms, EncryptionEngineProperties encryptionEngineProperties) {
         if (encryptionKeyWrappers.isEmpty()) {
@@ -59,7 +58,11 @@ public class EncryptedContentStoreAutoConfiguration {
                     .map(this::contentEncryptionEngineForAlgorithm)
                     .toList();
         }
-        return new EncryptedContentStore(contentStore, encryptionKeyAccessor, encryptionKeyWrappers, encryptionEngines);
+        // Make lists final, so they can be used in lambda function
+        var finalEncryptionKeyWrappers = encryptionKeyWrappers;
+        var finalEncryptionEngines = encryptionEngines;
+        return application -> new EncryptedContentStore(contentStoreResolver.resolve(application),
+                encryptionKeyAccessor, finalEncryptionKeyWrappers, finalEncryptionEngines);
     }
 
     @Bean
