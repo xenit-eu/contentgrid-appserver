@@ -5,6 +5,9 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -71,10 +74,8 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.appserver.content-store.type = ephemeral",
                 "contentgrid.thunx.abac.source = none",
                 "contentgrid.events.rabbitmq.enabled=false",
-                "contentgrid.appserver.content.encryption.enabled=true",
+                "contentgrid.appserver.content.encryption.enabled=true", // TODO: remove line
                 "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
-                "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128_CTR",
-                "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
         })
 class EncryptedAlfCompatibilityTest {
@@ -85,6 +86,12 @@ class EncryptedAlfCompatibilityTest {
 
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))
+            .contentEncryptionConfig(ContentEncryptionConfig.builder()
+                    .enabled(true)
+                    .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                    .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                    .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+                    .build())
             .entity(Entity.builder()
                     .name(EntityName.of("employee"))
                     .table(TableName.of("employee"))
