@@ -19,6 +19,8 @@ dependencies {
     testImplementation project(':contentgrid-appserver-domain')
     // should not be used for most integration tests, but relevant for encryption compatibility
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
+    // should not be used for most integration tests, only for testing data migrations
+    testImplementation 'org.jooq:jooq'
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
 

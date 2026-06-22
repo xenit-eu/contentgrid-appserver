@@ -26,7 +26,7 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
     private static final Field<String> ALGORITHM = field(name(TABLE_NAME, "algorithm"), SQLDataType.VARCHAR);
     private static final Field<byte[]> INITIALIZATION_VECTOR = field(name(TABLE_NAME, "iv"), SQLDataType.BLOB);
 
-    public void setupTables() {
+    static void setupTables(DSLContext dslContext) {
         dslContext.createTableIfNotExists(TABLE_NAME)
             .column(CONTENT_ID)
             .column(KEK_LABEL)
@@ -36,7 +36,7 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
             .execute();
     }
 
-    public void dropTables() {
+    static void dropTables(DSLContext dslContext) {
         dslContext.dropTableIfExists(TABLE_NAME).execute();
     }
     

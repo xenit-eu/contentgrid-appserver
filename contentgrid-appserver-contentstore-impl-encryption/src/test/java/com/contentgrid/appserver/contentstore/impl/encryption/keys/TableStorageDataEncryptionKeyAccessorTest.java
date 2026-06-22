@@ -17,7 +17,7 @@ class TableStorageDataEncryptionKeyAccessorTest extends AbstractDataEncryptionKe
     @Override
     @BeforeEach
     protected void setup() {
-        dataEncryptionKeyAccessor.setupTables();
+        TableStorageDataEncryptionKeyAccessor.setupTables(dslContext);
 
         super.setup();
     }
