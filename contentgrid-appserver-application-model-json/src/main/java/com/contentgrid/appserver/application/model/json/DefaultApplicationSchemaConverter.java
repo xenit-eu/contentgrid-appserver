@@ -2,9 +2,10 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.json.model.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -142,12 +143,19 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 relations.add(relation);
             }
         }
+        List<com.contentgrid.appserver.application.model.settings.ApplicationSettings> applicationSettings = new ArrayList<>();
+        if (schema.getApplicationSettings() != null) {
+            for (ApplicationSettings settings : schema.getApplicationSettings()) {
+                com.contentgrid.appserver.application.model.settings.ApplicationSettings convertedSettings = fromJsonApplicationSettings(settings);
+                applicationSettings.add(convertedSettings);
+            }
+        }
         return Application.builder()
                 .name(ApplicationName.of(
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
-                .contentEncryptionConfig(fromJsonContentEncryption(schema.getContentEncryption()))
+                .applicationSettings(applicationSettings)
                 .build();
     }
 
@@ -161,11 +169,14 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         }
     }
 
-    private ContentEncryptionConfig fromJsonContentEncryption(ContentEncryption json) {
-        if (json == null) {
-            return null;
-        }
-        var builder = ContentEncryptionConfig.builder().enabled(json.isEnabled());
+    private com.contentgrid.appserver.application.model.settings.ApplicationSettings fromJsonApplicationSettings(ApplicationSettings json) {
+        return switch (json) {
+            case ContentEncryption contentEncryption -> fromJsonContentEncryption(contentEncryption);
+        };
+    }
+
+    private ContentEncryptionSettings fromJsonContentEncryption(ContentEncryption json) {
+        var builder = ContentEncryptionSettings.builder();
         if (json.getEncryptionEngineAlgorithms() != null) {
             json.getEncryptionEngineAlgorithms().stream()
                     .map(ContentEncryptionEngineAlgorithm::valueOf)
@@ -484,19 +495,27 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var relations = app.getRelations().stream()
                 .map(this::toJsonRelation)
                 .toList();
+        var applicationSettings = app.getApplicationSettings().stream()
+                .map(this::toJsonApplicationSettings)
+                .toList();
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
         schema.setEntities(entities);
         schema.setRelations(relations);
-        if (app.getContentEncryptionConfig().isEnabled()) {
-            schema.setContentEncryption(toJsonContentEncryption(app.getContentEncryptionConfig()));
-        }
+        schema.setApplicationSettings(applicationSettings);
         return schema;
     }
 
-    private ContentEncryption toJsonContentEncryption(ContentEncryptionConfig config) {
+    private ApplicationSettings toJsonApplicationSettings(
+            com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings) {
+        return switch (applicationSettings) {
+            case ContentEncryptionSettings contentEncryptionSettings -> toJsonContentEncryption(contentEncryptionSettings);
+            default -> throw new IllegalArgumentException("Unknown application settings: " + applicationSettings.getClass().getName());
+        };
+    }
+
+    private ContentEncryption toJsonContentEncryption(ContentEncryptionSettings config) {
         var json = new ContentEncryption();
-        json.setEnabled(config.isEnabled());
         if (!config.getEncryptionEngineAlgorithms().isEmpty()) {
             json.setEncryptionEngineAlgorithms(config.getEncryptionEngineAlgorithms().stream()
                     .map(ContentEncryptionEngineAlgorithm::name)

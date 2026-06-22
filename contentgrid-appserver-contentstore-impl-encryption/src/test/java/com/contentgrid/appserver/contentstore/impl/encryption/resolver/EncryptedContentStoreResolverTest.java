@@ -3,9 +3,9 @@ package com.contentgrid.appserver.contentstore.impl.encryption.resolver;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
@@ -33,7 +33,6 @@ class EncryptedContentStoreResolverTest {
     void resolveWithoutEncryption() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
-                .contentEncryptionConfig(ContentEncryptionConfig.disabled())
                 .build();
 
         assertThat(encryptedContentStoreResolver.resolve(application)).isInstanceOf(MockContentStore.class);
@@ -43,8 +42,7 @@ class EncryptedContentStoreResolverTest {
     void resolveWithEncryption() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
-                .contentEncryptionConfig(ContentEncryptionConfig.builder()
-                        .enabled(true)
+                .applicationSetting(ContentEncryptionSettings.builder()
                         .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
                         .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
                         .build())
@@ -57,8 +55,7 @@ class EncryptedContentStoreResolverTest {
     void resolveWithMultipleEncryptionEngineAlgorithms() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
-                .contentEncryptionConfig(ContentEncryptionConfig.builder()
-                        .enabled(true)
+                .applicationSetting(ContentEncryptionSettings.builder()
                         .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
                         .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES192_CTR)
                         .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)

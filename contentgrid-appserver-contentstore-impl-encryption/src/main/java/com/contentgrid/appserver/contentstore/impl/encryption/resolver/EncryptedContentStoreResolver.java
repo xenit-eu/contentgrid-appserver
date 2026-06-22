@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.contentstore.impl.encryption.resolver;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
@@ -25,14 +26,15 @@ public class EncryptedContentStoreResolver implements ContentStoreResolver {
     public ContentStore resolve(Application application) {
         var contentStore = delegate.resolve(application);
 
-        var encryptionConfig = application.getContentEncryptionConfig();
-        if (!encryptionConfig.isEnabled()) {
+        var maybeEncryptionSettings = application.getApplicationSettings(ContentEncryptionSettings.class);
+        if (maybeEncryptionSettings.isEmpty()) {
             return contentStore;
         }
-        var encryptionEngines = encryptionConfig.getEncryptionEngineAlgorithms().stream()
+        var encryptionSettings = maybeEncryptionSettings.get();
+        var encryptionEngines = encryptionSettings.getEncryptionEngineAlgorithms().stream()
                 .map(this::contentEncryptionEngineForAlgorithm)
                 .toList();
-        var encryptionKeyWrappers = encryptionConfig.getKeyWrapperAlgorithms().stream()
+        var encryptionKeyWrappers = encryptionSettings.getKeyWrapperAlgorithms().stream()
                 .map(this::dataEncryptionKeyWrapperForAlgorithm)
                 .toList();
         var dslContext = dslContextResolver.resolve(application);

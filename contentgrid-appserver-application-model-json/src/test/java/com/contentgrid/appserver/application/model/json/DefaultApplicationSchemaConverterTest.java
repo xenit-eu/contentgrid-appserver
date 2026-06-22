@@ -10,9 +10,9 @@ import static uk.co.datumedge.hamcrest.json.SameJSONAs.sameJSONAs;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -86,7 +86,7 @@ class DefaultApplicationSchemaConverterTest {
     void testConvertSampleApplicationJsonHasDisabledEncryption() throws Exception {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
             Application app = new DefaultApplicationSchemaConverter().convert(is);
-            assertFalse(app.getContentEncryptionConfig().isEnabled());
+            assertTrue(app.getApplicationSettings(ContentEncryptionSettings.class).isEmpty());
         }
     }
 
@@ -99,26 +99,25 @@ class DefaultApplicationSchemaConverterTest {
                     "version": "1.0.0",
                     "entities": [],
                     "relations": [],
-                    "contentEncryption": {
-                        "enabled": true,
+                    "applicationSettings": [ {
+                        "type": "contentEncryption",
                         "encryptionEngineAlgorithms": ["AES256_CTR"],
                         "keyWrapperAlgorithms": ["NONE"]
-                    }
+                    } ]
                 }
                 """;
         var app = new DefaultApplicationSchemaConverter().convert(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
-        var config = app.getContentEncryptionConfig();
-        assertTrue(config.isEnabled());
-        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), config.getEncryptionEngineAlgorithms());
-        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), config.getKeyWrapperAlgorithms());
+        var settings = app.getApplicationSettings(ContentEncryptionSettings.class);
+        assertTrue(settings.isPresent());
+        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.get().getEncryptionEngineAlgorithms());
+        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.get().getKeyWrapperAlgorithms());
     }
 
     @Test
     void testSerializeContentEncryptionEnabled() {
         var app = Application.builder()
                 .name(ApplicationName.of("test"))
-                .contentEncryptionConfig(ContentEncryptionConfig.builder()
-                        .enabled(true)
+                .applicationSetting(ContentEncryptionSettings.builder()
                         .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
                         .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
                         .build())
@@ -135,11 +134,11 @@ class DefaultApplicationSchemaConverterTest {
                     "version": "1.0.0",
                     "entities": [],
                     "relations": [],
-                    "contentEncryption": {
-                        "enabled": true,
+                    "applicationSettings": [ {
+                        "type": "contentEncryption",
                         "encryptionEngineAlgorithms": ["AES256_CTR"],
                         "keyWrapperAlgorithms": ["NONE"]
-                    }
+                    } ]
                 }
                 """));
     }
@@ -297,7 +296,8 @@ class DefaultApplicationSchemaConverterTest {
                                 },
                             "targetReference":"source_ref"
                         }
-                    ]
+                    ],
+                    "applicationSettings": []
                 }
                 """));
     }
@@ -412,7 +412,8 @@ class DefaultApplicationSchemaConverterTest {
                                 },
                             "sourceReference":"target_ref"
                         }
-                    ]
+                    ],
+                    "applicationSettings": []
                 }
                 """));
     }

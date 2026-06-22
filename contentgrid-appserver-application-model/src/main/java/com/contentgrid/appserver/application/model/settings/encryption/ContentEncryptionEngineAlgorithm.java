@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.application.model.contentencryption;
+package com.contentgrid.appserver.application.model.settings.encryption;
 
 public enum ContentEncryptionEngineAlgorithm {
     AES128_CTR,

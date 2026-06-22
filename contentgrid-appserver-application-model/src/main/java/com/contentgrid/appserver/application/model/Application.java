@@ -1,7 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
@@ -64,9 +64,9 @@ public class Application {
      */
     @Builder
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
-            ContentEncryptionConfig contentEncryptionConfig) {
+            @Singular List<ApplicationSettings> applicationSettings) {
         this.name = name;
-        this.contentEncryptionConfig = contentEncryptionConfig != null ? contentEncryptionConfig : ContentEncryptionConfig.disabled();
+        this.applicationSettings = applicationSettings;
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -113,7 +113,7 @@ public class Application {
     ApplicationName name;
 
     @NonNull
-    ContentEncryptionConfig contentEncryptionConfig;
+    List<ApplicationSettings> applicationSettings;
 
     /**
      * Internal map of entities by name.
@@ -129,6 +129,13 @@ public class Application {
      */
     @Getter(AccessLevel.NONE)
     Set<Relation> relations = new LinkedHashSet<>();
+
+    public <T extends ApplicationSettings> Optional<T> getApplicationSettings(Class<T> settingsClass) {
+        return applicationSettings.stream()
+                .filter(settingsClass::isInstance)
+                .map(settingsClass::cast)
+                .findFirst();
+    }
 
     /**
      * Returns an unmodifiable set of relations.

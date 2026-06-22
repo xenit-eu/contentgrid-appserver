@@ -5,9 +5,9 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionConfig;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.contentencryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -85,8 +85,7 @@ class EncryptedAlfCompatibilityTest {
 
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))
-            .contentEncryptionConfig(ContentEncryptionConfig.builder()
-                    .enabled(true)
+            .applicationSetting(ContentEncryptionSettings.builder()
                     .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
                     .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
                     .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
