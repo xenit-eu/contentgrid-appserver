@@ -26,6 +26,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -66,7 +67,12 @@ public class Application {
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
             @Singular List<ApplicationSettings> applicationSettings) {
         this.name = name;
-        this.applicationSettings = applicationSettings;
+        applicationSettings.forEach(settings -> {
+            if (this.applicationSettings.stream().anyMatch(settings.getClass()::isInstance)) {
+                throw new DuplicateElementException("Duplicate application settings of class %s".formatted(settings.getClass().getName()));
+            }
+            this.applicationSettings.add(settings);
+        });
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -113,7 +119,7 @@ public class Application {
     ApplicationName name;
 
     @NonNull
-    List<ApplicationSettings> applicationSettings;
+    List<ApplicationSettings> applicationSettings = new ArrayList<>();
 
     /**
      * Internal map of entities by name.

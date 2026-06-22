@@ -7,12 +7,18 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-@Builder
 public class ContentEncryptionSettings implements ApplicationSettings {
 
-    @Singular
     Set<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms;
 
-    @Singular
     Set<ContentEncryptionKeyWrapperAlgorithm> keyWrapperAlgorithms;
+
+    @Builder
+    private ContentEncryptionSettings(@Singular Set<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms,
+            @Singular Set<ContentEncryptionKeyWrapperAlgorithm> keyWrapperAlgorithms) {
+        this.encryptionEngineAlgorithms = encryptionEngineAlgorithms.isEmpty() ?
+                Set.of(ContentEncryptionEngineAlgorithm.AES128_CTR) : encryptionEngineAlgorithms;
+        this.keyWrapperAlgorithms = keyWrapperAlgorithms.isEmpty() ?
+                Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE) : keyWrapperAlgorithms;
+    }
 }

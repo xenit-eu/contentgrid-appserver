@@ -33,6 +33,9 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -44,6 +47,7 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -576,6 +580,79 @@ class ApplicationTest {
             assertEquals(EntityName.of("entity-" + count), relation.getSourceEndPoint().getEntity());
             count += 1;
         }
+    }
+
+    @Test
+    void application_withContentEncryption() {
+        var application = Application.builder()
+                .name(ApplicationName.of("contentEncryptionApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .applicationSetting(ContentEncryptionSettings.builder()
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
+                        .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                        .build())
+                .build();
+
+        assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
+        var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
+        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.getEncryptionEngineAlgorithms());
+        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
+    }
+
+    @Test
+    void application_withContentEncryptionDefaults() {
+        var application = Application.builder()
+                .name(ApplicationName.of("contentEncryptionApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .applicationSetting(ContentEncryptionSettings.builder()
+                        .build())
+                .build();
+
+        assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
+        var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
+        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES128_CTR), settings.getEncryptionEngineAlgorithms());
+        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
+    }
+
+    @Test
+    void application_withMultipleContentEncryptionEngineAlgorithms() {
+        var application = Application.builder()
+                .name(ApplicationName.of("contentEncryptionApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .applicationSetting(ContentEncryptionSettings.builder()
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                        .build())
+                .build();
+
+        assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
+        var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
+        assertEquals(ContentEncryptionEngineAlgorithm.AES256_CTR,
+                settings.getEncryptionEngineAlgorithms().stream().toList().getFirst());
+        assertEquals(ContentEncryptionEngineAlgorithm.AES128_CTR,
+                settings.getEncryptionEngineAlgorithms().stream().toList().getLast());
+    }
+
+    @Test
+    void application_duplicateContentEncryption() {
+        var builder = Application.builder()
+                .name(ApplicationName.of("duplicateContentEncryptionApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .applicationSetting(ContentEncryptionSettings.builder()
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                        .build())
+                .applicationSetting(ContentEncryptionSettings.builder()
+                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
+                        .build());
+        assertThrows(DuplicateElementException.class, builder::build);
     }
 
     /**
