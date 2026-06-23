@@ -9,8 +9,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "type"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ContentEncryption.class, name = "contentEncryption"),
+        @JsonSubTypes.Type(value = ContentEncryptionSettings.class, name = "contentEncryption"),
 })
-public sealed interface ApplicationSettings permits ContentEncryption {
+public sealed interface ApplicationSettings permits ContentEncryptionSettings {
 
 }

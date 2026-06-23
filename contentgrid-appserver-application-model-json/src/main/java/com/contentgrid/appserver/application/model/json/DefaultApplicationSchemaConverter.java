@@ -3,7 +3,6 @@ package com.contentgrid.appserver.application.model.json;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.json.model.ApplicationSettings;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
@@ -55,7 +54,7 @@ import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonEx
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.application.model.json.model.AllowedValuesConstraint;
-import com.contentgrid.appserver.application.model.json.model.ContentEncryption;
+import com.contentgrid.appserver.application.model.json.model.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.json.model.ApplicationSchema;
 import com.contentgrid.appserver.application.model.json.model.Attribute;
 import com.contentgrid.appserver.application.model.json.model.AttributeConstraint;
@@ -171,12 +170,14 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.settings.ApplicationSettings fromJsonApplicationSettings(ApplicationSettings json) {
         return switch (json) {
-            case ContentEncryption contentEncryption -> fromJsonContentEncryption(contentEncryption);
+            case ContentEncryptionSettings contentEncryptionSettings -> fromJsonContentEncryption(
+                    contentEncryptionSettings);
         };
     }
 
-    private ContentEncryptionSettings fromJsonContentEncryption(ContentEncryption json) {
-        var builder = ContentEncryptionSettings.builder();
+    private com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings fromJsonContentEncryption(
+            ContentEncryptionSettings json) {
+        var builder = com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings.builder();
         if (json.getEncryptionEngineAlgorithms() != null) {
             json.getEncryptionEngineAlgorithms().stream()
                     .map(ContentEncryptionEngineAlgorithm::valueOf)
@@ -509,20 +510,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private ApplicationSettings toJsonApplicationSettings(
             com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings) {
         return switch (applicationSettings) {
-            case ContentEncryptionSettings contentEncryptionSettings -> toJsonContentEncryption(contentEncryptionSettings);
+            case com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings contentEncryptionSettings -> toJsonContentEncryptionSettings(contentEncryptionSettings);
             default -> throw new IllegalArgumentException("Unknown application settings: " + applicationSettings.getClass().getName());
         };
     }
 
-    private ContentEncryption toJsonContentEncryption(ContentEncryptionSettings config) {
-        var json = new ContentEncryption();
-        if (!config.getEncryptionEngineAlgorithms().isEmpty()) {
-            json.setEncryptionEngineAlgorithms(config.getEncryptionEngineAlgorithms().stream()
+    private ContentEncryptionSettings toJsonContentEncryptionSettings(
+            com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings settings) {
+        var json = new ContentEncryptionSettings();
+        if (!settings.getEncryptionEngineAlgorithms().isEmpty()) {
+            json.setEncryptionEngineAlgorithms(settings.getEncryptionEngineAlgorithms().stream()
                     .map(ContentEncryptionEngineAlgorithm::name)
                     .toList());
         }
-        if (!config.getKeyWrapperAlgorithms().isEmpty()) {
-            json.setKeyWrapperAlgorithms(config.getKeyWrapperAlgorithms().stream()
+        if (!settings.getKeyWrapperAlgorithms().isEmpty()) {
+            json.setKeyWrapperAlgorithms(settings.getKeyWrapperAlgorithms().stream()
                     .map(ContentEncryptionKeyWrapperAlgorithm::name)
                     .toList());
         }

@@ -216,7 +216,7 @@
               "type": {
                 "type": "string",
                 "const": "contentEncryption",
-                "description": "The type of the application setting"
+                "description": "The type of application settings"
               },
               "encryptionEngineAlgorithms": {
                 "type": "array",

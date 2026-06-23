@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public final class ContentEncryption implements ApplicationSettings {
+public final class ContentEncryptionSettings implements ApplicationSettings {
 
     private List<String> encryptionEngineAlgorithms;
     private List<String> keyWrapperAlgorithms;

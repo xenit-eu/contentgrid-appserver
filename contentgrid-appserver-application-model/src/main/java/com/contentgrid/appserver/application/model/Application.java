@@ -60,6 +60,7 @@ public class Application {
      * @param name the application name
      * @param entities set of entities within this application
      * @param relations set of relations between entities
+     * @param applicationSettings list of application-specific settings
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
@@ -136,6 +137,12 @@ public class Application {
     @Getter(AccessLevel.NONE)
     Set<Relation> relations = new LinkedHashSet<>();
 
+    /**
+     * Finds the application settings for a given implementation.
+     *
+     * @param settingsClass class that implements {@link ApplicationSettings}
+     * @return an Optional containing the settings if found, or empty if not found
+     */
     public <T extends ApplicationSettings> Optional<T> getApplicationSettings(Class<T> settingsClass) {
         return applicationSettings.stream()
                 .filter(settingsClass::isInstance)
