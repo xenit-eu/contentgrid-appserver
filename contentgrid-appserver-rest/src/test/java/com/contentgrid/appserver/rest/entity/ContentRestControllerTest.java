@@ -21,6 +21,7 @@ import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStor
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
+import org.junit.jupiter.api.AutoClose;
 import tools.jackson.databind.json.JsonMapper;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -75,13 +76,13 @@ class ContentRestControllerTest {
     @MockitoBean
     private ContentStoreResolver contentStoreResolverMock;
 
-    private MockContentStore realContentStore;
+    @AutoClose
+    private final ContentStore realContentStore = new MockContentStore();
     private ContentStore contentStoreSpy;
 
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
-        realContentStore = new MockContentStore();
         contentStoreSpy = Mockito.spy(realContentStore);
         Mockito.when(contentStoreResolverMock.resolve(Mockito.any())).thenReturn(contentStoreSpy);
     }
@@ -89,7 +90,6 @@ class ContentRestControllerTest {
     @AfterEach
     void teardown() {
         tableCreator.dropTables(APPLICATION);
-        realContentStore.close();
     }
 
     private String createCustomer() throws Exception {

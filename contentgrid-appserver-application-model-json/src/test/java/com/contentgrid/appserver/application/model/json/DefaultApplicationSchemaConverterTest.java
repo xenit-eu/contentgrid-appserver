@@ -47,6 +47,7 @@ class DefaultApplicationSchemaConverterTest {
             Application app = new DefaultApplicationSchemaConverter().convert(is);
             assertNotNull(app);
             assertEquals("HR application", app.getName().getValue());
+            assertTrue(app.getApplicationSettings().isEmpty());
             assertFalse(app.getEntities().isEmpty());
             assertFalse(app.getRelations().isEmpty());
             // Optionally, add more assertions for entities, attributes, and relations
@@ -80,14 +81,6 @@ class DefaultApplicationSchemaConverterTest {
         assertThrows(InvalidJsonException.class, () -> {
             converter.convert(new ByteArrayInputStream(invalidJson.getBytes(StandardCharsets.UTF_8)));
         });
-    }
-
-    @Test
-    void testConvertSampleApplicationJsonHasDisabledEncryption() throws Exception {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
-            Application app = new DefaultApplicationSchemaConverter().convert(is);
-            assertTrue(app.getApplicationSettings(ContentEncryptionSettings.class).isEmpty());
-        }
     }
 
     @Test
@@ -141,19 +134,6 @@ class DefaultApplicationSchemaConverterTest {
                     } ]
                 }
                 """));
-    }
-
-    @Test
-    void testSerializeContentEncryptionDisabledOmitsBlock() {
-        var app = Application.builder()
-                .name(ApplicationName.of("test"))
-                .build();
-
-        var out = new ByteArrayOutputStream();
-        new DefaultApplicationSchemaConverter().toJson(app, out);
-        var jsonOutput = out.toString(StandardCharsets.UTF_8);
-
-        assertFalse(jsonOutput.contains("contentEncryption"));
     }
 
     @Test

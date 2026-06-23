@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.settings.encryption.ContentEn
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
@@ -24,7 +25,7 @@ class EncryptedContentStoreResolverTest {
     private final DSLContextResolver dslContextResolver = new AutowiredDSLContextResolver(dslContext);
 
     @AutoClose
-    private final MockContentStore contentStore = new MockContentStore();
+    private final ContentStore contentStore = new MockContentStore();
     private final ContentStoreResolver backingContentStoreResolver = application -> contentStore;
 
     private final ContentStoreResolver encryptedContentStoreResolver = new EncryptedContentStoreResolver(backingContentStoreResolver, dslContextResolver);
