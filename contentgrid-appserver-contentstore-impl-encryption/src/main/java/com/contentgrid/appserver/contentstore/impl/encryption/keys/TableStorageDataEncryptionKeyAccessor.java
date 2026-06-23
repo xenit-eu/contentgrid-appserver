@@ -28,12 +28,13 @@ public class TableStorageDataEncryptionKeyAccessor implements DataEncryptionKeyA
 
     static void setupTables(DSLContext dslContext) {
         dslContext.createTableIfNotExists(TABLE_NAME)
-            .column(CONTENT_ID)
-            .column(KEK_LABEL)
-            .column(ENCRYPTED_DEK)
-            .column(ALGORITHM)
-            .column(INITIALIZATION_VECTOR)
-            .execute();
+                .column(CONTENT_ID)
+                .column(KEK_LABEL)
+                .column(ENCRYPTED_DEK)
+                .column(ALGORITHM)
+                .column(INITIALIZATION_VECTOR)
+                .primaryKey(CONTENT_ID, KEK_LABEL)
+                .execute();
     }
 
     static void dropTables(DSLContext dslContext) {
