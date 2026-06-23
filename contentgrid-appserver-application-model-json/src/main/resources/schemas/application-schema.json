@@ -237,6 +237,20 @@
             }
           },
           "additionalProperties": false
+        },
+        "database": {
+          "type": "object",
+          "description": "Database configuration for this application (only database schema for now).",
+          "properties": {
+            "schema": {
+              "type": "string",
+              "description": "The database schema for this application"
+            }
+          },
+          "required": [
+            "schema"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

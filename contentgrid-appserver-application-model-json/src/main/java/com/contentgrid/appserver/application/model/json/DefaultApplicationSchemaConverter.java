@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.json.model.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
@@ -48,6 +47,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
@@ -56,10 +56,12 @@ import com.contentgrid.appserver.application.model.json.exceptions.UnknownFlagEx
 import com.contentgrid.appserver.application.model.json.model.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.json.model.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.json.model.ApplicationSchema;
+import com.contentgrid.appserver.application.model.json.model.ApplicationSettings;
 import com.contentgrid.appserver.application.model.json.model.Attribute;
 import com.contentgrid.appserver.application.model.json.model.AttributeConstraint;
 import com.contentgrid.appserver.application.model.json.model.CompositeAttribute;
 import com.contentgrid.appserver.application.model.json.model.ContentAttribute;
+import com.contentgrid.appserver.application.model.json.model.DatabaseSettings;
 import com.contentgrid.appserver.application.model.json.model.Entity;
 import com.contentgrid.appserver.application.model.json.model.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.json.model.OneToManyRelation;
@@ -170,6 +172,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         if (json.getContentEncryption() != null) {
             builder.contentEncryption(fromJsonContentEncryption(json.getContentEncryption()));
         }
+        if (json.getDatabase() != null) {
+            builder.database(fromJsonDatabaseSettings(json.getDatabase()));
+        }
         return builder.build();
     }
 
@@ -187,6 +192,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                     .forEach(builder::keyWrapperAlgorithm);
         }
         return builder.build();
+    }
+
+    private com.contentgrid.appserver.application.model.settings.database.DatabaseSettings fromJsonDatabaseSettings(
+            DatabaseSettings json) {
+        return com.contentgrid.appserver.application.model.settings.database.DatabaseSettings.builder()
+                .schema(SchemaName.of(json.getSchema()))
+                .build();
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
@@ -509,6 +521,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         applicationSettings.getContentEncryption()
                 .map(this::toJsonContentEncryptionSettings)
                 .ifPresent(json::setContentEncryption);
+        applicationSettings.getDatabase()
+                .map(this::toJsonDatabaseSettings)
+                .ifPresent(json::setDatabase);
         return json;
     }
 
@@ -527,6 +542,12 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         }
         return json;
     }
+     private DatabaseSettings toJsonDatabaseSettings(
+             com.contentgrid.appserver.application.model.settings.database.DatabaseSettings settings) {
+        var json = new DatabaseSettings();
+        json.setSchema(settings.getSchema().getValue());
+        return json;
+     }
 
     private Entity toJsonEntity(com.contentgrid.appserver.application.model.Entity entity) {
         var jsonEntity = new Entity();

@@ -10,5 +10,6 @@ import lombok.Setter;
 public class ApplicationSettings {
 
     private ContentEncryptionSettings contentEncryption;
+    private DatabaseSettings database;
 
 }
