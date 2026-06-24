@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
@@ -25,6 +26,9 @@ public class JOOQTableCreator implements TableCreator {
     @Override
     public void createTables(Application application) {
         var dslContext = resolver.resolve(application);
+        // Create schema first
+        createSchema(dslContext, application);
+
         for (var entity : application.getEntities()) {
             createTableForEntity(dslContext, entity);
         }
@@ -35,6 +39,24 @@ public class JOOQTableCreator implements TableCreator {
         }
         // Create extensions schema and functions
         createCGPrefixSearchNormalize(dslContext);
+    }
+
+    private void createSchema(DSLContext dslContext, Application application) {
+        application.getSettings().getDatabase().ifPresent(settings -> {
+            if (!SchemaName.PUBLIC.equals(settings.getSchema())) {
+                var schema = DSL.schema(DSL.name(settings.getSchema().getValue()));
+                dslContext.createSchemaIfNotExists(schema).execute();
+            }
+        });
+    }
+
+    private void dropSchema(DSLContext dslContext, Application application) {
+        application.getSettings().getDatabase().ifPresent(settings -> {
+            if (!SchemaName.PUBLIC.equals(settings.getSchema())) {
+                var schema = DSL.schema(DSL.name(settings.getSchema().getValue()));
+                dslContext.dropSchemaIfExists(schema).execute();
+            }
+        });
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -83,6 +105,7 @@ public class JOOQTableCreator implements TableCreator {
 
         // Drop extensions schema and functions
         dropCGPrefixSearchNormalize(dslContext);
+        dropSchema(dslContext, application);
     }
 
     @Allow.PlainSQL

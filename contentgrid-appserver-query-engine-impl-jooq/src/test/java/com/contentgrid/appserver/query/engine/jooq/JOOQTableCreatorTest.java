@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,8 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.relations.flags.RequiredEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -36,6 +39,7 @@ import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
@@ -257,6 +261,22 @@ class JOOQTableCreatorTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private List<String> getSchemas() {
+        return jdbcTemplate.execute((Connection con) -> {
+            List<String> result = new ArrayList<>();
+            DatabaseMetaData metaData = con.getMetaData();
+
+            log.debug("Querying metadata for schemas");
+
+            try (ResultSet columns = metaData.getSchemas()) {
+                while (columns.next()) {
+                    String schema = columns.getString("TABLE_SCHEM");
+                    result.add(schema);
+                }
+            }
+            return result; // Return the list from the callback
+        });
+    }
 
     private List<String> getTables(String dbSchema) {
         // Get all tables for the given schema
@@ -264,9 +284,9 @@ class JOOQTableCreatorTest {
             List<String> result = new ArrayList<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for tables in schema: %s%n", dbSchema);
+            log.debug("Querying metadata for tables in schema: {}", dbSchema);
 
-            try (ResultSet columns = metaData.getTables(null, dbSchema, null, null)) {
+            try (ResultSet columns = metaData.getTables(null, dbSchema, null, new String[]{"TABLE"})) {
                 while (columns.next()) {
                     String table = columns.getString("TABLE_NAME");
                     result.add(table);
@@ -284,7 +304,7 @@ class JOOQTableCreatorTest {
             Map<String, String> columnData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for columns in table: %s.%s%n", dbSchema, tableName);
+            log.debug("Querying metadata for columns in table: {}.{}", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getColumns(null, dbSchema, tableName, null)) {
                 boolean foundColumn = false;
@@ -294,7 +314,7 @@ class JOOQTableCreatorTest {
                     String typeName = columns.getString("TYPE_NAME");
                     int dataType = columns.getInt("DATA_TYPE");
 
-                    log.debug("Found column: %s, DB Type: %s, SQL Type: %d%n",
+                    log.debug("Found column: {}, DB Type: {}, SQL Type: {}",
                             columnName, typeName, dataType);
 
                     // Store details (lowercase key for consistent comparison)
@@ -315,7 +335,7 @@ class JOOQTableCreatorTest {
             Map<String, String> foreignKeyData = new HashMap<>();
             DatabaseMetaData metaData = con.getMetaData();
 
-            log.debug("Querying metadata for foreign keys in table: %s.%s%n", dbSchema, tableName);
+            log.debug("Querying metadata for foreign keys in table: {}.{}", dbSchema, tableName);
 
             try (ResultSet columns = metaData.getImportedKeys(null, dbSchema, tableName)) {
                 while (columns.next()) {
@@ -498,6 +518,55 @@ class JOOQTableCreatorTest {
         // drop tables
         tableCreator.dropTables(application);
         assertTrue(getTables("public").isEmpty());
+    }
+
+    @Test
+    void applicationWithSchema() {
+        var application = Application.builder()
+                .name(ApplicationName.of("test-schema-application"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder()
+                                .schema(SchemaName.of("test"))
+                                .build())
+                        .build())
+                .entity(PERSON)
+                .build();
+
+        // create tables
+        tableCreator.createTables(application);
+
+        assertTrue(getTables("public").isEmpty());
+        var tables = getTables("test");
+        assertEquals(List.of("person"), tables);
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("test").isEmpty());
+        assertFalse(getSchemas().contains("test"));
+    }
+
+    @Test
+    void applicationWithPublicSchema() {
+        var application = Application.builder()
+                .name(ApplicationName.of("public-schema-application"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder()
+                                .schema(SchemaName.PUBLIC)
+                                .build())
+                        .build())
+                .entity(PERSON)
+                .build();
+
+        // create tables
+        tableCreator.createTables(application);
+
+        var tables = getTables("public");
+        assertEquals(List.of("person"), tables);
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
+        assertTrue(getSchemas().contains("public")); // public is not dropped
     }
 
     @Test

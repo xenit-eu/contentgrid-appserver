@@ -27,6 +27,8 @@ import org.springframework.boot.jooq.autoconfigure.ExceptionTranslatorExecuteLis
 import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @AutoConfiguration(after = {ApplicationResolverAutoConfiguration.class}, before = JooqAutoConfiguration.class)
@@ -58,6 +60,7 @@ public class JOOQQueryEngineAutoConfiguration {
     }
 
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
         return new JOOQTableCreator(dslContextResolver);
     }
