@@ -16,9 +16,9 @@ dependencies {
     implementation 'com.fasterxml.uuid:java-uuid-generator'
     runtimeOnly 'org.postgresql:postgresql'
 
-    annotationProcessor "org.jooq:jooq-checker:3.21.5"
-    testAnnotationProcessor "org.jooq:jooq-checker:3.21.5"
-    testFixturesAnnotationProcessor "org.jooq:jooq-checker:3.21.5"
+    annotationProcessor "org.jooq:jooq-checker:3.21.6"
+    testAnnotationProcessor "org.jooq:jooq-checker:3.21.6"
+    testFixturesAnnotationProcessor "org.jooq:jooq-checker:3.21.6"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'
