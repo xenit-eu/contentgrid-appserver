@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyTableCreator;
-import com.contentgrid.appserver.contentstore.impl.encryption.resolver.EncryptedContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
 
 import com.contentgrid.appserver.query.engine.jooq.JOOQQueryEngine;

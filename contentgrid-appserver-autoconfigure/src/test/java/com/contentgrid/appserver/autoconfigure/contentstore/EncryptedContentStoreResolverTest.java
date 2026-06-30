@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.contentstore.impl.encryption.resolver;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,7 +8,7 @@ import com.contentgrid.appserver.application.model.settings.encryption.ContentEn
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;

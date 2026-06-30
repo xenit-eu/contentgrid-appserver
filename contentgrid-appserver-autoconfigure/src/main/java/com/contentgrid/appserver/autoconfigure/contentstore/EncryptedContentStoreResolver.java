@@ -1,11 +1,11 @@
-package com.contentgrid.appserver.contentstore.impl.encryption.resolver;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.AlfrescoCompatibleEncryptionEngine;

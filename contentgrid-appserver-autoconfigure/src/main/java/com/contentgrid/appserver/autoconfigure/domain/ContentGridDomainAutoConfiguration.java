@@ -2,7 +2,7 @@ package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
-import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;

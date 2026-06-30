@@ -16,7 +16,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.contentstore.api.ContentAccessor;
-import com.contentgrid.appserver.contentstore.api.resolver.ContentStoreResolver;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;

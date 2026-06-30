@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.contentstore.api.resolver;
+package com.contentgrid.appserver.domain.content;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
