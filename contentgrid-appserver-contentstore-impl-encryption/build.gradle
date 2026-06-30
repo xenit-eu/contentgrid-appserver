@@ -8,7 +8,6 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-contentstore-api')
     implementation project(':contentgrid-appserver-contentstore-impl-utils')
-    implementation project(':contentgrid-appserver-query-engine-impl-jooq') // for DSLContextResolver
     implementation 'org.jooq:jooq'
 
     testImplementation 'org.assertj:assertj-core'

@@ -1,7 +1,8 @@
-package com.contentgrid.appserver.contentstore.impl.encryption.keys;
+package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
 import lombok.RequiredArgsConstructor;

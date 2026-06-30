@@ -2,7 +2,6 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
-import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyTableCreator;
 
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
