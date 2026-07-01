@@ -1,0 +1,11 @@
+contentgrid:
+  system:
+    policyPackage:
+  thunx:
+    abac:
+      source: opa
+
+opa:
+  service:
+    url: http://localhost:8181
+  query: data.contentgrid.appserver.allow == true
