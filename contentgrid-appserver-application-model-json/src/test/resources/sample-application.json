@@ -760,5 +760,5 @@
       "targetReference": "secret_information_id"
     }
   ],
-  "applicationSettings": []
+  "settings": {}
 }

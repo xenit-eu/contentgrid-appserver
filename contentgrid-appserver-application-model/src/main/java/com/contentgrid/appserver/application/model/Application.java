@@ -26,7 +26,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -60,20 +59,15 @@ public class Application {
      * @param name the application name
      * @param entities set of entities within this application
      * @param relations set of relations between entities
-     * @param applicationSettings list of application-specific settings
+     * @param settings application-specific settings
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
     Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
-            @Singular List<ApplicationSettings> applicationSettings) {
+            ApplicationSettings settings) {
         this.name = name;
-        applicationSettings.forEach(settings -> {
-            if (this.applicationSettings.stream().anyMatch(settings.getClass()::isInstance)) {
-                throw new DuplicateElementException("Duplicate application settings of class %s".formatted(settings.getClass().getName()));
-            }
-            this.applicationSettings.add(settings);
-        });
+        this.settings = settings == null ? ApplicationSettings.builder().build() : settings;
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -120,7 +114,7 @@ public class Application {
     ApplicationName name;
 
     @NonNull
-    List<ApplicationSettings> applicationSettings = new ArrayList<>();
+    ApplicationSettings settings;
 
     /**
      * Internal map of entities by name.
@@ -136,19 +130,6 @@ public class Application {
      */
     @Getter(AccessLevel.NONE)
     Set<Relation> relations = new LinkedHashSet<>();
-
-    /**
-     * Finds the application settings for a given implementation.
-     *
-     * @param settingsClass class that implements {@link ApplicationSettings}
-     * @return an Optional containing the settings if found, or empty if not found
-     */
-    public <T extends ApplicationSettings> Optional<T> getApplicationSettings(Class<T> settingsClass) {
-        return applicationSettings.stream()
-                .filter(settingsClass::isInstance)
-                .map(settingsClass::cast)
-                .findFirst();
-    }
 
     /**
      * Returns an unmodifiable set of relations.

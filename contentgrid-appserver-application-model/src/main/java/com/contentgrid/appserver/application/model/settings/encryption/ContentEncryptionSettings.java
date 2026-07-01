@@ -1,7 +1,6 @@
 package com.contentgrid.appserver.application.model.settings.encryption;
 
 import com.contentgrid.appserver.application.model.exceptions.InvalidSettingsException;
-import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import java.util.List;
 import java.util.Set;
 import lombok.Builder;
@@ -9,7 +8,7 @@ import lombok.Singular;
 import lombok.Value;
 
 @Value
-public class ContentEncryptionSettings implements ApplicationSettings {
+public class ContentEncryptionSettings {
 
     List<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms;
 

@@ -3,7 +3,6 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
@@ -26,7 +25,7 @@ public class EncryptedContentStoreResolver implements ContentStoreResolver {
     public ContentStore resolve(Application application) {
         var contentStore = delegate.resolve(application);
 
-        var maybeEncryptionSettings = application.getApplicationSettings(ContentEncryptionSettings.class);
+        var maybeEncryptionSettings = application.getSettings().getContentEncryption();
         if (maybeEncryptionSettings.isEmpty()) {
             return contentStore;
         }

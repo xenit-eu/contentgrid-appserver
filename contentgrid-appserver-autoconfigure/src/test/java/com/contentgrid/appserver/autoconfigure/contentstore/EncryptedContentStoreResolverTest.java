@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
@@ -43,9 +44,11 @@ class EncryptedContentStoreResolverTest {
     void resolveWithEncryption() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
-                .applicationSetting(ContentEncryptionSettings.builder()
-                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                        .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                .settings(ApplicationSettings.builder()
+                        .contentEncryption(ContentEncryptionSettings.builder()
+                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .build())
                         .build())
                 .build();
 
@@ -56,12 +59,14 @@ class EncryptedContentStoreResolverTest {
     void resolveWithMultipleEncryptionEngineAlgorithms() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
-                .applicationSetting(ContentEncryptionSettings.builder()
-                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES192_CTR)
-                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
-                        .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
-                        .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                .settings(ApplicationSettings.builder()
+                        .contentEncryption(ContentEncryptionSettings.builder()
+                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES192_CTR)
+                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
+                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .build())
                         .build())
                 .build();
 

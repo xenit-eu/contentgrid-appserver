@@ -142,19 +142,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 relations.add(relation);
             }
         }
-        List<com.contentgrid.appserver.application.model.settings.ApplicationSettings> applicationSettings = new ArrayList<>();
-        if (schema.getApplicationSettings() != null) {
-            for (ApplicationSettings settings : schema.getApplicationSettings()) {
-                com.contentgrid.appserver.application.model.settings.ApplicationSettings convertedSettings = fromJsonApplicationSettings(settings);
-                applicationSettings.add(convertedSettings);
-            }
+        com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings = null;
+        if (schema.getSettings() != null) {
+            applicationSettings = fromJsonApplicationSettings(schema.getSettings());
         }
         return Application.builder()
                 .name(ApplicationName.of(
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
-                .applicationSettings(applicationSettings)
+                .settings(applicationSettings)
                 .build();
     }
 
@@ -169,10 +166,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.settings.ApplicationSettings fromJsonApplicationSettings(ApplicationSettings json) {
-        return switch (json) {
-            case ContentEncryptionSettings contentEncryptionSettings -> fromJsonContentEncryption(
-                    contentEncryptionSettings);
-        };
+        var builder = com.contentgrid.appserver.application.model.settings.ApplicationSettings.builder();
+        if (json.getContentEncryption() != null) {
+            builder.contentEncryption(fromJsonContentEncryption(json.getContentEncryption()));
+        }
+        return builder.build();
     }
 
     private com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings fromJsonContentEncryption(
@@ -496,23 +494,22 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var relations = app.getRelations().stream()
                 .map(this::toJsonRelation)
                 .toList();
-        var applicationSettings = app.getApplicationSettings().stream()
-                .map(this::toJsonApplicationSettings)
-                .toList();
+        var applicationSettings = this.toJsonApplicationSettings(app.getSettings());
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
         schema.setEntities(entities);
         schema.setRelations(relations);
-        schema.setApplicationSettings(applicationSettings);
+        schema.setSettings(applicationSettings);
         return schema;
     }
 
     private ApplicationSettings toJsonApplicationSettings(
             com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings) {
-        return switch (applicationSettings) {
-            case com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings contentEncryptionSettings -> toJsonContentEncryptionSettings(contentEncryptionSettings);
-            default -> throw new IllegalArgumentException("Unknown application settings: " + applicationSettings.getClass().getName());
-        };
+        var json = new ApplicationSettings();
+        applicationSettings.getContentEncryption()
+                .map(this::toJsonContentEncryptionSettings)
+                .ifPresent(json::setContentEncryption);
+        return json;
     }
 
     private ContentEncryptionSettings toJsonContentEncryptionSettings(

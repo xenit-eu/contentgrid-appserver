@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
@@ -85,10 +86,12 @@ class EncryptedAlfCompatibilityTest {
 
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))
-            .applicationSetting(ContentEncryptionSettings.builder()
-                    .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
-                    .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                    .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+            .settings(ApplicationSettings.builder()
+                    .contentEncryption(ContentEncryptionSettings.builder()
+                            .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+                            .build())
                     .build())
             .entity(Entity.builder()
                     .name(EntityName.of("employee"))

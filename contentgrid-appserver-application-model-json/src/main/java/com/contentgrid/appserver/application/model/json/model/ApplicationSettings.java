@@ -1,16 +1,14 @@
 package com.contentgrid.appserver.application.model.json.model;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
 
-@JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type"
-)
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = ContentEncryptionSettings.class, name = "contentEncryption"),
-})
-public sealed interface ApplicationSettings permits ContentEncryptionSettings {
+@Getter
+@Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ApplicationSettings {
+
+    private ContentEncryptionSettings contentEncryption;
 
 }
