@@ -23,11 +23,6 @@ dependencyResolutionManagement {
     }
 }
 
-// LOCAL DEV ONLY: substitutes published com.contentgrid.thunx:* artifacts with the local
-// checkout so unreleased thunx changes (thunx-spring-webmvc, WebMvcAbacAutoConfiguration) can
-// be built/tested here. Must be removed before this branch is finalized - CI has no ../thunx checkout.
-includeBuild('../thunx')
-
 rootProject.name = 'contentgrid-appserver'
 
 include 'contentgrid-appserver-application-model'
