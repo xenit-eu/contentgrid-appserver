@@ -1,21 +1,16 @@
 package com.contentgrid.appserver.autoconfigure.security;
 
-import com.contentgrid.appserver.autoconfigure.opa.authorization.AppserverOpaInputProvider;
 import com.contentgrid.appserver.autoconfigure.security.authority.Actor.ActorType;
 import com.contentgrid.appserver.autoconfigure.security.authority.ActorConverter;
 import com.contentgrid.appserver.autoconfigure.security.authority.ClaimUtil;
 import com.contentgrid.appserver.autoconfigure.security.authority.UserGrantedAuthorityConverter;
-import com.contentgrid.thunx.pdp.opa.OpaInputProvider;
-import com.contentgrid.thunx.webmvc.autoconfigure.WebMvcAbacAutoConfiguration;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.function.Predicate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
@@ -23,7 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authorization.AuthorizationManager;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -35,16 +29,9 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 import org.springframework.util.StringUtils;
 
 @AutoConfiguration(before = SecurityAutoConfiguration.class)
-@AutoConfigureBefore(WebMvcAbacAutoConfiguration.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(SecurityFilterChain.class)
 public class DefaultSecurityAutoConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean
-    OpaInputProvider<Authentication, HttpServletRequest> appserverOpaInputProvider() {
-        return new AppserverOpaInputProvider();
-    }
 
     @Bean
     SecurityFilterChain securityFilterChain(
