@@ -47,7 +47,6 @@ import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -597,8 +596,8 @@ class ApplicationTest {
 
         assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
         var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
-        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.getEncryptionEngineAlgorithms());
-        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
+        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.getEncryptionEngineAlgorithms());
+        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
     }
 
     @Test
@@ -614,8 +613,8 @@ class ApplicationTest {
 
         assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
         var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
-        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES128_CTR), settings.getEncryptionEngineAlgorithms());
-        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
+        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES128_CTR), settings.getEncryptionEngineAlgorithms());
+        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
     }
 
     @Test
@@ -634,9 +633,9 @@ class ApplicationTest {
         assertTrue(application.getApplicationSettings(ContentEncryptionSettings.class).isPresent());
         var settings = application.getApplicationSettings(ContentEncryptionSettings.class).orElseThrow();
         assertEquals(ContentEncryptionEngineAlgorithm.AES256_CTR,
-                settings.getEncryptionEngineAlgorithms().stream().toList().getFirst());
+                settings.getEncryptionEngineAlgorithms().getFirst());
         assertEquals(ContentEncryptionEngineAlgorithm.AES128_CTR,
-                settings.getEncryptionEngineAlgorithms().stream().toList().getLast());
+                settings.getEncryptionEngineAlgorithms().getLast());
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.application.model.settings.encryption;
 
+import com.contentgrid.appserver.application.model.exceptions.InvalidSettingsException;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
+import java.util.List;
 import java.util.Set;
 import lombok.Builder;
 import lombok.Singular;
@@ -9,16 +11,19 @@ import lombok.Value;
 @Value
 public class ContentEncryptionSettings implements ApplicationSettings {
 
-    Set<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms;
+    List<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms;
 
-    Set<ContentEncryptionKeyWrapperAlgorithm> keyWrapperAlgorithms;
+    List<ContentEncryptionKeyWrapperAlgorithm> keyWrapperAlgorithms;
 
     @Builder
     private ContentEncryptionSettings(@Singular Set<ContentEncryptionEngineAlgorithm> encryptionEngineAlgorithms,
             @Singular Set<ContentEncryptionKeyWrapperAlgorithm> keyWrapperAlgorithms) {
         this.encryptionEngineAlgorithms = encryptionEngineAlgorithms.isEmpty() ?
-                Set.of(ContentEncryptionEngineAlgorithm.AES128_CTR) : encryptionEngineAlgorithms;
+                List.of(ContentEncryptionEngineAlgorithm.AES128_CTR) : List.copyOf(encryptionEngineAlgorithms);
         this.keyWrapperAlgorithms = keyWrapperAlgorithms.isEmpty() ?
-                Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE) : keyWrapperAlgorithms;
+                List.of(ContentEncryptionKeyWrapperAlgorithm.NONE) : List.copyOf(keyWrapperAlgorithms);
+        if (this.encryptionEngineAlgorithms.getFirst() == ContentEncryptionEngineAlgorithm.ALFRESCO) {
+            throw new InvalidSettingsException("Content encryption algorithm ALFRESCO can't be used for encryption, a different algorithm must be used as first element in the list.");
+        }
     }
 }

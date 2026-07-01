@@ -36,7 +36,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class DefaultApplicationSchemaConverterTest {
@@ -102,8 +101,8 @@ class DefaultApplicationSchemaConverterTest {
         var app = new DefaultApplicationSchemaConverter().convert(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
         var settings = app.getApplicationSettings(ContentEncryptionSettings.class);
         assertTrue(settings.isPresent());
-        assertEquals(Set.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.get().getEncryptionEngineAlgorithms());
-        assertEquals(Set.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.get().getKeyWrapperAlgorithms());
+        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.get().getEncryptionEngineAlgorithms());
+        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.get().getKeyWrapperAlgorithms());
     }
 
     @Test
