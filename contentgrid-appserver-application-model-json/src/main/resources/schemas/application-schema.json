@@ -4,6 +4,10 @@
   "title": "ContentGrid Application Configuration",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The URI of the JSON schema this document conforms to."
+    },
     "applicationName": {
       "type": "string",
       "description": "The name of the application."
@@ -88,7 +92,8 @@
               "required": [
                 "name",
                 "attributePath"
-              ]
+              ],
+              "additionalProperties": false
             }
           }
         },
@@ -242,6 +247,7 @@
     "version",
     "entities"
   ],
+  "additionalProperties": false,
   "$defs": {
     "relationEndPoint": {
       "type": "object",
@@ -280,7 +286,8 @@
       },
       "required": [
         "entityName"
-      ]
+      ],
+      "additionalProperties": false
     },
     "relationEndpointFlag": {
       "type": "string",
@@ -496,7 +503,8 @@
         "name",
         "attributes",
         "type"
-      ]
+      ],
+      "additionalProperties": false
     },
     "contentAttribute": {
       "type": "object",
@@ -632,7 +640,8 @@
               "rel"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "translations": {
@@ -720,7 +729,8 @@
         "name",
         "attributePath",
         "type"
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "fullTextSearchFilter": {
       "type": "object",
@@ -747,7 +757,8 @@
         "attributePath",
         "type",
         "locale"
-      ]
+      ],
+      "unevaluatedProperties": false
     }
   }
 }
