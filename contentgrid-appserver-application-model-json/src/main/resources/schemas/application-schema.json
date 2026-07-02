@@ -204,46 +204,37 @@
         ]
       }
     },
-    "applicationSettings": {
-      "type": "array",
-      "description": "A list of application settings with application-specific configuration",
-      "items": {
-        "anyOf": [
-          {
-            "type": "object",
-            "description": "Content encryption configuration for this application.",
-            "properties": {
-              "type": {
+    "settings": {
+      "type": "object",
+      "description": "Application-specific settings.",
+      "properties": {
+        "contentEncryption": {
+          "type": "object",
+          "description": "Content encryption configuration for this application.",
+          "properties": {
+            "encryptionEngineAlgorithms": {
+              "type": "array",
+              "description": "The content encryption engine algorithms to use. The first algorithm will be used for encryption, the additional algorithms will only be used for decryption. Defaults to [ AES128_CTR ].",
+              "items": {
                 "type": "string",
-                "const": "contentEncryption",
-                "description": "The type of application settings"
+                "enum": ["AES128_CTR", "AES192_CTR", "AES256_CTR", "ALFRESCO"]
               },
-              "encryptionEngineAlgorithms": {
-                "type": "array",
-                "description": "The content encryption engine algorithms to use. The first algorithm will be used for encryption, the additional algorithms will only be used for decryption. Defaults to [ AES128_CTR ].",
-                "items": {
-                  "type": "string",
-                  "enum": ["AES128_CTR", "AES192_CTR", "AES256_CTR", "ALFRESCO"]
-                },
-                "uniqueItems": true
-              },
-              "keyWrapperAlgorithms": {
-                "type": "array",
-                "description": "The key wrapper algorithms to use. Defaults to [ NONE ].",
-                "items": {
-                  "type": "string",
-                  "enum": ["NONE"]
-                },
-                "uniqueItems": true
-              }
+              "uniqueItems": true
             },
-            "required": [
-              "type"
-            ],
-            "additionalProperties": false
-          }
-        ]
-      }
+            "keyWrapperAlgorithms": {
+              "type": "array",
+              "description": "The key wrapper algorithms to use. Defaults to [ NONE ].",
+              "items": {
+                "type": "string",
+                "enum": ["NONE"]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
