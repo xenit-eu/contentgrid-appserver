@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class StringParser {
+class StringParser {
 
     private final String data;
 
